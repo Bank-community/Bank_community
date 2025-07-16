@@ -515,7 +515,7 @@
         </div>
     </div>
     <div class="member-slider" id="memberContainer">
-        <p class="loading-text">Loding...</p>
+        <p class="loading-text">Connecting to database...</p>
     </div>
 </section>
 
@@ -631,53 +631,36 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
 <script>
-// --- SECURE FIREBASE INITIALIZATION ---
-// Yeh function Vercel ke Environment Variables se Firebase keys ko padhega.
-// Isse aapki keys code mein public nahi hongi.
-const getFirebaseConfig = () => {
-    // Vercel in variables ko live environment mein provide karega.
-    // NOTE: Vite/Next.js projects mein `import.meta.env` ka istemal hota hai.
-    // Plain HTML/JS ke liye Vercel inko seedhe expose nahi karta.
-    // Isliye hum Vercel ke "expose" feature ka fayda utha rahe hain.
-    // Iske liye variable ka naam VITE_ se shuru hona zaroori hai.
-    
-    // Yeh ek temporary object hai jo Vercel ke system variables ko access karega
-    // Yeh local development mein kaam nahi karega, sirf Vercel par chalega.
-    const vercelEnv = {
-        apiKey: '%VITE_FIREBASE_API_KEY%',
-        authDomain: '%VITE_FIREBASE_AUTH_DOMAIN%',
-        projectId: '%VITE_FIREBASE_PROJECT_ID%',
-        storageBucket: '%VITE_FIREBASE_STORAGE_BUCKET%',
-        messagingSenderId: '%VITE_FIREBASE_MESSAGING_SENDER_ID%',
-        appId: '%VITE_FIREBASE_APP_ID%'
-    };
-
-    // Check karein ki keys Vercel se mil rahi hain ya nahi
-    if (!vercelEnv.apiKey || vercelEnv.apiKey.startsWith('%VITE_')) {
-        console.error("Firebase keys not found in Vercel Environment Variables. Make sure you have set them up in your Vercel project settings.");
-        // Local testing ke liye yahan fallback de sakte hain, lekin isey GitHub par na daalein
-        // return { apiKey: "LOCAL_API_KEY", ... };
-        return null;
-    }
-    
-    return vercelEnv;
-}
-
 // Global variable for Firestore database
 let db;
 
-const firebaseConfig = getFirebaseConfig();
+// Yeh function page load hone par Firebase ko initialize karega
+async function initializeFirebase() {
+    try {
+        // Apne Vercel serverless function se config fetch karein
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        const firebaseConfig = await response.json();
 
-if (firebaseConfig) {
-    // Firebase ko initialize karein
-    firebase.initializeApp(firebaseConfig);
-    // Firestore database ka reference set karein
-    db = firebase.firestore();
-} else {
-    // Agar configuration nahi mila to error dikhayein
-    const memberContainer = document.getElementById('memberContainer');
-    if(memberContainer) {
-        memberContainer.innerHTML = `<p class="error-text">❌ Firebase configuration not found. The app cannot connect to the database.</p>`;
+        // Check karein ki config aayi hai ya nahi
+        if (firebaseConfig && firebaseConfig.apiKey) {
+            // Firebase ko initialize karein
+            firebase.initializeApp(firebaseConfig);
+            // Firestore database ka reference set karein
+            db = firebase.firestore();
+            // Ab data fetch karna shuru karein
+            fetchMemberDataFromFirebase();
+        } else {
+            throw new Error("Received invalid Firebase config from API.");
+        }
+    } catch (error) {
+        console.error("Failed to initialize Firebase:", error);
+        const memberContainer = document.getElementById('memberContainer');
+        if(memberContainer) {
+            memberContainer.innerHTML = `<p class="error-text">❌ Firebase configuration not found. The app cannot connect to the database.</p>`;
+        }
     }
 }
 
@@ -1193,10 +1176,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Calls ---
     feather.replace();
     setupEventListeners();
-    // Ab hum Firebase se data fetch karenge
-    if (db) {
-        fetchMemberDataFromFirebase();
-    }
+    // Firebase ko initialize karein aur fir data fetch karein
+    initializeFirebase();
     initializeLetterSlider();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
 });
