@@ -159,20 +159,6 @@
         </div>
     </div>
 
-    <div id="likeNameModal" class="modal">
-        <div class="modal-content">
-            <h3>Photo Like Karein</h3>
-            <p style="margin-bottom: 15px; color: var(--light-text-color);">Photo like karne ke liye apna naam chunein.</p>
-            <select id="likerNameSelect" class="modal-select">
-                <option value="">Select Your Name</option>
-            </select>
-            <div class="modal-buttons">
-                <button class="modal-btn secondary" onclick="closeModal(getEl('likeNameModal'))">Cancel</button>
-                <button class="modal-btn primary" id="submitLikeBtn">Save aur Like</button>
-            </div>
-        </div>
-    </div>
-
     <div id="likeHistoryModal" class="modal">
         <div class="modal-content">
             <h3>Inke dwara pasand kiya gaya</h3>
@@ -205,7 +191,7 @@
         lightboxCurrentIndex: 0,
         currentUser: null,
         imgbbApiKey: null,
-        adminUid: 'lux0EG0kg7NUcBFQYfZrGzXP3Qw2' // Admin UID
+        adminUid: 'hWsZo6gONzOOccP7y4GCT4oV93A2' // Your Admin UID
     };
     
     // --- DOM Elements ---
@@ -217,7 +203,6 @@
     const toast = getEl('toast');
     const uploadModal = getEl('uploadModal');
     const lightboxModal = getEl('lightboxModal');
-    const likeNameModal = getEl('likeNameModal');
     const likeHistoryModal = getEl('likeHistoryModal');
     const openUploadModalBtn = getEl('openUploadModalBtn');
     const fileInput = getEl('fileInput');
@@ -225,8 +210,6 @@
     const personNameSelect = getEl('personNameSelect');
     const previewImage = getEl('previewImage');
     const uploadBtn = getEl('uploadBtn');
-    const likerNameSelect = getEl('likerNameSelect');
-    const submitLikeBtn = getEl('submitLikeBtn');
     const likeHistoryList = getEl('likeHistoryList');
     const lightboxImage = getEl('lightboxImage');
     const lightboxActions = getEl('lightboxActions');
@@ -254,30 +237,27 @@
     // --- Main Logic ---
     function renderGallery() {
         displayNames();
-        displayPhotos();
+        const currentFilter = albumsTitle.textContent.includes("'s Photos") ? albumsTitle.textContent.split("'s Photos")[0] : null;
+        displayPhotos(currentFilter);
     }
 
     function displayNames() {
-        const namesMap = new Map();
-        state.allImages.forEach(image => {
-            if (!namesMap.has(image.uploaderName)) {
-                const uploader = state.allMembers.find(m => m.name === image.uploaderName);
-                namesMap.set(image.uploaderName, uploader ? uploader.imageUrl : 'https://i.imgur.com/6aATcZR.jpeg');
-            }
-        });
-        
         nameGrid.innerHTML = '';
-        if (namesMap.size === 0) return;
+        if (state.allMembers.length === 0) return;
 
-        const sortedNames = Array.from(namesMap.keys()).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        // Create a map of members who have uploaded photos
+        const uploaderNames = new Set(state.allImages.map(img => img.uploaderName));
         
-        sortedNames.forEach(name => {
+        // Display only members who have uploaded photos
+        const membersWithPhotos = state.allMembers.filter(member => uploaderNames.has(member.name));
+
+        membersWithPhotos.forEach(member => {
             const nameDiv = document.createElement('div');
             nameDiv.className = 'name-item';
-            nameDiv.onclick = () => filterByName(name);
+            nameDiv.onclick = () => filterByName(member.name);
             nameDiv.innerHTML = `
-                <div class="name-avatar" style="background-image: url(${namesMap.get(name)})"></div>
-                <div class="name-label">${name}</div>`;
+                <div class="name-avatar" style="background-image: url(${member.imageUrl})"></div>
+                <div class="name-label">${member.name}</div>`;
             nameGrid.appendChild(nameDiv);
         });
     }
@@ -415,9 +395,6 @@
         try {
             await firebase.database().ref('gallery/' + imageId).remove();
             showToast('Photo safaltapoorvak delete ho gaya.', 'success');
-            // No need to fetch again, just remove from local state and re-render
-            state.allImages = state.allImages.filter(img => img.id !== imageId);
-            renderGallery();
             closeLightbox();
         } catch (error) {
             showToast('Delete karne mein vifal.', 'error');
@@ -428,21 +405,10 @@
         const likeRef = firebase.database().ref(`gallery/${imageId}/likes/${state.currentUser.uid}`);
         try {
             if (shouldLike) {
-                await likeRef.set(state.currentUser.displayName || "Ek Sadasya");
+                const member = state.allMembers.find(m => m.name === state.currentUser.displayName);
+                await likeRef.set(member ? member.name : state.currentUser.displayName);
             } else {
                 await likeRef.remove();
-            }
-            // Optimistic UI update
-            const image = state.allImages.find(img => img.id === imageId);
-            if (!image.likes) image.likes = {};
-            if(shouldLike) {
-                image.likes[state.currentUser.uid] = true;
-            } else {
-                delete image.likes[state.currentUser.uid];
-            }
-            displayPhotos(albumsTitle.textContent.includes("'s Photos") ? albumsTitle.textContent.split("'s Photos")[0] : null);
-            if (lightboxModal.classList.contains('show')) {
-                updateLightboxImage();
             }
         } catch (error) {
             showToast('Like update karne mein vifal.', 'error');
@@ -466,7 +432,6 @@
 
     // --- Initialization ---
     async function initializePage() {
-        document.body.style.visibility = 'hidden';
         try {
             const [configRes, keyRes] = await Promise.all([
                 fetch('/api/firebase-config'),
@@ -502,28 +467,29 @@
         const membersRef = database.ref('members');
         const galleryRef = database.ref('gallery');
 
-        // Fetch initial data
+        // Fetch initial data for members to populate dropdowns
         membersRef.once('value', (snapshot) => {
             const membersData = snapshot.val();
             const memberNames = new Set();
             const memberDetails = [];
             for (const key in membersData) {
-                const name = membersData[key].name;
-                if(name && !memberNames.has(name)){
-                    memberNames.add(name);
-                    const lastTx = Object.values(membersData[key].transactions || {}).pop();
-                    memberDetails.push({ name, imageUrl: lastTx?.imageUrl || 'https://i.imgur.com/6aATcZR.jpeg' });
+                const member = membersData[key];
+                if(member.name && !memberNames.has(member.name)){
+                    memberNames.add(member.name);
+                    const transactions = Object.values(member.transactions || {});
+                    const lastTxWithImage = transactions.reverse().find(tx => tx.imageUrl);
+                    memberDetails.push({ name: member.name, imageUrl: lastTxWithImage || 'https://i.imgur.com/6aATcZR.jpeg' });
                 }
             }
             state.allMembers = memberDetails.sort((a,b) => a.name.localeCompare(b.name));
             
             // Populate dropdowns
-            personNameSelect.innerHTML = `<option value="">Select Name</option>`;
+            personNameSelect.innerHTML = `<option value="">Select Name</option><option value="Bank">Bank</option>`;
             state.allMembers.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.name;
                 option.textContent = member.name;
-                personNameSelect.appendChild(option);
+                personNameSelect.appendChild(option.cloneNode(true));
             });
         });
         
@@ -560,5 +526,4 @@
     </script>
 </body>
 </html>
-
 
