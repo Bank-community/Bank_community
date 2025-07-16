@@ -191,7 +191,7 @@
         lightboxCurrentIndex: 0,
         currentUser: null,
         imgbbApiKey: null,
-        adminUid: 'hWsZo6gONzOOccP7y4GCT4oV93A2' // Your Admin UID
+        adminUid: 'hWsZo6gONzOOccP7y4GCT4oV93A2'
     };
     
     // --- DOM Elements ---
@@ -245,13 +245,7 @@
         nameGrid.innerHTML = '';
         if (state.allMembers.length === 0) return;
 
-        // Create a map of members who have uploaded photos
-        const uploaderNames = new Set(state.allImages.map(img => img.uploaderName));
-        
-        // Display only members who have uploaded photos
-        const membersWithPhotos = state.allMembers.filter(member => uploaderNames.has(member.name));
-
-        membersWithPhotos.forEach(member => {
+        state.allMembers.forEach(member => {
             const nameDiv = document.createElement('div');
             nameDiv.className = 'name-item';
             nameDiv.onclick = () => filterByName(member.name);
@@ -467,18 +461,23 @@
         const membersRef = database.ref('members');
         const galleryRef = database.ref('gallery');
 
-        // Fetch initial data for members to populate dropdowns
+        // Fetch initial data for members to populate dropdowns and get profile pics
         membersRef.once('value', (snapshot) => {
             const membersData = snapshot.val();
-            const memberNames = new Set();
             const memberDetails = [];
             for (const key in membersData) {
                 const member = membersData[key];
-                if(member.name && !memberNames.has(member.name)){
-                    memberNames.add(member.name);
+                if(member.name){
                     const transactions = Object.values(member.transactions || {});
-                    const lastTxWithImage = transactions.reverse().find(tx => tx.imageUrl);
-                    memberDetails.push({ name: member.name, imageUrl: lastTxWithImage || 'https://i.imgur.com/6aATcZR.jpeg' });
+                    // NEW LOGIC: Find first SIP payment with an image
+                    let profilePic = 'https://i.imgur.com/6aATcZR.jpeg'; // Default image
+                    for(const tx of transactions) {
+                        if(tx['SIP Payment'] > 0 && tx.imageUrl) {
+                            profilePic = tx.imageUrl;
+                            break; // Found the first one, stop searching
+                        }
+                    }
+                    memberDetails.push({ name: member.name, imageUrl: profilePic });
                 }
             }
             state.allMembers = memberDetails.sort((a,b) => a.name.localeCompare(b.name));
@@ -491,6 +490,9 @@
                 option.textContent = member.name;
                 personNameSelect.appendChild(option.cloneNode(true));
             });
+
+            // Now that members are loaded, render the gallery which depends on member data
+            renderGallery();
         });
         
         // Listen for gallery changes in real-time
