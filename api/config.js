@@ -1,7 +1,11 @@
-// File: /api/firebase-config.js
+// File Path: /api/firebase-config.js
 
+// This is a Vercel Serverless Function.
+// It runs on the server, not in the user's browser.
 export default function handler(request, response) {
-  // यह फंक्शन सर्वर पर चलता है, इसलिए process.env यहाँ सुरक्षित है।
+  
+  // process.env securely accesses the Environment Variables you set in the Vercel dashboard.
+  // These values are never exposed to the public.
   const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
     authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -13,6 +17,10 @@ export default function handler(request, response) {
     measurementId: process.env.FIREBASE_MEASUREMENT_ID,
   };
 
-  // कॉन्फ़िगरेशन को JSON के रूप में फ्रंट-एंड पर भेजें।
+  // We send the configuration as a JSON response to the front-end request.
+  // The 'Cache-Control' header tells browsers to cache the config for 10 minutes,
+  // reducing the number of function invocations.
+  response.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate');
   response.status(200).json(firebaseConfig);
 }
+
