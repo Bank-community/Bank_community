@@ -561,28 +561,4 @@
 </body>
 </html>
 
-2. अपडेटेड Firebase Rules
-अपने Firebase Realtime Database के Rules सेक्शन में जाएं और नीचे दिया गया कोड पेस्ट कर दें। यह आपके पुराने members के नियमों को सुरक्षित रखेगा और नए gallery के लिए नियम जोड़ देगा।
-{
-  "rules": {
-    "vars": {
-      "admin": "lux0EG0kg7NUcBFQYfZrGzXP3Qw2"
-    },
-    "members": {
-      ".read": "auth != null",
-      ".write": "auth.uid === get(/vars/admin)"
-    },
-    "gallery": {
-      ".read": "auth != null",
-      "$imageId": {
-        // Naya photo koi bhi login user bana sakta hai
-        ".write": "!data.exists() && auth != null",
-        // Photo ko update (jaise like) koi bhi login user kar sakta hai
-        ".update": "auth != null",
-        // Photo ko delete sirf uploader (24 ghante tak) ya admin kar sakta hai
-        ".delete": "data.child('uploaderUid').val() === auth.uid || auth.uid === get(/vars/admin)"
-      }
-    }
-  }
-}
 
