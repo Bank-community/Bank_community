@@ -237,7 +237,7 @@
     // --- Main Logic ---
     function renderGallery() {
         displayNames();
-        const currentFilter = albumsTitle.textContent.includes("'s Photos") ? albumsTitle.textContent.split("'s Photos")[0] : null;
+        const currentFilter = albumsTitle.textContent.endsWith("'s Photos") ? albumsTitle.textContent.replace("'s Photos", "") : null;
         displayPhotos(currentFilter);
     }
 
@@ -251,7 +251,8 @@
             nameDiv.onclick = () => filterByName(member.name);
             nameDiv.innerHTML = `
                 <div class="name-avatar" style="background-image: url(${member.imageUrl})"></div>
-                <div class="name-label">${member.name}</div>`;
+                <div class="name-label">${member.name.split(' ')[0]}</div>
+            `;
             nameGrid.appendChild(nameDiv);
         });
     }
@@ -265,7 +266,7 @@
         }
         
         photoCount.textContent = `${state.currentlyVisibleImages.length} photo${state.currentlyVisibleImages.length === 1 ? '' : 's'}`;
-        albumsTitle.textContent = filterName ? `${filterName}'s Photos` : 'All Photos';
+        albumsTitle.textContent = filterName ? `${filterName.split(' ')[0]}'s Photos` : 'All Photos';
 
         state.currentlyVisibleImages.forEach((image, index) => {
             const photoDiv = document.createElement('div');
@@ -301,7 +302,7 @@
         document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
         const nameItems = nameGrid.querySelectorAll('.name-item');
         for (let item of nameItems) {
-            if (item.querySelector('.name-label').textContent === name) {
+            if (item.querySelector('.name-label').textContent === name.split(' ')[0]) {
                 item.classList.add('active');
                 break;
             }
@@ -334,7 +335,7 @@
         likeButton.appendChild(createHeartIcon());
         likeButton.append(" Like");
 
-        lightboxActions.innerHTML = `<span class="person-name">${image.uploaderName}</span>`;
+        lightboxActions.innerHTML = `<span class="person-name">${image.uploaderName.split(' ')[0]}</span>`;
         lightboxActions.appendChild(likeButton);
         
         lightboxPrevBtn.style.display = state.currentlyVisibleImages.length > 1 ? 'block' : 'none';
@@ -461,20 +462,18 @@
         const membersRef = database.ref('members');
         const galleryRef = database.ref('gallery');
 
-        // Fetch initial data for members to populate dropdowns and get profile pics
         membersRef.once('value', (snapshot) => {
             const membersData = snapshot.val();
             const memberDetails = [];
             for (const key in membersData) {
                 const member = membersData[key];
                 if(member.name){
-                    const transactions = Object.values(member.transactions || {});
-                    // NEW LOGIC: Find first SIP payment with an image
-                    let profilePic = 'https://i.imgur.com/6aATcZR.jpeg'; // Default image
+                    const transactions = Object.values(member.transactions || {}).sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                    let profilePic = 'https://i.imgur.com/6aATcZR.jpeg';
                     for(const tx of transactions) {
                         if(tx['SIP Payment'] > 0 && tx.imageUrl) {
                             profilePic = tx.imageUrl;
-                            break; // Found the first one, stop searching
+                            break;
                         }
                     }
                     memberDetails.push({ name: member.name, imageUrl: profilePic });
@@ -482,7 +481,6 @@
             }
             state.allMembers = memberDetails.sort((a,b) => a.name.localeCompare(b.name));
             
-            // Populate dropdowns
             personNameSelect.innerHTML = `<option value="">Select Name</option><option value="Bank">Bank</option>`;
             state.allMembers.forEach(member => {
                 const option = document.createElement('option');
@@ -491,18 +489,15 @@
                 personNameSelect.appendChild(option.cloneNode(true));
             });
 
-            // Now that members are loaded, render the gallery which depends on member data
             renderGallery();
         });
         
-        // Listen for gallery changes in real-time
         galleryRef.on('value', (snapshot) => {
             const data = snapshot.val() || {};
             state.allImages = Object.entries(data).map(([id, value]) => ({ id, ...value })).sort((a, b) => b.timestamp - a.timestamp);
             renderGallery();
         });
 
-        // Setup event listeners
         openUploadModalBtn.addEventListener('click', () => openModal(uploadModal));
         uploadBtn.addEventListener('click', handleUpload);
         fileInput.addEventListener('change', (e) => {
