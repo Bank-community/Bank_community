@@ -628,10 +628,11 @@
 
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<!-- UPDATED SCRIPT FOR REALTIME DATABASE -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
 <script>
-// Global variable for Firestore database
+// Global variable for Firebase Realtime Database
 let db;
 
 // Yeh function page load hone par Firebase ko initialize karega
@@ -648,8 +649,8 @@ async function initializeFirebase() {
         if (firebaseConfig && firebaseConfig.apiKey) {
             // Firebase ko initialize karein
             firebase.initializeApp(firebaseConfig);
-            // Firestore database ka reference set karein
-            db = firebase.firestore();
+            // Realtime Database ka reference set karein
+            db = firebase.database();
             // Ab data fetch karna shuru karein
             fetchMemberDataFromFirebase();
         } else {
@@ -734,17 +735,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
-        // Firebase timestamp ko JavaScript Date object mein convert karein
-        const date = dateString.toDate ? dateString.toDate() : new Date(dateString);
+        const date = new Date(dateString);
         if (isNaN(date.getTime())) return "N/A";
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
+    // UPDATED FUNCTION FOR REALTIME DATABASE
     async function fetchMemberDataFromFirebase() {
         if (!memberContainer) return;
-        // Check karein ki 'db' initialize hua hai ya nahi
         if (!db) {
-            console.error("Firestore is not initialized.");
+            console.error("Realtime Database is not initialized.");
             memberContainer.innerHTML = `<p class="error-text">❌ Database connection failed. Check Firebase config.</p>`;
             return;
         }
@@ -752,28 +752,28 @@ document.addEventListener('DOMContentLoaded', () => {
         memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
         
         try {
-            // 'transactions' collection se saare documents fetch karein
-            const snapshot = await db.collection('transactions').get();
+            // Realtime Database se 'transactions' path ka data fetch karein
+            const snapshot = await db.ref('transactions').once('value');
+            const data = snapshot.val();
             
-            if (snapshot.empty) {
-                console.log('No documents found in transactions collection.');
+            if (!data) {
+                console.log('No data found in Realtime Database at path /transactions.');
                 memberContainer.innerHTML = `<p class="error-text">❌ Database mein koi data nahi mila.</p>`;
                 processAndDisplayData([]); // Khaali data ke saath UI update karein
                 return;
             }  
 
-            const transactionsData = [];
-            snapshot.forEach(doc => {
-                // Har document ka data nikaal kar usmein ID bhi jod dein
-                transactionsData.push({ id: doc.id, ...doc.data() });
-            });
+            // Realtime DB data ko object se array mein convert karein
+            const transactionsData = Object.keys(data).map(key => ({
+                id: key,
+                ...data[key]
+            }));
             
-            // Baaki ka process shuru karein
             allTransactions = transactionsData;
             processAndDisplayData(allTransactions);
 
         } catch (error) {
-            console.error('Firebase se data fetch karne mein samasya:', error);
+            console.error('Realtime Database se data fetch karne mein samasya:', error);
             memberContainer.innerHTML = `<p class="error-text">❌ Database se data load karne mein vifal.<br><small>${error.message}</small></p>`;
         }
     }
@@ -784,12 +784,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalLoanDisbursed = 0;
         let totalReturnAmount = 0;
 
-        // Convert Firebase Timestamps to JS Dates
         const processedData = data.map(tx => {
             const entry = {...tx};
-            if (entry.Date && entry.Date.toDate) {
-                entry.Date = entry.Date.toDate();
-            } else if (typeof entry.Date === 'string') {
+            // Realtime DB mein date aam taur par string mein store hoti hai
+            if (typeof entry.Date === 'string') {
                 entry.Date = new Date(entry.Date);
             }
             return entry;
@@ -801,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         netReturnAmount = totalReturnAmount;
 
-        const memberNames = [...new Set(processedData.map(r => r.Name))];
+        const memberNames = [...new Set(processedData.map(r => r.Name).filter(Boolean))];
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
