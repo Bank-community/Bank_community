@@ -11,6 +11,7 @@
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- NEW: Auth SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
@@ -521,7 +522,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // ##################################################################
-    // ## NEW: SECURE FIREBASE INITIALIZATION & ERROR HANDLING ##
+    // ## SECURE FIREBASE INITIALIZATION & AUTHENTICATION ##
     // ##################################################################
     async function initializeAndRunApp() {
         try {
@@ -533,35 +534,41 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
                 throw new Error('Invalid or incomplete configuration received from server.');
             }
+            
+            // Initialize Firebase App
             firebase.initializeApp(firebaseConfig);
-            runMainApp();
+            
+            // Initialize services
+            const auth = firebase.auth();
+            const database = firebase.database();
+
+            // Handle Authentication
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in (anonymously or as admin).
+                    console.log("Authenticated successfully. UID:", user.uid);
+                    // Now that we are authenticated, run the main application logic.
+                    runMainApp(database); // Pass database instance
+                } else {
+                    // No user is signed in, attempt to sign in anonymously.
+                    auth.signInAnonymously().catch(error => {
+                        console.error("Anonymous sign-in failed:", error);
+                        throw new Error("Authentication failed. The app cannot access data.");
+                    });
+                }
+            });
+
         } catch (error) {
-            console.error("FATAL: Could not initialize Firebase.", error);
-            // NEW: Display a full-screen, user-friendly error message
-            document.body.innerHTML = `
-                <div style="padding: 20px; text-align: center; font-family: 'Roboto', sans-serif; background-color: #fff3f3; color: #b71c1c; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box;">
-                    <h1 style="font-size: 22px; margin-bottom: 15px;">वेबसाइट लोड नहीं हो सकी</h1>
-                    <p style="font-size: 16px; color: #333; margin-bottom: 25px;">एक कॉन्फ़िगरेशन समस्या के कारण एप्लिकेशन शुरू करने में विफल रहा।</p>
-                    <div style="text-align: left; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 90%; width: 500px;">
-                        <h2 style="font-size: 16px; color: #1a237e; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">समस्या निवारण (Troubleshooting)</h2>
-                        <p style="font-size: 14px; color: #555; line-height: 1.6;">कृपया निम्नलिखित की जाँच करें:</p>
-                        <ul style="padding-left: 20px; font-size: 14px; color: #555; line-height: 1.7;">
-                            <li><strong>Vercel Environment Variables:</strong> सुनिश्चित करें कि Vercel प्रोजेक्ट सेटिंग्स में सभी <code>FIREBASE_...</code> वेरिएबल्स सही ढंग से सेट हैं।</li>
-                            <li><strong>File Path:</strong> सुनिश्चित करें कि <code>/api/firebase-config.js</code> फ़ाइल सही फ़ोल्डर में मौजूद है।</li>
-                            <li><strong>Deployment Logs:</strong> अपने Vercel डिप्लॉयमेंट लॉग में किसी भी बिल्ड त्रुटि की जाँच करें।</li>
-                        </ul>
-                    </div>
-                    <p style="font-size: 12px; color: #d32f2f; margin-top: 20px; background: #ffebee; padding: 8px 12px; border-radius: 4px;"><strong>Error Details:</strong> ${error.message}</p>
-                </div>
-            `;
+            console.error("FATAL: Could not initialize application.", error);
+            document.body.innerHTML = `<div style="padding: 20px; text-align: center; font-family: 'Roboto', sans-serif; color: #b71c1c; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;"><h1>वेबसाइट लोड नहीं हो सकी</h1><p>डेटाबेस से कनेक्ट करने में एक समस्या हुई।</p><p style="font-size: 12px; color: #d32f2f; margin-top: 20px;">Error: ${error.message}</p></div>`;
         }
     }
     
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (UNCHANGED) ##
+    // ## MAIN APPLICATION LOGIC ##
     // ##################################################################
-    function runMainApp() {
-        const database = firebase.database();
+    function runMainApp(database) {
+        // --- Constants and Variables ---
         const DEFAULT_IMAGE = 'https://i.imgur.com/6aATcZR.jpeg';
         const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/v4zt0f30/20241030-065157.png';
@@ -608,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formatDate = (date) => { if (!(date instanceof Date) || isNaN(date)) return "N/A"; return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
         function calculateProfitDistribution(paymentRecord, allData) { const profit = paymentRecord.ReturnAmount; if (profit <= 0) return null; const payerName = paymentRecord.Name; const userLoansBeforePayment = allData.filter(r => r.Name === payerName && r.Loan > 0 && (r.Date < paymentRecord.Date || (r.Date.getTime() === paymentRecord.Date.getTime() && r.id < paymentRecord.id))); if (userLoansBeforePayment.length === 0) return null; const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1]; const loanDate = relevantLoan.Date; const loanId = relevantLoan.id; const transactionsBeforeLoan = allData.filter(r => r.Date < loanDate || (r.Date.getTime() === loanDate.getTime() && r.id < loanId)); const memberBalances = {}; transactionsBeforeLoan.forEach(r => { memberBalances[r.Name] = (memberBalances[r.Name] || 0) + r.SipPayment + r.Payment - r.Loan; }); const capitalProviders = Object.entries(memberBalances).filter(([_, balance]) => balance > 0); const totalCommunityCapital = capitalProviders.reduce((sum, [, balance]) => sum + balance, 0); if (totalCommunityCapital <= 0) return null; const distribution = capitalProviders.map(([name, balance]) => ({ name, share: (balance / totalCommunityCapital) * profit })); return { distribution }; }
         function calculateTotalProfitForMember(memberName, allData) { let totalProfit = 0; allData.forEach(transaction => { if (transaction.ReturnAmount > 0) { const result = calculateProfitDistribution(transaction, allData); if (result && result.distribution) { const memberShare = result.distribution.find(d => d.name === memberName); if (memberShare) totalProfit += memberShare.share; } } }); return totalProfit; }
-        function fetchMemberDataFromFirebase() { if (!memberContainer) return; memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>'; const membersRef = database.ref('members'); membersRef.once('value', (snapshot) => { const membersData = snapshot.val(); const transactions = []; if (membersData) { for (const memberKey in membersData) { const member = membersData[memberKey]; if (member.transactions) { for (const transactionId in member.transactions) { const tx = member.transactions[transactionId]; const formattedTransaction = { id: transactions.length, Date: new Date(tx.Date), Name: member.name || memberKey, Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0, SipPayment: parseFloat(tx["SIP Payment"]) || 0, ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0, ImageUrl: tx.imageUrl || null }; if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) { transactions.push(formattedTransaction); } } } } } allTransactions = transactions.sort((a, b) => a.Date - b.Date || a.id - b.id); processAndDisplayData(allTransactions); }, (error) => { console.error('Firebase Read Failed:', error); if (memberContainer) { memberContainer.innerHTML = `<p class="error-text">❌ Sadasya data load karne mein vifal.<br><small>${error.message}</small><br>Kripya baad mein prayas karein.</p>`; } }); }
+        function fetchMemberDataFromFirebase() { if (!memberContainer) return; memberContainer.innerHTML = '<p class="loading-text">Connecting to database...</p>'; const membersRef = database.ref('members'); membersRef.once('value', (snapshot) => { const membersData = snapshot.val(); if (!membersData) { throw new Error("Data could not be read. Check database rules and path."); } const transactions = []; for (const memberKey in membersData) { const member = membersData[memberKey]; if (member.transactions) { for (const transactionId in member.transactions) { const tx = member.transactions[transactionId]; const formattedTransaction = { id: transactions.length, Date: new Date(tx.Date), Name: member.name || memberKey, Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0, SipPayment: parseFloat(tx["SIP Payment"]) || 0, ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0, ImageUrl: tx.imageUrl || null }; if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) { transactions.push(formattedTransaction); } } } } allTransactions = transactions.sort((a, b) => a.Date - b.Date || a.id - b.id); processAndDisplayData(allTransactions); }, (error) => { console.error('Firebase Read Failed:', error); if (memberContainer) { memberContainer.innerHTML = `<p class="error-text">❌ डेटा लोड करने में विफल।<br><small>Permission denied. Please check security rules.</small></p>`; } }); }
         function processAndDisplayData(data) { const members = {}; let totalLoanDisbursed = 0; let totalReturnAmount = 0; data.forEach(entry => { totalLoanDisbursed += entry.Loan; totalReturnAmount += entry.ReturnAmount; }); netReturnAmount = totalReturnAmount; const memberNames = [...new Set(data.map(r => r.Name))]; const now = new Date(); const currentMonth = now.getMonth(); const currentYear = now.getFullYear(); memberNames.forEach(name => { const memberData = data.filter(r => r.Name === name); if (memberData.length === 0) return; const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0); const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0); const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0); const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl); const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase()); const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear); members[name] = { name: name, balance: (totalSIP + totalPayment) - totalLoan, totalReturn: calculateTotalProfitForMember(name, data), loanCount: memberData.filter(r => r.Loan > 0).length, joiningDate: memberData.length > 0 ? memberData[0].Date : null, displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE, isPrime: isPrime, sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? currentMonthSip.SipPayment : 0 } }; }); const memberList = Object.values(members).sort((a, b) => b.balance - a.balance); allMembersData = memberList; adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null; adData.topThreeMembers = memberList.slice(0, 3); adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed }; const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear); if (currentMonthSips.length > 0) { const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]); const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name); if (topSipMemberInfo) { adData.topSipMember = { name: topSipMemberInfo.name, amount: topSipTx.SipPayment, imageUrl: topSipMemberInfo.displayImageUrl }; } } displayMembers(memberList); updateTotalBalanceDisplay(memberList); updateInfoCards(memberList.length, totalLoanDisbursed); startHeaderDisplayRotator(); }
         function displayMembers(members) { if (!memberContainer) return; memberContainer.innerHTML = ''; if (members.length === 0) { memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>'; return; } const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; members.forEach((member, index) => { const card = document.createElement('div'); card.className = 'member-card animate-on-scroll'; let rankHTML = ''; if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; } card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`; card.onclick = () => showMemberProfileModal(member); memberContainer.appendChild(card); }); observeElements(memberContainer.querySelectorAll('.animate-on-scroll')); }
         function updateInfoCards(memberCount, totalLoan) { if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount; if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'}); }
