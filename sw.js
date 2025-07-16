@@ -1,35 +1,28 @@
-// --- NEW AND IMPROVED SERVICE WORKER ---
+// --- FINAL AND ROBUST SERVICE WORKER ---
 
-// Step 1: Define a new, unique cache name. Every time you make a big change, change this name (e.g., v3, v4).
-const CACHE_NAME = 'bank-community-cache-v3';
-
-const urlsToCache = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'bank-community-cache-v4'; // Changed to v4 to force update
+const STATIC_ASSETS = [
+  // We will cache static assets that don't change often
   '/login.html',
   '/manifest.json',
   'https://unpkg.com/feather-icons',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
-// Step 2: Install the new service worker and cache new assets.
+// INSTALL: Cache the static assets
 self.addEventListener('install', event => {
   console.log('Service Worker: Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Caching app shell');
-        return cache.addAll(urlsToCache);
+        console.log('Service Worker: Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => {
-        // Force the new service worker to become active immediately.
-        return self.skipWaiting();
-      })
+      .then(() => self.skipWaiting()) // Activate immediately
   );
 });
 
-// Step 3: Activate the new service worker and delete all old caches.
-// This is the most important part for solving your problem.
+// ACTIVATE: Clean up old caches
 self.addEventListener('activate', event => {
   console.log('Service Worker: Activating...');
   event.waitUntil(
@@ -42,20 +35,41 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => {
-        // Take control of all open pages.
-        return self.clients.claim();
-    })
+    }).then(() => self.clients.claim()) // Take control of open pages
   );
 });
 
-// Step 4: Serve assets from cache first, then network.
+// FETCH: Handle requests
 self.addEventListener('fetch', event => {
+  const { request } = event;
+
+  // For HTML pages (like index.html), use Network First strategy.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          // If network is available, use it.
+          return response;
+        })
+        .catch(() => {
+          // If network fails, serve the cached index.html.
+          return caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // For other static assets (CSS, JS, images), use Cache First strategy.
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then(response => {
-        // Return cached response if found, otherwise fetch from network.
-        return response || fetch(event.request);
+        return response || fetch(request).then(fetchResponse => {
+          // Optionally, cache new static assets as they are requested
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        });
       })
   );
 });
