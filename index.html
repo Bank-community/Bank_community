@@ -626,10 +626,65 @@
     <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image">
 </div>
 
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
 <script>
+// --- SECURE FIREBASE INITIALIZATION ---
+// Yeh function Vercel ke Environment Variables se Firebase keys ko padhega.
+// Isse aapki keys code mein public nahi hongi.
+const getFirebaseConfig = () => {
+    // Vercel in variables ko live environment mein provide karega.
+    // NOTE: Vite/Next.js projects mein `import.meta.env` ka istemal hota hai.
+    // Plain HTML/JS ke liye Vercel inko seedhe expose nahi karta.
+    // Isliye hum Vercel ke "expose" feature ka fayda utha rahe hain.
+    // Iske liye variable ka naam VITE_ se shuru hona zaroori hai.
+    
+    // Yeh ek temporary object hai jo Vercel ke system variables ko access karega
+    // Yeh local development mein kaam nahi karega, sirf Vercel par chalega.
+    const vercelEnv = {
+        apiKey: '%VITE_FIREBASE_API_KEY%',
+        authDomain: '%VITE_FIREBASE_AUTH_DOMAIN%',
+        projectId: '%VITE_FIREBASE_PROJECT_ID%',
+        storageBucket: '%VITE_FIREBASE_STORAGE_BUCKET%',
+        messagingSenderId: '%VITE_FIREBASE_MESSAGING_SENDER_ID%',
+        appId: '%VITE_FIREBASE_APP_ID%'
+    };
+
+    // Check karein ki keys Vercel se mil rahi hain ya nahi
+    if (!vercelEnv.apiKey || vercelEnv.apiKey.startsWith('%VITE_')) {
+        console.error("Firebase keys not found in Vercel Environment Variables. Make sure you have set them up in your Vercel project settings.");
+        // Local testing ke liye yahan fallback de sakte hain, lekin isey GitHub par na daalein
+        // return { apiKey: "LOCAL_API_KEY", ... };
+        return null;
+    }
+    
+    return vercelEnv;
+}
+
+// Global variable for Firestore database
+let db;
+
+const firebaseConfig = getFirebaseConfig();
+
+if (firebaseConfig) {
+    // Firebase ko initialize karein
+    firebase.initializeApp(firebaseConfig);
+    // Firestore database ka reference set karein
+    db = firebase.firestore();
+} else {
+    // Agar configuration nahi mila to error dikhayein
+    const memberContainer = document.getElementById('memberContainer');
+    if(memberContainer) {
+        memberContainer.innerHTML = `<p class="error-text">❌ Firebase configuration not found. The app cannot connect to the database.</p>`;
+    }
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- UPDATED SCRIPT SECTION ---
+    // --- MAIN SCRIPT SECTION ---
 
     const DEFAULT_IMAGE = 'https://i.ibb.co/0Vnz4qPn/20250714-183208.png';
     const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
@@ -695,58 +750,93 @@ document.addEventListener('DOMContentLoaded', () => {
     let sipChartInstance = null;
     
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
+        if (!dateString) return "N/A";
+        // Firebase timestamp ko JavaScript Date object mein convert karein
+        const date = dateString.toDate ? dateString.toDate() : new Date(dateString);
         if (isNaN(date.getTime())) return "N/A";
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
-    async function fetchMemberDataFromBackend() {
+    async function fetchMemberDataFromFirebase() {
         if (!memberContainer) return;
+        // Check karein ki 'db' initialize hua hai ya nahi
+        if (!db) {
+            console.error("Firestore is not initialized.");
+            memberContainer.innerHTML = `<p class="error-text">❌ Database connection failed. Check Firebase config.</p>`;
+            return;
+        }
+
         memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
+        
         try {
-            const response = await fetch('/api/getMembers');
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details || 'Backend se data fetch karne mein samasya.');
-            }
-            const data = await response.json();
-            allTransactions = data.transactions.map(tx => ({...tx, Date: new Date(tx.Date)}));
+            // 'transactions' collection se saare documents fetch karein
+            const snapshot = await db.collection('transactions').get();
+            
+            if (snapshot.empty) {
+                console.log('No documents found in transactions collection.');
+                memberContainer.innerHTML = `<p class="error-text">❌ Database mein koi data nahi mila.</p>`;
+                processAndDisplayData([]); // Khaali data ke saath UI update karein
+                return;
+            }  
+
+            const transactionsData = [];
+            snapshot.forEach(doc => {
+                // Har document ka data nikaal kar usmein ID bhi jod dein
+                transactionsData.push({ id: doc.id, ...doc.data() });
+            });
+            
+            // Baaki ka process shuru karein
+            allTransactions = transactionsData;
             processAndDisplayData(allTransactions);
+
         } catch (error) {
-            console.error('Frontend Fetch Failed:', error);
-            memberContainer.innerHTML = `<p class="error-text">❌ Data load karne mein vifal.<br><small>${error.message}</small></p>`;
+            console.error('Firebase se data fetch karne mein samasya:', error);
+            memberContainer.innerHTML = `<p class="error-text">❌ Database se data load karne mein vifal.<br><small>${error.message}</small></p>`;
         }
     }
+
 
     function processAndDisplayData(data) {
         const members = {};
         let totalLoanDisbursed = 0;
         let totalReturnAmount = 0;
 
-        data.forEach(entry => {
-            totalLoanDisbursed += entry.Loan;
-            totalReturnAmount += entry.ReturnAmount;
+        // Convert Firebase Timestamps to JS Dates
+        const processedData = data.map(tx => {
+            const entry = {...tx};
+            if (entry.Date && entry.Date.toDate) {
+                entry.Date = entry.Date.toDate();
+            } else if (typeof entry.Date === 'string') {
+                entry.Date = new Date(entry.Date);
+            }
+            return entry;
+        });
+
+        processedData.forEach(entry => {
+            totalLoanDisbursed += (entry.Loan || 0);
+            totalReturnAmount += (entry.ReturnAmount || 0);
         });
         netReturnAmount = totalReturnAmount;
 
-        const memberNames = [...new Set(data.map(r => r.Name))];
+        const memberNames = [...new Set(processedData.map(r => r.Name))];
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
         memberNames.forEach(name => {
-            const memberData = data.filter(r => r.Name === name);
+            const memberData = processedData.filter(r => r.Name === name);
             if (memberData.length === 0) return;
-            const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0);
-            const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0);
-            const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0);
+            const totalLoan = memberData.reduce((sum, r) => sum + (r.Loan || 0), 0);
+            const totalPayment = memberData.reduce((sum, r) => sum + (r.Payment || 0), 0);
+            const totalSIP = memberData.reduce((sum, r) => sum + (r.SipPayment || 0), 0);
             const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl);
             const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase());
-            const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
+            const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
+            
             members[name] = {
                 name: name, balance: (totalSIP + totalPayment) - totalLoan,
-                totalReturn: 0,
-                loanCount: memberData.filter(r => r.Loan > 0).length,
+                totalReturn: 0, // Iska calculation alag se karna hoga
+                loanCount: memberData.filter(r => (r.Loan || 0) > 0).length,
                 joiningDate: memberData.length > 0 ? memberData[0].Date : null,
                 displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE,
                 isPrime: isPrime,
@@ -760,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
         adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
         adData.topThreeMembers = memberList.slice(0, 3);
         adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
-        const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear);
+        const currentMonthSips = processedData.filter(tx => tx.SipPayment > 0 && tx.Date && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear);
         if (currentMonthSips.length > 0) {
             const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]);
             const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name);
@@ -772,8 +862,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        processTodaysTransactions(data);
-        const monthlySipData = processMonthlySipData(data);
+        processTodaysTransactions(processedData);
+        const monthlySipData = processMonthlySipData(processedData);
 
         displayMembers(memberList);
         updateTotalBalanceDisplay(memberList);
@@ -972,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function processMonthlySipData(transactions) {
         const monthlyData = {};
         transactions.forEach(tx => {
-            if (tx.SipPayment > 0) {
+            if (tx.SipPayment > 0 && tx.Date) {
                 const monthYear = `${tx.Date.toLocaleString('default', { month: 'short' })} '${tx.Date.getFullYear().toString().slice(-2)}`;
                 monthlyData[monthYear] = (monthlyData[monthYear] || 0) + tx.SipPayment;
             }
@@ -1016,6 +1106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         today.setHours(0, 0, 0, 0);
 
         todaysTransactions = transactions.filter(tx => {
+            if (!tx.Date) return false;
             const txDate = new Date(tx.Date);
             txDate.setHours(0, 0, 0, 0);
             return txDate.getTime() === today.getTime() && (tx.SipPayment > 0 || tx.Loan > 0 || tx.Payment > 0);
@@ -1102,7 +1193,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Calls ---
     feather.replace();
     setupEventListeners();
-    fetchMemberDataFromBackend();
+    // Ab hum Firebase se data fetch karenge
+    if (db) {
+        fetchMemberDataFromFirebase();
+    }
     initializeLetterSlider();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
 });
@@ -1110,5 +1204,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
-
 
