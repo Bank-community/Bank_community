@@ -4,313 +4,1165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>बैंक कम्युनिटी लोन</title>
-    <link rel="shortcut icon" href="https://i.postimg.cc/XNpR3cN1/20241030-065157.png" type="image/x-icon">
-    <link rel="apple-touch-icon" href="https://i.ibb.co/8F6snVv/20241030-065157.png" sizes="180x180">
+    
+    <link rel="shortcut icon" href="https://i.ibb.co/0Vnz4qPn/20250714-183208.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/6c5yJVhN/20250714-174036.png" sizes="180x180">
+    
     <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
-        /* All your previous CSS styles go here... They are unchanged. */
-        :root { --primary-color: #007bff; --primary-darker: #0056b3; --secondary-color: #25D366; --secondary-darker: #128C7E; --text-color: #333; --light-text: #555; --bg-color: #f8f9fa; --card-bg: #ffffff; --border-color: #dee2e6; --shadow-color: rgba(0, 0, 0, 0.08); --prime-color: #ffc107; --danger-color: #dc3545; --success-color: #28a745; --info-color: #17a2b8; --animation-duration: 0.6s; --gold-color: #ffd700; --gold-gradient: linear-gradient(145deg, #ffde59, #ffc107); --silver-color: #c0c0c0; --silver-gradient: linear-gradient(145deg, #e0e0e0, #b0b0b0); --bronze-color: #cd7f32; --bronze-gradient: linear-gradient(145deg, #d4a373, #a0522d); }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Roboto', 'Arial', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-color); overflow-x: hidden; line-height: 1.7; }
-        h1, h2, h3, h4, h5, h6 { color: var(--text-color); margin-top: 1.5em; margin-bottom: 0.8em; font-weight: 600; }
-        h2 { text-align: center; color: var(--primary-darker); font-size: 1.8em; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        h2 i { width: 28px; height: 28px; color: var(--primary-color); }
-        p { margin-bottom: 1.2em; color: var(--light-text); }
-        a { color: var(--primary-color); text-decoration: none; transition: color 0.3s ease; }
-        a:hover { color: var(--primary-darker); text-decoration: none; }
-        img { max-width: 100%; height: auto; display: block; }
-        header { background: linear-gradient(135deg, var(--primary-color), var(--primary-darker)); color: white; padding: 20px 0; text-align: center; border-bottom: 5px solid var(--prime-color); }
-        .header-display { width: 100%; max-width: 500px; height: 180px; margin: 0 auto 15px auto; padding: 15px 20px; box-sizing: border-box; overflow: hidden; border-radius: 0px; box-shadow: inset 0 0 15px rgba(0,0,0,0.1), 0 4px 15px rgba(0,0,0,0.2); background: #f5f7fa; color: #333; display: flex; align-items: center; justify-content: center; position: relative; }
-        .ad-content { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; animation: fadeIn 0.8s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .ad-headline { font-size: 1em; font-weight: 600; color: var(--primary-darker); margin-bottom: 10px; }
-        .ad-member-info { display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
-        .ad-member-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); }
-        .ad-member-details { text-align: left; }
-        .ad-member-name { font-size: 1.3em; font-weight: 700; margin: 0; color: var(--text-color); }
-        .ad-member-amount { font-size: 1.1em; font-weight: 500; color: var(--success-color); margin: 5px 0 0 0; }
-        .ad-top-three-container { display: flex; justify-content: space-around; align-items: flex-start; width: 100%; }
-        .ad-top-three-member { text-align: center; flex: 1; }
-        .ad-top-three-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin: 0 auto 5px; border: 2px solid var(--border-color); }
-        .ad-top-three-name { font-size: 0.85em; font-weight: 600; line-height: 1.2; }
-        .ad-top-three-amount { font-size: 0.8em; color: var(--success-color); }
-        .ad-bank-stats-container { display: flex; align-items: center; justify-content: center; gap: 20px; }
-        .ad-bank-logo { width: 80px; height: 80px; }
-        .ad-bank-stats { list-style: none; padding: 0; margin: 0; text-align: left; }
-        .ad-bank-stats li { font-size: 1.1em; font-weight: 500; margin-bottom: 5px; }
-        .ad-bank-stats li strong { color: var(--primary-darker); }
-        .ad-progress-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: var(--prime-color); width: 0; border-radius: 0 0 0 4px; animation: progress-anim 5s linear forwards; }
-        @keyframes progress-anim { from { width: 0%; } to { width: 100%; } }
-        header h1 { color: white; font-size: 2.2em; margin: 15px 0 5px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); font-weight: 700; }
-        header h4 { color: rgba(255, 255, 255, 0.9); margin: 0 0 20px 0; font-weight: 400; font-size: 1em; }
-        .header-actions { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; width: 100%; padding: 0 15px; margin-top: 15px; box-sizing: border-box; }
-        .civil-button { background: var(--prime-color); border-radius: 50px; border: none; text-shadow: none; box-shadow: 0 4px 10px 0px rgba(0,0,0,0.2); padding: 12px 25px; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); font-size: 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
-        .civil-button:hover { box-shadow: 0 6px 15px 0px rgba(0,0,0,0.3); transform: translateY(-2px); background-color: #ffcd39; color: var(--text-color); }
-        .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0 20px; }
-        section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
-        section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
-        .transparency-section p { font-size: 1.1em; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto; }
-        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-top: 25px; }
-        .feature { background: #f1f8ff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #d1e7ff; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .feature:hover { transform: translateY(-5px); box-shadow: 0 6px 12px rgba(0, 123, 255, 0.15); }
-        .feature h3 { color: var(--primary-darker); margin-top: 0; margin-bottom: 15px; font-size: 1.3em; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .feature h3 i { width: 22px; height: 22px; color: var(--primary-color); }
-        .feature p { color: var(--light-text); font-size: 1em; margin-bottom: 0; }
-        .prime-members-section h2 { text-align: center; }
-        .prime-member-list { text-align: center; font-size: 1.15em; line-height: 1.9; }
-        .prime-member-list p { margin-bottom: 8px; color: var(--text-color); font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .prime-icon { color: var(--prime-color); width: 18px; height: 18px; fill: var(--prime-color); }
-        .action-cards-section h2 { text-align: center; margin-bottom: 30px; }
-        .action-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px; }
-        .action-card { background-color: var(--card-bg); border-radius: 10px; padding: 15px 20px; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: var(--primary-color); border: 1px solid var(--border-color); min-height: 90px; overflow: hidden; }
-        .action-card:hover { transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12); text-decoration: none; color: var(--primary-darker); }
-        .action-card-icon { width: 36px; height: 56px; stroke-width: 1.5px; margin-bottom: 12px; color: var(--primary-color); }
-        .action-card:hover .action-card-icon { color: var(--primary-darker); }
-        .action-card-icon-img { width: 40px; height: 40px; margin-bottom: 10px; object-fit: contain; }
-        .action-card span { font-size: 1em; font-weight: 500; line-height: 1.4; margin-top: auto; }
-        .action-card.whatsapp-card { background-color: var(--secondary-color); color: white; border-color: var(--secondary-darker); }
-        .action-card.whatsapp-card:hover { background-color: var(--secondary-darker); color: white; }
-        .action-card.whatsapp-card span { color: white; }
-        .info-card { cursor: default; align-items: center; padding: 20px 15px; border-left: 4px solid var(--info-color); min-height: 140px; }
-        .info-card:hover { transform: none; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); }
-        .info-card .action-card-icon { color: var(--info-color); margin-bottom: 8px; }
-        .info-card:hover .action-card-icon { color: var(--info-color); }
-        .info-card-label { font-size: 0.9em; color: var(--light-text); margin-bottom: 5px; display: block; }
-        .info-card-value { font-size: 1.6em; font-weight: 700; color: var(--primary-darker); display: block; line-height: 1.2; }
-        .total-loan-value { color: var(--danger-color) !important; }
-        @media (min-width: 768px) { .action-cards { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 992px) { .action-cards { grid-template-columns: repeat(4, 1fr); max-width: 900px; margin-left: auto; margin-right: auto; } }
-        @media (min-width: 1200px) { .action-cards { grid-template-columns: repeat(4, 1fr); max-width: 1100px; } }
-        .letter-slider-section h2 { text-align: center; }
-        .slider-container { position: relative; max-width: 1000px; margin: 10px auto; overflow: hidden; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .slides { display: flex; transition: transform 0.5s ease-in-out; }
-        .slide { min-width: 100%; box-sizing: border-box; }
-        .slide img { width: 100%; display: block; border-radius: 8px; cursor: pointer; }
-        .prev, .next { cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%); width: auto; padding: 12px 16px; color: white; font-weight: bold; font-size: 24px; background-color: rgba(0, 0, 0, 0.5); border: none; border-radius: 50%; user-select: none; transition: background-color 0.3s ease; line-height: 1; z-index: 10; }
-        .prev:hover, .next:hover { background-color: rgba(0, 0, 0, 0.8); }
-        .prev { left: 15px; }
-        .next { right: 15px; }
-        .slide-indicator { text-align: center; margin-top: 15px; padding-bottom: 10px; }
-        .indicator-dot { display: inline-block; width: 5px; height: 5px; background-color: #ccc; border-radius: 50%; margin: 0 6px; cursor: pointer; transition: background-color 0.3s ease, transform 0.3s ease; }
-        .indicator-dot.active { background-color: var(--primary-color); transform: scale(1.2); }
-        .bank-members { background: linear-gradient(to bottom, #e0f2f7, #ffffff); padding: 30px 0; width: 100%; box-sizing: border-box; border-bottom: 1px solid var(--border-color); }
-        .header-container { display: flex; justify-content: space-between; align-items: center; padding: 0 25px 20px 25px; flex-wrap: wrap; gap: 15px; max-width: 1140px; margin: 0 auto; }
-        .bank-headline { font-size: 1.8em; font-weight: 700; color: var(--primary-darker); margin: 0; flex-grow: 1; }
-        .view-balance { display: flex; align-items: center; gap: 10px; cursor: pointer; background-color: var(--card-bg); padding: 10px 18px; border-radius: 25px; font-weight: 600; font-size: 1em; box-shadow: 0 3px 8px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease; color: var(--primary-color); border: 1px solid var(--border-color); }
-        .view-balance:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.15); color: var(--primary-darker); }
-        .view-balance img.balance-icon { width: 24px; height: 24px; }
-        .member-slider { display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 20px 25px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--primary-color) #e0f2f7; max-width: 1140px; margin: 0 auto; }
-        .member-slider::-webkit-scrollbar { height: 8px; }
-        .member-slider::-webkit-scrollbar-track { background: #e0f2f7; border-radius: 4px;}
-        .member-slider::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid #e0f2f7; }
-        .member-slider::-webkit-scrollbar-thumb:hover { background-color: var(--primary-darker); }
-        .member-card { position: relative; background-color: var(--card-bg); border-radius: 12px; flex: 0 0 145px; text-align: center; padding: 12px; box-shadow: 0 5px 10px var(--shadow-color); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; cursor: pointer; border: 1px solid var(--border-color); box-sizing: border-box; overflow: hidden; }
-        .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
-        .member-card img { width: 100%; height: 125px; border-radius: 8px; object-fit: cover; margin-bottom: 12px; display: block; background-color: #f0f0f0; transition: transform 0.3s ease; }
-        .member-card:hover img { transform: scale(1.05); }
-        .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
-        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 20px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
-        .prime-tag { position: absolute; top: 120px; right: 12px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
-        .rank-icon { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
-        .member-card.gold, .member-card.silver, .member-card.bronze { border-width: 2px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
-        .member-card.gold { border-color: var(--gold-color); background: #fffbeb; }
-        .member-card.gold .member-name { color: #8c5a00; font-weight: 700; }
-        .member-card.gold .member-balance { background: var(--gold-gradient); color: #4d3200; border: 1px solid rgba(0,0,0,0.1); }
-        .member-card.silver { border-color: var(--silver-color); background: #f8f9fa; }
-        .member-card.silver .member-name { color: #495057; font-weight: 700; }
-        .member-card.silver .member-balance { background: var(--silver-gradient); color: #343a40; border: 1px solid rgba(0,0,0,0.1); }
-        .member-card.bronze { border-color: var(--bronze-color); background: #fff8f0; }
-        .member-card.bronze .member-name { color: #854d0e; font-weight: 700; }
-        .member-card.bronze .member-balance { background: var(--bronze-gradient); color: #fff; border: 1px solid rgba(0,0,0,0.1); }
-        .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
-        .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
-        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); justify-content: center; align-items: center; opacity: 0; transition: opacity 0.4s ease; }
-        .modal.show { display: flex; opacity: 1; }
-        .modal-content { background-color: var(--card-bg); padding: 25px 30px; border-radius: 15px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3); position: relative; transform: scale(0.9) translateY(20px); transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), border-color 0.3s ease; }
-        .modal.show .modal-content { transform: scale(1) translateY(0); }
-        .modal-content h2 { margin-top: 0; margin-bottom: 20px; color: var(--primary-darker); font-size: 1.5em; }
-        .close { position: absolute; top: 15px; right: 15px; color: #aaa; font-size: 35px; font-weight: bold; cursor: pointer; line-height: 1; transition: color 0.3s ease, transform 0.3s ease; }
-        .close:hover, .close:focus { color: var(--danger-color); transform: rotate(90deg); text-decoration: none; }
-        .balance-display { font-size: 2.8em; font-weight: 700; margin: 10px 0 0 0; color: var(--success-color); display: block; line-height: 1.1; font-family: 'Arial', sans-serif; }
-        .balance-label { font-size: 0.9em; color: var(--light-text); display: block; margin-top: 2px; }
-        .balance-display.return { color: var(--info-color); font-size: 2.2em; }
-        .balance-display.total { color: var(--primary-darker); font-size: 3.2em; }
-        #memberProfileModal .modal-content { text-align: left; padding-top: 80px; margin-top: 40px; border-top: 5px solid var(--primary-color); }
-        .profile-modal-header { position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 120px; height: 120px; border-radius: 50%; border: 5px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); overflow: hidden; background-color: #eee; cursor: pointer; transition: transform 0.2s ease, border-color 0.3s ease; }
-        .profile-modal-header:hover { transform: translateX(-50%) scale(1.05); }
-        .profile-modal-header img { width: 100%; height: 100%; object-fit: cover; }
-        #profileModalName { text-align: center; font-size: 1.6em; margin-bottom: 25px; color: var(--primary-darker); font-weight: 600; }
-        .profile-stats-list { list-style: none; padding: 0; margin: 0; }
-        .profile-stats-list li { display: flex; justify-content: space-between; align-items: center; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
-        .profile-stats-list li:last-child { border-bottom: none; }
-        .profile-stats-list .stat-label { font-weight: 500; color: var(--light-text); display: flex; align-items: center; gap: 10px; }
-        .profile-stats-list .stat-label i { width: 18px; height: 18px; stroke-width: 2; }
-        .profile-stats-list .stat-value { font-weight: 700; font-size: 1.1em; color: var(--text-color); display: flex; align-items: center; gap: 8px; }
-        .stat-value.positive { color: var(--success-color); }
-        .stat-value.negative { color: var(--danger-color); }
-        .stat-value.info { color: var(--info-color); }
-        .sip-status-icon { font-size: 1.2em; }
-        .sip-status-icon.paid { color: var(--success-color); }
-        .sip-status-icon.not-paid { color: var(--danger-color); }
-        .sip-status-text { font-size: 0.9em; font-weight: 500; }
-        #memberProfileModal.prime-modal .modal-content { border-top-color: var(--prime-color); background: linear-gradient(to bottom, #fff, #fffef5); }
-        #memberProfileModal.prime-modal .profile-modal-header { border-color: var(--prime-color); }
-        .profile-modal-prime-tag { display: none; position: absolute; top: 85px; right: 20px; background: var(--prime-color); color: var(--text-color); padding: 5px 10px; border-radius: 6px; font-size: 0.8em; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .sip-status-list { list-style: none; padding: 0; margin-top: 20px; max-height: 60vh; overflow-y: auto; text-align: left; }
-        .sip-status-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; }
-        .sip-status-item:hover { background-color: #f8f9fa; }
-        .sip-status-item:last-child { border-bottom: none; }
-        .sip-status-item img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid var(--border-color); }
-        .sip-status-name { font-weight: 500; flex-grow: 1; color: var(--text-color); }
-        .sip-status-badge { padding: 5px 12px; border-radius: 15px; font-size: 0.85em; font-weight: bold; color: white; min-width: 80px; text-align: center; }
-        .sip-status-badge.paid { background-color: var(--success-color); }
-        .sip-status-badge.not-paid { background-color: var(--danger-color); }
-        footer { background-color: #343a40; color: #f8f9fa; padding: 25px 15px; margin-top: 50px; font-size: 0.95em; text-align: center; border-top: 5px solid var(--primary-color); }
-        footer p { color: #f8f9fa; margin: 0; }
-        .image-modal-overlay { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.92); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); justify-content: center; align-items: center; cursor: pointer; padding: 20px; box-sizing: border-box; opacity: 0; transition: opacity 0.4s ease; }
-        .image-modal-overlay.show { display: flex; opacity: 1; }
-        .image-modal-content { max-width: 100%; max-height: 85%; object-fit: contain; display: block; border: 5px solid white; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.6); transform: scale(0.8); transition: transform 0.4s ease; }
-        .image-modal-overlay.show .image-modal-content { transform: scale(1); }
-        .image-modal-close { position: absolute; top: 25px; right: 35px; color: #ccc; font-size: 45px; font-weight: bold; cursor: pointer; transition: color 0.3s ease, transform 0.3s ease; z-index: 1003; }
-        .image-modal-close:hover { color: #fff; transform: scale(1.1); }
-        .animate-on-scroll { opacity: 0; transform: translateY(40px); transition: opacity var(--animation-duration) ease-out, transform var(--animation-duration) ease-out; }
-        .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
-        @media (min-width: 576px) { header h1 { font-size: 2.4em; } .member-card { flex: 0 0 200px; } h2 { font-size: 1.9em; } }
-        @media (min-width: 768px) { header h1 { font-size: 2.6em; } .features { grid-template-columns: repeat(2, 1fr); } .member-card { flex: 0 0 210px; } h2 { font-size: 2em; } }
-        @media (min-width: 992px) { .features { grid-template-columns: repeat(4, 1fr); } .member-card { flex: 0 0 220px; } .balance-display { font-size: 3.2em; } h2 { font-size: 2.1em; } }
-        @media (min-width: 1200px) { .content-wrapper, .header-container, .member-slider { max-width: 1140px; } .member-card { flex: 0 0 230px; } h2 { font-size: 2.2em; } }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    /* --- General Styles --- */
+    :root {
+        --primary-color: #007bff;
+        --primary-darker: #0056b3;
+        --secondary-color: #25D366; /* WhatsApp Green */
+        --secondary-darker: #128C7E;
+        --text-color: #333;
+        --light-text: #555;
+        --bg-color: #f8f9fa;
+        --card-bg: #ffffff;
+        --border-color: #dee2e6;
+        --shadow-color: rgba(0, 0, 0, 0.08);
+        --prime-color: #ffc107; /* Prime Gold */
+        --danger-color: #dc3545;
+        --success-color: #28a745;
+        --info-color: #17a2b8;
+        --animation-duration: 0.6s;
+        
+        --gold-color: #ffd700;
+        --gold-gradient: linear-gradient(145deg, #ffde59, #ffc107);
+        --silver-color: #c0c0c0;
+        --silver-gradient: linear-gradient(145deg, #e0e0e0, #b0b0b0);
+        --bronze-color: #cd7f32;
+        --bronze-gradient: linear-gradient(145deg, #d4a373, #a0522d);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        font-family: 'Roboto', 'Arial', sans-serif;
+        background-color: var(--bg-color);
+        margin: 0;
+        padding: 0;
+        color: var(--text-color);
+        overflow-x: hidden;
+        line-height: 1.7;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--text-color);
+        margin-top: 1.5em;
+        margin-bottom: 0.8em;
+        font-weight: 600;
+    }
+
+    h2 {
+        text-align: center;
+        color: var(--primary-darker);
+        font-size: 1.8em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    h2 i { width: 28px; height: 28px; color: var(--primary-color); }
+    p { margin-bottom: 1.2em; color: var(--light-text); }
+    a { color: var(--primary-color); text-decoration: none; transition: color 0.3s ease; }
+    a:hover { color: var(--primary-darker); text-decoration: none; }
+    img { max-width: 100%; height: auto; display: block; }
+
+    /* --- Header --- */
+    header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-darker));
+        color: white;
+        padding: 20px 0;
+        text-align: center;
+        border-bottom: 5px solid var(--prime-color);
+    }
+
+    /* --- NEW REALISTIC DISPLAY STYLES --- */
+    .header-display {
+        width: 100%;
+        max-width: 500px;
+        height: 180px; /* Fixed height as requested */
+        margin: 0 auto 15px auto;
+        padding: 12px; /* Bezel thickness */
+        box-sizing: border-box;
+        border-radius: 20px; /* Outer roundness */
+        background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.6);
+        position: relative;
+    }
+    
+    .ad-content {
+        background-color: #000;
+        border-radius: 10px;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.75);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-evenly;
+        padding: 10px;
+        box-sizing: border-box;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+    
+    .ad-content::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.02) 2px, rgba(255, 255, 255, 0.02) 4px);
+        opacity: 0.5;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .ad-content::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12), transparent 70%);
+        border-radius: 10px;
+        pointer-events: none;
+        z-index: 3;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ad-headline {
+        font-size: 1em;
+        font-weight: 600;
+        color: #e5e5e5;
+        margin-bottom: 5px;
+        z-index: 2;
+        position: relative;
+    }
+
+    .ad-member-info, .ad-top-three-container, .ad-bank-stats-container { 
+        z-index: 2; 
+        position: relative;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 15px; 
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .ad-top-three-container { 
+        justify-content: space-around; 
+        align-items: flex-start; 
+    }
+    
+    .ad-member-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #4b5563; }
+    .ad-member-details { text-align: left; }
+    .ad-member-name { font-size: 1.3em; font-weight: 700; margin: 0; color: #f0f0f0; }
+    .ad-member-amount { font-size: 1.1em; font-weight: 500; color: #34d399; margin: 5px 0 0 0; text-shadow: 0 0 8px rgba(52, 211, 153, 0.5); }
+    
+    .ad-top-three-member { text-align: center; flex: 1; }
+    .ad-top-three-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin: 0 auto 5px; border: 2px solid #4b5563; }
+    
+    .ad-top-three-name { font-size: 0.85em; font-weight: 600; line-height: 1.2; color: #d1d5db; margin: 0 0 4px 0; }
+    .ad-top-three-amount { font-size: 0.8em; color: #34d399; margin: 0; }
+
+    .ad-bank-logo { width: 70px; height: 70px; }
+    .ad-bank-stats { list-style: none; padding: 0; margin: 0; text-align: left; }
+    .ad-bank-stats li { font-size: 1em; font-weight: 500; margin-bottom: 5px; color: #d1d5db;}
+    .ad-bank-stats li strong { color: #93c5fd; }
+
+    .ad-progress-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 4px;
+        background: var(--danger-color);
+        width: 0;
+        border-radius: 0 0 10px 10px;
+        animation: progress-anim 6s linear forwards;
+        z-index: 4;
+    }
+    @keyframes progress-anim {
+        from { width: 0%; }
+        to { width: 100%; }
+    }
+    
+    header h1 {
+        color: white;
+        font-size: 2.2em;
+        margin: 15px 0 5px 0;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+        font-weight: 700;
+    }
+
+    header h4 {
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0 0 20px 0;
+        font-weight: 400;
+        font-size: 1em;
+    }
+
+    .header-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 0 15px;
+        margin-top: 15px;
+        box-sizing: border-box;
+    }
+    .header-actions-row {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        width: 100%;
+    }
+
+    .civil-button {
+        background: var(--prime-color);
+        border-radius: 50px;
+        border: none;
+        text-shadow: none;
+        box-shadow: 0 4px 10px 0px rgba(0,0,0,0.2);
+        padding: 12px 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: var(--text-color);
+        font-size: 1em;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        flex-grow: 1;
+        max-width: 180px;
+    }
+    
+    .notification-btn {
+        position: relative;
+        background: var(--prime-color);
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-size: 1.5em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: var(--text-color);
+        line-height: 1;
+    }
+    .notification-dot {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        width: 10px;
+        height: 10px;
+        background-color: var(--danger-color);
+        border-radius: 50%;
+        border: 2px solid var(--prime-color);
+        display: none;
+    }
+
+    .civil-button:hover, .notification-btn:hover {
+        box-shadow: 0 6px 15px 0px rgba(0,0,0,0.3);
+        transform: translateY(-2px);
+        background-color: #ffcd39;
+        color: var(--text-color);
+    }
+    
+    .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0 20px; }
+    section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
+    section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
+    .transparency-section p { font-size: 1.1em; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto; }
+    
+    .info-slider-section {
+        background: none;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+    .info-slider-container {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding: 20px 25px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .info-slider-container::-webkit-scrollbar { display: none; }
+
+    .info-card-slide {
+        flex: 0 0 280px;
+        background: #f1f8ff;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        border: 1px solid #d1e7ff;
+        box-shadow: 0 4px 10px var(--shadow-color);
+    }
+    .info-card-slide.prime {
+        background: linear-gradient(145deg, #fffbeb, #fff9d1);
+        border-color: var(--prime-color);
+    }
+    .info-card-slide h3 { color: var(--primary-darker); margin-top: 0; margin-bottom: 15px; font-size: 1.3em; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .info-card-slide h3 i { width: 22px; height: 22px; color: var(--primary-color); }
+    .info-card-slide.prime h3 { color: #8c5a00; }
+    .info-card-slide.prime h3 i { color: var(--prime-color); fill: var(--prime-color); }
+    .info-card-slide p { color: var(--light-text); font-size: 1em; margin-bottom: 0; }
+    
+    .action-cards-section h2 { text-align: center; margin-bottom: 30px; }
+    .action-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px; }
+    .action-card { background-color: var(--card-bg); border-radius: 10px; padding: 15px 20px; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: var(--primary-color); border: 1px solid var(--border-color); min-height: 90px; overflow: hidden; }
+    .action-card:hover { transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12); text-decoration: none; color: var(--primary-darker); }
+    .action-card-icon { width: 36px; height: 56px; stroke-width: 1.5px; margin-bottom: 12px; color: var(--primary-color); }
+    .action-card:hover .action-card-icon { color: var(--primary-darker); }
+    .action-card-icon-img { width: 40px; height: 40px; margin-bottom: 10px; object-fit: contain; }
+    .action-card span { font-size: 1em; font-weight: 500; line-height: 1.4; margin-top: auto; }
+    .action-card.whatsapp-card { background-color: var(--secondary-color); color: white; border-color: var(--secondary-darker); }
+    .action-card.whatsapp-card:hover { background-color: var(--secondary-darker); color: white; }
+    .action-card.whatsapp-card span { color: white; }
+    .info-card { cursor: default; align-items: center; padding: 20px 15px; border-left: 4px solid var(--info-color); min-height: 140px; }
+    .info-card:hover { transform: none; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); }
+    .info-card .action-card-icon { color: var(--info-color); margin-bottom: 8px; }
+    .info-card:hover .action-card-icon { color: var(--info-color); }
+    .info-card-label { font-size: 0.9em; color: var(--light-text); margin-bottom: 5px; display: block; }
+    .info-card-value { font-size: 1.6em; font-weight: 700; color: var(--primary-darker); display: block; line-height: 1.2; }
+    .total-loan-value { color: var(--danger-color) !important; }
+
+    @media (min-width: 768px) { .action-cards { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 992px) { .action-cards { grid-template-columns: repeat(4, 1fr); max-width: 900px; margin-left: auto; margin-right: auto; } }
+    @media (min-width: 1200px) { .action-cards { grid-template-columns: repeat(4, 1fr); max-width: 1100px; } }
+
+    .letter-slider-section h2 { text-align: center; }
+    .slider-container { position: relative; max-width: 1000px; margin: 10px auto; overflow: hidden; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .slides { display: flex; transition: transform 0.5s ease-in-out; }
+    .slide { min-width: 100%; box-sizing: border-box; }
+    .slide img { width: 100%; display: block; border-radius: 8px; cursor: pointer; }
+    .prev, .next { cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%); width: auto; padding: 12px 16px; color: white; font-weight: bold; font-size: 24px; background-color: rgba(0, 0, 0, 0.5); border: none; border-radius: 50%; user-select: none; transition: background-color 0.3s ease; line-height: 1; z-index: 10; }
+    .prev:hover, .next:hover { background-color: rgba(0, 0, 0, 0.8); }
+    .prev { left: 15px; }
+    .next { right: 15px; }
+    .slide-indicator { text-align: center; margin-top: 15px; padding-bottom: 10px; }
+    .indicator-dot { display: inline-block; width: 5px; height: 5px; background-color: #ccc; border-radius: 50%; margin: 0 6px; cursor: pointer; transition: background-color 0.3s ease, transform 0.3s ease; }
+    .indicator-dot.active { background-color: var(--primary-color); transform: scale(1.2); }
+
+    .bank-members { background: linear-gradient(to bottom, #e0f2f7, #ffffff); padding: 30px 0; width: 100%; box-sizing: border-box; border-bottom: 1px solid var(--border-color); }
+    .header-container { display: flex; justify-content: space-between; align-items: center; padding: 0 25px 20px 25px; flex-wrap: wrap; gap: 15px; max-width: 1140px; margin: 0 auto; }
+    .bank-headline { font-size: 1.8em; font-weight: 700; color: var(--primary-darker); margin: 0; flex-grow: 1; }
+    .view-balance { display: flex; align-items: center; gap: 10px; cursor: pointer; background-color: var(--card-bg); padding: 10px 18px; border-radius: 25px; font-weight: 600; font-size: 1em; box-shadow: 0 3px 8px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease; color: var(--primary-color); border: 1px solid var(--border-color); }
+    .view-balance:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.15); color: var(--primary-darker); }
+    .view-balance img.balance-icon { width: 24px; height: 24px; }
+    .member-slider { display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 20px 25px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--primary-color) #e0f2f7; max-width: 1140px; margin: 0 auto; }
+    .member-slider::-webkit-scrollbar { height: 8px; }
+    .member-slider::-webkit-scrollbar-track { background: #e0f2f7; border-radius: 4px;}
+    .member-slider::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid #e0f2f7; }
+    .member-slider::-webkit-scrollbar-thumb:hover { background-color: var(--primary-darker); }
+
+    .member-card { position: relative; background-color: var(--card-bg); border-radius: 12px; flex: 0 0 145px; text-align: center; padding: 12px; box-shadow: 0 5px 10px var(--shadow-color); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; cursor: pointer; border: 1px solid var(--border-color); box-sizing: border-box; overflow: hidden; }
+    .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
+    .member-card img { width: 100%; height: 125px; border-radius: 8px; object-fit: cover; margin-bottom: 12px; display: block; background-color: #f0f0f0; transition: transform 0.3s ease; }
+    .member-card:hover img { transform: scale(1.05); }
+    .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
+    .member-balance { background-color: var(--primary-color); color: white; padding: 6px 20px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
+    .prime-tag { position: absolute; top: 120px; right: 12px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
+    
+    .rank-icon { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+    .member-card.gold, .member-card.silver, .member-card.bronze { border-width: 2px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+    .member-card.gold { border-color: var(--gold-color); background: #fffbeb; }
+    .member-card.gold .member-name { color: #8c5a00; font-weight: 700; }
+    .member-card.gold .member-balance { background: var(--gold-gradient); color: #4d3200; border: 1px solid rgba(0,0,0,0.1); }
+    .member-card.silver { border-color: var(--silver-color); background: #f8f9fa; }
+    .member-card.silver .member-name { color: #495057; font-weight: 700; }
+    .member-card.silver .member-balance { background: var(--silver-gradient); color: #343a40; border: 1px solid rgba(0,0,0,0.1); }
+    .member-card.bronze { border-color: var(--bronze-color); background: #fff8f0; }
+    .member-card.bronze .member-name { color: #854d0e; font-weight: 700; }
+    .member-card.bronze .member-balance { background: var(--bronze-gradient); color: #fff; border: 1px solid rgba(0,0,0,0.1); }
+
+    .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
+    .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
+
+    .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); justify-content: center; align-items: center; opacity: 0; transition: opacity 0.4s ease; }
+    .modal.show { display: flex; opacity: 1; }
+    .modal-content { background-color: var(--card-bg); padding: 25px 30px; border-radius: 15px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3); position: relative; transform: scale(0.9) translateY(20px); transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), border-color 0.3s ease; }
+    .modal.show .modal-content { transform: scale(1) translateY(0); }
+    .modal-content h2 { margin-top: 0; margin-bottom: 20px; color: var(--primary-darker); font-size: 1.5em; }
+    .close { position: absolute; top: 15px; right: 15px; color: #aaa; font-size: 35px; font-weight: bold; cursor: pointer; line-height: 1; transition: color 0.3s ease, transform 0.3s ease; }
+    .close:hover, .close:focus { color: var(--danger-color); transform: rotate(90deg); text-decoration: none; }
+    .balance-display { font-size: 2.8em; font-weight: 700; margin: 10px 0 0 0; color: var(--success-color); display: block; line-height: 1.1; font-family: 'Arial', sans-serif; }
+    .balance-label { font-size: 0.9em; color: var(--light-text); display: block; margin-top: 2px; }
+    .balance-display.return { color: var(--info-color); font-size: 2.2em; }
+    .balance-display.total { color: var(--primary-darker); font-size: 3.2em; }
+    
+    #memberProfileModal .modal-content { text-align: left; padding-top: 80px; margin-top: 40px; border-top: 5px solid var(--primary-color); }
+    .profile-modal-header { position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 120px; height: 120px; border-radius: 50%; border: 5px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); overflow: hidden; background-color: #eee; cursor: pointer; transition: transform 0.2s ease, border-color 0.3s ease; }
+    .profile-modal-header:hover { transform: translateX(-50%) scale(1.05); }
+    .profile-modal-header img { width: 100%; height: 100%; object-fit: cover; }
+    #profileModalName { text-align: center; font-size: 1.6em; margin-bottom: 25px; color: var(--primary-darker); font-weight: 600; }
+    .profile-stats-list { list-style: none; padding: 0; margin: 0; }
+    .profile-stats-list li { display: flex; justify-content: space-between; align-items: center; padding: 12px 5px; border-bottom: 1px solid var(--border-color); }
+    .profile-stats-list li:last-child { border-bottom: none; }
+    .profile-stats-list .stat-label { font-weight: 500; color: var(--light-text); display: flex; align-items: center; gap: 10px; }
+    .profile-stats-list .stat-label i { width: 18px; height: 18px; stroke-width: 2; }
+    .profile-stats-list .stat-value { font-weight: 700; font-size: 1.1em; color: var(--text-color); display: flex; align-items: center; gap: 8px; }
+    .stat-value.positive { color: var(--success-color); }
+    .stat-value.negative { color: var(--danger-color); }
+    .stat-value.info { color: var(--info-color); }
+    .sip-status-icon { font-size: 1.2em; }
+    .sip-status-icon.paid { color: var(--success-color); }
+    .sip-status-icon.not-paid { color: var(--danger-color); }
+    .sip-status-text { font-size: 0.9em; font-weight: 500; }
+    #memberProfileModal.prime-modal .modal-content { border-top-color: var(--prime-color); background: linear-gradient(to bottom, #fff, #fffef5); }
+    #memberProfileModal.prime-modal .profile-modal-header { border-color: var(--prime-color); }
+    .profile-modal-prime-tag { display: none; position: absolute; top: 85px; right: 20px; background: var(--prime-color); color: var(--text-color); padding: 5px 10px; border-radius: 6px; font-size: 0.8em; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+    .sip-status-list { list-style: none; padding: 0; margin-top: 20px; max-height: 60vh; overflow-y: auto; text-align: left; }
+    .sip-status-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; }
+    .sip-status-item:hover { background-color: #f8f9fa; }
+    .sip-status-item:last-child { border-bottom: none; }
+    .sip-status-item img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid var(--border-color); }
+    .sip-status-name { font-weight: 500; flex-grow: 1; color: var(--text-color); }
+    .sip-status-badge { padding: 5px 12px; border-radius: 15px; font-size: 0.85em; font-weight: bold; color: white; min-width: 80px; text-align: center; }
+    .sip-status-badge.paid { background-color: var(--success-color); }
+    .sip-status-badge.not-paid { background-color: var(--danger-color); }
+
+    #notificationModal .modal-content { max-width: 500px; padding: 0; }
+    #notificationModal h2 { padding: 20px 20px 15px 20px; margin: 0; border-bottom: 1px solid var(--border-color); }
+    .notification-list { list-style: none; padding: 0; margin: 0; max-height: 65vh; overflow-y: auto; }
+    .notification-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+    .notification-item:last-child { border-bottom: none; }
+    .notification-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 15px; }
+    .notification-details { flex-grow: 1; }
+    .notification-text { margin: 0; font-size: 1em; }
+    .notification-text strong { color: var(--primary-darker); }
+    .notification-amount { font-weight: 700; }
+    .notification-amount.sip { color: var(--success-color); }
+    .notification-amount.loan { color: var(--danger-color); }
+    .notification-amount.payment { color: var(--info-color); }
+    .notification-time { font-size: 0.8em; color: var(--light-text); margin-top: 4px; }
+    .no-notifications { padding: 40px 20px; text-align: center; color: var(--light-text); }
+
+    footer { background-color: #343a40; color: #f8f9fa; padding: 25px 15px; margin-top: 50px; font-size: 0.95em; text-align: center; border-top: 5px solid var(--primary-color); }
+    footer p { color: #f8f9fa; margin: 0; }
+
+    .image-modal-overlay { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.92); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); justify-content: center; align-items: center; cursor: pointer; padding: 20px; box-sizing: border-box; opacity: 0; transition: opacity 0.4s ease; }
+    .image-modal-overlay.show { display: flex; opacity: 1; }
+    .image-modal-content { max-width: 100%; max-height: 85%; object-fit: contain; display: block; border: 5px solid white; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.6); transform: scale(0.8); transition: transform 0.4s ease; }
+    .image-modal-overlay.show .image-modal-content { transform: scale(1); }
+    .image-modal-close { position: absolute; top: 25px; right: 35px; color: #ccc; font-size: 45px; font-weight: bold; cursor: pointer; transition: color 0.3s ease, transform 0.3s ease; z-index: 1003; }
+    .image-modal-close:hover { color: #fff; transform: scale(1.1); }
+
+    .animate-on-scroll { opacity: 0; transform: translateY(40px); transition: opacity var(--animation-duration) ease-out, transform var(--animation-duration) ease-out; }
+    .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
+
+    @media (min-width: 576px) { header h1 { font-size: 2.4em; } .member-card { flex: 0 0 200px; } h2 { font-size: 1.9em; } .info-card-slide { flex: 0 0 320px; } }
+    @media (min-width: 768px) { header h1 { font-size: 2.6em; } .member-card { flex: 0 0 210px; } h2 { font-size: 2em; } }
+    @media (min-width: 992px) { .member-card { flex: 0 0 220px; } .balance-display { font-size: 3.2em; } h2 { font-size: 2.1em; } }
+    @media (min-width: 1200px) { .content-wrapper, .header-container, .member-slider { max-width: 1140px; } .member-card { flex: 0 0 230px; } h2 { font-size: 2.2em; } }
+    
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
-    <!-- The entire body content (header, main, footer, modals) is unchanged -->
-    <!-- It will be displayed only after successful login check -->
-    <header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"></div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="imageupload.html" class="civil-button">Gallery 🖼️</a> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status </button> </div> </header> <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div> <small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div> <small class="balance-label">Return Amount</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div> <small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"> <img id="profileModalImage" src="" alt="Profile Picture"> </div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <main class="content-wrapper"> <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('https://bank-community.github.io/Loan-from/loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="https://bank-community.github.io/Loan-from/loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="how-it-works animate-on-scroll"> <h2>💡 Kaise kaam karta hai? / How does it work?</h2> <div class="features"> <div class="feature animate-on-scroll"><h3><i data-feather="dollar-sign"></i> Fund Deposit</h3><p>Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.<br>All members contribute to a common fund in the form of <strong>monthly SIP</strong>.</p></div> <div class="feature animate-on-scroll"><h3><i data-feather="gift"></i> Loan Provision</h3><p>Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.<br>Needy members are given <strong>loans</strong> from the same fund.</p></div> <div class="feature animate-on-scroll"><h3><i data-feather="calendar"></i> Loan Duration</h3><p>Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).<br>Loans are given for a period of <strong>1 month</strong> at minimum interest.</p></div> <div class="feature animate-on-scroll"><h3><i data-feather="percent"></i> Interest Rate</h3><p>Avadhi aur rashi ke anusaar byaj darein badal sakti hain.<br>Interest rates may vary depending on the amount and duration.</p></div> </div> </section> <section class="prime-members-section animate-on-scroll"> <h2>👑 Prime Members</h2> <div class="prime-member-list"> <p><i data-feather="star" class="prime-icon"></i> Amit kumar</p> <p><i data-feather="star" class="prime-icon"></i> Mithlesh sahni</p> <p><i data-feather="star" class="prime-icon"></i> Prince rama</p> </div> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides"> <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div> <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div> <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div> </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> </main> <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="image-modal-close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
 
-    <script>
-        // ##################################################################
-        // ## SECURE FIREBASE INITIALIZATION & AUTHENTICATION ##
-        // ##################################################################
-        async function initializeAndRunApp() {
-            try {
-                const response = await fetch('/api/firebase-config');
-                if (!response.ok) throw new Error('Config fetch failed');
-                const firebaseConfig = await response.json();
-                if (!firebaseConfig.apiKey) throw new Error('Invalid config received');
-                
-                firebase.initializeApp(firebaseConfig);
-                
-                const auth = firebase.auth();
-                const database = firebase.database();
+<header class="animate-on-scroll">
+    <div id="headerDisplay" class="header-display">
+        <!-- Dynamic content will be injected here by JavaScript -->
+    </div>
+    <h1>Bank Community Loan</h1>
+    <h4>ESTD: 23 June 2024</h4>
+    <div class="header-actions">
+        <div class="header-actions-row">
+            <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a>
+            <a href="imageupload.html" class="civil-button">Gallery 🖼️</a>
+        </div>
+        <div class="header-actions-row">
+            <a href="profit_return.html" class="civil-button">Return 💵</a>
+            <button class="civil-button" id="sipStatusBtn">SIP Status</button>
+            <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button>
+        </div>
+    </div>
+</header>
 
-                // Listen for auth state changes
-                auth.onAuthStateChanged(user => {
-                    if (user) {
-                        // User is signed in.
-                        console.log("User is authenticated. UID:", user.uid);
-                        // Make the body visible and run the main app
-                        document.body.style.visibility = 'visible';
-                        runMainApp(database);
-                    } else {
-                        // User is not signed in. Redirect to login page.
-                        console.log("User not authenticated. Redirecting to login page.");
-                        // To prevent flashing, we redirect immediately.
-                        // Make sure you have a 'login.html' file in your project.
-                        window.location.href = '/login.html';
+<section class="bank-members animate-on-scroll">
+    <div class="header-container">
+        <h2 class="bank-headline">BANK MEMBERS</h2>
+        <div class="view-balance" id="viewBalanceBtn">
+            <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon">
+            <span>View Balance</span>
+        </div>
+    </div>
+    <div class="member-slider" id="memberContainer">
+        <p class="loading-text">Authenticating...</p>
+    </div>
+</section>
+
+<!-- Modals -->
+<div id="balanceModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeBalanceModal">×</span>
+        <h2>Community Funds</h2>
+        <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small>
+        <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Return Amount</small>
+        <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
+        <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small>
+    </div>
+</div>
+
+<div id="memberProfileModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeProfileModal">×</span>
+        <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div>
+        <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div>
+        <h2 id="profileModalName">Member Name</h2>
+        <ul class="profile-stats-list">
+            <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li>
+            <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li>
+            <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li>
+            <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li>
+            <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li>
+        </ul>
+    </div>
+</div>
+
+<div id="sipStatusModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeSipStatusModal">×</span>
+        <h2>Current Month SIP Status</h2>
+        <div class="sip-status-list" id="sipStatusListContainer"></div>
+    </div>
+</div>
+
+<div id="notificationModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeNotificationModal">×</span>
+        <h2>Today's Activity</h2>
+        <ul class="notification-list" id="notificationList">
+            <!-- Notifications will be injected here -->
+        </ul>
+    </div>
+</div>
+
+
+<main class="content-wrapper">
+  <section class="transparency-section animate-on-scroll">
+    <h2>📝 Transparency info.</h2>
+    <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p>
+    <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p>
+    <div class="audio-wrapper" style="text-align:center; margin-top: 30px;">
+      <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div>
+      <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div>
+      <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio>
+    </div>
+  </section>
+
+    <section class="action-cards-section animate-on-scroll">
+         <h2>Quick Actions</h2>
+         <div class="action-cards">
+            <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div>
+            <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div>
+            <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a>
+            <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a>
+            <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a>
+            <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a>
+        </div>
+    </section>
+
+    <section class="info-slider-section animate-on-scroll">
+        <h2>💡 Community Info</h2>
+        <div class="info-slider-container" id="infoSlider">
+            <!-- Slider cards will be injected here -->
+        </div>
+    </section>
+
+    <section class="sip-chart-section animate-on-scroll">
+        <h2>📈 Monthly SIP Growth</h2>
+        <canvas id="sipChart"></canvas>
+    </section>
+
+    <section class="letter-slider-section animate-on-scroll">
+        <h2><i data-feather="image"></i> About Community Letter</h2>
+        <div class="slider-container">
+            <div class="slides">
+                <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div>
+                <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div>
+                <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div>
+            </div>
+            <button class="prev" id="prevSlideBtn">❮</button>
+            <button class="next" id="nextSlideBtn">❯</button>
+        </div>
+        <div class="slide-indicator" id="slideIndicator"></div>
+    </section>
+</main>
+
+<footer>
+    <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p>
+</footer>
+
+<div id="imageModal" class="image-modal-overlay">
+    <span class="close" id="closeImageModal">×</span>
+    <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image">
+</div>
+
+<script>
+    // ##################################################################
+    // ## SECURE FIREBASE INITIALIZATION & AUTHENTICATION ##
+    // ##################################################################
+    async function initializeAndRunApp() {
+        try {
+            const response = await fetch('/api/firebase-config');
+            if (!response.ok) throw new Error('Config fetch failed');
+            const firebaseConfig = await response.json();
+            if (!firebaseConfig.apiKey) throw new Error('Invalid config received');
+            
+            firebase.initializeApp(firebaseConfig);
+            
+            const auth = firebase.auth();
+            const database = firebase.database();
+
+            // Listen for auth state changes
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in.
+                    console.log("User is authenticated. UID:", user.uid);
+                    // Make the body visible and run the main app
+                    document.body.style.visibility = 'visible';
+                    runMainApp(database);
+                } else {
+                    // User is not signed in. Redirect to login page.
+                    console.log("User not authenticated. Redirecting to login page.");
+                    window.location.href = '/login.html';
+                }
+            });
+
+        } catch (error) {
+            console.error("FATAL: Could not initialize application.", error);
+            document.body.innerHTML = `<div style="padding:20px; text-align:center;"><h1>Application Error</h1><p>${error.message}</p></div>`;
+        }
+    }
+
+    // Hide body initially to prevent flash of content before auth check
+    document.body.style.visibility = 'hidden';
+
+    // ##################################################################
+    // ## MAIN APPLICATION LOGIC ##
+    // ##################################################################
+    function runMainApp(database) {
+        
+        // --- Constants & Variables ---
+        const DEFAULT_IMAGE = 'https://i.ibb.co/0Vnz4qPn/20250714-183208.png';
+        const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
+        const BANK_LOGO_URL = 'https://i.ibb.co/0Vnz4qPn/20250714-183208.png';
+
+        // --- Element Selectors ---
+        const memberContainer = document.getElementById('memberContainer');
+        const totalMembersValueElement = document.getElementById('totalMembersValue');
+        const totalLoanValueElement = document.getElementById('totalLoanValue');
+        const currentYearElement = document.getElementById('currentYear');
+        const headerDisplay = document.getElementById('headerDisplay');
+        const infoSlider = document.getElementById('infoSlider');
+        const sipChartCanvas = document.getElementById('sipChart');
+        
+        const balanceModalElement = document.getElementById('balanceModal');
+        const viewBalanceBtn = document.getElementById('viewBalanceBtn');
+        const totalBalanceElement = document.getElementById('totalBalance');
+        const returnBalanceElement = document.getElementById('returnBalance');
+        const combinedBalanceElement = document.getElementById('combinedBalance');
+        const closeBalanceModalBtn = document.getElementById('closeBalanceModal');
+
+        const profileModalElement = document.getElementById('memberProfileModal');
+        const closeProfileModalBtn = document.getElementById('closeProfileModal');
+        const profileModalHeader = document.getElementById('profileModalHeader');
+        const profileModalImage = document.getElementById('profileModalImage');
+        const profileModalPrimeTag = document.getElementById('profileModalPrimeTag');
+        const profileModalName = document.getElementById('profileModalName');
+        const profileModalJoiningDate = document.getElementById('profileModalJoiningDate');
+        const profileModalBalance = document.getElementById('profileModalBalance');
+        const profileModalReturn = document.getElementById('profileModalReturn');
+        const profileModalSipStatus = document.getElementById('profileModalSipStatus');
+        const profileModalLoanCount = document.getElementById('profileModalLoanCount');
+
+        const sipStatusBtn = document.getElementById('sipStatusBtn');
+        const sipStatusModalElement = document.getElementById('sipStatusModal');
+        const closeSipStatusModalBtn = document.getElementById('closeSipStatusModal');
+        const sipStatusListContainer = document.getElementById('sipStatusListContainer');
+
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationDot = document.getElementById('notificationDot');
+        const notificationModal = document.getElementById('notificationModal');
+        const closeNotificationModalBtn = notificationModal.querySelector('.close');
+        const notificationList = document.getElementById('notificationList');
+
+        const imageModalElement = document.getElementById('imageModal');
+        const fullImageSrcElement = document.getElementById('fullImageSrc');
+        const closeImageModalBtn = document.getElementById('closeImageModal');
+        const letterSlidesContainer = document.querySelector('.letter-slider-section .slides');
+        const letterSlideIndicator = document.getElementById('slideIndicator');
+        const letterPrevBtn = document.getElementById('prevSlideBtn');
+        const letterNextBtn = document.getElementById('nextSlideBtn');
+        const playBtn = document.getElementById('playBtn');
+        const audio = document.getElementById('welcomeAudio');
+
+        // --- State Variables ---
+        let allTransactions = [];
+        let allMembersData = [];
+        let netCommunityBalance = 0;
+        let netReturnAmount = 0;
+        let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
+        let todaysTransactions = [];
+        let sipChartInstance = null;
+        
+        // --- Functions ---
+        const formatDate = (dateString) => {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "N/A";
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+
+        function fetchMemberDataFromFirebase() {
+            if (!memberContainer) return;
+            memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
+            const membersRef = database.ref('members');
+            membersRef.once('value', (snapshot) => {
+                const membersData = snapshot.val();
+                if (!membersData) {
+                    throw new Error("Data could not be read. Check database rules and path.");
+                }
+                const transactions = [];
+                for (const memberKey in membersData) {
+                    const member = membersData[memberKey];
+                    if (member.transactions) {
+                        for (const transactionId in member.transactions) {
+                            const tx = member.transactions[transactionId];
+                            const formattedTransaction = {
+                                id: transactionId, Date: new Date(tx.Date), Name: member.name || memberKey,
+                                Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0,
+                                SipPayment: parseFloat(tx["SIP Payment"]) || 0,
+                                ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0,
+                                ImageUrl: tx.imageUrl || null
+                            };
+                            if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) {
+                                transactions.push(formattedTransaction);
+                            }
+                        }
                     }
-                });
+                }
+                allTransactions = transactions.sort((a, b) => a.Date - b.Date);
+                processAndDisplayData(allTransactions);
+            }, (error) => {
+                console.error('Firebase Read Failed:', error);
+                if (memberContainer) {
+                   memberContainer.innerHTML = `<p class="error-text">❌ Data load karne mein vifal.<br><small>${error.message}</small></p>`;
+                }
+            });
+        }
 
-            } catch (error) {
-                console.error("FATAL: Could not initialize application.", error);
-                document.body.innerHTML = `<div style="padding:20px; text-align:center;"><h1>Application Error</h1><p>${error.message}</p></div>`;
+        function processAndDisplayData(data) {
+            const members = {};
+            let totalLoanDisbursed = 0;
+            let totalReturnAmount = 0;
+
+            data.forEach(entry => {
+                totalLoanDisbursed += entry.Loan;
+                totalReturnAmount += entry.ReturnAmount;
+            });
+            netReturnAmount = totalReturnAmount;
+
+            const memberNames = [...new Set(data.map(r => r.Name))];
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            memberNames.forEach(name => {
+                const memberData = data.filter(r => r.Name === name);
+                if (memberData.length === 0) return;
+                const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0);
+                const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0);
+                const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0);
+                const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl);
+                const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase());
+                const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
+                members[name] = {
+                    name: name, balance: (totalSIP + totalPayment) - totalLoan,
+                    totalReturn: 0, // Placeholder
+                    loanCount: memberData.filter(r => r.Loan > 0).length,
+                    joiningDate: memberData.length > 0 ? memberData[0].Date : null,
+                    displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE,
+                    isPrime: isPrime,
+                    sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? currentMonthSip.SipPayment : 0 }
+                };
+            });
+            
+            const memberList = Object.values(members).sort((a, b) => b.balance - a.balance);
+            allMembersData = memberList; 
+
+            adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
+            adData.topThreeMembers = memberList.slice(0, 3);
+            adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
+            const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear);
+            if (currentMonthSips.length > 0) {
+                const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]);
+                const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name);
+                if (topSipMemberInfo) {
+                     adData.topSipMember = {
+                        name: topSipMemberInfo.name, amount: topSipTx.SipPayment,
+                        imageUrl: topSipMemberInfo.displayImageUrl
+                    };
+                }
+            }
+            
+            processTodaysTransactions(data);
+            const monthlySipData = processMonthlySipData(data);
+
+            displayMembers(memberList);
+            updateTotalBalanceDisplay(memberList);
+            updateInfoCards(memberList.length, totalLoanDisbursed);
+            startHeaderDisplayRotator();
+            buildInfoSlider();
+            renderSipChart(monthlySipData);
+        }
+
+        function displayMembers(members) {
+            if (!memberContainer) return;
+            memberContainer.innerHTML = '';
+            if (members.length === 0) {
+                 memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
+                 return;
+            }
+            const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
+            const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
+            const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
+            members.forEach((member, index) => {
+                const card = document.createElement('div');
+                card.className = 'member-card animate-on-scroll';
+                let rankHTML = '';
+                if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } 
+                else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } 
+                else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; }
+                card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`;
+                card.onclick = () => showMemberProfileModal(member);
+                memberContainer.appendChild(card);
+            });
+            observeElements(memberContainer.querySelectorAll('.animate-on-scroll'));
+        }
+
+        function updateInfoCards(memberCount, totalLoan) {
+            if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
+            if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'});
+        }
+
+        function updateTotalBalanceDisplay(memberList) {
+            netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
+        }
+
+        function showMemberProfileModal(member) {
+            profileModalImage.src = member.displayImageUrl;
+            profileModalName.textContent = member.name;
+            profileModalJoiningDate.textContent = formatDate(member.joiningDate);
+            profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+            profileModalReturn.textContent = 'Calculating...';
+            profileModalLoanCount.textContent = member.loanCount;
+            if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } 
+            else { profileModalSipStatus.innerHTML = `<span class="sip-status-icon not-paid">✖</span><span class="sip-status-text">Not Paid</span>`; }
+            profileModalBalance.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`;
+            if (member.isPrime) { profileModalElement.classList.add('prime-modal'); profileModalPrimeTag.style.display = 'block'; } 
+            else { profileModalElement.classList.remove('prime-modal'); profileModalPrimeTag.style.display = 'none'; }
+            profileModalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function showBalanceModal() {
+            if (!balanceModalElement) return;
+            balanceModalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            const combinedBalance = netCommunityBalance + netReturnAmount;
+            animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
+            animateValue(returnBalanceElement, 0, netReturnAmount, 1200);
+            animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
+        }
+
+        function showSipStatusModal() {
+            if (!sipStatusListContainer || allMembersData.length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
+            sipStatusListContainer.innerHTML = '';
+            const sortedMembers = [...allMembersData].sort((a, b) => a.sipStatus.paid === b.sipStatus.paid ? a.name.localeCompare(b.name) : a.sipStatus.paid ? 1 : -1);
+            sortedMembers.forEach(member => {
+                const item = document.createElement('div');
+                item.className = 'sip-status-item';
+                const statusClass = member.sipStatus.paid ? 'paid' : 'not-paid';
+                const statusText = member.sipStatus.paid ? 'Paid' : 'Not Paid';
+                item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`;
+                sipStatusListContainer.appendChild(item);
+            });
+            sipStatusModalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalElement) {
+            if (modalElement) modalElement.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function showFullImage(imageUrl, altText) {
+            if (!imageModalElement || !fullImageSrcElement) return;
+            fullImageSrcElement.src = imageUrl;
+            fullImageSrcElement.alt = altText;
+            imageModalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentValue = Math.floor(progress * (end - start) + start);
+                element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+                if (progress < 1) { window.requestAnimationFrame(step); } 
+                else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        const scrollObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
+
+        function observeElements(elements) {
+            elements.forEach(el => { if (el) scrollObserver.observe(el); });
+        }
+        
+        function startHeaderDisplayRotator() {
+            if (!headerDisplay) return;
+            const ads = [];
+     
+            if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => `<div class="ad-top-three-member"><img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="ad-top-three-name">${member.name}</p><p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p></div>`).join(''); return `<div class="ad-content"><div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div></div>`; }); }
+            if (adData.topSipMember) { ads.push(() => `<div class="ad-content"><div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`); }
+            if (adData.topBalanceMember) { ads.push(() => `<div class="ad-content"><div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`); }
+            if (adData.bankStats) { ads.push(() => `<div class="ad-content"><div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div></div>`); }
+
+            if (ads.length === 0) { headerDisplay.innerHTML = `<div class="ad-content"><p class="ad-headline">Welcome to Bank Community Loan!</p></div>`; return; }
+
+            let currentAdIndex = 0;
+            const showNextAd = () => {
+                if(ads.length > 0) {
+                    headerDisplay.innerHTML = ads[currentAdIndex]();
+                    const progressBar = document.createElement('div');
+                    progressBar.className = 'ad-progress-bar';
+                    const adContentDiv = headerDisplay.querySelector('.ad-content');
+                    if(adContentDiv) adContentDiv.appendChild(progressBar);
+                    
+                    currentAdIndex = (currentAdIndex + 1) % ads.length;
+                }
+            };
+            showNextAd();
+            setInterval(showNextAd, 6000);
+        }
+
+        function initializeLetterSlider() {
+            if (!letterSlidesContainer || !letterSlideIndicator) return;
+            const slides = letterSlidesContainer.children;
+            const totalSlides = slides.length;
+            if (totalSlides === 0) return;
+            letterSlidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); });
+            letterSlideIndicator.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('span');
+                dot.classList.add('indicator-dot');
+                dot.onclick = () => showSlide(i);
+                letterSlideIndicator.appendChild(dot);
+            }
+            let currentSlideIndex = 0;
+            const showSlide = (index) => {
+                currentSlideIndex = (index + totalSlides) % totalSlides;
+                letterSlidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`;
+                letterSlideIndicator.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); });
+            };
+            if(letterPrevBtn) letterPrevBtn.onclick = () => showSlide(currentSlideIndex - 1);
+            if(letterNextBtn) letterNextBtn.onclick = () => showSlide(currentSlideIndex + 1);
+            showSlide(0);
+        }
+        
+        function buildInfoSlider() {
+            if (!infoSlider) return;
+            infoSlider.innerHTML = '';
+            const infoCards = [
+                { icon: 'dollar-sign', title: 'Fund Deposit', text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.' },
+                { icon: 'gift', title: 'Loan Provision', text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.' },
+                { icon: 'calendar', title: 'Loan Duration', text: 'Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).' },
+                { icon: 'percent', title: 'Interest Rate', text: 'Avadhi aur rashi ke anusaar byaj darein badal sakti hain.' }
+            ];
+            PRIME_MEMBERS.forEach(name => {
+                infoCards.push({ icon: 'star', title: name, text: 'Is one of our valued Prime Members.', isPrime: true });
+            });
+            infoCards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = `info-card-slide ${card.isPrime ? 'prime' : ''}`;
+                cardEl.innerHTML = `<h3><i data-feather="${card.icon}"></i> ${card.title}</h3><p>${card.text}</p>`;
+                infoSlider.appendChild(cardEl);
+            });
+            feather.replace();
+        }
+
+        function processMonthlySipData(transactions) {
+            const monthlyData = {};
+            transactions.forEach(tx => {
+                if (tx.SipPayment > 0) {
+                    const monthYear = `${tx.Date.toLocaleString('default', { month: 'short' })} '${tx.Date.getFullYear().toString().slice(-2)}`;
+                    monthlyData[monthYear] = (monthlyData[monthYear] || 0) + tx.SipPayment;
+                }
+            });
+            const labels = Object.keys(monthlyData);
+            const data = Object.values(monthlyData);
+            return { labels, data };
+        }
+
+        function renderSipChart({ labels, data }) {
+            if (!sipChartCanvas) return;
+            if (sipChartInstance) {
+                sipChartInstance.destroy();
+            }
+            const ctx = sipChartCanvas.getContext('2d');
+            sipChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total SIP Collection',
+                        data: data,
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: value => `₹${value/1000}k` } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function processTodaysTransactions(transactions) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            todaysTransactions = transactions.filter(tx => {
+                const txDate = new Date(tx.Date);
+                txDate.setHours(0, 0, 0, 0);
+                return txDate.getTime() === today.getTime() && (tx.SipPayment > 0 || tx.Loan > 0 || tx.Payment > 0);
+            }).sort((a,b) => b.Date - a.Date);
+
+            if (todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed')) {
+                notificationDot.style.display = 'block';
             }
         }
-    
-        // Hide body initially to prevent flash of content before auth check
-        document.body.style.visibility = 'hidden';
+        
+        function displayNotifications() {
+            notificationList.innerHTML = '';
+            if (todaysTransactions.length === 0) {
+                notificationList.innerHTML = `<li class="no-notifications">No activity today.</li>`;
+                return;
+            }
 
-        // ##################################################################
-        // ## MAIN APPLICATION LOGIC (Your previous code is here) ##
-        // ##################################################################
-        function runMainApp(database) {
-            // All your previous functions (fetchMemberDataFromFirebase, displayMembers, etc.)
-            // and event listeners go here. This code is unchanged.
-            const DEFAULT_IMAGE = 'https://i.imgur.com/6aATcZR.jpeg';
-            const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
-            const BANK_LOGO_URL = 'https://i.ibb.co/v4zt0f30/20241030-065157.png';
-            const memberContainer = document.getElementById('memberContainer');
-            const totalMembersValueElement = document.getElementById('totalMembersValue');
-            const totalLoanValueElement = document.getElementById('totalLoanValue');
-            const currentYearElement = document.getElementById('currentYear');
-            const headerDisplay = document.getElementById('headerDisplay');
-            const balanceModalElement = document.getElementById('balanceModal');
-            const viewBalanceBtn = document.getElementById('viewBalanceBtn');
-            const totalBalanceElement = document.getElementById('totalBalance');
-            const returnBalanceElement = document.getElementById('returnBalance');
-            const combinedBalanceElement = document.getElementById('combinedBalance');
-            const closeBalanceModalBtn = document.getElementById('closeBalanceModal');
-            const profileModalElement = document.getElementById('memberProfileModal');
-            const closeProfileModalBtn = document.getElementById('closeProfileModal');
-            const profileModalHeader = document.getElementById('profileModalHeader');
-            const profileModalImage = document.getElementById('profileModalImage');
-            const profileModalPrimeTag = document.getElementById('profileModalPrimeTag');
-            const profileModalName = document.getElementById('profileModalName');
-            const profileModalJoiningDate = document.getElementById('profileModalJoiningDate');
-            const profileModalBalance = document.getElementById('profileModalBalance');
-            const profileModalReturn = document.getElementById('profileModalReturn');
-            const profileModalSipStatus = document.getElementById('profileModalSipStatus');
-            const profileModalLoanCount = document.getElementById('profileModalLoanCount');
-            const sipStatusBtn = document.getElementById('sipStatusBtn');
-            const sipStatusModalElement = document.getElementById('sipStatusModal');
-            const closeSipStatusModalBtn = document.getElementById('closeSipStatusModal');
-            const sipStatusListContainer = document.getElementById('sipStatusListContainer');
-            const imageModalElement = document.getElementById('imageModal');
-            const fullImageSrcElement = document.getElementById('fullImageSrc');
-            const closeImageModalBtn = document.getElementById('closeImageModal');
-            const slidesContainer = document.querySelector('.slider-container .slides');
-            const slideIndicatorContainer = document.getElementById('slideIndicator');
-            const prevSlideBtn = document.getElementById('prevSlideBtn');
-            const nextSlideBtn = document.getElementById('nextSlideBtn');
-            const playBtn = document.getElementById('playBtn');
-            const audio = document.getElementById('welcomeAudio');
-            let allTransactions = [];
-            let allMembersData = [];
-            let netCommunityBalance = 0;
-            let netReturnAmount = 0;
-            let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
-            const formatDate = (date) => { if (!(date instanceof Date) || isNaN(date)) return "N/A"; return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
-            function calculateProfitDistribution(paymentRecord, allData) { const profit = paymentRecord.ReturnAmount; if (profit <= 0) return null; const payerName = paymentRecord.Name; const userLoansBeforePayment = allData.filter(r => r.Name === payerName && r.Loan > 0 && (r.Date < paymentRecord.Date || (r.Date.getTime() === paymentRecord.Date.getTime() && r.id < paymentRecord.id))); if (userLoansBeforePayment.length === 0) return null; const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1]; const loanDate = relevantLoan.Date; const loanId = relevantLoan.id; const transactionsBeforeLoan = allData.filter(r => r.Date < loanDate || (r.Date.getTime() === loanDate.getTime() && r.id < loanId)); const memberBalances = {}; transactionsBeforeLoan.forEach(r => { memberBalances[r.Name] = (memberBalances[r.Name] || 0) + r.SipPayment + r.Payment - r.Loan; }); const capitalProviders = Object.entries(memberBalances).filter(([_, balance]) => balance > 0); const totalCommunityCapital = capitalProviders.reduce((sum, [, balance]) => sum + balance, 0); if (totalCommunityCapital <= 0) return null; const distribution = capitalProviders.map(([name, balance]) => ({ name, share: (balance / totalCommunityCapital) * profit })); return { distribution }; }
-            function calculateTotalProfitForMember(memberName, allData) { let totalProfit = 0; allData.forEach(transaction => { if (transaction.ReturnAmount > 0) { const result = calculateProfitDistribution(transaction, allData); if (result && result.distribution) { const memberShare = result.distribution.find(d => d.name === memberName); if (memberShare) totalProfit += memberShare.share; } } }); return totalProfit; }
-            function fetchMemberDataFromFirebase() { if (!memberContainer) return; memberContainer.innerHTML = '<p class="loading-text">Connecting to database...</p>'; const membersRef = database.ref('members'); membersRef.once('value', (snapshot) => { const membersData = snapshot.val(); if (!membersData) { throw new Error("Data could not be read. Check database rules and path."); } const transactions = []; for (const memberKey in membersData) { const member = membersData[memberKey]; if (member.transactions) { for (const transactionId in member.transactions) { const tx = member.transactions[transactionId]; const formattedTransaction = { id: transactions.length, Date: new Date(tx.Date), Name: member.name || memberKey, Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0, SipPayment: parseFloat(tx["SIP Payment"]) || 0, ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0, ImageUrl: tx.imageUrl || null }; if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) { transactions.push(formattedTransaction); } } } } allTransactions = transactions.sort((a, b) => a.Date - b.Date || a.id - b.id); processAndDisplayData(allTransactions); }, (error) => { console.error('Firebase Read Failed:', error); if (memberContainer) { memberContainer.innerHTML = `<p class="error-text">❌ डेटा लोड करने में विफल।<br><small>Permission denied. Please check security rules.</small></p>`; } }); }
-            function processAndDisplayData(data) { const members = {}; let totalLoanDisbursed = 0; let totalReturnAmount = 0; data.forEach(entry => { totalLoanDisbursed += entry.Loan; totalReturnAmount += entry.ReturnAmount; }); netReturnAmount = totalReturnAmount; const memberNames = [...new Set(data.map(r => r.Name))]; const now = new Date(); const currentMonth = now.getMonth(); const currentYear = now.getFullYear(); memberNames.forEach(name => { const memberData = data.filter(r => r.Name === name); if (memberData.length === 0) return; const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0); const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0); const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0); const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl); const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase()); const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear); members[name] = { name: name, balance: (totalSIP + totalPayment) - totalLoan, totalReturn: calculateTotalProfitForMember(name, data), loanCount: memberData.filter(r => r.Loan > 0).length, joiningDate: memberData.length > 0 ? memberData[0].Date : null, displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE, isPrime: isPrime, sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? currentMonthSip.SipPayment : 0 } }; }); const memberList = Object.values(members).sort((a, b) => b.balance - a.balance); allMembersData = memberList; adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null; adData.topThreeMembers = memberList.slice(0, 3); adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed }; const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear); if (currentMonthSips.length > 0) { const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]); const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name); if (topSipMemberInfo) { adData.topSipMember = { name: topSipMemberInfo.name, amount: topSipTx.SipPayment, imageUrl: topSipMemberInfo.displayImageUrl }; } } displayMembers(memberList); updateTotalBalanceDisplay(memberList); updateInfoCards(memberList.length, totalLoanDisbursed); startHeaderDisplayRotator(); }
-            function displayMembers(members) { if (!memberContainer) return; memberContainer.innerHTML = ''; if (members.length === 0) { memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>'; return; } const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; members.forEach((member, index) => { const card = document.createElement('div'); card.className = 'member-card animate-on-scroll'; let rankHTML = ''; if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; } card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`; card.onclick = () => showMemberProfileModal(member); memberContainer.appendChild(card); }); observeElements(memberContainer.querySelectorAll('.animate-on-scroll')); }
-            function updateInfoCards(memberCount, totalLoan) { if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount; if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'}); }
-            function updateTotalBalanceDisplay(memberList) { netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0); }
-            function showMemberProfileModal(member) { profileModalImage.src = member.displayImageUrl; profileModalName.textContent = member.name; profileModalJoiningDate.textContent = formatDate(member.joiningDate); profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }); profileModalReturn.textContent = member.totalReturn.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }); profileModalLoanCount.textContent = member.loanCount; if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } else { profileModalSipStatus.innerHTML = `<span class="sip-status-icon not-paid">✖</span><span class="sip-status-text">Not Paid</span>`; } profileModalBalance.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`; if (member.isPrime) { profileModalElement.classList.add('prime-modal'); profileModalPrimeTag.style.display = 'block'; } else { profileModalElement.classList.remove('prime-modal'); profileModalPrimeTag.style.display = 'none'; } profileModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
-            function showBalanceModal() { if (!balanceModalElement) return; balanceModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; const combinedBalance = netCommunityBalance + netReturnAmount; animateValue(totalBalanceElement, 0, netCommunityBalance, 1200); animateValue(returnBalanceElement, 0, netReturnAmount, 1200); animateValue(combinedBalanceElement, 0, combinedBalance, 1200); }
-            function showSipStatusModal() { if (!sipStatusListContainer || allMembersData.length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; } sipStatusListContainer.innerHTML = ''; const sortedMembers = [...allMembersData].sort((a, b) => a.sipStatus.paid === b.sipStatus.paid ? a.name.localeCompare(b.name) : a.sipStatus.paid ? 1 : -1); sortedMembers.forEach(member => { const item = document.createElement('div'); item.className = 'sip-status-item'; const statusClass = member.sipStatus.paid ? 'paid' : 'not-paid'; const statusText = member.sipStatus.paid ? 'Paid' : 'Not Paid'; item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`; sipStatusListContainer.appendChild(item); }); sipStatusModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
-            function closeModal(modalElement) { if (modalElement) modalElement.classList.remove('show'); document.body.style.overflow = ''; }
-            function showFullImage(imageUrl, altText) { if (!imageModalElement || !fullImageSrcElement) return; fullImageSrcElement.src = imageUrl; fullImageSrcElement.alt = altText; imageModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
-            function animateValue(element, start, end, duration) { let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); const currentValue = Math.floor(progress * (end - start) + start); element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); if (progress < 1) { window.requestAnimationFrame(step); } else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); } }; window.requestAnimationFrame(step); }
-            const scrollObserver = new IntersectionObserver((entries, observer) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); } }); }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
-            function observeElements(elements) { elements.forEach(el => { if (el) scrollObserver.observe(el); }); }
-            function startHeaderDisplayRotator() { if (!headerDisplay) return; const ads = []; if (adData.topSipMember) { ads.push(() => { return `<div class="ad-content"><div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`; }); } if (adData.topBalanceMember) { ads.push(() => { return `<div class="ad-content"><div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`; }); } if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => ` <div class="ad-top-three-member"> <img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"> <p class="ad-top-three-name">${member.name}</p> <p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p> </div> `).join(''); return `<div class="ad-content"><div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div></div>`; }); } if (adData.bankStats) { ads.push(() => { return `<div class="ad-content"><div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div></div>`; }); } if (ads.length === 0) { headerDisplay.innerHTML = `<p>Welcome to Bank Community Loan!</p>`; return; } let currentAdIndex = 0; const showNextAd = () => { if(ads.length > 0) { headerDisplay.innerHTML = ads[currentAdIndex](); const progressBar = document.createElement('div'); progressBar.className = 'ad-progress-bar'; headerDisplay.appendChild(progressBar); currentAdIndex = (currentAdIndex + 1) % ads.length; } }; showNextAd(); setInterval(showNextAd, 5000); }
-            function initializeLetterSlider() { if (!slidesContainer || !slideIndicatorContainer) return; const slides = slidesContainer.children; const totalSlides = slides.length; if (totalSlides === 0) return; slidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); }); slideIndicatorContainer.innerHTML = ''; for (let i = 0; i < totalSlides; i++) { const dot = document.createElement('span'); dot.classList.add('indicator-dot'); dot.onclick = () => showSlide(i); slideIndicatorContainer.appendChild(dot); } let currentSlideIndex = 0; const showSlide = (index) => { currentSlideIndex = (index + totalSlides) % totalSlides; slidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`; slideIndicatorContainer.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); }); }; if(prevSlideBtn) prevSlideBtn.onclick = () => showSlide(currentSlideIndex - 1); if(nextSlideBtn) nextSlideBtn.onclick = () => showSlide(currentSlideIndex + 1); showSlide(0); }
-            function setupEventListeners() { if (currentYearElement) currentYearElement.textContent = new Date().getFullYear(); if (playBtn && audio) playBtn.addEventListener('click', () => audio.play()); if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal); if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement)); if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement)); if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement)); if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal); if (closeSipStatusModalBtn) closeSipStatusModalBtn.addEventListener('click', () => closeModal(sipStatusModalElement)); if (profileModalHeader) { profileModalHeader.addEventListener('click', () => { if (profileModalImage.src) { showFullImage(profileModalImage.src, profileModalName.textContent); } }); } [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement].forEach(modal => { if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); }); window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(balanceModalElement); closeModal(profileModalElement); closeModal(imageModalElement); closeModal(sipStatusModalElement); } }); }
-            
-            feather.replace();
-            setupEventListeners();
-            fetchMemberDataFromFirebase();
-            initializeLetterSlider();
-            observeElements(document.querySelectorAll('.animate-on-scroll'));
+            todaysTransactions.forEach(tx => {
+                const member = allMembersData.find(m => m.name === tx.Name);
+                const li = document.createElement('li');
+                li.className = 'notification-item';
+                
+                let text = '', amount = '', typeClass = '';
+                if (tx.SipPayment > 0) {
+                    text = `<strong>${tx.Name}</strong> paid their SIP.`;
+                    amount = `+ ₹${tx.SipPayment.toLocaleString()}`;
+                    typeClass = 'sip';
+                } else if (tx.Loan > 0) {
+                    text = `A loan was disbursed to <strong>${tx.Name}</strong>.`;
+                    amount = `- ₹${tx.Loan.toLocaleString()}`;
+                    typeClass = 'loan';
+                } else if (tx.Payment > 0) {
+                    text = `<strong>${tx.Name}</strong> made a loan payment.`;
+                    amount = `+ ₹${tx.Payment.toLocaleString()}`;
+                    typeClass = 'payment';
+                     if (tx.ReturnAmount > 0) {
+                        text += ` (Return: ₹${tx.ReturnAmount.toLocaleString()})`;
+                    }
+                }
+
+                li.innerHTML = `
+                    <img src="${member ? member.displayImageUrl : DEFAULT_IMAGE}" alt="${tx.Name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    <div class="notification-details">
+                        <p class="notification-text">${text}</p>
+                        <div class="notification-time">${new Date(tx.Date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <span class="notification-amount ${typeClass}">${amount}</span>
+                `;
+                notificationList.appendChild(li);
+            });
         }
 
-        // --- Start the entire process ---
-        document.addEventListener('DOMContentLoaded', initializeAndRunApp);
-    </script>
+        function setupEventListeners() {
+            if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
+            if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
+            if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal);
+            if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement));
+            if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement));
+            if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement));
+            if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
+            if (closeSipStatusModalBtn) closeSipStatusModalBtn.addEventListener('click', () => closeModal(sipStatusModalElement));
+            if (profileModalHeader) { profileModalHeader.addEventListener('click', () => { if (profileModalImage.src) { showFullImage(profileModalImage.src, profileModalName.textContent); } }); }
+            
+            if(notificationBtn) notificationBtn.addEventListener('click', () => {
+                displayNotifications();
+                notificationModal.classList.add('show');
+                notificationDot.style.display = 'none';
+                sessionStorage.setItem('notificationsViewed', 'true');
+            });
+            if(closeNotificationModalBtn) closeNotificationModalBtn.addEventListener('click', () => closeModal(notificationModal));
+
+            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal].forEach(modal => { 
+                if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); 
+            });
+            window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { 
+                closeModal(balanceModalElement); 
+                closeModal(profileModalElement); 
+                closeModal(imageModalElement); 
+                closeModal(sipStatusModalElement);
+                closeModal(notificationModal);
+            } });
+        }
+
+        // --- Initial Calls ---
+        feather.replace();
+        setupEventListeners();
+        fetchMemberDataFromFirebase();
+        initializeLetterSlider();
+        observeElements(document.querySelectorAll('.animate-on-scroll'));
+    }
+
+    // --- Start the entire process ---
+    document.addEventListener('DOMContentLoaded', initializeAndRunApp);
+</script>
+
 </body>
 </html>
 
