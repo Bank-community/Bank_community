@@ -1,17 +1,16 @@
 // api/config.js
 
 export default function handler(request, response) {
-  // Yeh function Vercel ke server par chalta hai
-  // aur Environment Variables ko access kar sakta hai.
+  // Ab hum bina 'VITE_' prefix ke keys ko padh rahe hain
   const firebaseConfig = {
-    apiKey: process.env.VITE_FIREBASE_API_KEY,
-    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.VITE_FIREBASE_APP_ID,
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID,
   };
 
-  // Yeh config ko JSON format mein browser ko bhej dega.
+  // Keys ko JSON format mein browser ko bhej dein
   response.status(200).json(firebaseConfig);
 }
