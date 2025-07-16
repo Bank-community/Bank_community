@@ -521,69 +521,61 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // ##################################################################
-    // ## NEW: SECURE FIREBASE INITIALIZATION ##
+    // ## NEW: SECURE FIREBASE INITIALIZATION & ERROR HANDLING ##
     // ##################################################################
-
-    // This async function will run first.
-    // It fetches the Firebase config from our secure serverless function
-    // and then initializes the app.
     async function initializeAndRunApp() {
         try {
-            // Step 1: Fetch the configuration from our secure API endpoint.
             const response = await fetch('/api/firebase-config');
             if (!response.ok) {
-                throw new Error(`Firebase config fetch failed with status: ${response.status}`);
+                throw new Error(`Configuration server returned an error: Status ${response.status}`);
             }
             const firebaseConfig = await response.json();
-
-            // Step 2: Check if config is valid before initializing
             if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
-                throw new Error('Received invalid Firebase config from server.');
+                throw new Error('Invalid or incomplete configuration received from server.');
             }
-
-            // Step 3: Initialize Firebase with the fetched config
             firebase.initializeApp(firebaseConfig);
-            
-            // Step 4: Now that Firebase is ready, run the main application logic
             runMainApp();
-
         } catch (error) {
             console.error("FATAL: Could not initialize Firebase.", error);
-            const memberContainer = document.getElementById('memberContainer');
-            if(memberContainer) {
-                memberContainer.innerHTML = `<p class="error-text">❌ एप्लिकेशन लोड करने में विफल।<br><small>Connection error. Kripya baad mein prayas karein.</small></p>`;
-            }
+            // NEW: Display a full-screen, user-friendly error message
+            document.body.innerHTML = `
+                <div style="padding: 20px; text-align: center; font-family: 'Roboto', sans-serif; background-color: #fff3f3; color: #b71c1c; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box;">
+                    <h1 style="font-size: 22px; margin-bottom: 15px;">वेबसाइट लोड नहीं हो सकी</h1>
+                    <p style="font-size: 16px; color: #333; margin-bottom: 25px;">एक कॉन्फ़िगरेशन समस्या के कारण एप्लिकेशन शुरू करने में विफल रहा।</p>
+                    <div style="text-align: left; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 90%; width: 500px;">
+                        <h2 style="font-size: 16px; color: #1a237e; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">समस्या निवारण (Troubleshooting)</h2>
+                        <p style="font-size: 14px; color: #555; line-height: 1.6;">कृपया निम्नलिखित की जाँच करें:</p>
+                        <ul style="padding-left: 20px; font-size: 14px; color: #555; line-height: 1.7;">
+                            <li><strong>Vercel Environment Variables:</strong> सुनिश्चित करें कि Vercel प्रोजेक्ट सेटिंग्स में सभी <code>FIREBASE_...</code> वेरिएबल्स सही ढंग से सेट हैं।</li>
+                            <li><strong>File Path:</strong> सुनिश्चित करें कि <code>/api/firebase-config.js</code> फ़ाइल सही फ़ोल्डर में मौजूद है।</li>
+                            <li><strong>Deployment Logs:</strong> अपने Vercel डिप्लॉयमेंट लॉग में किसी भी बिल्ड त्रुटि की जाँच करें।</li>
+                        </ul>
+                    </div>
+                    <p style="font-size: 12px; color: #d32f2f; margin-top: 20px; background: #ffebee; padding: 8px 12px; border-radius: 4px;"><strong>Error Details:</strong> ${error.message}</p>
+                </div>
+            `;
         }
     }
     
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC ##
+    // ## MAIN APPLICATION LOGIC (UNCHANGED) ##
     // ##################################################################
-    
-    // All your original application code is now inside this function.
-    // It will only be called AFTER Firebase is safely initialized.
     function runMainApp() {
         const database = firebase.database();
-
-        // --- Global Variables & Constants ---
         const DEFAULT_IMAGE = 'https://i.imgur.com/6aATcZR.jpeg';
         const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/v4zt0f30/20241030-065157.png';
-
-        // --- Element Selectors ---
         const memberContainer = document.getElementById('memberContainer');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
         const totalLoanValueElement = document.getElementById('totalLoanValue');
         const currentYearElement = document.getElementById('currentYear');
         const headerDisplay = document.getElementById('headerDisplay');
-        
         const balanceModalElement = document.getElementById('balanceModal');
         const viewBalanceBtn = document.getElementById('viewBalanceBtn');
         const totalBalanceElement = document.getElementById('totalBalance');
         const returnBalanceElement = document.getElementById('returnBalance');
         const combinedBalanceElement = document.getElementById('combinedBalance');
         const closeBalanceModalBtn = document.getElementById('closeBalanceModal');
-
         const profileModalElement = document.getElementById('memberProfileModal');
         const closeProfileModalBtn = document.getElementById('closeProfileModal');
         const profileModalHeader = document.getElementById('profileModalHeader');
@@ -595,12 +587,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const profileModalReturn = document.getElementById('profileModalReturn');
         const profileModalSipStatus = document.getElementById('profileModalSipStatus');
         const profileModalLoanCount = document.getElementById('profileModalLoanCount');
-
         const sipStatusBtn = document.getElementById('sipStatusBtn');
         const sipStatusModalElement = document.getElementById('sipStatusModal');
         const closeSipStatusModalBtn = document.getElementById('closeSipStatusModal');
         const sipStatusListContainer = document.getElementById('sipStatusListContainer');
-
         const imageModalElement = document.getElementById('imageModal');
         const fullImageSrcElement = document.getElementById('fullImageSrc');
         const closeImageModalBtn = document.getElementById('closeImageModal');
@@ -610,364 +600,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextSlideBtn = document.getElementById('nextSlideBtn');
         const playBtn = document.getElementById('playBtn');
         const audio = document.getElementById('welcomeAudio');
-
-        // --- State Variables ---
         let allTransactions = [];
         let allMembersData = [];
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
-        let adData = {
-            topSipMember: null,
-            topBalanceMember: null,
-            topThreeMembers: [],
-            bankStats: null
-        };
+        let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
+        const formatDate = (date) => { if (!(date instanceof Date) || isNaN(date)) return "N/A"; return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+        function calculateProfitDistribution(paymentRecord, allData) { const profit = paymentRecord.ReturnAmount; if (profit <= 0) return null; const payerName = paymentRecord.Name; const userLoansBeforePayment = allData.filter(r => r.Name === payerName && r.Loan > 0 && (r.Date < paymentRecord.Date || (r.Date.getTime() === paymentRecord.Date.getTime() && r.id < paymentRecord.id))); if (userLoansBeforePayment.length === 0) return null; const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1]; const loanDate = relevantLoan.Date; const loanId = relevantLoan.id; const transactionsBeforeLoan = allData.filter(r => r.Date < loanDate || (r.Date.getTime() === loanDate.getTime() && r.id < loanId)); const memberBalances = {}; transactionsBeforeLoan.forEach(r => { memberBalances[r.Name] = (memberBalances[r.Name] || 0) + r.SipPayment + r.Payment - r.Loan; }); const capitalProviders = Object.entries(memberBalances).filter(([_, balance]) => balance > 0); const totalCommunityCapital = capitalProviders.reduce((sum, [, balance]) => sum + balance, 0); if (totalCommunityCapital <= 0) return null; const distribution = capitalProviders.map(([name, balance]) => ({ name, share: (balance / totalCommunityCapital) * profit })); return { distribution }; }
+        function calculateTotalProfitForMember(memberName, allData) { let totalProfit = 0; allData.forEach(transaction => { if (transaction.ReturnAmount > 0) { const result = calculateProfitDistribution(transaction, allData); if (result && result.distribution) { const memberShare = result.distribution.find(d => d.name === memberName); if (memberShare) totalProfit += memberShare.share; } } }); return totalProfit; }
+        function fetchMemberDataFromFirebase() { if (!memberContainer) return; memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>'; const membersRef = database.ref('members'); membersRef.once('value', (snapshot) => { const membersData = snapshot.val(); const transactions = []; if (membersData) { for (const memberKey in membersData) { const member = membersData[memberKey]; if (member.transactions) { for (const transactionId in member.transactions) { const tx = member.transactions[transactionId]; const formattedTransaction = { id: transactions.length, Date: new Date(tx.Date), Name: member.name || memberKey, Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0, SipPayment: parseFloat(tx["SIP Payment"]) || 0, ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0, ImageUrl: tx.imageUrl || null }; if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) { transactions.push(formattedTransaction); } } } } } allTransactions = transactions.sort((a, b) => a.Date - b.Date || a.id - b.id); processAndDisplayData(allTransactions); }, (error) => { console.error('Firebase Read Failed:', error); if (memberContainer) { memberContainer.innerHTML = `<p class="error-text">❌ Sadasya data load karne mein vifal.<br><small>${error.message}</small><br>Kripya baad mein prayas karein.</p>`; } }); }
+        function processAndDisplayData(data) { const members = {}; let totalLoanDisbursed = 0; let totalReturnAmount = 0; data.forEach(entry => { totalLoanDisbursed += entry.Loan; totalReturnAmount += entry.ReturnAmount; }); netReturnAmount = totalReturnAmount; const memberNames = [...new Set(data.map(r => r.Name))]; const now = new Date(); const currentMonth = now.getMonth(); const currentYear = now.getFullYear(); memberNames.forEach(name => { const memberData = data.filter(r => r.Name === name); if (memberData.length === 0) return; const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0); const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0); const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0); const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl); const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase()); const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear); members[name] = { name: name, balance: (totalSIP + totalPayment) - totalLoan, totalReturn: calculateTotalProfitForMember(name, data), loanCount: memberData.filter(r => r.Loan > 0).length, joiningDate: memberData.length > 0 ? memberData[0].Date : null, displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE, isPrime: isPrime, sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? currentMonthSip.SipPayment : 0 } }; }); const memberList = Object.values(members).sort((a, b) => b.balance - a.balance); allMembersData = memberList; adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null; adData.topThreeMembers = memberList.slice(0, 3); adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed }; const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear); if (currentMonthSips.length > 0) { const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]); const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name); if (topSipMemberInfo) { adData.topSipMember = { name: topSipMemberInfo.name, amount: topSipTx.SipPayment, imageUrl: topSipMemberInfo.displayImageUrl }; } } displayMembers(memberList); updateTotalBalanceDisplay(memberList); updateInfoCards(memberList.length, totalLoanDisbursed); startHeaderDisplayRotator(); }
+        function displayMembers(members) { if (!memberContainer) return; memberContainer.innerHTML = ''; if (members.length === 0) { memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>'; return; } const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`; members.forEach((member, index) => { const card = document.createElement('div'); card.className = 'member-card animate-on-scroll'; let rankHTML = ''; if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; } card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`; card.onclick = () => showMemberProfileModal(member); memberContainer.appendChild(card); }); observeElements(memberContainer.querySelectorAll('.animate-on-scroll')); }
+        function updateInfoCards(memberCount, totalLoan) { if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount; if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'}); }
+        function updateTotalBalanceDisplay(memberList) { netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0); }
+        function showMemberProfileModal(member) { profileModalImage.src = member.displayImageUrl; profileModalName.textContent = member.name; profileModalJoiningDate.textContent = formatDate(member.joiningDate); profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }); profileModalReturn.textContent = member.totalReturn.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }); profileModalLoanCount.textContent = member.loanCount; if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } else { profileModalSipStatus.innerHTML = `<span class="sip-status-icon not-paid">✖</span><span class="sip-status-text">Not Paid</span>`; } profileModalBalance.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`; if (member.isPrime) { profileModalElement.classList.add('prime-modal'); profileModalPrimeTag.style.display = 'block'; } else { profileModalElement.classList.remove('prime-modal'); profileModalPrimeTag.style.display = 'none'; } profileModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function showBalanceModal() { if (!balanceModalElement) return; balanceModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; const combinedBalance = netCommunityBalance + netReturnAmount; animateValue(totalBalanceElement, 0, netCommunityBalance, 1200); animateValue(returnBalanceElement, 0, netReturnAmount, 1200); animateValue(combinedBalanceElement, 0, combinedBalance, 1200); }
+        function showSipStatusModal() { if (!sipStatusListContainer || allMembersData.length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; } sipStatusListContainer.innerHTML = ''; const sortedMembers = [...allMembersData].sort((a, b) => a.sipStatus.paid === b.sipStatus.paid ? a.name.localeCompare(b.name) : a.sipStatus.paid ? 1 : -1); sortedMembers.forEach(member => { const item = document.createElement('div'); item.className = 'sip-status-item'; const statusClass = member.sipStatus.paid ? 'paid' : 'not-paid'; const statusText = member.sipStatus.paid ? 'Paid' : 'Not Paid'; item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`; sipStatusListContainer.appendChild(item); }); sipStatusModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function closeModal(modalElement) { if (modalElement) modalElement.classList.remove('show'); document.body.style.overflow = ''; }
+        function showFullImage(imageUrl, altText) { if (!imageModalElement || !fullImageSrcElement) return; fullImageSrcElement.src = imageUrl; fullImageSrcElement.alt = altText; imageModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function animateValue(element, start, end, duration) { let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); const currentValue = Math.floor(progress * (end - start) + start); element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); if (progress < 1) { window.requestAnimationFrame(step); } else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); } }; window.requestAnimationFrame(step); }
+        const scrollObserver = new IntersectionObserver((entries, observer) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); } }); }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
+        function observeElements(elements) { elements.forEach(el => { if (el) scrollObserver.observe(el); }); }
+        function startHeaderDisplayRotator() { if (!headerDisplay) return; const ads = []; if (adData.topSipMember) { ads.push(() => { return `<div class="ad-content"><div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`; }); } if (adData.topBalanceMember) { ads.push(() => { return `<div class="ad-content"><div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`; }); } if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => ` <div class="ad-top-three-member"> <img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"> <p class="ad-top-three-name">${member.name}</p> <p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p> </div> `).join(''); return `<div class="ad-content"><div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div></div>`; }); } if (adData.bankStats) { ads.push(() => { return `<div class="ad-content"><div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div></div>`; }); } if (ads.length === 0) { headerDisplay.innerHTML = `<p>Welcome to Bank Community Loan!</p>`; return; } let currentAdIndex = 0; const showNextAd = () => { if(ads.length > 0) { headerDisplay.innerHTML = ads[currentAdIndex](); const progressBar = document.createElement('div'); progressBar.className = 'ad-progress-bar'; headerDisplay.appendChild(progressBar); currentAdIndex = (currentAdIndex + 1) % ads.length; } }; showNextAd(); setInterval(showNextAd, 5000); }
+        function initializeLetterSlider() { if (!slidesContainer || !slideIndicatorContainer) return; const slides = slidesContainer.children; const totalSlides = slides.length; if (totalSlides === 0) return; slidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); }); slideIndicatorContainer.innerHTML = ''; for (let i = 0; i < totalSlides; i++) { const dot = document.createElement('span'); dot.classList.add('indicator-dot'); dot.onclick = () => showSlide(i); slideIndicatorContainer.appendChild(dot); } let currentSlideIndex = 0; const showSlide = (index) => { currentSlideIndex = (index + totalSlides) % totalSlides; slidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`; slideIndicatorContainer.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); }); }; if(prevSlideBtn) prevSlideBtn.onclick = () => showSlide(currentSlideIndex - 1); if(nextSlideBtn) nextSlideBtn.onclick = () => showSlide(currentSlideIndex + 1); showSlide(0); }
+        function setupEventListeners() { if (currentYearElement) currentYearElement.textContent = new Date().getFullYear(); if (playBtn && audio) playBtn.addEventListener('click', () => audio.play()); if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal); if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement)); if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement)); if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement)); if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal); if (closeSipStatusModalBtn) closeSipStatusModalBtn.addEventListener('click', () => closeModal(sipStatusModalElement)); if (profileModalHeader) { profileModalHeader.addEventListener('click', () => { if (profileModalImage.src) { showFullImage(profileModalImage.src, profileModalName.textContent); } }); } [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement].forEach(modal => { if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); }); window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(balanceModalElement); closeModal(profileModalElement); closeModal(imageModalElement); closeModal(sipStatusModalElement); } }); }
         
-        // --- Functions (Your original functions go here) ---
-        const formatDate = (date) => {
-            if (!(date instanceof Date) || isNaN(date)) return "N/A";
-            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        };
-
-        function calculateProfitDistribution(paymentRecord, allData) {
-            const profit = paymentRecord.ReturnAmount;
-            if (profit <= 0) return null;
-            const payerName = paymentRecord.Name;
-            const userLoansBeforePayment = allData.filter(r => r.Name === payerName && r.Loan > 0 && (r.Date < paymentRecord.Date || (r.Date.getTime() === paymentRecord.Date.getTime() && r.id < paymentRecord.id)));
-            if (userLoansBeforePayment.length === 0) return null;
-            const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1];
-            const loanDate = relevantLoan.Date;
-            const loanId = relevantLoan.id;
-            const transactionsBeforeLoan = allData.filter(r => r.Date < loanDate || (r.Date.getTime() === loanDate.getTime() && r.id < loanId));
-            const memberBalances = {};
-            transactionsBeforeLoan.forEach(r => { memberBalances[r.Name] = (memberBalances[r.Name] || 0) + r.SipPayment + r.Payment - r.Loan; });
-            const capitalProviders = Object.entries(memberBalances).filter(([_, balance]) => balance > 0);
-            const totalCommunityCapital = capitalProviders.reduce((sum, [, balance]) => sum + balance, 0);
-            if (totalCommunityCapital <= 0) return null;
-            const distribution = capitalProviders.map(([name, balance]) => ({ name, share: (balance / totalCommunityCapital) * profit }));
-            return { distribution };
-        }
-
-        function calculateTotalProfitForMember(memberName, allData) {
-            let totalProfit = 0;
-            allData.forEach(transaction => {
-                if (transaction.ReturnAmount > 0) {
-                    const result = calculateProfitDistribution(transaction, allData);
-                    if (result && result.distribution) {
-                        const memberShare = result.distribution.find(d => d.name === memberName);
-                        if (memberShare) totalProfit += memberShare.share;
-                    }
-                }
-            });
-            return totalProfit;
-        }
-
-        function fetchMemberDataFromFirebase() {
-            if (!memberContainer) return;
-            memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
-            const membersRef = database.ref('members');
-            membersRef.once('value', (snapshot) => {
-                const membersData = snapshot.val();
-                const transactions = [];
-                if (membersData) {
-                    for (const memberKey in membersData) {
-                        const member = membersData[memberKey];
-                        if (member.transactions) {
-                            for (const transactionId in member.transactions) {
-                                const tx = member.transactions[transactionId];
-                                const formattedTransaction = {
-                                    id: transactions.length, Date: new Date(tx.Date), Name: member.name || memberKey,
-                                    Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0,
-                                    SipPayment: parseFloat(tx["SIP Payment"]) || 0,
-                                    ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0,
-                                    ImageUrl: tx.imageUrl || null
-                                };
-                                if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) {
-                                    transactions.push(formattedTransaction);
-                                }
-                            }
-                        }
-                    }
-                }
-                allTransactions = transactions.sort((a, b) => a.Date - b.Date || a.id - b.id);
-                processAndDisplayData(allTransactions);
-            }, (error) => {
-                console.error('Firebase Read Failed:', error);
-                if (memberContainer) {
-                   memberContainer.innerHTML = `<p class="error-text">❌ Sadasya data load karne mein vifal.<br><small>${error.message}</small><br>Kripya baad mein prayas karein.</p>`;
-                }
-            });
-        }
-
-        function processAndDisplayData(data) {
-            const members = {};
-            let totalLoanDisbursed = 0;
-            let totalReturnAmount = 0;
-
-            data.forEach(entry => {
-                totalLoanDisbursed += entry.Loan;
-                totalReturnAmount += entry.ReturnAmount;
-            });
-            netReturnAmount = totalReturnAmount;
-
-            const memberNames = [...new Set(data.map(r => r.Name))];
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-
-            memberNames.forEach(name => {
-                const memberData = data.filter(r => r.Name === name);
-                if (memberData.length === 0) return;
-                const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0);
-                const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0);
-                const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0);
-                const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl);
-                const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase());
-                const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
-                members[name] = {
-                    name: name, balance: (totalSIP + totalPayment) - totalLoan,
-                    totalReturn: calculateTotalProfitForMember(name, data),
-                    loanCount: memberData.filter(r => r.Loan > 0).length,
-                    joiningDate: memberData.length > 0 ? memberData[0].Date : null,
-                    displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE,
-                    isPrime: isPrime,
-                    sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? currentMonthSip.SipPayment : 0 }
-                };
-            });
-            
-            const memberList = Object.values(members).sort((a, b) => b.balance - a.balance);
-            allMembersData = memberList; 
-
-            // Populate adData
-            adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
-            adData.topThreeMembers = memberList.slice(0, 3);
-            adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
-            const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear);
-            if (currentMonthSips.length > 0) {
-                const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]);
-                const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name);
-                if (topSipMemberInfo) {
-                     adData.topSipMember = {
-                        name: topSipMemberInfo.name, amount: topSipTx.SipPayment,
-                        imageUrl: topSipMemberInfo.displayImageUrl
-                    };
-                }
-            }
-
-            displayMembers(memberList);
-            updateTotalBalanceDisplay(memberList);
-            updateInfoCards(memberList.length, totalLoanDisbursed);
-            startHeaderDisplayRotator();
-        }
-
-        function displayMembers(members) {
-            if (!memberContainer) return;
-            memberContainer.innerHTML = '';
-            if (members.length === 0) {
-                 memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
-                 return;
-            }
-            const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            members.forEach((member, index) => {
-                const card = document.createElement('div');
-                card.className = 'member-card animate-on-scroll';
-                let rankHTML = '';
-                if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } 
-                else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } 
-                else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; }
-                card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`;
-                card.onclick = () => showMemberProfileModal(member);
-                memberContainer.appendChild(card);
-            });
-            observeElements(memberContainer.querySelectorAll('.animate-on-scroll'));
-        }
-
-        function updateInfoCards(memberCount, totalLoan) {
-            if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
-            if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'});
-        }
-
-        function updateTotalBalanceDisplay(memberList) {
-            netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
-        }
-
-        function showMemberProfileModal(member) {
-            profileModalImage.src = member.displayImageUrl;
-            profileModalName.textContent = member.name;
-            profileModalJoiningDate.textContent = formatDate(member.joiningDate);
-            profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
-            profileModalReturn.textContent = member.totalReturn.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
-            profileModalLoanCount.textContent = member.loanCount;
-            if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } 
-            else { profileModalSipStatus.innerHTML = `<span class="sip-status-icon not-paid">✖</span><span class="sip-status-text">Not Paid</span>`; }
-            profileModalBalance.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`;
-            if (member.isPrime) { profileModalElement.classList.add('prime-modal'); profileModalPrimeTag.style.display = 'block'; } 
-            else { profileModalElement.classList.remove('prime-modal'); profileModalPrimeTag.style.display = 'none'; }
-            profileModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function showBalanceModal() {
-            if (!balanceModalElement) return;
-            balanceModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-            const combinedBalance = netCommunityBalance + netReturnAmount;
-            animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
-            animateValue(returnBalanceElement, 0, netReturnAmount, 1200);
-            animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
-        }
-
-        function showSipStatusModal() {
-            if (!sipStatusListContainer || allMembersData.length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
-            sipStatusListContainer.innerHTML = '';
-            const sortedMembers = [...allMembersData].sort((a, b) => a.sipStatus.paid === b.sipStatus.paid ? a.name.localeCompare(b.name) : a.sipStatus.paid ? 1 : -1);
-            sortedMembers.forEach(member => {
-                const item = document.createElement('div');
-                item.className = 'sip-status-item';
-                const statusClass = member.sipStatus.paid ? 'paid' : 'not-paid';
-                const statusText = member.sipStatus.paid ? 'Paid' : 'Not Paid';
-                item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`;
-                sipStatusListContainer.appendChild(item);
-            });
-            sipStatusModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal(modalElement) {
-            if (modalElement) modalElement.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-
-        function showFullImage(imageUrl, altText) {
-            if (!imageModalElement || !fullImageSrcElement) return;
-            fullImageSrcElement.src = imageUrl;
-            fullImageSrcElement.alt = altText;
-            imageModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function animateValue(element, start, end, duration) {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const currentValue = Math.floor(progress * (end - start) + start);
-                element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
-                if (progress < 1) { window.requestAnimationFrame(step); } 
-                else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); }
-            };
-            window.requestAnimationFrame(step);
-        }
-
-        const scrollObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
-
-        function observeElements(elements) {
-            elements.forEach(el => { if (el) scrollObserver.observe(el); });
-        }
-        
-        function startHeaderDisplayRotator() {
-            if (!headerDisplay) return;
-            const ads = [];
-            
-            if (adData.topSipMember) {
-                ads.push(() => {
-                    return `<div class="ad-content"><div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`;
-                });
-            }
-
-            if (adData.topBalanceMember) {
-                 ads.push(() => {
-                    return `<div class="ad-content"><div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div></div>`;
-                });
-            }
-
-            if (adData.topThreeMembers.length >= 3) {
-                ads.push(() => {
-                    let topThreeHtml = adData.topThreeMembers.map(member => `
-                        <div class="ad-top-three-member">
-                            <img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                            <p class="ad-top-three-name">${member.name}</p>
-                            <p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
-                        </div>
-                    `).join('');
-                    return `<div class="ad-content"><div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div></div>`;
-                });
-            }
-
-            if (adData.bankStats) {
-                ads.push(() => {
-                    return `<div class="ad-content"><div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div></div>`;
-                });
-            }
-
-            if (ads.length === 0) {
-                headerDisplay.innerHTML = `<p>Welcome to Bank Community Loan!</p>`;
-                return;
-            }
-
-            let currentAdIndex = 0;
-            const showNextAd = () => {
-                if(ads.length > 0) {
-                    headerDisplay.innerHTML = ads[currentAdIndex]();
-                    const progressBar = document.createElement('div');
-                    progressBar.className = 'ad-progress-bar';
-                    headerDisplay.appendChild(progressBar);
-                    
-                    currentAdIndex = (currentAdIndex + 1) % ads.length;
-                }
-            };
-            
-            showNextAd();
-            setInterval(showNextAd, 5000);
-        }
-
-        function initializeLetterSlider() {
-            if (!slidesContainer || !slideIndicatorContainer) return;
-            const slides = slidesContainer.children;
-            const totalSlides = slides.length;
-            if (totalSlides === 0) return;
-            slidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); });
-            slideIndicatorContainer.innerHTML = '';
-            for (let i = 0; i < totalSlides; i++) {
-                const dot = document.createElement('span');
-                dot.classList.add('indicator-dot');
-                dot.onclick = () => showSlide(i);
-                slideIndicatorContainer.appendChild(dot);
-            }
-            let currentSlideIndex = 0;
-            const showSlide = (index) => {
-                currentSlideIndex = (index + totalSlides) % totalSlides;
-                slidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`;
-                slideIndicatorContainer.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); });
-            };
-            if(prevSlideBtn) prevSlideBtn.onclick = () => showSlide(currentSlideIndex - 1);
-            if(nextSlideBtn) nextSlideBtn.onclick = () => showSlide(currentSlideIndex + 1);
-            showSlide(0);
-        }
-
-        function setupEventListeners() {
-            if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
-            if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
-            if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal);
-            if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement));
-            if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement));
-            if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement));
-            if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
-            if (closeSipStatusModalBtn) closeSipStatusModalBtn.addEventListener('click', () => closeModal(sipStatusModalElement));
-            if (profileModalHeader) { profileModalHeader.addEventListener('click', () => { if (profileModalImage.src) { showFullImage(profileModalImage.src, profileModalName.textContent); } }); }
-            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement].forEach(modal => { if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); });
-            window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(balanceModalElement); closeModal(profileModalElement); closeModal(imageModalElement); closeModal(sipStatusModalElement); } });
-        }
-
         // --- Initial Calls for the Main App ---
         feather.replace();
         setupEventListeners();
