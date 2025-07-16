@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Gallery - Bank Community</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+       :root {
+            --primary-color: #1565C0;
+            --primary-darker: #0D47A1;
+            --primary-gradient: linear-gradient(135deg, #1E88E5 0%, #0D47A1 100%);
+            --secondary-color: #2E7D32;
+            --secondary-darker: #1B5E20;
+            --background-color: #f4f7f9;
+            --card-bg-color: #ffffff;
+            --text-color: #263238;
+            --light-text-color: #546E7A;
+            --border-color: #CFD8DC;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            --danger-color: #D32F2F;
+            --success-color: #2E7D32;
+            --like-color: #ff4757;
+            --font-family: 'Poppins', sans-serif;
+            --border-radius: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--background-color); color: var(--text-color); font-family: var(--font-family); padding: 10px; visibility: hidden; /* Initially hidden */ }
+        .container { max-width: 480px; margin: 0 auto; background: var(--card-bg-color); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; min-height: calc(100vh - 20px); }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px; border-bottom: 1px solid var(--border-color); position: relative; }
+        .header .title { font-size: 22px; font-weight: 600; color: var(--primary-color); }
+        .back-link { color: var(--primary-color); font-weight: 500; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        .section { padding: 25px; }
+        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-title h3 { font-size: 18px; font-weight: 600; }
+        .view-all { color: var(--primary-color); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.3s; }
+        .view-all:hover { opacity: 0.8; }
+        .name-grid { display: flex; gap: 15px; overflow-x: auto; padding: 5px 0 15px 0; -ms-overflow-style: none; scrollbar-width: none; }
+        .name-grid::-webkit-scrollbar { display: none; }
+        .name-item { text-align: center; flex-shrink: 0; cursor: pointer; }
+        .name-avatar { width: 68px; height: 68px; border-radius: 50%; background-size: cover; background-position: center; border: 3px solid transparent; padding: 3px; background-clip: content-box; margin-bottom: 8px; transition: all 0.4s ease; background-color: #eee; }
+        .name-item.active .name-avatar { border-color: var(--primary-color); transform: scale(1.1); }
+        .name-label { font-size: 14px; font-weight: 500; color: var(--light-text-color); transition: color 0.3s; }
+        .name-item.active .name-label { color: var(--primary-color); font-weight: 600; }
+        .albums-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+        .album-card, .skeleton-card { border-radius: var(--border-radius); background-color: #eee; background-size: cover; background-position: center; cursor: pointer; position: relative; overflow: hidden; aspect-ratio: 1; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; justify-content: flex-end; }
+        .album-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); }
+        .album-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; opacity: 1; transition: opacity 0.3s; }
+        .album-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+        .like-button, .like-count { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 6px 12px; font-size: 14px; cursor: pointer; transition: background 0.3s; display: flex; align-items: center; gap: 5px; font-weight: 500; }
+        .like-button:hover { background: rgba(255, 255, 255, 0.3); }
+        .like-button .heart-icon { width: 18px; height: 18px; fill: #ddd; transition: all 0.3s ease; }
+        .like-button.liked .heart-icon { fill: var(--like-color); transform: scale(1.2); }
+        .like-count { display: none; }
+        .like-count.visible { display: flex; }
+        .delete-btn { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; background-color: rgba(255, 255, 255, 0.8); border: none; border-radius: 50%; color: var(--danger-color); display: none; align-items: center; justify-content: center; cursor: pointer; transform: scale(0.8); transition: all 0.3s ease; z-index: 5; }
+        .album-card:hover .delete-btn { transform: scale(1); }
+        .delete-btn:hover { background-color: white; transform: scale(1.1); }
+        .status-message { padding: 40px 15px; text-align: center; color: var(--light-text-color); font-size: 16px; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .status-message .icon { font-size: 48px; color: #ccc; }
+        .skeleton-card { background-color: #e0e0e0; animation: pulse 1.5s infinite ease-in-out; }
+        @keyframes pulse { 0% { background-color: #e0e0e0; } 50% { background-color: #f0f0f0; } 100% { background-color: #e0e0e0; } }
+        .fab { position: fixed; bottom: 30px; right: calc(50% - 170px); width: 60px; height: 60px; background: var(--primary-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; cursor: pointer; box-shadow: 0 8px 20px rgba(21, 101, 192, 0.4); transition: all 0.3s ease; border: none; z-index: 999; }
+        .fab:hover { transform: scale(1.1) rotate(90deg); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content { background-color: var(--card-bg-color); padding: 30px; border-radius: var(--border-radius); width: 90%; max-width: 400px; text-align: center; transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal.show .modal-content { transform: scale(1); }
+        .modal-content h3 { margin-bottom: 20px; font-size: 20px; font-weight: 600; }
+        .preview-image { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 20px; background-color: var(--border-color); display: none; }
+        .file-input-label { display: block; padding: 15px; background: #f0f2f5; color: var(--text-color); border-radius: 12px; text-align: center; font-weight: 500; cursor: pointer; transition: background 0.3s ease; margin-bottom: 15px; border: 2px dashed var(--border-color); }
+        .file-input-label:hover { background: #e9ecef; }
+        .file-input { display: none; }
+        .modal-input, .modal-select { width: 100%; padding: 15px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px; margin-bottom: 20px; text-align: left; transition: box-shadow 0.3s; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 1rem center; background-repeat: no-repeat; background-size: 1.5em; padding-right: 2.5rem; }
+        .modal-input:focus, .modal-select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.15); }
+        .modal-buttons { display: flex; gap: 10px; }
+        .modal-btn { flex-grow: 1; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s ease; }
+        .modal-btn.primary { background: var(--primary-gradient); color: white; }
+        .modal-btn.primary:disabled { background: #BDBDBD; cursor: not-allowed; }
+        .modal-btn.secondary { background-color: #e9ecef; color: #555; }
+        #likeHistoryList { list-style: none; max-height: 200px; overflow-y: auto; margin-top: 15px; text-align: left; padding: 0 10px; }
+        #likeHistoryList li { padding: 10px 15px; border-bottom: 1px solid var(--border-color); font-size: 16px; }
+        #likeHistoryList li:last-child { border-bottom: none; }
+        #lightboxModal { background-color: rgba(0,0,0,0.85); }
+        .lightbox-content { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .lightbox-image { max-width: 90vw; max-height: 75vh; border-radius: 10px; object-fit: contain; }
+        .lightbox-close, .lightbox-nav { position: absolute; color: white; cursor: pointer; font-size: 40px; font-weight: bold; user-select: none; transition: opacity 0.2s ease; z-index: 1001; }
+        .lightbox-close { top: 20px; right: 35px; }
+        .lightbox-nav { top: 50%; transform: translateY(-50%); padding: 10px; }
+        .lightbox-nav.prev { left: 10px; }
+        .lightbox-nav.next { right: 10px; }
+        .lightbox-close:hover, .lightbox-nav:hover { opacity: 0.7; }
+        .lightbox-actions { position: absolute; bottom: 70px; display: flex; align-items: center; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); border-radius: 50px; }
+        .lightbox-actions .person-name { color: white; font-weight: 500; }
+        .lightbox-actions .like-button { font-size: 16px; padding: 8px 16px; }
+        .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 25px; border-radius: 10px; color: white; font-weight: 500; transition: all 0.5s ease; z-index: 2000; opacity: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
+        .toast.show { bottom: 80px; opacity: 1;}
+        .toast.success { background: var(--success-color); }
+        .toast.error { background: var(--danger-color); }
+    </style>
+</head>
+<body>
+    <svg width="0" height="0" style="display:none;">
+      <symbol id="heart-icon" viewBox="0 0 24 24">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </symbol>
+    </svg>
+
+    <div class="container">
+        <header class="header">
+            <a href="/index.html" class="back-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                Back
+            </a>
+            <h1 class="title">Bank Gallery</h1>
+        </header>
+
+        <section class="section">
+            <div class="section-title">
+                <h3>Search by Name</h3>
+                <span class="view-all" onclick="showAllPhotos()">View all</span>
+            </div>
+            <div id="nameGrid" class="name-grid"></div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">
+                <h3 id="albumsTitle">All Photos</h3>
+                <span id="photoCount" class="view-all">0 photos</span>
+            </div>
+            <div id="albumsGrid" class="albums-grid"></div>
+        </section>
+    </div>
+
+    <button class="fab" id="openUploadModalBtn" title="Naya Photo Upload Karein">+</button>
+
+    <!-- Modals -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <h3>Naya Photo Upload Karein</h3>
+            <img id="previewImage" class="preview-image">
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+            <label for="fileInput" id="fileLabel" class="file-input-label">Image File Chunein</label>
+            <select id="personNameSelect" class="modal-select">
+                <option value="">Select Name</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeModal(getEl('uploadModal'))">Cancel</button>
+                <button class="modal-btn primary" id="uploadBtn" disabled>Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="likeNameModal" class="modal">
+        <div class="modal-content">
+            <h3>Photo Like Karein</h3>
+            <p style="margin-bottom: 15px; color: var(--light-text-color);">Photo like karne ke liye apna naam chunein.</p>
+            <select id="likerNameSelect" class="modal-select">
+                <option value="">Select Your Name</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeModal(getEl('likeNameModal'))">Cancel</button>
+                <button class="modal-btn primary" id="submitLikeBtn">Save aur Like</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="likeHistoryModal" class="modal">
+        <div class="modal-content">
+            <h3>Inke dwara pasand kiya gaya</h3>
+            <ul id="likeHistoryList"></ul>
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="modal-btn primary" onclick="closeModal(getEl('likeHistoryModal'))">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lightboxModal" class="modal">
+        <span class="lightbox-close" id="lightboxCloseBtn">&times;</span>
+        <span class="lightbox-nav prev" id="lightboxPrevBtn">&#10094;</span>
+        <span class="lightbox-nav next" id="lightboxNextBtn">&#10095;</span>
+        <div class="lightbox-content">
+            <img id="lightboxImage" class="lightbox-image">
+            <div id="lightboxActions" class="lightbox-actions"></div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+
+    <script>
+    // --- Global State & Config ---
+    const state = {
+        allImages: [],
+        allMembers: [],
+        currentlyVisibleImages: [],
+        selectedFile: null,
+        lightboxCurrentIndex: 0,
+        currentUser: null,
+        imgbbApiKey: null,
+        adminUid: 'lux0EG0kg7NUcBFQYfZrGzXP3Qw2' // Admin UID
+    };
+    
+    // --- DOM Elements ---
+    const getEl = (id) => document.getElementById(id);
+    const nameGrid = getEl('nameGrid');
+    const albumsGrid = getEl('albumsGrid');
+    const albumsTitle = getEl('albumsTitle');
+    const photoCount = getEl('photoCount');
+    const toast = getEl('toast');
+    const uploadModal = getEl('uploadModal');
+    const lightboxModal = getEl('lightboxModal');
+    const likeNameModal = getEl('likeNameModal');
+    const likeHistoryModal = getEl('likeHistoryModal');
+    const openUploadModalBtn = getEl('openUploadModalBtn');
+    const fileInput = getEl('fileInput');
+    const fileLabel = getEl('fileLabel');
+    const personNameSelect = getEl('personNameSelect');
+    const previewImage = getEl('previewImage');
+    const uploadBtn = getEl('uploadBtn');
+    const likerNameSelect = getEl('likerNameSelect');
+    const submitLikeBtn = getEl('submitLikeBtn');
+    const likeHistoryList = getEl('likeHistoryList');
+    const lightboxImage = getEl('lightboxImage');
+    const lightboxActions = getEl('lightboxActions');
+    const lightboxCloseBtn = getEl('lightboxCloseBtn');
+    const lightboxPrevBtn = getEl('lightboxPrevBtn');
+    const lightboxNextBtn = getEl('lightboxNextBtn');
+
+    // --- Utility Functions ---
+    const showToast = (message, type = 'success') => {
+        toast.textContent = message;
+        toast.className = `toast show ${type}`;
+        setTimeout(() => { toast.className = 'toast'; }, 3000);
+    };
+    const openModal = (modal) => modal.classList.add('show');
+    const closeModal = (modal) => modal.classList.remove('show');
+    const createHeartIcon = () => {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'heart-icon');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#heart-icon');
+        svg.appendChild(use);
+        return svg;
+    };
+    
+    // --- Main Logic ---
+    function renderGallery() {
+        displayNames();
+        displayPhotos();
+    }
+
+    function displayNames() {
+        const namesMap = new Map();
+        state.allImages.forEach(image => {
+            if (!namesMap.has(image.uploaderName)) {
+                const uploader = state.allMembers.find(m => m.name === image.uploaderName);
+                namesMap.set(image.uploaderName, uploader ? uploader.imageUrl : 'https://i.imgur.com/6aATcZR.jpeg');
+            }
+        });
+        
+        nameGrid.innerHTML = '';
+        if (namesMap.size === 0) return;
+
+        const sortedNames = Array.from(namesMap.keys()).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        
+        sortedNames.forEach(name => {
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'name-item';
+            nameDiv.onclick = () => filterByName(name);
+            nameDiv.innerHTML = `
+                <div class="name-avatar" style="background-image: url(${namesMap.get(name)})"></div>
+                <div class="name-label">${name}</div>`;
+            nameGrid.appendChild(nameDiv);
+        });
+    }
+    
+    function displayPhotos(filterName = null) {
+        state.currentlyVisibleImages = filterName ? state.allImages.filter(img => img.uploaderName === filterName) : state.allImages;
+
+        albumsGrid.innerHTML = ''; 
+        if (state.currentlyVisibleImages.length === 0) {
+            albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">🖼️</span><span>${filterName ? 'Is naam se koi photo nahi mila.' : 'Gallery khali hai. Ek photo upload karein!'}</span></div>`;
+        }
+        
+        photoCount.textContent = `${state.currentlyVisibleImages.length} photo${state.currentlyVisibleImages.length === 1 ? '' : 's'}`;
+        albumsTitle.textContent = filterName ? `${filterName}'s Photos` : 'All Photos';
+
+        state.currentlyVisibleImages.forEach((image, index) => {
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'album-card';
+            photoDiv.style.backgroundImage = `url(${image.url})`;
+            photoDiv.onclick = (e) => {
+                if (e.target.closest('.like-button, .like-count, .delete-btn')) return;
+                openLightbox(index);
+            };
+
+            const likeCount = image.likes ? Object.keys(image.likes).length : 0;
+            const userHasLiked = image.likes && image.likes[state.currentUser.uid];
+
+            const likeButton = document.createElement('button');
+            likeButton.className = `like-button ${userHasLiked ? 'liked' : ''}`;
+            likeButton.onclick = (e) => { e.stopPropagation(); toggleLike(image.id, !userHasLiked); };
+            likeButton.appendChild(createHeartIcon());
+
+            const likeCountSpan = `<span class="like-count ${likeCount > 0 ? 'visible' : ''}" onclick="event.stopPropagation(); openLikeHistoryModal('${image.id}')">${likeCount}</span>`;
+            
+            const canDelete = (state.currentUser.uid === state.adminUid) || 
+                              (state.currentUser.uid === image.uploaderUid && (Date.now() - image.timestamp) < (24 * 60 * 60 * 1000));
+
+            const deleteButton = `<button class="delete-btn" style="display:${canDelete ? 'flex' : 'none'}" onclick="event.stopPropagation(); deleteImage('${image.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>`;
+
+            photoDiv.innerHTML = `${deleteButton}<div class="album-overlay"><div class="album-actions">${likeCountSpan}</div></div>`;
+            photoDiv.querySelector('.album-actions').appendChild(likeButton);
+            albumsGrid.appendChild(photoDiv);
+        });
+    }
+    
+    function filterByName(name) {
+        document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
+        const nameItems = nameGrid.querySelectorAll('.name-item');
+        for (let item of nameItems) {
+            if (item.querySelector('.name-label').textContent === name) {
+                item.classList.add('active');
+                break;
+            }
+        }
+        displayPhotos(name);
+    }
+    const showAllPhotos = () => {
+        document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
+        displayPhotos();
+    };
+
+    // --- Lightbox Functions ---
+    function openLightbox(index) {
+        state.lightboxCurrentIndex = index;
+        updateLightboxImage();
+        openModal(lightboxModal);
+    }
+    const closeLightbox = () => closeModal(lightboxModal);
+    
+    function updateLightboxImage() {
+        if (state.currentlyVisibleImages.length === 0) { closeLightbox(); return; }
+        state.lightboxCurrentIndex = Math.max(0, Math.min(state.currentlyVisibleImages.length - 1, state.lightboxCurrentIndex));
+        const image = state.currentlyVisibleImages[state.lightboxCurrentIndex];
+        lightboxImage.src = image.url;
+        
+        const userHasLiked = image.likes && image.likes[state.currentUser.uid];
+        const likeButton = document.createElement('button');
+        likeButton.className = `like-button ${userHasLiked ? 'liked' : ''}`;
+        likeButton.onclick = () => toggleLike(image.id, !userHasLiked);
+        likeButton.appendChild(createHeartIcon());
+        likeButton.append(" Like");
+
+        lightboxActions.innerHTML = `<span class="person-name">${image.uploaderName}</span>`;
+        lightboxActions.appendChild(likeButton);
+        
+        lightboxPrevBtn.style.display = state.currentlyVisibleImages.length > 1 ? 'block' : 'none';
+        lightboxNextBtn.style.display = state.currentlyVisibleImages.length > 1 ? 'block' : 'none';
+    }
+    const showNextImage = () => {
+        if (state.currentlyVisibleImages.length === 0) return;
+        state.lightboxCurrentIndex = (state.lightboxCurrentIndex + 1) % state.currentlyVisibleImages.length;
+        updateLightboxImage();
+    };
+    const showPrevImage = () => {
+        if (state.currentlyVisibleImages.length === 0) return;
+        state.lightboxCurrentIndex = (state.lightboxCurrentIndex - 1 + state.currentlyVisibleImages.length) % state.currentlyVisibleImages.length;
+        updateLightboxImage();
+    };
+    
+    // --- Firebase Actions ---
+    async function handleUpload() {
+        if (!state.selectedFile || !personNameSelect.value) {
+            return showToast('Kripya image aur naam chunein.', 'error');
+        }
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+        
+        const formData = new FormData();
+        formData.append('image', state.selectedFile);
+
+        try {
+            const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${state.imgbbApiKey}`, { method: 'POST', body: formData });
+            const result = await imgbbResponse.json();
+
+            if (result.success) {
+                const newPhotoData = {
+                    url: result.data.url,
+                    uploaderName: personNameSelect.value,
+                    uploaderUid: state.currentUser.uid,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                await firebase.database().ref('gallery').push(newPhotoData);
+                showToast('Photo safaltapoorvak upload ho gaya!', 'success');
+                closeModal(uploadModal);
+            } else { throw new Error(result.error?.message || 'ImgBB upload vifal'); }
+        } catch (error) { showToast(`Upload vifal: ${error.message}`, 'error'); }
+        finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload';
+        }
+    }
+
+    async function deleteImage(imageId) {
+        if (!confirm('Kya aap sach mein is photo ko delete karna chahte hain?')) return;
+        try {
+            await firebase.database().ref('gallery/' + imageId).remove();
+            showToast('Photo safaltapoorvak delete ho gaya.', 'success');
+            // No need to fetch again, just remove from local state and re-render
+            state.allImages = state.allImages.filter(img => img.id !== imageId);
+            renderGallery();
+            closeLightbox();
+        } catch (error) {
+            showToast('Delete karne mein vifal.', 'error');
+        }
+    }
+
+    async function toggleLike(imageId, shouldLike) {
+        const likeRef = firebase.database().ref(`gallery/${imageId}/likes/${state.currentUser.uid}`);
+        try {
+            if (shouldLike) {
+                await likeRef.set(state.currentUser.displayName || "Ek Sadasya");
+            } else {
+                await likeRef.remove();
+            }
+            // Optimistic UI update
+            const image = state.allImages.find(img => img.id === imageId);
+            if (!image.likes) image.likes = {};
+            if(shouldLike) {
+                image.likes[state.currentUser.uid] = true;
+            } else {
+                delete image.likes[state.currentUser.uid];
+            }
+            displayPhotos(albumsTitle.textContent.includes("'s Photos") ? albumsTitle.textContent.split("'s Photos")[0] : null);
+            if (lightboxModal.classList.contains('show')) {
+                updateLightboxImage();
+            }
+        } catch (error) {
+            showToast('Like update karne mein vifal.', 'error');
+        }
+    }
+
+    function openLikeHistoryModal(imageId) {
+        const image = state.allImages.find(img => img.id === imageId);
+        likeHistoryList.innerHTML = '';
+        if (image && image.likes && Object.keys(image.likes).length > 0) {
+            Object.values(image.likes).forEach(name => {
+                const li = document.createElement('li');
+                li.textContent = name;
+                likeHistoryList.appendChild(li);
+            });
+        } else {
+            likeHistoryList.innerHTML = '<li>Abhi tak koi like nahi.</li>';
+        }
+        openModal(likeHistoryModal);
+    };
+
+    // --- Initialization ---
+    async function initializePage() {
+        document.body.style.visibility = 'hidden';
+        try {
+            const [configRes, keyRes] = await Promise.all([
+                fetch('/api/firebase-config'),
+                fetch('/api/imgbb-key')
+            ]);
+            if (!configRes.ok || !keyRes.ok) throw new Error('API keys fetch failed');
+            
+            const firebaseConfig = await configRes.json();
+            const { key } = await keyRes.json();
+            state.imgbbApiKey = key;
+
+            firebase.initializeApp(firebaseConfig);
+            
+            const auth = firebase.auth();
+            const database = firebase.database();
+
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    state.currentUser = user;
+                    document.body.style.visibility = 'visible';
+                    runMainApp(database);
+                } else {
+                    window.location.href = '/login.html';
+                }
+            });
+        } catch (error) {
+            document.body.innerHTML = `<div style="padding:20px;text-align:center;"><h1>Application Error</h1><p>Could not load necessary configuration.</p></div>`;
+            document.body.style.visibility = 'visible';
+        }
+    }
+
+    function runMainApp(database) {
+        const membersRef = database.ref('members');
+        const galleryRef = database.ref('gallery');
+
+        // Fetch initial data
+        membersRef.once('value', (snapshot) => {
+            const membersData = snapshot.val();
+            const memberNames = new Set();
+            const memberDetails = [];
+            for (const key in membersData) {
+                const name = membersData[key].name;
+                if(name && !memberNames.has(name)){
+                    memberNames.add(name);
+                    const lastTx = Object.values(membersData[key].transactions || {}).pop();
+                    memberDetails.push({ name, imageUrl: lastTx?.imageUrl || 'https://i.imgur.com/6aATcZR.jpeg' });
+                }
+            }
+            state.allMembers = memberDetails.sort((a,b) => a.name.localeCompare(b.name));
+            
+            // Populate dropdowns
+            personNameSelect.innerHTML = `<option value="">Select Name</option>`;
+            state.allMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.name;
+                option.textContent = member.name;
+                personNameSelect.appendChild(option);
+            });
+        });
+        
+        // Listen for gallery changes in real-time
+        galleryRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            state.allImages = Object.entries(data).map(([id, value]) => ({ id, ...value })).sort((a, b) => b.timestamp - a.timestamp);
+            renderGallery();
+        });
+
+        // Setup event listeners
+        openUploadModalBtn.addEventListener('click', () => openModal(uploadModal));
+        uploadBtn.addEventListener('click', handleUpload);
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                state.selectedFile = file;
+                fileLabel.textContent = `✅ ${file.name.substring(0,20)}...`;
+                previewImage.src = URL.createObjectURL(file);
+                previewImage.style.display = 'block';
+                uploadBtn.disabled = personNameSelect.value === '';
+            }
+        });
+        personNameSelect.addEventListener('change', () => {
+            uploadBtn.disabled = personNameSelect.value === '' || !state.selectedFile;
+        });
+
+        lightboxCloseBtn.addEventListener('click', closeLightbox);
+        lightboxPrevBtn.addEventListener('click', showPrevImage);
+        lightboxNextBtn.addEventListener('click', showNextImage);
+    }
+
+    document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>
+
+2. अपडेटेड Firebase Rules
+अपने Firebase Realtime Database के Rules सेक्शन में जाएं और नीचे दिया गया कोड पेस्ट कर दें। यह आपके पुराने members के नियमों को सुरक्षित रखेगा और नए gallery के लिए नियम जोड़ देगा।
+{
+  "rules": {
+    "vars": {
+      "admin": "lux0EG0kg7NUcBFQYfZrGzXP3Qw2"
+    },
+    "members": {
+      ".read": "auth != null",
+      ".write": "auth.uid === get(/vars/admin)"
+    },
+    "gallery": {
+      ".read": "auth != null",
+      "$imageId": {
+        // Naya photo koi bhi login user bana sakta hai
+        ".write": "!data.exists() && auth != null",
+        // Photo ko update (jaise like) koi bhi login user kar sakta hai
+        ".update": "auth != null",
+        // Photo ko delete sirf uploader (24 ghante tak) ya admin kar sakta hai
+        ".delete": "data.child('uploaderUid').val() === auth.uid || auth.uid === get(/vars/admin)"
+      }
+    }
+  }
+}
+
