@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BANK COMMUNITY LOAN - पंजीकरण और खोज</title>
     
-    <!-- Tailwind CSS for styling -->
+    <!-- Tailwind CSS & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -26,56 +24,62 @@
 
     <!-- 
       ================================================================
-      VERCEL ENVIRONMENT VARIABLES CONFIGURATION
+      API KEYS CONFIGURATION
       ================================================================
-      यह स्क्रिप्ट ब्लॉक आपके Vercel Environment Variables को लोड करेगा।
-      Vercel डिप्लॉयमेंट के दौरान इन प्लेसहोल्डर वैल्यूज को आपकी "Tijori"
-      की असली Keys से बदल देगा।
-      
-      महत्वपूर्ण: आपको Vercel में अपने वैरिएबल के नाम नीचे दिए गए नामों से 
-      मैच करने होंगे (जैसे, FIREBASE_API_KEY).
+      यह स्क्रिप्ट Vercel पर डिप्लॉयमेंट के लिए है। Vercel इन प्लेसहोल्डर
+      वैल्यूज को आपकी "Tijori" (Environment Variables) की असली Keys से 
+      बदल देगा। आपको इसे बदलने की ज़रूरत नहीं है।
     -->
     <script>
       const firebaseConfig = {
-        apiKey: "YOUR_FIREBASE_API_KEY", // Vercel Variable: FIREBASE_API_KEY
-        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN", // Vercel Variable: FIREBASE_AUTH_DOMAIN
-        databaseURL: "YOUR_FIREBASE_DATABASE_URL", // Vercel Variable: FIREBASE_DATABASE_URL
-        projectId: "YOUR_FIREBASE_PROJECT_ID", // Vercel Variable: FIREBASE_PROJECT_ID
-        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET", // Vercel Variable: FIREBASE_STORAGE_BUCKET
-        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID", // Vercel Variable: FIREBASE_MESSAGING_SENDER_ID
-        appId: "YOUR_FIREBASE_APP_ID", // Vercel Variable: FIREBASE_APP_ID
-        measurementId: "YOUR_FIREBASE_MEASUREMENT_ID" // Vercel Variable: FIREBASE_MEASUREMENT_ID
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+        databaseURL: "YOUR_FIREBASE_DATABASE_URL",
+        projectId: "YOUR_FIREBASE_PROJECT_ID",
+        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+        appId: "YOUR_FIREBASE_APP_ID",
+        measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
       };
-
-      const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY"; // Vercel Variable: IMGBB_API_KEY
+      const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY";
     </script>
 
+    <!-- UI Initialization (Non-Firebase dependent) -->
+    <script>
+      // यह फंक्शन Firebase पर निर्भर नहीं है, इसलिए यह हमेशा काम करेगा।
+      function generateMembershipId() {
+        const prefix = 'BCL';
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+        return `${prefix}-${timestamp}-${random}`;
+      }
 
+      // पेज लोड होते ही ID और तारीख सेट करें।
+      window.addEventListener('DOMContentLoaded', (event) => {
+          document.getElementById('membershipId').value = generateMembershipId();
+          document.getElementById('joiningDate').valueAsDate = new Date();
+      });
+    </script>
+
+    <!-- Main Application HTML -->
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-            <!-- Header Section -->
             <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 text-center">
                 <img src="https://i.ibb.co/HTNrbJxD/20250716-222246.png" alt="Bank Logo" class="mx-auto h-20 w-20 rounded-full object-cover border-4 border-white/50 shadow-md mb-4">
                 <h1 class="text-3xl font-bold tracking-tight">BANK COMMUNITY LOAN</h1>
                 <p class="text-lg opacity-90 mt-1">सदस्यता पोर्टल</p>
             </header>
-
-            <!-- Search Section -->
+            
             <div class="p-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">सदस्य खोजें (Search Member)</h2>
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">सदस्य खोजें</h2>
                 <div class="flex flex-col sm:flex-row gap-4">
-                    <input type="text" id="searchInput" placeholder="सदस्यता ID डालें (जैसे BCL-XXXXXX)" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    <button id="searchBtn" class="inline-flex items-center justify-center px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
-                        खोजें
-                    </button>
+                    <input type="text" id="searchInput" placeholder="सदस्यता ID डालें (जैसे BCL-XXXXXX)" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <button id="searchBtn" class="inline-flex items-center justify-center px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700">खोजें</button>
                 </div>
             </div>
 
-            <!-- Form Section -->
             <form id="registrationForm" class="p-6 sm:p-8 space-y-6">
-                <!-- Form fields remain the same -->
-                 <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">नया सदस्य जोड़ें (Add New Member)</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">नया सदस्य जोड़ें</h2>
                 <div class="border-b border-gray-200 pb-6">
                     <h3 class="text-lg font-semibold text-gray-700 mb-4">व्यक्तिगत विवरण</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -105,85 +109,101 @@
                     </div>
                 </div>
                 <div class="pt-6 text-right">
-                    <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300">Review & Submit</button>
+                    <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Review & Submit</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- All Modals remain the same -->
+    <!-- Modals -->
     <div id="searchModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">सदस्य विवरण</h2><button id="closeSearchModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="modalContent" class="p-6"></div></div></div>
     <div id="reviewModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Review Your Details</h2><button id="closeReviewModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="reviewContent" class="p-6"></div><div class="p-6 bg-gray-50 border-t flex justify-end gap-4"><button id="editBtn" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Edit</button><button id="confirmSubmitBtn" class="inline-flex items-center justify-center px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"><span id="btnText">Confirm & Submit</span><svg id="btnSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></button></div></div></div>
     <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50"><img id="fullScreenImage" src="" class="max-w-full max-h-full object-contain"><button id="closeImageModalBtn" class="absolute top-4 right-4 text-white text-4xl">&times;</button></div>
     <div id="toast" class="fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform translate-x-[120%] z-50"><p id="toastMessage"></p></div>
 
-    <!-- Main Application Logic -->
+    <!-- Main Application Logic (Firebase Dependent) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-        // Initialize Firebase using the config object from the script tag above
-        // This keeps the keys separate from the main logic
-        const app = initializeApp(window.firebaseConfig);
-        const db = getDatabase(app);
-
-        // The rest of the JavaScript logic remains exactly the same
-        // It will now use the config provided by the separate script block
-        
-        // --- Helper Functions ---
-        function generateMembershipId() { return `BCL-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`; }
+        // Helper functions
         function showToast(message, isError = false) { const t=document.getElementById("toast");t.children[0].textContent=message,t.className=`fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform z-50 ${isError?"bg-red-500":"bg-green-500"}`,t.classList.remove("translate-x-[120%]"),t.classList.add("translate-x-0"),setTimeout(()=>{t.classList.remove("translate-x-0"),t.classList.add("translate-x-[120%]")},5e3); }
         window.previewImage = function(event, previewId) { const f=event.target.files[0];if(f){const r=new FileReader,p=document.getElementById(previewId);r.onload=e=>{p.style.backgroundImage=`url(${e.target.result})`,p.textContent=""},r.readAsDataURL(f)} }
         async function uploadImage(file) { if(!file)return null;const f=new FormData;f.append("image",file);try{const r=await fetch(`https://api.imgbb.com/1/upload?key=${window.IMGBB_API_KEY}`,{method:"POST",body:f}),s=await r.json();if(s.success)return s.data.url;throw new Error(s.error.message||"Image upload failed.")}catch(e){return console.error("Image Upload Error:",e),showToast(`Image upload failed: ${e.message}`,!0),null} }
 
-        // --- Event Listeners ---
-        window.onload = () => { document.getElementById('membershipId').value = generateMembershipId(); document.getElementById('joiningDate').valueAsDate = new Date(); };
-        document.getElementById('closeSearchModalBtn').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
-        document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
-        document.getElementById('closeImageModalBtn').addEventListener('click', () => document.getElementById('imageModal').classList.add('hidden'));
-        document.getElementById('editBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
-        ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).addEventListener('click', () => { const bg = document.getElementById(id).style.backgroundImage; if (bg && bg !== 'none') { document.getElementById('fullScreenImage').src = bg.slice(5, -2); document.getElementById('imageModal').classList.remove('hidden'); } else { document.getElementById(id.replace('Preview', '')).click(); } }); });
+        try {
+            // Initialize Firebase using the config from the separate script tag
+            const app = initializeApp(window.firebaseConfig);
+            const db = getDatabase(app);
 
-        // --- Search Logic ---
-        document.getElementById('searchBtn').addEventListener('click', async () => {
-            const searchId = document.getElementById('searchInput').value.trim();
-            if (!searchId) { showToast("कृपया खोजने के लिए सदस्यता ID डालें।", true); return; }
-            document.getElementById('modalContent').innerHTML = '<p class="text-center p-8">खोज रहा है...</p>';
-            document.getElementById('searchModal').classList.remove('hidden');
-            try {
-                const snapshot = await get(ref(db, 'members/' + searchId));
-                if (snapshot.exists()) {
-                    displayMemberData(snapshot.val());
-                } else {
-                    document.getElementById('modalContent').innerHTML = `<p class="text-center p-8 text-red-500 font-semibold">ID '${searchId}' के साथ कोई सदस्य नहीं मिला।</p>`;
-                }
-            } catch (error) { console.error("Search Error:", error); showToast("खोज के दौरान त्रुटि हुई।", true); }
-        });
-        
-        function displayMemberData(data) {
-            let statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
-            if (data.status === 'Approved') statusClass = 'bg-green-100 text-green-800 border-green-400';
-            else if (data.status === 'Rejected') statusClass = 'bg-red-100 text-red-800 border-red-400';
+            // --- All Firebase-dependent logic goes here ---
+            document.getElementById('closeSearchModalBtn').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
+            document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
+            document.getElementById('closeImageModalBtn').addEventListener('click', () => document.getElementById('imageModal').classList.add('hidden'));
+            document.getElementById('editBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
+            ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).addEventListener('click', () => { const bg = document.getElementById(id).style.backgroundImage; if (bg && bg !== 'none') { document.getElementById('fullScreenImage').src = bg.slice(5, -2); document.getElementById('imageModal').classList.remove('hidden'); } else { document.getElementById(id.replace('Preview', '')).click(); } }); });
+
+            document.getElementById('searchBtn').addEventListener('click', async () => {
+                const searchId = document.getElementById('searchInput').value.trim();
+                if (!searchId) { showToast("कृपया खोजने के लिए सदस्यता ID डालें।", true); return; }
+                document.getElementById('modalContent').innerHTML = '<p class="text-center p-8">खोज रहा है...</p>';
+                document.getElementById('searchModal').classList.remove('hidden');
+                try {
+                    const snapshot = await get(ref(db, 'members/' + searchId));
+                    if (snapshot.exists()) {
+                        displayMemberData(snapshot.val());
+                    } else {
+                        document.getElementById('modalContent').innerHTML = `<p class="text-center p-8 text-red-500 font-semibold">ID '${searchId}' के साथ कोई सदस्य नहीं मिला।</p>`;
+                    }
+                } catch (error) { console.error("Search Error:", error); showToast("खोज के दौरान त्रुटि हुई।", true); }
+            });
             
-            document.getElementById('modalContent').innerHTML = `
-                <div class="space-y-6">
-                    <div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200"><div><h3 class="text-3xl font-bold text-gray-900">${data.fullName}</h3><p class="text-gray-600">ID: ${data.membershipId}</p><p class="text-gray-500">Joined: ${new Date(data.joiningDate).toLocaleDateString('hi-IN')}</p><div class="mt-2"><span class="font-semibold">Status:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>मोबाइल नंबर:</strong> ${data.mobileNumber}</div><div><strong>जन्म तिथि:</strong> ${new Date(data.dob).toLocaleDateString('hi-IN')}</div><div><strong>लिंग:</strong> ${data.gender}</div><div><strong>आधार नंबर:</strong> ${data.aadhaar}</div><div class="md:col-span-2"><strong>पता:</strong> ${data.address}</div><div><strong>SIP Amount:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>खाता बैलेंस:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">हस्ताक्षर</h4><img src="${data.signatureUrl}" alt="Signature" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">दस्तावेज़</h4><a href="${data.documentUrl}" target="_blank" class="block"><img src="${data.documentUrl}" alt="Document" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div>
-                </div>`;
+            function displayMemberData(data) {
+                let statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
+                if (data.status === 'Approved') statusClass = 'bg-green-100 text-green-800 border-green-400';
+                else if (data.status === 'Rejected') statusClass = 'bg-red-100 text-red-800 border-red-400';
+                document.getElementById('modalContent').innerHTML = `<div class="space-y-6"><div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover border-4"><div><h3 class="text-3xl font-bold">${data.fullName}</h3><p>ID: ${data.membershipId}</p><p>Joined: ${new Date(data.joiningDate).toLocaleDateString('hi-IN')}</p><div class="mt-2"><span class="font-semibold">Status:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>मोबाइल:</strong> ${data.mobileNumber}</div><div><strong>जन्म तिथि:</strong> ${new Date(data.dob).toLocaleDateString('hi-IN')}</div><div><strong>लिंग:</strong> ${data.gender}</div><div><strong>आधार:</strong> ${data.aadhaar}</div><div class="md:col-span-2"><strong>पता:</strong> ${data.address}</div><div><strong>SIP:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>बैलेंस:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">हस्ताक्षर</h4><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">दस्तावेज़</h4><a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div></div>`;
+            }
+
+            document.getElementById('registrationForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                document.getElementById('reviewModal').classList.remove('hidden');
+            });
+
+            document.getElementById('confirmSubmitBtn').addEventListener('click', async () => {
+                const btn = document.getElementById('confirmSubmitBtn');
+                const btnText = document.getElementById('btnText');
+                const btnSpinner = document.getElementById('btnSpinner');
+                btn.disabled = true;
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+                try {
+                    const mobileNumber = document.getElementById('mobileNumber').value;
+                    const aadhaar = document.getElementById('aadhaar').value;
+                    const membersRef = ref(db, 'members');
+                    const mobileQuery = query(membersRef, orderByChild('mobileNumber'), equalTo(mobileNumber));
+                    const aadhaarQuery = query(membersRef, orderByChild('aadhaar'), equalTo(aadhaar));
+                    const [mobileSnapshot, aadhaarSnapshot] = await Promise.all([get(mobileQuery), get(aadhaarQuery)]);
+                    if (mobileSnapshot.exists()) throw new Error("यह मोबाइल नंबर पहले से पंजीकृत है।");
+                    if (aadhaarSnapshot.exists()) throw new Error("यह आधार कार्ड नंबर पहले से पंजीकृत है।");
+                    const [profilePicUrl, signatureUrl, documentUrl] = await Promise.all([uploadImage(document.getElementById('profilePic').files[0]), uploadImage(document.getElementById('signature').files[0]), uploadImage(document.getElementById('document').files[0])]);
+                    if (!profilePicUrl || !signatureUrl || !documentUrl) throw new Error("एक या अधिक छवि अपलोड विफल।");
+                    const newMembershipId = document.getElementById('membershipId').value;
+                    const memberData = { fullName: document.getElementById('fullName').value, mobileNumber, dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, aadhaar, address: document.getElementById('address').value, membershipId: newMembershipId, joiningDate: document.getElementById('joiningDate').value, sipAmount: parseFloat(document.getElementById('sipAmount').value), accountBalance: 0, profilePicUrl, signatureUrl, documentUrl, createdAt: new Date().toISOString(), status: 'Pending' };
+                    await set(ref(db, 'members/' + newMembershipId), memberData);
+                    document.getElementById('reviewModal').classList.add('hidden');
+                    showToast("पंजीकरण सफल! आपका आवेदन समीक्षा के लिए लंबित है।");
+                    document.getElementById('registrationForm').reset();
+                    ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).style.backgroundImage = ''; document.getElementById(id).textContent = 'Click to upload'; });
+                    document.getElementById('membershipId').value = generateMembershipId();
+                    document.getElementById('joiningDate').valueAsDate = new Date();
+                } catch (error) { showToast(`त्रुटि: ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.classList.add('hidden'); }
+            });
+
+        } catch (error) {
+            console.error("Firebase Initialization Failed:", error);
+            showToast("Database connection failed. Please check configuration.", true);
         }
-
-        // --- Form Submission & Review Logic ---
-        document.getElementById('registrationForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            // Logic to populate and show review modal
-            document.getElementById('reviewModal').classList.remove('hidden');
-        });
-
-        // --- Final submission with Uniqueness Check ---
-        document.getElementById('confirmSubmitBtn').addEventListener('click', async () => {
-            // ... same logic as before ...
-        });
     </script>
 </body>
 </html>
