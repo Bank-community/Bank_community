@@ -22,40 +22,16 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- 
-      ================================================================
-      API KEYS CONFIGURATION
-      ================================================================
-      यह स्क्रिप्ट Vercel पर डिप्लॉयमेंट के लिए है। Vercel इन प्लेसहोल्डर
-      वैल्यूज को आपकी "Tijori" (Environment Variables) की असली Keys से 
-      बदल देगा। आपको इसे बदलने की ज़रूरत नहीं है।
-    -->
-    <script>
-      const firebaseConfig = {
-        apiKey: "YOUR_FIREBASE_API_KEY",
-        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-        databaseURL: "YOUR_FIREBASE_DATABASE_URL",
-        projectId: "YOUR_FIREBASE_PROJECT_ID",
-        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-        appId: "YOUR_FIREBASE_APP_ID",
-        measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
-      };
-      const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY";
-    </script>
-
     <!-- UI Initialization (Non-Firebase dependent) -->
     <script>
-      // यह फंक्शन Firebase पर निर्भर नहीं है, इसलिए यह हमेशा काम करेगा।
+      // यह फंक्शन हमेशा काम करेगा क्योंकि यह Firebase पर निर्भर नहीं है।
       function generateMembershipId() {
         const prefix = 'BCL';
         const timestamp = Date.now().toString().slice(-6);
         const random = Math.random().toString(36).substring(2, 6).toUpperCase();
         return `${prefix}-${timestamp}-${random}`;
       }
-
-      // पेज लोड होते ही ID और तारीख सेट करें।
-      window.addEventListener('DOMContentLoaded', (event) => {
+      window.addEventListener('DOMContentLoaded', () => {
           document.getElementById('membershipId').value = generateMembershipId();
           document.getElementById('joiningDate').valueAsDate = new Date();
       });
@@ -79,38 +55,12 @@
             </div>
 
             <form id="registrationForm" class="p-6 sm:p-8 space-y-6">
+                <!-- Form fields are complete and unchanged -->
                 <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">नया सदस्य जोड़ें</h2>
-                <div class="border-b border-gray-200 pb-6">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4">व्यक्तिगत विवरण</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label for="fullName" class="block text-sm font-medium text-gray-700 mb-1 required-label">पूरा नाम</label><input type="text" id="fullName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="mobileNumber" class="block text-sm font-medium text-gray-700 mb-1 required-label">मोबाइल नंबर</label><input type="tel" id="mobileNumber" pattern="[6-9]{1}[0-9]{9}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="dob" class="block text-sm font-medium text-gray-700 mb-1 required-label">जन्म तिथि</label><input type="date" id="dob" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected>चुनें...</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option><option value="अन्य">अन्य</option></select></div>
-                        <div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div class="md:col-span-2"><label for="address" class="block text-sm font-medium text-gray-700 mb-1 required-label">स्थायी पता</label><textarea id="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></textarea></div>
-                    </div>
-                </div>
-                <div class="border-b border-gray-200 pb-6">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4">सदस्यता विवरण</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label for="membershipId" class="block text-sm font-medium text-gray-700 mb-1">सदस्यता ID</label><input type="text" id="membershipId" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div>
-                        <div><label for="joiningDate" class="block text-sm font-medium text-gray-700 mb-1 required-label">जॉइनिंग तिथि</label><input type="date" id="joiningDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="sipAmount" class="block text-sm font-medium text-gray-700 mb-1 required-label">SIP Amount (मासिक)</label><div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₹</span><input type="number" id="sipAmount" min="500" step="100" class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg" required></div></div>
-                        <div><label for="accountBalance" class="block text-sm font-medium text-gray-700 mb-1">खाता बैलेंस</label><input type="text" id="accountBalance" value="₹ 0" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4">दस्तावेज़ अपलोड</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">प्रोफाइल फोटो</label><div id="profilePicPreview" class="img-preview rounded-full mx-auto">Click to upload</div><input type="file" id="profilePic" class="hidden" accept="image/*" required onchange="previewImage(event, 'profilePicPreview')"></div>
-                        <div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">हस्ताक्षर</label><div id="signaturePreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="signature" class="hidden" accept="image/*" required onchange="previewImage(event, 'signaturePreview')"></div>
-                        <div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">दस्तावेज़</label><div id="documentPreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="document" class="hidden" accept="image/*" required onchange="previewImage(event, 'documentPreview')"></div>
-                    </div>
-                </div>
-                <div class="pt-6 text-right">
-                    <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Review & Submit</button>
-                </div>
+                <div class="border-b border-gray-200 pb-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">व्यक्तिगत विवरण</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="fullName" class="block text-sm font-medium text-gray-700 mb-1 required-label">पूरा नाम</label><input type="text" id="fullName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="mobileNumber" class="block text-sm font-medium text-gray-700 mb-1 required-label">मोबाइल नंबर</label><input type="tel" id="mobileNumber" pattern="[6-9]{1}[0-9]{9}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="dob" class="block text-sm font-medium text-gray-700 mb-1 required-label">जन्म तिथि</label><input type="date" id="dob" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected>चुनें...</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option><option value="अन्य">अन्य</option></select></div><div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div class="md:col-span-2"><label for="address" class="block text-sm font-medium text-gray-700 mb-1 required-label">स्थायी पता</label><textarea id="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></textarea></div></div></div>
+                <div class="border-b border-gray-200 pb-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">सदस्यता विवरण</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="membershipId" class="block text-sm font-medium text-gray-700 mb-1">सदस्यता ID</label><input type="text" id="membershipId" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div><div><label for="joiningDate" class="block text-sm font-medium text-gray-700 mb-1 required-label">जॉइनिंग तिथि</label><input type="date" id="joiningDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="sipAmount" class="block text-sm font-medium text-gray-700 mb-1 required-label">SIP Amount (मासिक)</label><div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₹</span><input type="number" id="sipAmount" min="500" step="100" class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg" required></div></div><div><label for="accountBalance" class="block text-sm font-medium text-gray-700 mb-1">खाता बैलेंस</label><input type="text" id="accountBalance" value="₹ 0" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div></div></div>
+                <div><h3 class="text-lg font-semibold text-gray-700 mb-4">दस्तावेज़ अपलोड</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">प्रोफाइल फोटो</label><div id="profilePicPreview" class="img-preview rounded-full mx-auto">Click to upload</div><input type="file" id="profilePic" class="hidden" accept="image/*" required onchange="previewImage(event, 'profilePicPreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">हस्ताक्षर</label><div id="signaturePreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="signature" class="hidden" accept="image/*" required onchange="previewImage(event, 'signaturePreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">दस्तावेज़</label><div id="documentPreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="document" class="hidden" accept="image/*" required onchange="previewImage(event, 'documentPreview')"></div></div></div>
+                <div class="pt-6 text-right"><button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Review & Submit</button></div>
             </form>
         </div>
     </div>
@@ -126,17 +76,42 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-        // Helper functions
+        // --- Global variable for ImgBB API Key ---
+        let IMGBB_API_KEY = null;
+
+        // --- Helper functions ---
         function showToast(message, isError = false) { const t=document.getElementById("toast");t.children[0].textContent=message,t.className=`fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform z-50 ${isError?"bg-red-500":"bg-green-500"}`,t.classList.remove("translate-x-[120%]"),t.classList.add("translate-x-0"),setTimeout(()=>{t.classList.remove("translate-x-0"),t.classList.add("translate-x-[120%]")},5e3); }
         window.previewImage = function(event, previewId) { const f=event.target.files[0];if(f){const r=new FileReader,p=document.getElementById(previewId);r.onload=e=>{p.style.backgroundImage=`url(${e.target.result})`,p.textContent=""},r.readAsDataURL(f)} }
-        async function uploadImage(file) { if(!file)return null;const f=new FormData;f.append("image",file);try{const r=await fetch(`https://api.imgbb.com/1/upload?key=${window.IMGBB_API_KEY}`,{method:"POST",body:f}),s=await r.json();if(s.success)return s.data.url;throw new Error(s.error.message||"Image upload failed.")}catch(e){return console.error("Image Upload Error:",e),showToast(`Image upload failed: ${e.message}`,!0),null} }
+        async function uploadImage(file) { if(!file || !IMGBB_API_KEY) return null; const f=new FormData;f.append("image",file);try{const r=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,{method:"POST",body:f}),s=await r.json();if(s.success)return s.data.url;throw new Error(s.error.message||"Image upload failed.")}catch(e){return console.error("Image Upload Error:",e),showToast(`Image upload failed: ${e.message}`,!0),null} }
 
-        try {
-            // Initialize Firebase using the config from the separate script tag
-            const app = initializeApp(window.firebaseConfig);
-            const db = getDatabase(app);
+        // --- Main Application Starter ---
+        async function startApp() {
+            try {
+                // 1. Fetch the configuration from our serverless function
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error(`Configuration fetch failed: ${response.statusText}`);
+                const config = await response.json();
 
-            // --- All Firebase-dependent logic goes here ---
+                // 2. Set the API keys
+                IMGBB_API_KEY = config.imgbb.apiKey;
+                const firebaseConfig = config.firebase;
+
+                // 3. Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                const db = getDatabase(app);
+                
+                // 4. Attach all event handlers that depend on the database
+                attachDbHandlers(db);
+                showToast("Connection successful!", false);
+
+            } catch (error) {
+                console.error("Application Initialization Failed:", error);
+                showToast("Database connection failed. Check configuration.", true);
+            }
+        }
+
+        // --- Function to attach all database-dependent logic ---
+        function attachDbHandlers(db) {
             document.getElementById('closeSearchModalBtn').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
             document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
             document.getElementById('closeImageModalBtn').addEventListener('click', () => document.getElementById('imageModal').classList.add('hidden'));
@@ -199,11 +174,10 @@
                     document.getElementById('joiningDate').valueAsDate = new Date();
                 } catch (error) { showToast(`त्रुटि: ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.classList.add('hidden'); }
             });
-
-        } catch (error) {
-            console.error("Firebase Initialization Failed:", error);
-            showToast("Database connection failed. Please check configuration.", true);
         }
+
+        // --- Start the application once the page is loaded ---
+        startApp();
     </script>
 </body>
 </html>
