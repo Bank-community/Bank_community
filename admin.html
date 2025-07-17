@@ -28,7 +28,7 @@
         .btn-danger { background-color: #ef4444; color: white; }
         .btn-danger:hover { background-color: #dc2626; }
         .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px; }
-        .modal-overlay { background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(4px); transition: opacity 0.3s ease-in-out; }
+        .modal-overlay { background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(5px); transition: opacity 0.3s ease-in-out; }
         .modal-content { transition: transform 0.3s ease-in-out; }
         .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
         .sidebar-mobile.open { transform: translateX(0); }
@@ -40,6 +40,8 @@
         @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
         .paid { color: #22c55e; }
         .not-paid { color: #ef4444; }
+        #imageViewerModal .modal-content { animation: zoomIn 0.3s ease-out; }
+        @keyframes zoomIn { from { transform: scale(0.8); } to { transform: scale(1); } }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
@@ -91,6 +93,14 @@
                 <button id="confirmCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
                 <button id="confirmOkBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Confirm</button>
             </div>
+        </div>
+    </div>
+    <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
+        <div class="modal-content relative w-full h-full flex items-center justify-center">
+            <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
+            <button id="closeImageViewer" class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-75 transition-colors">
+                <i class="ph-x text-3xl"></i>
+            </button>
         </div>
     </div>
     
@@ -166,10 +176,9 @@
             }
             allTransactions.sort((a, b) => new Date(b.Date) - new Date(a.Date));
             
-            // Re-render the active view
             const activeViewId = document.querySelector('.view.active')?.id.replace('-view', '');
             if (activeViewId) {
-                navigateToView(activeViewId, true); // force re-render
+                navigateToView(activeViewId, true);
             }
         }
         
@@ -410,16 +419,14 @@
                         </div>
                     </div>
                 </div>
-                <div id="explorer-results-container" class="bg-white rounded-xl shadow-md overflow-x-auto">
-                    <!-- Results table will be rendered here -->
-                </div>
+                <div id="explorer-results-container" class="bg-white rounded-xl shadow-md overflow-x-auto"></div>
             `;
             applyExplorerFilters();
         }
 
         function applyExplorerFilters() {
             const container = document.getElementById('explorer-results-container');
-            if (!container) return; // View not active
+            if (!container) return;
 
             const nameFilter = document.getElementById('explorer-name-filter').value;
             const typeFilter = document.getElementById('explorer-type-filter').value;
@@ -451,13 +458,35 @@
 
             filteredTransactions.forEach(tx => {
                 let type = 'Unknown';
-                let amount = 0;
+                let amountHtml = '';
                 let amountColor = 'text-gray-800';
 
-                if (tx['SIP Payment']) { type = 'SIP'; amount = tx['SIP Payment']; amountColor = 'text-green-600'; }
-                else if (tx['Loan']) { type = 'Loan'; amount = tx['Loan']; amountColor = 'text-red-600'; }
-                else if (tx['Loan Payment']) { type = 'Payment'; amount = tx['Loan Payment']; amountColor = 'text-blue-600'; }
-                else if (tx['Extra Balance']) { type = 'Extra'; amount = tx['Extra Balance']; amountColor = 'text-yellow-600'; }
+                if (tx['SIP Payment']) {
+                    type = 'SIP';
+                    amountColor = 'text-green-600';
+                    amountHtml = `₹${parseFloat(tx['SIP Payment']).toLocaleString('en-IN')}`;
+                } else if (tx['Loan']) {
+                    type = 'Loan';
+                    amountColor = 'text-red-600';
+                    amountHtml = `₹${parseFloat(tx['Loan']).toLocaleString('en-IN')}`;
+                } else if (tx['Loan Payment']) {
+                    type = 'Payment';
+                    amountColor = 'text-blue-600';
+                    const payment = parseFloat(tx['Loan Payment'] || 0);
+                    const returnAmt = parseFloat(tx['Return amount'] || 0);
+                    const penaltyAmt = parseFloat(tx['Penalty amount'] || 0);
+                    amountHtml = `<div class="font-bold">₹${payment.toLocaleString('en-IN')}</div>`;
+                    if (returnAmt > 0 || penaltyAmt > 0) {
+                        amountHtml += `<div class="text-xs text-gray-500 mt-1">`;
+                        if (returnAmt > 0) amountHtml += `Return: ₹${returnAmt}`;
+                        if (penaltyAmt > 0) amountHtml += `${returnAmt > 0 ? ' | ' : ''}Penalty: ₹${penaltyAmt}`;
+                        amountHtml += `</div>`;
+                    }
+                } else if (tx['Extra Balance']) {
+                    type = 'Extra';
+                    amountColor = 'text-yellow-600';
+                    amountHtml = `₹${parseFloat(tx['Extra Balance']).toLocaleString('en-IN')}`;
+                }
 
                 const row = document.createElement('tr');
                 row.className = 'bg-white border-b hover:bg-gray-50';
@@ -465,7 +494,7 @@
                     <td class="px-6 py-4">${new Date(tx.Date).toLocaleDateString('en-GB')}</td>
                     <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${tx.Name}</td>
                     <td class="px-6 py-4"><span class="px-2 py-1 font-semibold leading-tight ${amountColor} bg-opacity-20 bg-gray-200 rounded-full">${type}</span></td>
-                    <td class="px-6 py-4 text-right font-bold ${amountColor}">₹${parseFloat(amount).toLocaleString('en-IN')}</td>
+                    <td class="px-6 py-4 text-right ${amountColor}">${amountHtml}</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -486,9 +515,9 @@
                 const card = document.createElement('div');
                 card.className = 'relative group';
                 card.innerHTML = `
-                    <img src="${item.url}" class="w-full h-40 object-cover rounded-lg shadow-md">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
-                        <button class="delete-gallery-btn text-white opacity-0 group-hover:opacity-100 transition-opacity" data-key="${key}"><i class="ph-trash text-3xl"></i></button>
+                    <img src="${item.url}" class="gallery-image w-full h-40 object-cover rounded-lg shadow-md cursor-pointer transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center">
+                        <button class="delete-gallery-btn text-white opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-600 rounded-full" data-key="${key}"><i class="ph-trash text-2xl"></i></button>
                     </div>
                 `;
                 galleryContainer.appendChild(card);
@@ -574,12 +603,13 @@
             document.getElementById('logoutBtn').addEventListener('click', async () => { await signOut(auth); sessionStorage.removeItem('isAdminLoggedIn'); window.location.href = 'login.html'; });
             document.querySelectorAll('.modal-overlay').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal); }));
             document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal(document.getElementById('confirmModal')));
+            document.getElementById('closeImageViewer').addEventListener('click', () => closeModal(document.getElementById('imageViewerModal')));
         }
 
         function navigateToView(viewId, forceRender = false) {
             const currentActiveView = document.querySelector('.view.active');
             if (currentActiveView?.id === `${viewId}-view` && !forceRender) {
-                return; // Already on this view, do nothing unless forced
+                return;
             }
 
             document.getElementById('mobile-header-title').textContent = viewId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -601,8 +631,6 @@
             }
         }
 
-        // --- DYNAMIC EVENT LISTENERS (using event delegation on parent elements) ---
-        
         document.body.addEventListener('input', e => {
             if (e.target.id === 'member-search-input') {
                 renderAllMembersPage(allMembersData, e.target.value);
@@ -661,6 +689,13 @@
                         alert('Error deleting member: ' + err.message);
                     }
                 }
+            }
+
+            const galleryImg = e.target.closest('.gallery-image');
+            if (galleryImg) {
+                const modal = document.getElementById('imageViewerModal');
+                modal.querySelector('#fullImageView').src = galleryImg.src;
+                openModal(modal);
             }
 
             const deleteGalleryBtn = e.target.closest('.delete-gallery-btn');
