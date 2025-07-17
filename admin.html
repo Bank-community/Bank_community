@@ -9,9 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
+    
     <style>
         body { font-family: 'Poppins', sans-serif; }
         .sidebar-item.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
@@ -22,23 +20,26 @@
         .view { display: none; }
         .view.active { display: block; animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .form-input, .filter-input { background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.3s ease; }
-        .form-input:focus, .filter-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
+        .form-input, .filter-input, .form-select { background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.3s ease; }
+        .form-input:focus, .filter-input:focus, .form-select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
         .btn-primary { background-color: #4f46e5; transition: background-color 0.3s ease; }
         .btn-primary:hover { background-color: #4338ca; }
         .btn-primary:disabled { background-color: #a5b4fc; cursor: not-allowed; }
         .btn-danger { background-color: #ef4444; color: white; }
         .btn-danger:hover { background-color: #dc2626; }
-        .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
-        .card-loader { border: 3px solid #e0e7ff; border-top: 3px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .modal-overlay { background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); transition: opacity 0.3s ease-in-out; }
+        .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px; }
+        .modal-overlay { background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(4px); transition: opacity 0.3s ease-in-out; }
         .modal-content { transition: transform 0.3s ease-in-out; }
         .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
         .sidebar-mobile.open { transform: translateX(0); }
         .data-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: all 0.2s ease-in-out; border: 1px solid #e5e7eb; }
         .data-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
         .action-card { cursor: pointer; }
+        .live-feed-display { background-color: #111827; color: #d1d5db; font-family: 'Courier New', Courier, monospace; }
+        .live-feed-display .feed-item { animation: slideIn 0.5s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .paid { color: #22c55e; }
+        .not-paid { color: #ef4444; }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
@@ -60,7 +61,7 @@
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="firebase-data"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="gallery"><i class="ph-images text-xl mr-3"></i><span>Gallery</span></a>
-                <a href="https://loan-from.vercel.app/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl mr-3"></i><span>Bank Site</span></a>
+                <a href="https://bankcommunity.sbs/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl mr-3"></i><span>Bank Site</span></a>
             </nav>
             <div class="p-4 border-t"><button id="logoutBtn" class="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600"><i class="ph-sign-out text-xl mr-3"></i><span>Logout</span></button></div>
         </aside>
@@ -68,6 +69,7 @@
         <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto">
             <div class="md:hidden flex justify-between items-center mb-6"><h1 id="mobile-header-title" class="text-2xl font-bold text-gray-800">Dashboard</h1><button id="mobileMenuBtn" class="text-gray-600 focus:outline-none"><i class="ph-list text-3xl"></i></button></div>
+            
             <div id="dashboard-view" class="view active"></div>
             <div id="approvals-view" class="view"></div>
             <div id="all-members-view" class="view"></div>
@@ -79,9 +81,17 @@
 
     <!-- All Modals -->
     <div id="memberDetailModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
-    <div id="namesModal" class="modal-overlay fixed inset-0 z-40 hidden items-center justify-center p-4 opacity-0"></div>
-    <div id="editModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
-    <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editMemberModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 scale-95">
+            <h3 id="confirmModalTitle" class="text-lg font-bold text-gray-900">Confirmation</h3>
+            <p id="confirmModalMessage" class="mt-2 text-sm text-gray-600">Are you sure?</p>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="confirmCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
+                <button id="confirmOkBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Confirm</button>
+            </div>
+        </div>
+    </div>
     
     <script type="module">
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') { window.location.href = 'login.html'; }
@@ -91,8 +101,7 @@
         import { getDatabase, ref, onValue, get, update, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         let db, auth, IMGBB_API_KEY;
-        let monthlySipChart = null;
-        let allMembersData = {}, allTransactions = [], approvedMemberNames = [], allGalleryData = {};
+        let allMembersData = {}, allTransactions = [], approvedMemberObjects = [], allGalleryData = {};
 
         async function startApp() {
             try {
@@ -105,12 +114,11 @@
                 auth = getAuth(app);
                 db = getDatabase(app);
 
-                attachGlobalHandlers();
+                attachNavigationHandlers();
                 fetchAllData();
             } catch (error) {
                 console.error("App Init Failed:", error);
-                alert("Could not connect. Redirecting to login.");
-                window.location.href = 'login.html';
+                document.body.innerHTML = `<div class="text-center p-8"><h1>Initialization Error</h1><p>${error.message}</p><a href='login.html'>Go to Login</a></div>`;
             }
         }
 
@@ -127,9 +135,9 @@
 
         function processAllData(members) {
             allTransactions = [];
-            approvedMemberNames = Object.values(members)
-                .filter(m => m.status === 'Approved' && m.fullName)
-                .map(m => ({ name: m.fullName, id: m.membershipId }))
+            approvedMemberObjects = Object.entries(members)
+                .filter(([id, m]) => m.status === 'Approved' && m.fullName)
+                .map(([id, m]) => ({ name: m.fullName, id: id }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
             for (const memberId in members) {
@@ -142,30 +150,92 @@
             }
             allTransactions.sort((a, b) => new Date(b.Date) - new Date(a.Date));
             
-            renderDashboard(members, allTransactions);
+            // Re-render all relevant views with new data
+            if (document.querySelector('.view.active').id === 'dashboard-view') renderDashboard();
             renderApprovals(members);
             renderAllMembersPage(members);
-            populateNameFilter(approvedMemberNames);
-            applyExplorerFilters();
+            renderDataEntryForm(); 
         }
         
-        // --- Render Functions for each View ---
-        function renderDashboard(members, transactions) {
+        // --- RENDER FUNCTIONS FOR EACH VIEW ---
+
+        function renderDashboard() {
             const container = document.getElementById('dashboard-view');
-            const approvedCount = Object.values(members).filter(m => m.status === 'Approved').length;
-            const pendingCount = Object.values(members).filter(m => m.status === 'Pending').length;
-            const totalLoanAmount = transactions.filter(t => t.Loan).reduce((sum, t) => sum + parseFloat(t.Loan || 0), 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const todaysTransactions = allTransactions.filter(t => {
+                const txDate = new Date(t.Date);
+                txDate.setHours(0,0,0,0);
+                return txDate.getTime() === today.getTime();
+            });
+
+            const todaysSip = todaysTransactions.reduce((sum, t) => sum + parseFloat(t['SIP Payment'] || 0), 0);
+            const todaysLoan = todaysTransactions.reduce((sum, t) => sum + parseFloat(t.Loan || 0), 0);
+
+            // SIP Status Calculation
+            const currentDay = new Date().getDate();
+            const isSipWindow = currentDay >= 1 && currentDay <= 10;
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+
+            const sipStatusList = Object.entries(allMembersData)
+                .filter(([id, m]) => m.status === 'Approved')
+                .map(([id, member]) => {
+                    const hasPaid = Object.values(member.transactions || {}).some(tx => 
+                        tx['SIP Payment'] > 0 &&
+                        new Date(tx.Date).getMonth() === currentMonth &&
+                        new Date(tx.Date).getFullYear() === currentYear
+                    );
+                    return { name: member.fullName, hasPaid };
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
+
             container.innerHTML = `
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 hidden md:block">Super Admin Dashboard</h1>
+                <h1 class="text-3xl font-bold text-gray-800 mb-6 hidden md:block">Dashboard</h1>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="data-card action-card p-6" data-target-view="approvals"><div class="flex items-center text-yellow-500"><i class="ph-clock text-2xl mr-3"></i><h2 class="font-medium">Pending Approvals</h2></div><p class="text-3xl font-bold text-yellow-600 mt-2">${pendingCount}</p></div>
-                    <div class="data-card action-card p-6" data-target-view="all-members"><div class="flex items-center text-indigo-500"><i class="ph-users-three text-2xl mr-3"></i><h2 class="font-medium">Approved Members</h2></div><p class="text-3xl font-bold text-indigo-600 mt-2">${approvedCount}</p></div>
-                    <div class="data-card action-card p-6" data-target-view="data-entry"><div class="flex items-center text-green-500"><i class="ph-plus-circle text-2xl mr-3"></i><h2 class="font-medium">Add New Entry</h2></div><p class="text-sm text-gray-500 mt-2">Add Loan, SIP, or Payment.</p></div>
-                    <div class="data-card action-card p-6" data-target-view="firebase-data"><div class="flex items-center text-red-500"><i class="ph-chart-line text-2xl mr-3"></i><h2 class="font-medium">Total Loan Amount</h2></div><p class="text-3xl font-bold text-red-600 mt-2">₹${totalLoanAmount.toLocaleString('en-IN')}</p></div>
+                    <div class="data-card p-6"><div class="flex items-center text-green-500"><i class="ph-money text-2xl mr-3"></i><h2 class="font-medium">Today's SIP Collection</h2></div><p class="text-3xl font-bold text-green-600 mt-2">₹${todaysSip.toLocaleString('en-IN')}</p></div>
+                    <div class="data-card p-6"><div class="flex items-center text-red-500"><i class="ph-chart-line-down text-2xl mr-3"></i><h2 class="font-medium">Today's Loan Disbursed</h2></div><p class="text-3xl font-bold text-red-600 mt-2">₹${todaysLoan.toLocaleString('en-IN')}</p></div>
+                    <div class="data-card action-card p-6" data-target-view="approvals"><div class="flex items-center text-yellow-500"><i class="ph-clock text-2xl mr-3"></i><h2 class="font-medium">Pending Approvals</h2></div><p id="pending-count-stat" class="text-3xl font-bold text-yellow-600 mt-2">0</p></div>
+                    <div class="data-card action-card p-6" data-target-view="all-members"><div class="flex items-center text-indigo-500"><i class="ph-users-three text-2xl mr-3"></i><h2 class="font-medium">Approved Members</h2></div><p id="approved-count-stat" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
                 </div>
-                <div class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md"><h3 class="font-semibold text-gray-700 mb-4">Monthly SIP Collection</h3><div id="chart-container" class="h-64 sm:h-80"><canvas id="monthlySipChart"></canvas></div></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+                    <!-- Live Activity Feed -->
+                    <div class="lg:col-span-1 live-feed-display rounded-xl shadow-md p-4 h-96 flex flex-col">
+                        <h3 class="text-lg font-semibold text-white mb-3">Live Activity Today</h3>
+                        <div id="live-feed-container" class="flex-grow overflow-y-auto space-y-2 pr-2">
+                           ${todaysTransactions.length === 0 ? '<p class="text-gray-400">No activity yet today.</p>' : 
+                             todaysTransactions.map(t => {
+                                let activity = '';
+                                if (t['SIP Payment']) activity = `<span class="text-green-400">SIP of ₹${t['SIP Payment']}</span> by ${t.Name}`;
+                                else if (t.Loan) activity = `<span class="text-red-400">Loan of ₹${t.Loan}</span> to ${t.Name}`;
+                                else if (t['Loan Payment']) activity = `<span class="text-blue-400">Payment of ₹${t['Loan Payment']}</span> by ${t.Name}`;
+                                return `<div class="feed-item text-sm">${activity}</div>`;
+                             }).join('')
+                           }
+                        </div>
+                    </div>
+                    <!-- SIP Status -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-6 h-96 flex flex-col">
+                         <h3 class="text-lg font-semibold text-gray-800 mb-3">Current Month SIP Status ${isSipWindow ? '<span class="text-sm font-normal text-red-500">(Payment Window Active)</span>' : ''}</h3>
+                         <div class="flex-grow overflow-y-auto">
+                            <ul id="sip-status-list" class="space-y-3">
+                                ${sipStatusList.map(s => `
+                                    <li class="flex justify-between items-center text-sm">
+                                        <span>${s.name}</span>
+                                        <span class="font-bold ${s.hasPaid ? 'paid' : 'not-paid'}">${s.hasPaid ? 'PAID' : 'NOT PAID'}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                         </div>
+                    </div>
+                </div>
             `;
-            initializeChart(transactions.filter(t => t['SIP Payment']));
+            const pendingCount = Object.values(allMembersData).filter(m => m.status === 'Pending').length;
+            const approvedCount = Object.values(allMembersData).filter(m => m.status === 'Approved').length;
+            document.getElementById('pending-count-stat').textContent = pendingCount;
+            document.getElementById('approved-count-stat').textContent = approvedCount;
         }
         
         function renderApprovals(members) { 
@@ -202,20 +272,91 @@
 
             const table = document.createElement('table');
             table.className = 'w-full text-sm text-left text-gray-500';
-            table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-6 py-3">Name</th><th scope="col" class="px-6 py-3 hidden md:table-cell">Mobile</th><th scope="col" class="px-6 py-3 hidden lg:table-cell">Joining Date</th><th scope="col" class="px-6 py-3">Action</th></tr></thead><tbody></tbody>`;
+            table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-6 py-3">Name</th><th scope="col" class="px-6 py-3 hidden md:table-cell">Mobile</th><th scope="col" class="px-6 py-3">Actions</th></tr></thead><tbody></tbody>`;
             const tbody = table.querySelector('tbody');
             approvedMembers.forEach(([id, member]) => {
                 const row = document.createElement('tr');
                 row.className = 'bg-white border-b hover:bg-gray-50';
                 row.innerHTML = `
-                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"><a href="#" class="view-profile-btn" data-id="${id}">${member.fullName}</a></td>
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${member.fullName}</td>
                     <td class="px-6 py-4 hidden md:table-cell">${member.mobileNumber}</td>
-                    <td class="px-6 py-4 hidden lg:table-cell">${new Date(member.joiningDate).toLocaleDateString('en-GB')}</td>
-                    <td class="px-6 py-4"><button class="delete-member-btn font-medium text-red-600 hover:underline" data-id="${id}" data-name="${member.fullName}">Delete</button></td>
+                    <td class="px-6 py-4 flex items-center space-x-4">
+                        <button class="view-profile-btn font-medium text-indigo-600 hover:underline" data-id="${id}">View</button>
+                        <button class="edit-member-btn font-medium text-green-600 hover:underline" data-id="${id}">Edit</button>
+                        <button class="delete-member-btn font-medium text-red-600 hover:underline" data-id="${id}" data-name="${member.fullName}">Delete</button>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
             listContainer.appendChild(table);
+        }
+
+        function renderDataEntryForm() {
+            const container = document.getElementById('data-entry-view');
+            const today = new Date().toISOString().split('T')[0];
+            container.innerHTML = `
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">New Transaction Entry</h1>
+                <form id="data-entry-form" class="bg-white p-8 rounded-xl shadow-md space-y-6">
+                    <div>
+                        <label for="entry-type" class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
+                        <select id="entry-type" class="form-select w-full p-3 rounded-lg">
+                            <option value="sip">SIP Payment</option>
+                            <option value="loan">Loan</option>
+                            <option value="loan_payment">Loan Payment</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="entry-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <input type="date" id="entry-date" class="form-input w-full p-3 rounded-lg" value="${today}" required>
+                        </div>
+                        <div>
+                            <label for="entry-name" class="block text-sm font-medium text-gray-700 mb-1">Member Name</label>
+                            <select id="entry-name" class="form-select w-full p-3 rounded-lg" required>
+                                <option value="">Select a member...</option>
+                                ${approvedMemberObjects.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic Fields -->
+                    <div id="sip-fields">
+                        <label for="sip-payment" class="block text-sm font-medium text-gray-700 mb-1">SIP Payment Amount</label>
+                        <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg">
+                    </div>
+                    <div id="loan-fields" class="hidden">
+                         <label for="loan-amount" class="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
+                        <input type="number" id="loan-amount" placeholder="e.g., 10000" class="form-input w-full p-3 rounded-lg">
+                    </div>
+                    <div id="loan-payment-fields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="loan-payment-amount" class="block text-sm font-medium text-gray-700 mb-1">Loan Payment Amount</label>
+                            <input type="number" id="loan-payment-amount" placeholder="e.g., 2000" class="form-input w-full p-3 rounded-lg">
+                        </div>
+                        <div>
+                            <label for="return-amount" class="block text-sm font-medium text-gray-700 mb-1">Return Amount</label>
+                            <input type="number" id="return-amount" placeholder="e.g., 50" class="form-input w-full p-3 rounded-lg">
+                        </div>
+                    </div>
+
+                    <!-- Common Fields -->
+                    <div>
+                        <label for="penalty-amount" class="block text-sm font-medium text-gray-700 mb-1">Penalty Amount (Optional)</label>
+                        <input type="number" id="penalty-amount" placeholder="e.g., 10" class="form-input w-full p-3 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="entry-document" class="block text-sm font-medium text-gray-700 mb-1">Document Picture (Optional)</label>
+                        <input type="file" id="entry-document" class="form-input w-full p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" id="submit-entry-btn" class="btn-primary flex items-center justify-center text-white font-bold py-3 px-6 rounded-lg">
+                            Submit Entry
+                            <span class="loader hidden"></span>
+                        </button>
+                    </div>
+                </form>
+            `;
         }
 
         function renderGallery(galleryData) {
@@ -240,46 +381,169 @@
             }
         }
         
-        // --- All other functions (Modals, Chart, Data Entry, Explorer, etc.) are here ---
-        // ... (The full implementation of these functions is included in the final code)
+        // --- MODAL AND HELPER FUNCTIONS ---
 
-        function attachGlobalHandlers() {
+        function openModal(modal) { modal.classList.remove('hidden', 'opacity-0'); }
+        function closeModal(modal) { modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
+        function showConfirmation(title, message) { return new Promise(resolve => { const modal = document.getElementById('confirmModal'); modal.querySelector('#confirmModalTitle').textContent = title; modal.querySelector('#confirmModalMessage').textContent = message; openModal(modal); const okBtn = modal.querySelector('#confirmOkBtn'); const cancelBtn = modal.querySelector('#confirmCancelBtn'); const cleanup = () => { closeModal(modal); okBtn.onclick = null; cancelBtn.onclick = null; }; okBtn.onclick = () => { cleanup(); resolve(true); }; cancelBtn.onclick = () => { cleanup(); resolve(false); }; }); }
+        
+        async function handleFormSubmission(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-entry-btn');
+            const loader = btn.querySelector('.loader');
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+
+            const memberId = document.getElementById('entry-name').value;
+            const memberName = approvedMemberObjects.find(m => m.id === memberId)?.name;
+            const date = document.getElementById('entry-date').value;
+            const type = document.getElementById('entry-type').value;
+            const file = document.getElementById('entry-document').files[0];
+
+            let imageUrl = '';
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+                try {
+                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+                    const json = await res.json();
+                    if (!json.success) throw new Error(json.error.message);
+                    imageUrl = json.data.url;
+                } catch (err) {
+                    alert('Image upload failed: ' + err.message);
+                    btn.disabled = false;
+                    loader.classList.add('hidden');
+                    return;
+                }
+            }
+
+            const transactionData = {
+                Date: new Date(date).toISOString(),
+                Name: memberName,
+                "SIP Payment": document.getElementById('sip-payment').value || "",
+                Loan: document.getElementById('loan-amount').value || "",
+                "Loan Payment": document.getElementById('loan-payment-amount').value || "",
+                "Return amount": document.getElementById('return-amount').value || "",
+                "Penalty amount": document.getElementById('penalty-amount').value || "",
+                imageUrl: imageUrl
+            };
+
+            try {
+                const txRef = ref(db, `members/${memberId}/transactions`);
+                await push(txRef, transactionData);
+                alert('Transaction added successfully!');
+                e.target.reset();
+                document.getElementById('entry-type').dispatchEvent(new Event('change'));
+            } catch (err) {
+                alert('Failed to save transaction: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        // --- EVENT HANDLERS ---
+        
+        function attachNavigationHandlers() {
             const sidebar = document.getElementById('sidebar');
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const closeMobileMenuBtn = document.getElementById('closeMobileMenuBtn');
-            mobileMenuBtn.addEventListener('click', () => sidebar.classList.add('open'));
-            closeMobileMenuBtn.addEventListener('click', () => sidebar.classList.remove('open'));
-
+            document.getElementById('mobileMenuBtn').addEventListener('click', () => sidebar.classList.add('open'));
+            document.getElementById('closeMobileMenuBtn').addEventListener('click', () => sidebar.classList.remove('open'));
             document.querySelectorAll('.sidebar-item[data-view]').forEach(item => item.addEventListener('click', (e) => { e.preventDefault(); if (!item.hasAttribute('target')) navigateToView(item.dataset.view); }));
             document.getElementById('dashboard-view').addEventListener('click', e => { const card = e.target.closest('.action-card'); if (card && card.dataset.targetView) navigateToView(card.dataset.targetView); });
             document.getElementById('logoutBtn').addEventListener('click', async () => { await signOut(auth); sessionStorage.removeItem('isAdminLoggedIn'); window.location.href = 'login.html'; });
             document.querySelectorAll('.modal-overlay').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal); }));
-            document.querySelectorAll('.close-modal-btn').forEach(btn => btn.addEventListener('click', () => closeModal(btn.closest('.modal-overlay'))));
-            document.getElementById('approvals-view').addEventListener('click', e => { const btn = e.target.closest('.review-btn'); if(btn) openMemberDetailModal(btn.dataset.id, true); });
-            document.getElementById('all-members-view').addEventListener('click', async e => { 
-                const delBtn = e.target.closest('.delete-member-btn');
-                const viewBtn = e.target.closest('.view-profile-btn');
-                if(delBtn) { const confirmed = await showConfirmation(`Delete ${delBtn.dataset.name}?`, 'This will permanently delete the member and all their transactions. This action cannot be undone.'); if(confirmed) { await remove(ref(db, `members/${delBtn.dataset.id}`)); alert('Member deleted.'); } }
-                if(viewBtn) { e.preventDefault(); openMemberDetailModal(viewBtn.dataset.id, false); }
-            });
-            document.getElementById('gallery-view').addEventListener('click', async e => { const btn = e.target.closest('.delete-gallery-btn'); if(btn) { const confirmed = await showConfirmation('Delete Image?', 'Are you sure you want to permanently delete this image?'); if(confirmed) { await remove(ref(db, `gallery/${btn.dataset.key}`)); alert('Image deleted.'); } } });
-            
-            // Attach handlers for Data Entry and Explorer
-            // ... (Full code for these handlers is included in the final code)
+            document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal(document.getElementById('confirmModal')));
         }
-        
+
         function navigateToView(viewId) {
             document.getElementById('mobile-header-title').textContent = viewId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
             document.querySelectorAll('.sidebar-item[data-view]').forEach(i => i.classList.toggle('active', i.dataset.view === viewId));
-            document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `${viewId}-view`));
+            document.querySelectorAll('.view').forEach(view => {
+                const isActive = view.id === `${viewId}-view`;
+                view.classList.toggle('active', isActive);
+                if(isActive) {
+                    // Call render function for the specific view to ensure it's up-to-date
+                    if(viewId === 'dashboard') renderDashboard();
+                    else if (viewId === 'approvals') renderApprovals(allMembersData);
+                    else if (viewId === 'all-members') renderAllMembersPage(allMembersData);
+                    else if (viewId === 'data-entry') renderDataEntryForm();
+                    else if (viewId === 'gallery') renderGallery(allGalleryData);
+                }
+            });
             if (document.getElementById('sidebar').classList.contains('open')) {
                 document.getElementById('sidebar').classList.remove('open');
             }
         }
 
-        function openModal(modal) { modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }, 10); }
-        function closeModal(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
-        function showConfirmation(title, message) { return new Promise(resolve => { const modal = document.getElementById('confirmModal'); document.getElementById('confirmModalTitle').textContent = title; document.getElementById('confirmModalMessage').textContent = message; openModal(modal); const okBtn = document.getElementById('confirmOkBtn'); const cancelBtn = document.getElementById('confirmCancelBtn'); const cleanup = () => { closeModal(modal); okBtn.onclick = null; cancelBtn.onclick = null; }; okBtn.onclick = () => { cleanup(); resolve(true); }; cancelBtn.onclick = () => { cleanup(); resolve(false); }; }); }
+        // --- DYNAMIC EVENT LISTENERS (using event delegation on parent elements) ---
+        
+        document.body.addEventListener('input', e => {
+            if (e.target.id === 'member-search-input') {
+                renderAllMembersPage(allMembersData, e.target.value);
+            }
+        });
+
+        document.body.addEventListener('change', e => {
+            if (e.target.id === 'entry-type') {
+                const type = e.target.value;
+                document.getElementById('sip-fields').classList.toggle('hidden', type !== 'sip');
+                document.getElementById('loan-fields').classList.toggle('hidden', type !== 'loan');
+                document.getElementById('loan-payment-fields').classList.toggle('hidden', type !== 'loan_payment');
+            }
+        });
+        
+        document.body.addEventListener('submit', e => {
+            if (e.target.id === 'data-entry-form') {
+                handleFormSubmission(e);
+            }
+        });
+        
+        document.body.addEventListener('click', async e => {
+            // Approvals View
+            const reviewBtn = e.target.closest('.review-btn');
+            if(reviewBtn) {
+                // openMemberDetailModal(reviewBtn.dataset.id, true);
+                alert('Review functionality to be implemented.');
+            }
+
+            // All Members View
+            const viewProfileBtn = e.target.closest('.view-profile-btn');
+            if(viewProfileBtn) {
+                // openMemberDetailModal(viewProfileBtn.dataset.id, false);
+                alert('View profile functionality to be implemented.');
+            }
+            const editMemberBtn = e.target.closest('.edit-member-btn');
+            if(editMemberBtn) {
+                // openEditMemberModal(editMemberBtn.dataset.id);
+                alert('Edit member functionality to be implemented.');
+            }
+            const deleteMemberBtn = e.target.closest('.delete-member-btn');
+            if(deleteMemberBtn) {
+                const confirmed = await showConfirmation(`Delete ${deleteMemberBtn.dataset.name}?`, 'This will permanently delete the member and all their transactions. This action cannot be undone.');
+                if(confirmed) {
+                    try {
+                        await remove(ref(db, `members/${deleteMemberBtn.dataset.id}`));
+                        alert('Member deleted successfully.');
+                    } catch (err) {
+                        alert('Error deleting member: ' + err.message);
+                    }
+                }
+            }
+
+            // Gallery View
+            const deleteGalleryBtn = e.target.closest('.delete-gallery-btn');
+            if(deleteGalleryBtn) {
+                const confirmed = await showConfirmation('Delete Image?', 'Are you sure you want to permanently delete this image?');
+                if(confirmed) {
+                    try {
+                        await remove(ref(db, `gallery/${deleteGalleryBtn.dataset.key}`));
+                        alert('Image deleted successfully.');
+                    } catch (err) {
+                        alert('Error deleting image: ' + err.message);
+                    }
+                }
+            }
+        });
 
         startApp();
     </script>
