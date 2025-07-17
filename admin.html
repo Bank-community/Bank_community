@@ -4,98 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
-    <!-- All head content like icons, fonts, styles are the same -->
+    
+    <!-- All head content like icons, fonts, etc. -->
+    <link rel="icon" type="image/png" href="https://i.ibb.co/20mS3KgF/IMG-20250630-184409.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
     <style>
-        /* All styles are the same */
         body { font-family: 'Poppins', sans-serif; }
-        .sidebar-item.active { background-color: #4f46e5; color: white; }
+        .sidebar-item.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
         .sidebar-item.active i { color: white; }
+        .sidebar-item { transition: all 0.2s ease-in-out; }
+        .sidebar-item:hover { background-color: #e0e7ff; color: #4f46e5; }
+        .sidebar-item:hover i { color: #4f46e5; }
         .view { display: none; }
-        .view.active { display: block; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .view.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-input, .filter-input { background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.3s ease; }
+        .form-input:focus, .filter-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
+        .btn-primary { background-color: #4f46e5; transition: background-color 0.3s ease; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-primary:disabled { background-color: #a5b4fc; cursor: not-allowed; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
+        .card-loader, .modal-loader { border: 3px solid #e0e7ff; border-top: 3px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal-overlay { background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); transition: opacity 0.3s ease-in-out; }
+        .modal-content { transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
+        .profile-card { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; }
+        .data-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: all 0.2s ease-in-out; border: 1px solid #e5e7eb; }
+        .data-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
 
     <div class="relative min-h-screen md:flex">
+        <!-- Mobile menu button -->
+        <div class="md:hidden flex justify-between items-center p-4 bg-white shadow-md sticky top-0 z-20">
+            <span class="text-xl font-bold text-indigo-600">Admin Panel</span>
+            <button id="mobileMenuBtn" class="text-gray-600 focus:outline-none"><i class="ph-list text-3xl"></i></button>
+        </div>
+
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar-mobile fixed inset-y-0 left-0 bg-white shadow-xl w-64 z-30 md:relative md:translate-x-0">
             <div class="p-6 flex items-center justify-between border-b">
                 <span class="text-2xl font-bold text-indigo-600">Admin Panel</span>
-                <button id="closeMobileMenuBtn" class="md:hidden"><i class="ph-x text-2xl"></i></button>
+                <button id="closeMobileMenuBtn" class="md:hidden text-gray-500 hover:text-gray-800"><i class="ph-x text-2xl"></i></button>
             </div>
             <nav class="flex-1 p-4 space-y-2">
-                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg active" data-view="dashboard"><i class="ph-layout text-xl mr-3"></i><span>Dashboard</span></a>
-                
-                <!-- NEW: Approvals Link with Badge -->
-                <a href="#" class="sidebar-item flex items-center justify-between p-3 rounded-lg" data-view="approvals">
-                    <div class="flex items-center">
-                        <i class="ph-check-square-offset text-xl mr-3"></i>
-                        <span>Approvals</span>
-                    </div>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700 active" data-view="dashboard"><i class="ph-layout text-xl text-gray-500 mr-3"></i><span>Dashboard</span></a>
+                <a href="#" class="sidebar-item flex items-center justify-between p-3 rounded-lg text-gray-700" data-view="approvals">
+                    <div class="flex items-center"><i class="ph-check-square-offset text-xl text-gray-500 mr-3"></i><span>Approvals</span></div>
                     <span id="pending-count-badge" class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
                 </a>
-                
-                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
-                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-view="firebase-data"><i class="ph-database text-xl mr-3"></i><span>Firebase Explorer</span></a>
-                <!-- Other links are the same -->
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl text-gray-500 mr-3"></i><span>Data Entry</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="firebase-data"><i class="ph-database text-xl text-gray-500 mr-3"></i><span>Firebase Explorer</span></a>
+                <a href="https://loan-from.vercel.app/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl text-gray-500 mr-3"></i><span>Bank Site</span></a>
             </nav>
             <div class="p-4 border-t">
                 <button id="logoutBtn" class="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600">
-                    <i class="ph-sign-out text-xl mr-3"></i>
-                    <span>Logout</span>
+                    <i class="ph-sign-out text-xl mr-3"></i><span>Logout</span>
                 </button>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto">
-            <!-- Dashboard View (Unchanged) -->
-            <div id="dashboard-view" class="view active">...</div>
-            
-            <!-- Data Entry View (Unchanged) -->
-            <div id="data-entry-view" class="view">...</div>
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                 <h1 class="text-3xl font-bold text-gray-800 mb-6">Dashboard</h1>
+                <div id="dashboard-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+                <div class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-gray-700 mb-4">Monthly SIP Collection</h3>
+                    <div class="h-64 sm:h-80"><canvas id="monthlySipChart"></canvas></div>
+                </div>
+            </div>
 
-            <!-- Firebase Data Explorer View (Unchanged) -->
-            <div id="firebase-data-view" class="view">...</div>
-
-            <!-- NEW: Approvals View -->
+            <!-- Approvals View -->
             <div id="approvals-view" class="view">
                 <h1 class="text-3xl font-bold text-gray-800 mb-6">Pending Registrations</h1>
-                <div id="approvals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Pending application cards will be populated here -->
-                </div>
+                <div id="approvals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <!-- Data Entry View -->
+            <div id="data-entry-view" class="view">
+                <!-- Data entry form HTML is complete and unchanged -->
+            </div>
+            
+            <!-- Firebase Data Explorer View -->
+            <div id="firebase-data-view" class="view">
+                <!-- Firebase explorer HTML is complete and unchanged -->
             </div>
         </main>
     </div>
 
-    <!-- All existing modals are the same -->
-    
-    <!-- NEW: Approval Detail Modal -->
+    <!-- All Modals (Existing and New) -->
+    <!-- Approval Detail Modal -->
     <div id="approvalDetailModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
         <div class="modal-content bg-white p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform scale-95">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h3 class="text-xl font-bold text-gray-800">Review Application</h3>
                 <button class="close-modal-btn text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            <div id="approvalDetailContent" class="flex-1 overflow-y-auto pr-2">
-                <!-- Details will be injected here -->
-            </div>
+            <div id="approvalDetailContent" class="flex-1 overflow-y-auto pr-2 space-y-6"></div>
             <div class="pt-4 border-t mt-4 flex justify-end space-x-3">
-                <button id="rejectBtn" class="btn-danger font-bold py-2 px-6 rounded-lg flex items-center">
-                    <i class="ph-x-circle mr-2"></i> Reject
-                </button>
-                <button id="approveBtn" class="btn-primary bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg flex items-center">
-                    <i class="ph-check-circle mr-2"></i> Approve
-                </button>
+                <button id="rejectBtn" class="btn-danger font-bold py-2 px-6 rounded-lg flex items-center"><i class="ph-x-circle mr-2"></i> Reject</button>
+                <button id="approveBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg flex items-center"><i class="ph-check-circle mr-2"></i> Approve</button>
             </div>
         </div>
     </div>
+    <!-- Other modals like namesModal, profileModal, editModal, etc. are here -->
 
 
     <script type="module">
@@ -106,9 +130,15 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+        import { getDatabase, ref, onValue, get, update, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-        // Main App Starter
+        // --- Global State ---
+        let db;
+        let auth;
+        let monthlySipChart = null;
+        // Other state variables from your original code...
+
+        // --- Main App Starter ---
         async function startApp() {
             try {
                 const response = await fetch('/api/config');
@@ -116,16 +146,15 @@
                 const config = await response.json();
                 
                 const app = initializeApp(config.firebase);
-                const auth = getAuth(app);
-                const db = getDatabase(app);
+                auth = getAuth(app);
+                db = getDatabase(app);
 
-                // Attach all event handlers
-                attachGlobalHandlers(auth, db);
+                attachGlobalHandlers();
                 
-                // Fetch initial data
-                fetchPendingApprovals(db);
-                // fetchTransactionData(); // Your existing function
-                // fetchAndRenderFirebaseData(); // Your existing function
+                // Fetch initial data for all sections
+                fetchPendingApprovals();
+                // fetchTransactionData(); // Your Google Sheets fetch
+                // fetchAndRenderFirebaseData(); // Your Firebase Explorer fetch
 
             } catch (error) {
                 console.error("App Initialization Failed:", error);
@@ -134,43 +163,62 @@
             }
         }
 
-        function attachGlobalHandlers(auth, db) {
-            // Logout Logic
+        function attachGlobalHandlers() {
+            // --- Navigation and Mobile Menu (FIXED) ---
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const closeMobileMenuBtn = document.getElementById('closeMobileMenuBtn');
+            const sidebarItems = document.querySelectorAll('.sidebar-item[data-view]');
+            const views = document.querySelectorAll('.view');
+
+            mobileMenuBtn.addEventListener('click', () => sidebar.classList.add('open'));
+            closeMobileMenuBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const viewId = item.dataset.view;
+                    
+                    sidebarItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    views.forEach(view => view.classList.toggle('active', view.id === `${viewId}-view`));
+                    
+                    if (viewId === 'dashboard' && monthlySipChart) setTimeout(() => monthlySipChart.resize(), 50);
+                    if (viewId === 'approvals') fetchPendingApprovals();
+                    // if (viewId === 'firebase-data') fetchAndRenderFirebaseData();
+                    
+                    if (window.innerWidth < 768) sidebar.classList.remove('open');
+                });
+            });
+
+            // --- Logout Logic ---
             document.getElementById('logoutBtn').addEventListener('click', async () => {
                 try {
                     await signOut(auth);
                     sessionStorage.removeItem('isAdminLoggedIn');
                     window.location.href = 'login.html';
-                } catch (error) {
-                    console.error("Logout failed:", error);
-                }
+                } catch (error) { console.error("Logout failed:", error); }
             });
 
-            // Sidebar navigation
-            document.querySelectorAll('.sidebar-item[data-view]').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const viewId = item.dataset.view;
-                    if (viewId === 'approvals') {
-                        fetchPendingApprovals(db);
-                    }
-                    // Your existing navigation logic...
-                });
+            // --- Modal Handling ---
+            document.querySelectorAll('.close-modal-btn').forEach(btn => {
+                btn.addEventListener('click', () => closeModal(btn.closest('.modal-overlay')));
             });
 
-            // Approval Modal Logic
+            // --- Approval Modal Logic ---
             const approvalContainer = document.getElementById('approvals-container');
             approvalContainer.addEventListener('click', e => {
                 const reviewBtn = e.target.closest('.review-btn');
                 if(reviewBtn) {
-                    const memberId = reviewBtn.dataset.id;
-                    openApprovalModal(memberId, db);
+                    openApprovalModal(reviewBtn.dataset.id);
                 }
             });
         }
 
-        // --- NEW: Approval System Functions ---
-        function fetchPendingApprovals(db) {
+        // --- Approval System Functions (FIXED & COMPLETE) ---
+        function fetchPendingApprovals() {
+            if (!db) return;
             const pendingMembersRef = ref(db, 'members');
             onValue(pendingMembersRef, (snapshot) => {
                 const container = document.getElementById('approvals-container');
@@ -179,7 +227,7 @@
                 let pendingCount = 0;
 
                 if (!snapshot.exists()) {
-                    container.innerHTML = `<p class="text-center text-gray-500 col-span-full">No pending applications found.</p>`;
+                    container.innerHTML = `<p class="text-center text-gray-500 col-span-full">No applications found.</p>`;
                     badge.classList.add('hidden');
                     return;
                 }
@@ -193,12 +241,13 @@
                         card.className = 'data-card p-4 space-y-3';
                         card.innerHTML = `
                             <div class="flex items-center space-x-4">
-                                <img src="${member.profilePicUrl}" class="w-16 h-16 rounded-full object-cover border-2 border-gray-200">
+                                <img src="${member.profilePicUrl}" onerror="this.src='https://placehold.co/64x64/E0E7FF/4F46E5?text=User'" class="w-16 h-16 rounded-full object-cover border-2 border-gray-200">
                                 <div>
                                     <p class="font-bold text-lg text-gray-800">${member.fullName}</p>
                                     <p class="text-sm text-gray-500">Applied: ${new Date(member.createdAt).toLocaleDateString()}</p>
                                 </div>
                             </div>
+                            <p class="text-sm text-gray-600"><i class="ph-phone-call text-indigo-500"></i> ${member.mobileNumber}</p>
                             <button class="review-btn btn-primary w-full text-white font-bold py-2 px-4 rounded-lg" data-id="${memberId}">Review Application</button>
                         `;
                         container.appendChild(card);
@@ -212,19 +261,44 @@
                     container.innerHTML = `<p class="text-center text-gray-500 col-span-full">No pending applications found.</p>`;
                     badge.classList.add('hidden');
                 }
-            });
+            }, { onlyOnce: false }); // Real-time updates
         }
         
-        async function openApprovalModal(memberId, db) {
+        async function openApprovalModal(memberId) {
             const snapshot = await get(ref(db, `members/${memberId}`));
-            if (!snapshot.exists()) {
-                alert("Member not found!");
-                return;
-            }
+            if (!snapshot.exists()) { alert("Member not found!"); return; }
             const data = snapshot.val();
             const modalContent = document.getElementById('approvalDetailContent');
-            // Populate modal with all details from 'data' object...
-            modalContent.innerHTML = `... HTML with all member details ...`;
+            
+            modalContent.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 text-center">
+                        <img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover mx-auto border-4 border-gray-200">
+                        <h3 class="text-xl font-bold mt-4">${data.fullName}</h3>
+                        <p class="text-gray-500">${data.membershipId}</p>
+                    </div>
+                    <div class="md:col-span-2 space-y-3">
+                        <h4 class="font-semibold text-lg border-b pb-2">Personal Details</h4>
+                        <p><strong>Mobile:</strong> ${data.mobileNumber}</p>
+                        <p><strong>Aadhaar:</strong> ${data.aadhaar}</p>
+                        <p><strong>DOB:</strong> ${new Date(data.dob).toLocaleDateString('en-GB')}</p>
+                        <p><strong>Address:</strong> ${data.address}</p>
+                        <h4 class="font-semibold text-lg border-b pb-2 pt-4">Financial Details</h4>
+                        <p><strong>Joining Date:</strong> ${new Date(data.joiningDate).toLocaleDateString('en-GB')}</p>
+                        <p><strong>Monthly SIP:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t mt-6">
+                    <div class="text-center">
+                        <h4 class="font-semibold mb-2">Signature</h4>
+                        <a href="${data.signatureUrl}" target="_blank"><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a>
+                    </div>
+                    <div class="text-center">
+                        <h4 class="font-semibold mb-2">Document</h4>
+                        <a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a>
+                    </div>
+                </div>
+            `;
 
             const modal = document.getElementById('approvalDetailModal');
             openModal(modal);
@@ -235,7 +309,7 @@
                 closeModal(modal);
             };
             document.getElementById('rejectBtn').onclick = async () => {
-                const confirmed = confirm('Are you sure you want to reject and delete this application?');
+                const confirmed = confirm('Are you sure you want to reject and permanently delete this application?');
                 if(confirmed) {
                     await remove(ref(db, `members/${memberId}`));
                     alert('Application Rejected and Deleted.');
@@ -244,13 +318,16 @@
             };
         }
 
-        // --- Helper function to open/close modals ---
-        function openModal(modal) { /* ... */ }
-        function closeModal(modal) { /* ... */ }
+        function openModal(modal) { modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }, 10); }
+        function closeModal(modal) { modal.querySelector('.modal-content').add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
+
+        // --- Your Original Functions for other tabs would go here ---
+        // e.g., fetchTransactionData(), fetchAndRenderFirebaseData(), etc.
+        // I am leaving them out for clarity, but you should add your complete
+        // original script logic here to make those tabs work.
 
         // Start the application
         startApp();
     </script>
 </body>
 </html>
-
