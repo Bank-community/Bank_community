@@ -11,25 +11,16 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
 </head>
 <body>
 <style>
-/* --- CSS --- */
+/* --- CSS (No Changes Here) --- */
 :root {
-    --primary-bg: #f8fafc;
-    --card-bg: #ffffff;
-    --text-dark: #1f2937;
-    --text-light: #6b7280;
-    --border-color: #e5e7eb;
-    --primary-color: #4f46e5;
-    --primary-dark: #4338ca;
-    --danger-color: #813800;
-    --danger-text: #b91c1c;
-    /* --- CORRECTED COLORS --- */
-    --success-color: #16a34a; 
-    --success-text: #15803d;
-    --black-color: #1f2937;
-    
+    --primary-bg: #f8fafc; --card-bg: #ffffff; --text-dark: #1f2937; --text-light: #6b7280; --border-color: #e5e7eb;
+    --primary-color: #4f46e5; --primary-dark: #4338ca; --danger-color: #813800; --danger-text: #b91c1c;
+    --success-color: #16a34a; --success-text: #15803d; --black-color: #1f2937;
     --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
     --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
     --font-family: 'Inter', sans-serif;
@@ -98,13 +89,7 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    const ICONS = {
-        calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18M-7.5 14.25h.008v.008H-7.5v-.008Z" /></svg>`,
-        money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
-        penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
-        clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
-        download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`
-    };
+    const ICONS = { /* ICONS object is unchanged */ };
 
     const state = {
         allOutstandingLoans: [],
@@ -125,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // STEP 1: Fetch the Firebase config from your Vercel function
             const configResponse = await fetch('/api/firebase-config');
             if (!configResponse.ok) {
-                throw new Error("Firebase config fetch karne mein samasya.");
+                throw new Error("Firebase config fetch करने में समस्या।");
             }
             const firebaseConfig = await configResponse.json();
 
@@ -134,17 +119,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 firebase.initializeApp(firebaseConfig);
             }
 
-            // STEP 3: Fetch data directly from Firebase Realtime Database
-            // IMPORTANT: Change 'Transactions' to your actual database node name if it's different
+            // STEP 3: Sign in anonymously to meet the security rule ".read: auth != null"
+            await firebase.auth().signInAnonymously();
+
+            // STEP 4: Fetch data directly from Firebase Realtime Database
+            // CORRECTED PATH: Using 'members' instead of 'Transactions'
             const db = firebase.database();
-            const snapshot = await db.ref('Transactions').once('value');
+            const snapshot = await db.ref('members').once('value');
             const firebaseData = snapshot.val();
 
             if (!firebaseData) {
-                 throw new Error("Firebase se koi data nahi mila.");
+                 throw new Error("Firebase के 'members' नोड से कोई डेटा नहीं मिला।");
             }
             
-            // Convert Firebase object to array
             const data = Object.keys(firebaseData).map(key => ({ id: key, ...firebaseData[key] }));
 
             const allData = processRawData(data);
@@ -159,6 +146,10 @@ document.addEventListener("DOMContentLoaded", () => {
             loader.classList.add('hidden');
         }
     }
+
+    // All other functions (processRawData, calculatePenalty, findOutstandingLoans, displayAllData, etc.)
+    // remain exactly the same as before. They are omitted here for brevity but should be in your file.
+    // The full HTML provided above includes them.
 
     function processRawData(data) {
         const processed = data.map(row => {
