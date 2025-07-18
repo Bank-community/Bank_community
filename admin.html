@@ -92,6 +92,7 @@
     </div>
 
     <!-- All Modals -->
+    <div id="editTransactionModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
@@ -194,27 +195,18 @@
         
         function renderDashboard() {
             const container = document.getElementById('dashboard-view');
-            
             const today = new Date();
             const todayString = today.toISOString().split('T')[0];
-
-            const todaysTransactions = allTransactions.filter(t => {
-                if (!t.Date) return false;
-                return new Date(t.Date).toISOString().split('T')[0] === todayString;
-            });
-
+            const todaysTransactions = allTransactions.filter(t => t.Date && new Date(t.Date).toISOString().split('T')[0] === todayString);
             const todaysSip = todaysTransactions.reduce((sum, t) => sum + parseFloat(t['SIP Payment'] || 0), 0);
             const todaysLoan = todaysTransactions.reduce((sum, t) => sum + parseFloat(t.Loan || 0), 0);
-            
             const totalPenaltyIncomes = Object.values(penaltyWalletData.incomes || {}).reduce((sum, income) => sum + income.amount, 0);
             const totalPenaltyExpenses = Object.values(penaltyWalletData.expenses || {}).reduce((sum, expense) => sum + expense.amount, 0);
             const totalPenalty = totalPenaltyIncomes - totalPenaltyExpenses;
-
             const currentDay = today.getDate();
             const isSipWindow = currentDay >= 1 && currentDay <= 10;
             const currentMonth = today.getMonth();
             const currentYear = today.getFullYear();
-
             const sipStatusList = Object.entries(allMembersData)
                 .filter(([id, m]) => m.status === 'Approved')
                 .map(([id, member]) => {
@@ -251,21 +243,12 @@
                         <p class="text-xs text-gray-400 mt-1">Click to view history</p>
                     </div>
                 </div>
-
                 <div class="bg-white rounded-xl shadow-md p-6 mb-6">
                      <h3 class="text-lg font-semibold text-gray-800 mb-3">Current Month SIP Status ${isSipWindow ? '<span class="text-sm font-normal text-red-500">(Payment Window Active)</span>' : ''}</h3>
                      <div class="overflow-y-auto h-48">
-                        <ul id="sip-status-list" class="space-y-3">
-                            ${sipStatusList.map(s => `
-                                <li class="flex justify-between items-center text-sm">
-                                    <span>${s.name}</span>
-                                    <span class="font-bold ${s.hasPaid ? 'paid' : 'not-paid'}">${s.hasPaid ? 'PAID' : 'NOT PAID'}</span>
-                                </li>
-                            `).join('')}
-                        </ul>
+                        <ul id="sip-status-list" class="space-y-3">${sipStatusList.map(s => `<li class="flex justify-between items-center text-sm"><span>${s.name}</span><span class="font-bold ${s.hasPaid ? 'paid' : 'not-paid'}">${s.hasPaid ? 'PAID' : 'NOT PAID'}</span></li>`).join('')}</ul>
                      </div>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="data-card p-6"><div class="flex items-center text-green-500"><i class="ph-money text-2xl mr-3"></i><h2 class="font-medium">Today's SIP Collection</h2></div><p class="text-3xl font-bold text-green-600 mt-2">₹${todaysSip.toLocaleString('en-IN')}</p></div>
                     <div class="data-card p-6"><div class="flex items-center text-red-500"><i class="ph-chart-line-down text-2xl mr-3"></i><h2 class="font-medium">Today's Loan Disbursed</h2></div><p class="text-3xl font-bold text-red-600 mt-2">₹${todaysLoan.toLocaleString('en-IN')}</p></div>
@@ -361,13 +344,10 @@
                             </select>
                         </div>
                     </div>
-                    
                     <div>
                         <label for="current-balance" class="block text-sm font-medium text-gray-700 mb-1">Current Balance</label>
                         <input type="text" id="current-balance" class="form-input w-full p-3 rounded-lg bg-gray-200" value="Select a member to see balance" readonly>
                     </div>
-
-                    <!-- Dynamic Fields -->
                     <div id="sip-fields">
                         <label for="sip-payment" class="block text-sm font-medium text-gray-700 mb-1">SIP Payment Amount</label>
                         <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg">
@@ -390,8 +370,6 @@
                          <label for="extra-balance-amount" class="block text-sm font-medium text-gray-700 mb-1">Extra Balance Amount</label>
                         <input type="number" id="extra-balance-amount" placeholder="e.g., 1000" class="form-input w-full p-3 rounded-lg">
                     </div>
-
-                    <!-- Common Fields -->
                     <div>
                         <label for="penalty-amount" class="block text-sm font-medium text-gray-700 mb-1">Penalty Amount (Manual)</label>
                         <input type="number" id="penalty-amount" placeholder="e.g., 10" class="form-input w-full p-3 rounded-lg">
@@ -400,7 +378,6 @@
                         <label for="entry-document" class="block text-sm font-medium text-gray-700 mb-1">Document Picture (Optional)</label>
                         <input type="file" id="entry-document" class="form-input w-full p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     </div>
-
                     <div class="flex justify-end">
                         <button type="submit" id="submit-entry-btn" class="btn-primary flex items-center justify-center text-white font-bold py-3 px-6 rounded-lg">
                             Submit Entry
@@ -469,6 +446,7 @@
                 <th scope="col" class="px-6 py-3">Name</th>
                 <th scope="col" class="px-6 py-3">Type</th>
                 <th scope="col" class="px-6 py-3 text-right">Amount</th>
+                <th scope="col" class="px-6 py-3 text-center">Actions</th>
             </tr></thead><tbody></tbody>`;
             const tbody = table.querySelector('tbody');
 
@@ -491,11 +469,11 @@
                     const payment = parseFloat(tx['Loan Payment'] || 0);
                     const returnAmt = parseFloat(tx['Return amount'] || 0);
                     const penaltyAmt = parseFloat(tx['Penalty amount'] || 0);
-                    amountHtml = `<div class="font-bold">₹${payment.toLocaleString('en-IN')}</div>`;
+                    amountHtml = `<div class="font-bold text-lg">₹${payment.toLocaleString('en-IN')}</div>`;
                     if (returnAmt > 0 || penaltyAmt > 0) {
                         amountHtml += `<div class="text-xs text-gray-500 mt-1">`;
                         if (returnAmt > 0) amountHtml += `Return: ₹${returnAmt.toLocaleString()}`;
-                        if (penaltyAmt > 0) amountHtml += `${returnAmt > 0 ? ' | ' : ''}Penalty: ₹${penaltyAmt.toLocaleString()}`;
+                        if (penaltyAmt > 0) amountHtml += `${returnAmt > 0 ? ' <span class="text-gray-300">|</span> ' : ''}Penalty: ₹${penaltyAmt.toLocaleString()}`;
                         amountHtml += `</div>`;
                     }
                 } else if (tx['Extra Balance']) {
@@ -511,6 +489,10 @@
                     <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${tx.Name}</td>
                     <td class="px-6 py-4"><span class="px-2 py-1 font-semibold leading-tight ${amountColor} bg-opacity-20 bg-gray-200 rounded-full">${type}</span></td>
                     <td class="px-6 py-4 text-right ${amountColor}">${amountHtml}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="edit-transaction-btn p-1 text-green-600 hover:text-green-800" data-member-id="${tx.memberId}" data-tx-id="${tx.txId}"><i class="ph-note-pencil text-xl"></i></button>
+                        <button class="delete-transaction-btn p-1 text-red-600 hover:text-red-800" data-member-id="${tx.memberId}" data-tx-id="${tx.txId}"><i class="ph-trash text-xl"></i></button>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
@@ -531,8 +513,9 @@
                 const card = document.createElement('div');
                 card.className = 'relative group';
                 card.innerHTML = `
-                    <img src="${item.url}" class="gallery-image w-full h-40 object-cover rounded-lg shadow-md cursor-pointer transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center">
+                    <img src="${item.url}" class="w-full h-40 object-cover rounded-lg shadow-md transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center gap-4">
+                        <button class="view-gallery-btn text-white opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-blue-600 rounded-full" data-url="${item.url}"><i class="ph-eye text-2xl"></i></button>
                         <button class="delete-gallery-btn text-white opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-600 rounded-full" data-key="${key}"><i class="ph-trash text-2xl"></i></button>
                     </div>
                 `;
@@ -611,6 +594,55 @@
             openModal(modal);
         }
 
+        function renderEditTransactionModal(memberId, txId, transaction) {
+            const modal = document.getElementById('editTransactionModal');
+            const date = new Date(transaction.Date).toISOString().split('T')[0];
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
+                    <form id="edit-transaction-form" data-member-id="${memberId}" data-tx-id="${txId}">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-bold">Edit Transaction for ${transaction.Name}</h3>
+                        </div>
+                        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="date" id="edit-tx-date" class="form-input w-full p-2 rounded-lg" value="${date}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">SIP Payment</label>
+                                <input type="number" id="edit-tx-sip" class="form-input w-full p-2 rounded-lg" value="${transaction['SIP Payment'] || ''}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Loan</label>
+                                <input type="number" id="edit-tx-loan" class="form-input w-full p-2 rounded-lg" value="${transaction['Loan'] || ''}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Loan Payment</label>
+                                <input type="number" id="edit-tx-loan-payment" class="form-input w-full p-2 rounded-lg" value="${transaction['Loan Payment'] || ''}">
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Return Amount</label>
+                                <input type="number" id="edit-tx-return" class="form-input w-full p-2 rounded-lg" value="${transaction['Return amount'] || ''}">
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Extra Balance</label>
+                                <input type="number" id="edit-tx-extra" class="form-input w-full p-2 rounded-lg" value="${transaction['Extra Balance'] || ''}">
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Penalty Amount</label>
+                                <input type="number" id="edit-tx-penalty" class="form-input w-full p-2 rounded-lg" value="${transaction['Penalty amount'] || ''}">
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            openModal(modal);
+        }
+
         // --- MODAL AND HELPER FUNCTIONS ---
 
         function openModal(modal) { modal.classList.remove('hidden', 'opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }
@@ -659,7 +691,7 @@
             if (entryType === 'loan_payment') {
                 const returnAmount = parseFloat(document.getElementById('return-amount').value) || 0;
                 if (returnAmount > 0) {
-                    autoPenalty = returnAmount * 0.10; // 10% of return amount
+                    autoPenalty = returnAmount * 0.10;
                 }
             }
             
@@ -808,6 +840,31 @@
                     closeModal(document.getElementById('burnMoneyModal'));
                 }
             }
+            if (e.target.id === 'edit-transaction-form') {
+                e.preventDefault();
+                const form = e.target;
+                const memberId = form.dataset.memberId;
+                const txId = form.dataset.txId;
+                
+                const updatedData = {
+                    Date: new Date(document.getElementById('edit-tx-date').value).toISOString(),
+                    "SIP Payment": document.getElementById('edit-tx-sip').value || "",
+                    "Loan": document.getElementById('edit-tx-loan').value || "",
+                    "Loan Payment": document.getElementById('edit-tx-loan-payment').value || "",
+                    "Return amount": document.getElementById('edit-tx-return').value || "",
+                    "Extra Balance": document.getElementById('edit-tx-extra').value || "",
+                    "Penalty amount": document.getElementById('edit-tx-penalty').value || ""
+                };
+
+                try {
+                    const txRef = ref(db, `members/${memberId}/transactions/${txId}`);
+                    await update(txRef, updatedData);
+                    alert('Transaction updated successfully!');
+                    closeModal(document.getElementById('editTransactionModal'));
+                } catch (err) {
+                    alert('Failed to update transaction: ' + err.message);
+                }
+            }
         });
         
         document.body.addEventListener('click', async e => {
@@ -832,11 +889,38 @@
                     }
                 }
             }
+            
+            const editTxBtn = e.target.closest('.edit-transaction-btn');
+            if(editTxBtn) {
+                const memberId = editTxBtn.dataset.memberId;
+                const txId = editTxBtn.dataset.txId;
+                const transaction = allMembersData[memberId]?.transactions?.[txId];
+                if(transaction) {
+                    renderEditTransactionModal(memberId, txId, transaction);
+                }
+            }
 
-            const galleryImg = e.target.closest('.gallery-image');
-            if (galleryImg) {
+            const deleteTxBtn = e.target.closest('.delete-transaction-btn');
+            if (deleteTxBtn) {
+                const memberId = deleteTxBtn.dataset.memberId;
+                const txId = deleteTxBtn.dataset.txId;
+                const confirmed = await showConfirmation('Delete Transaction?', 'This action is permanent and cannot be undone.');
+                if (confirmed) {
+                    try {
+                        const txRef = ref(db, `members/${memberId}/transactions/${txId}`);
+                        await remove(txRef);
+                        alert('Transaction deleted successfully.');
+                    } catch (err) {
+                        alert('Error deleting transaction: ' + err.message);
+                    }
+                }
+            }
+
+            const viewGalleryBtn = e.target.closest('.view-gallery-btn');
+            if (viewGalleryBtn) {
+                e.stopPropagation();
                 const modal = document.getElementById('imageViewerModal');
-                modal.querySelector('#fullImageView').src = galleryImg.src;
+                modal.querySelector('#fullImageView').src = viewGalleryBtn.dataset.url;
                 openModal(modal);
             }
 
