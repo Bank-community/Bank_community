@@ -92,6 +92,7 @@
     </div>
 
     <!-- All Modals -->
+    <div id="editMemberModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editTransactionModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
@@ -284,7 +285,7 @@
 
         function renderAllMembersPage(members, searchTerm = '') { 
             const container = document.getElementById('all-members-view');
-            container.innerHTML = `<div id="all-members-container" class="bg-white rounded-xl shadow-md overflow-x-auto"></div>`;
+            container.innerHTML = `<div class="mb-4"><input type="text" id="member-search-input" placeholder="Search members by name..." class="form-input w-full p-3 rounded-lg" value="${searchTerm}"></div><div id="all-members-container" class="bg-white rounded-xl shadow-md overflow-x-auto"></div>`;
             const listContainer = container.querySelector('#all-members-container');
             const approvedMembers = Object.entries(members)
                 .filter(([id, member]) => member.status === 'Approved' && member.fullName.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -306,7 +307,6 @@
                     <td class="px-6 py-4 hidden md:table-cell">${member.mobileNumber}</td>
                     <td class="px-6 py-4 font-medium ${member.currentBalance >= 0 ? 'text-green-600' : 'text-red-600'}">₹${member.currentBalance.toLocaleString('en-IN')}</td>
                     <td class="px-6 py-4 flex items-center space-x-4">
-                        <button class="view-profile-btn font-medium text-indigo-600 hover:underline" data-id="${id}">View</button>
                         <button class="edit-member-btn font-medium text-green-600 hover:underline" data-id="${id}">Edit</button>
                         <button class="delete-member-btn font-medium text-red-600 hover:underline" data-id="${id}" data-name="${member.fullName}">Delete</button>
                     </td>
@@ -511,9 +511,9 @@
             for (const key in galleryData) {
                 const item = galleryData[key];
                 const card = document.createElement('div');
-                card.className = 'relative group';
+                card.className = 'relative group cursor-pointer';
                 card.innerHTML = `
-                    <img src="${item.url}" class="w-full h-40 object-cover rounded-lg shadow-md transition-transform duration-300 group-hover:scale-105">
+                    <img src="${item.url}" class="gallery-image w-full h-40 object-cover rounded-lg shadow-md transition-transform duration-300 group-hover:scale-105">
                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center gap-4">
                         <button class="view-gallery-btn text-white opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-blue-600 rounded-full" data-url="${item.url}"><i class="ph-eye text-2xl"></i></button>
                         <button class="delete-gallery-btn text-white opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-600 rounded-full" data-key="${key}"><i class="ph-trash text-2xl"></i></button>
@@ -587,6 +587,46 @@
                         <div class="p-4 bg-gray-50 flex justify-end gap-3">
                             <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
                             <button type="submit" class="btn-danger px-4 py-2 text-sm font-medium rounded-md">Submit Expense</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            openModal(modal);
+        }
+
+        function renderEditMemberModal(memberId, member) {
+            const modal = document.getElementById('editMemberModal');
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
+                    <form id="edit-member-form" data-member-id="${memberId}">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-bold">Edit Member: ${member.fullName}</h3>
+                        </div>
+                        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input type="text" id="edit-member-name" class="form-input w-full p-2 rounded-lg" value="${member.fullName || ''}" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                                <input type="tel" id="edit-member-mobile" class="form-input w-full p-2 rounded-lg" value="${member.mobileNumber || ''}" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <input type="text" id="edit-member-address" class="form-input w-full p-2 rounded-lg" value="${member.address || ''}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Aadhaar Number</label>
+                                <input type="text" id="edit-member-aadhaar" class="form-input w-full p-2 rounded-lg" value="${member.aadhaar || ''}">
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                                <input type="date" id="edit-member-dob" class="form-input w-full p-2 rounded-lg" value="${member.dob || ''}">
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Changes</button>
                         </div>
                     </form>
                 </div>
@@ -865,17 +905,42 @@
                     alert('Failed to update transaction: ' + err.message);
                 }
             }
+            if (e.target.id === 'edit-member-form') {
+                e.preventDefault();
+                const form = e.target;
+                const memberId = form.dataset.memberId;
+                
+                const updatedData = {
+                    fullName: document.getElementById('edit-member-name').value,
+                    mobileNumber: document.getElementById('edit-member-mobile').value,
+                    address: document.getElementById('edit-member-address').value,
+                    aadhaar: document.getElementById('edit-member-aadhaar').value,
+                    dob: document.getElementById('edit-member-dob').value
+                };
+
+                try {
+                    const memberRef = ref(db, `members/${memberId}`);
+                    await update(memberRef, updatedData);
+                    alert('Member details updated successfully!');
+                    closeModal(document.getElementById('editMemberModal'));
+                } catch (err) {
+                    alert('Failed to update member: ' + err.message);
+                }
+            }
         });
         
         document.body.addEventListener('click', async e => {
             const reviewBtn = e.target.closest('.review-btn');
             if(reviewBtn) alert('Review functionality to be implemented.');
 
-            const viewProfileBtn = e.target.closest('.view-profile-btn');
-            if(viewProfileBtn) alert('View profile functionality to be implemented.');
-
             const editMemberBtn = e.target.closest('.edit-member-btn');
-            if(editMemberBtn) alert('Edit member functionality to be implemented.');
+            if(editMemberBtn) {
+                const memberId = editMemberBtn.dataset.id;
+                const member = allMembersData[memberId];
+                if(member) {
+                    renderEditMemberModal(memberId, member);
+                }
+            }
 
             const deleteMemberBtn = e.target.closest('.delete-member-btn');
             if(deleteMemberBtn) { 
