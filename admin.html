@@ -92,6 +92,7 @@
     </div>
 
     <!-- All Modals -->
+    <div id="reviewModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editMemberModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editTransactionModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
@@ -596,6 +597,49 @@
             openModal(modal);
         }
 
+        function renderReviewModal(memberId, member) {
+            const modal = document.getElementById('reviewModal');
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col scale-95">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">Review Application</h2>
+                        <button class="close-modal-btn text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+                    </div>
+                    <div class="p-6 space-y-6 overflow-y-auto">
+                        <div class="flex flex-col sm:flex-row items-center gap-6">
+                            <img src="${member.profilePicUrl}" class="w-24 h-24 rounded-full object-cover border-4 cursor-pointer review-image">
+                            <div>
+                                <h3 class="text-2xl font-bold">${member.fullName}</h3>
+                                <p>ID: ${member.membershipId}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t">
+                            <div><strong>Mobile:</strong> ${member.mobileNumber}</div>
+                            <div><strong>DOB:</strong> ${new Date(member.dob).toLocaleDateString('en-GB')}</div>
+                            <div><strong>Aadhaar:</strong> ${member.aadhaar}</div>
+                            <div><strong>Joining Date:</strong> ${new Date(member.joiningDate).toLocaleDateString('en-GB')}</div>
+                            <div class="md:col-span-2"><strong>Address:</strong> ${member.address}</div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
+                            <div class="text-center">
+                                <h4 class="font-semibold mb-2">Signature</h4>
+                                <img src="${member.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto cursor-pointer review-image">
+                            </div>
+                            <div class="text-center">
+                                <h4 class="font-semibold mb-2">Document</h4>
+                                <img src="${member.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto cursor-pointer review-image">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-50 border-t flex justify-end gap-4">
+                        <button data-id="${memberId}" class="reject-btn px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">Reject</button>
+                        <button data-id="${memberId}" class="approve-btn px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">Approve</button>
+                    </div>
+                </div>
+            `;
+            openModal(modal);
+        }
+
         function renderEditMemberModal(memberId, member) {
             const modal = document.getElementById('editMemberModal');
             modal.innerHTML = `
@@ -817,7 +861,7 @@
                     else if (viewId === 'all-members') renderAllMembersPage(allMembersData);
                     else if (viewId === 'data-entry') renderDataEntryForm();
                     else if (viewId === 'data-explorer') renderDataExplorer();
-                    else if (viewId === 'gallery') renderGallery(allMembersData);
+                    else if (viewId === 'gallery') renderGallery(allGalleryData);
                 }
             });
             if (document.getElementById('sidebar').classList.contains('open')) {
@@ -933,7 +977,52 @@
         
         document.body.addEventListener('click', async e => {
             const reviewBtn = e.target.closest('.review-btn');
-            if(reviewBtn) alert('Review functionality to be implemented.');
+            if(reviewBtn) {
+                const memberId = reviewBtn.dataset.id;
+                const member = allMembersData[memberId];
+                if (member) {
+                    renderReviewModal(memberId, member);
+                }
+            }
+
+            const approveBtn = e.target.closest('.approve-btn');
+            if (approveBtn) {
+                const memberId = approveBtn.dataset.id;
+                const confirmed = await showConfirmation('Approve Member?', `Are you sure you want to approve this application?`);
+                if (confirmed) {
+                    try {
+                        const memberRef = ref(db, `members/${memberId}/status`);
+                        await set(memberRef, 'Approved');
+                        alert('Member approved successfully!');
+                        closeModal(document.getElementById('reviewModal'));
+                    } catch (err) {
+                        alert('Error approving member: ' + err.message);
+                    }
+                }
+            }
+
+            const rejectBtn = e.target.closest('.reject-btn');
+            if (rejectBtn) {
+                const memberId = rejectBtn.dataset.id;
+                const confirmed = await showConfirmation('Reject & Delete Application?', `This will permanently delete the application. This action cannot be undone.`);
+                if (confirmed) {
+                    try {
+                        const memberRef = ref(db, `members/${memberId}`);
+                        await remove(memberRef);
+                        alert('Application rejected and deleted.');
+                        closeModal(document.getElementById('reviewModal'));
+                    } catch (err) {
+                        alert('Error rejecting application: ' + err.message);
+                    }
+                }
+            }
+
+            const reviewImage = e.target.closest('.review-image');
+            if (reviewImage) {
+                const modal = document.getElementById('imageViewerModal');
+                modal.querySelector('#fullImageView').src = reviewImage.src;
+                openModal(modal);
+            }
 
             const editMemberBtn = e.target.closest('.edit-member-btn');
             if(editMemberBtn) {
@@ -952,9 +1041,8 @@
                 if(confirmed) {
                     try {
                         const updates = {};
-                        updates[`/members/${memberId}`] = null; // Mark member for deletion
+                        updates[`/members/${memberId}`] = null;
 
-                        // Find and mark associated penalty incomes for deletion
                         const penaltyIncomesRef = ref(db, 'penaltyWallet/incomes');
                         const penaltyQuery = query(penaltyIncomesRef, orderByChild('from'), equalTo(memberName));
                         const snapshot = await get(penaltyQuery);
@@ -964,7 +1052,7 @@
                             });
                         }
                         
-                        await update(ref(db), updates); // Perform atomic delete
+                        await update(ref(db), updates);
                         alert('Member and all associated data deleted successfully.');
                     } catch (err) {
                         alert('Error deleting member: ' + err.message);
