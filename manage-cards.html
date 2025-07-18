@@ -33,7 +33,6 @@
         </header>
 
         <div id="custom-cards-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Cards will be loaded here -->
             <p class="text-center text-gray-500 col-span-full py-10">Loading cards...</p>
         </div>
     </main>
@@ -52,8 +51,9 @@
     </div>
 
     <script type="module">
-        if
-(sessionStorage.getItem('isAdminLogged In') !== 'true') { window.location.href = login.html? redirect=${window.location.pathname}; }
+        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
+            window.location.href = `login.html?redirect=${window.location.pathname}`;
+        }
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
@@ -71,18 +71,20 @@
                 db = getDatabase(app);
 
                 attachEventHandlers();
-                fetchCustomCards();
+                fetchAdminSettings(); // UPDATED: Changed function call
             } catch (error) {
                 console.error("App Init Failed:", error);
                 document.body.innerHTML = `<div class="text-center p-8"><h1>Initialization Error</h1><p>${error.message}</p></div>`;
             }
         }
 
-        function fetchCustomCards() {
-            const cardsRef = ref(db, 'admin/custom_cards');
-            onValue(cardsRef, (snapshot) => {
-                adminSettings.custom_cards = snapshot.val() || {};
-                renderCustomCardsList(adminSettings.custom_cards);
+        // UPDATED: Fetches the entire admin node for reliability
+        function fetchAdminSettings() {
+            const adminRef = ref(db, 'admin');
+            onValue(adminRef, (snapshot) => {
+                adminSettings = snapshot.val() || {};
+                const customCards = adminSettings.custom_cards || {};
+                renderCustomCardsList(customCards);
             });
         }
 
