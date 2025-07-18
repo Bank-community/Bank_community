@@ -16,10 +16,13 @@
         .form-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
         .btn-primary { background-color: #4f46e5; transition: background-color 0.3s ease; }
         .btn-primary:hover { background-color: #4338ca; }
+        .btn-primary:disabled { background-color: #a5b4fc; cursor: not-allowed; }
         .btn-danger { background-color: #ef4444; color: white; }
         .btn-danger:hover { background-color: #dc2626; }
         .modal-overlay { background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(5px); transition: opacity 0.3s ease-in-out; }
         .modal-content { transition: transform 0.3s ease-in-out; }
+        .loader { border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
@@ -58,7 +61,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-        let db;
+        let db, IMGBB_API_KEY;
         let adminSettings = {};
 
         async function startApp() {
@@ -67,18 +70,18 @@
                 if (!response.ok) throw new Error('Config fetch failed');
                 const config = await response.json();
                 
+                IMGBB_API_KEY = config.imgbb.apiKey; // Store the ImgBB API key
                 const app = initializeApp(config.firebase);
                 db = getDatabase(app);
 
                 attachEventHandlers();
-                fetchAdminSettings(); // UPDATED: Changed function call
+                fetchAdminSettings();
             } catch (error) {
                 console.error("App Init Failed:", error);
                 document.body.innerHTML = `<div class="text-center p-8"><h1>Initialization Error</h1><p>${error.message}</p></div>`;
             }
         }
 
-        // UPDATED: Fetches the entire admin node for reliability
         function fetchAdminSettings() {
             const adminRef = ref(db, 'admin');
             onValue(adminRef, (snapshot) => {
@@ -136,10 +139,18 @@
                                 <label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                                 <input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}">
                             </div>
+                            
+                            <!-- UPDATED: Image Upload Field -->
                             <div>
-                                <label for="card-img" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                <input type="url" id="card-img" class="form-input w-full p-2 rounded-lg" value="${cardData.imageUrl || ''}" required>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                                <div class="mt-1 flex items-center gap-4">
+                                    <img id="image-preview" src="${cardData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-cover rounded-md bg-gray-200">
+                                    <input type="file" id="card-img" class="hidden" accept="image/*">
+                                    <input type="hidden" id="existing-image-url" value="${cardData.imageUrl || ''}">
+                                    <button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50">Change</button>
+                                </div>
                             </div>
+                            
                              <div>
                                 <label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
                                 <input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required>
@@ -155,12 +166,30 @@
                         </div>
                         <div class="p-4 bg-gray-50 flex justify-end gap-3">
                             <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Card</button>
+                            <button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md">
+                                <span id="save-btn-text">Save Card</span>
+                                <div id="save-loader" class="loader ml-2"></div>
+                            </button>
                         </div>
                     </form>
                 </div>
             `;
             openModal(modal);
+
+            // Attach event listeners for the new upload button and file input
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                document.getElementById('card-img').click();
+            });
+            document.getElementById('card-img').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('image-preview').src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
         }
 
         function openModal(modal) { modal.classList.remove('hidden', 'opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }
@@ -201,23 +230,54 @@
                 if (e.target.id === 'custom-card-form') {
                     e.preventDefault();
                     const form = e.target;
-                    const key = form.dataset.key;
-                    const cardData = {
-                        title: document.getElementById('card-title').value,
-                        description: document.getElementById('card-desc').value,
-                        imageUrl: document.getElementById('card-img').value,
-                        buttonText: document.getElementById('card-btn-text').value,
-                        buttonLink: document.getElementById('card-btn-url').value,
-                        buttonColor: document.getElementById('card-btn-color').value,
-                    };
+                    const saveBtn = document.getElementById('save-card-btn');
+                    const btnText = document.getElementById('save-btn-text');
+                    const loader = document.getElementById('save-loader');
                     
-                    const dbRef = key ? ref(db, `admin/custom_cards/${key}`) : push(ref(db, 'admin/custom_cards'));
+                    saveBtn.disabled = true;
+                    btnText.textContent = 'Saving...';
+                    loader.style.display = 'inline-block';
+
                     try {
+                        const key = form.dataset.key;
+                        const file = document.getElementById('card-img').files[0];
+                        let imageUrl = document.getElementById('existing-image-url').value;
+
+                        // If a new file was selected, upload it
+                        if (file) {
+                            const formData = new FormData();
+                            formData.append('image', file);
+                            const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+                            const json = await res.json();
+                            if (!json.success) throw new Error(json.error.message);
+                            imageUrl = json.data.url;
+                        }
+
+                        if (!imageUrl) {
+                            throw new Error('Please select an image to upload.');
+                        }
+
+                        const cardData = {
+                            title: document.getElementById('card-title').value,
+                            description: document.getElementById('card-desc').value,
+                            imageUrl: imageUrl, // Use the new or existing URL
+                            buttonText: document.getElementById('card-btn-text').value,
+                            buttonLink: document.getElementById('card-btn-url').value,
+                            buttonColor: document.getElementById('card-btn-color').value,
+                        };
+                        
+                        const dbRef = key ? ref(db, `admin/custom_cards/${key}`) : push(ref(db, 'admin/custom_cards'));
                         await set(dbRef, cardData);
+                        
                         alert(`Custom card ${key ? 'updated' : 'added'} successfully!`);
                         closeModal(document.getElementById('customCardModal'));
+
                     } catch (err) {
                         alert('Error saving custom card: ' + err.message);
+                    } finally {
+                        saveBtn.disabled = false;
+                        btnText.textContent = 'Save Card';
+                        loader.style.display = 'none';
                     }
                 }
             });
