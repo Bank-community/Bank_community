@@ -135,7 +135,7 @@
             text-align: center; 
             padding: 12px; 
             box-shadow: 0 5px 10px var(--shadow-color); 
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease; 
             cursor: pointer; 
             border: 1px solid var(--border-color); 
             box-sizing: border-box; 
@@ -162,7 +162,7 @@
 
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
         .member-balance { background-color: var(--primary-color); color: white; padding: 6px 15px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
-        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 3; }
+        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
         
         .rank-icon { 
             position: absolute; 
@@ -170,122 +170,69 @@
             left: -10px; 
             width: 40px;
             height: 40px; 
-            z-index: 3;
+            z-index: 2;
             filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3));
             background: white;
             border-radius: 50%;
             padding: 2px;
             box-shadow: 0 0 5px rgba(0,0,0,0.2);
         }
-
-        .card-has-bg {
-            background-size: cover;
-            background-position: center;
-            color: white;
-        }
-        .card-has-bg::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 11px;
-            z-index: 1;
-        }
-        .card-has-bg .member-photo-container,
-        .card-has-bg .member-name,
-        .card-has-bg .member-balance,
-        .card-has-bg .prime-tag,
-        .card-has-bg .rank-icon {
-            position: relative;
-            z-index: 2;
-        }
-        .card-has-bg .member-name {
-            color: #ffffff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-        }
-        .card-has-bg .member-balance {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
         
-        /* --- NEW: Custom Cards Section Styles --- */
+        /* UPDATED: Style for colored cards */
+        .colored-card .member-name {
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .colored-card .member-balance {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* --- Custom Cards Section Styles UPDATED --- */
         #customCardsSection {
-            background: none;
-            border: none;
-            box-shadow: none;
-            padding: 0;
-            margin-top: -20px; /* Pulls it closer to the members section */
+            background: none; border: none; box-shadow: none; padding: 0; margin-top: -20px;
         }
         .custom-cards-container {
-            display: grid;
-            grid-template-columns: 1fr; /* Single column on mobile */
-            gap: 25px;
-            padding: 0 10px;
+            display: grid; grid-template-columns: 1fr; gap: 25px; padding: 0 10px;
         }
         .custom-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            display: flex;
-            flex-direction: column;
+            background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex; flex-direction: column;
         }
         .custom-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
         .custom-card-img {
             width: 100%;
-            height: 180px;
-            object-fit: cover;
+            height: auto; /* UPDATED: Allow full image height */
+            object-fit: cover; /* This will still cover but height is auto */
         }
         .custom-card-content {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
+            padding: 20px; display: flex; flex-direction: column; flex-grow: 1;
         }
         .custom-card-title {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: var(--primary-darker);
-            margin-top: 0;
-            margin-bottom: 10px;
+            font-size: 1.4em; font-weight: 700; color: var(--primary-darker);
+            margin-top: 0; margin-bottom: 10px;
         }
         .custom-card-desc {
-            font-size: 1em;
-            color: var(--light-text);
-            margin-bottom: 20px;
-            flex-grow: 1;
+            font-size: 1em; color: var(--light-text); margin-bottom: 20px; flex-grow: 1;
         }
         .custom-card-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            background-color: var(--primary-color);
-            color: white;
-            font-size: 1.1em;
-            font-weight: 600;
-            text-align: center;
-            text-decoration: none;
-            cursor: pointer;
+            display: block; width: 100%; padding: 12px; border-radius: 8px; border: none;
+            background-color: var(--primary-color); color: white; font-size: 1.1em;
+            font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: auto; /* UPDATED: Pushes button to the bottom */
         }
         .custom-card-btn:hover {
             transform: scale(1.02);
         }
 
         @media (min-width: 768px) {
-            .custom-cards-container {
-                grid-template-columns: repeat(2, 1fr); /* Two columns on tablets */
-            }
+            .custom-cards-container { grid-template-columns: repeat(2, 1fr); }
         }
         @media (min-width: 992px) {
-            .custom-cards-container {
-                grid-template-columns: repeat(3, 1fr); /* Three columns on desktop */
-            }
+            .custom-cards-container { grid-template-columns: repeat(3, 1fr); }
         }
 
 
@@ -399,10 +346,8 @@
 <main class="content-wrapper">
     <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> 
     
-    <!-- NEW: DYNAMIC CUSTOM CARDS SECTION -->
     <section id="customCardsSection" class="animate-on-scroll">
         <div class="custom-cards-container" id="customCardsContainer">
-            <!-- Dynamic cards will be inserted here by JavaScript -->
         </div>
     </section>
 
@@ -411,7 +356,6 @@
 </main>
 <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
 
-<!-- NEW MODALS FOR FULL VIEW FEATURE -->
 <div id="passwordPromptModal" class="modal">
     <div class="modal-content">
         <span class="close" id="closePasswordModal">×</span>
@@ -461,7 +405,7 @@
     async function initializeAndRunApp() {
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=4') // Version updated
+                navigator.serviceWorker.register('/sw.js?v=5') // Version updated
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -494,7 +438,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V4) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V5) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -505,7 +449,7 @@
 
         // --- Element Selectors ---
         const memberContainer = document.getElementById('memberContainer');
-        const customCardsContainer = document.getElementById('customCardsContainer'); // NEW
+        const customCardsContainer = document.getElementById('customCardsContainer');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
         const totalLoanValueElement = document.getElementById('totalLoanValue');
         const currentYearElement = document.getElementById('currentYear');
@@ -566,8 +510,8 @@
         let sipChartInstance = null;
         let deferredInstallPrompt = null;
         let currentMemberForFullView = null;
-        let cardBackgrounds = {};
-        let customCardsData = {}; // NEW
+        let cardColors = {}; // UPDATED: To store dynamic card colors
+        let customCardsData = {};
 
         // --- PWA Installation Logic ---
         function setupPWA() {
@@ -610,11 +554,12 @@
                 allMembersData = data.members || {};
                 const penaltyIncomes = data.penaltyWallet ? data.penaltyWallet.incomes || {} : {};
                 
-                cardBackgrounds = data.admin?.card_backgrounds || {};
-                customCardsData = data.admin?.custom_cards || {}; // NEW: Fetch custom cards data
+                // UPDATED: Fetch card COLORS from admin settings
+                cardColors = data.admin?.card_colors || {};
+                customCardsData = data.admin?.custom_cards || {};
 
                 processAndDisplayData(allMembersData, penaltyIncomes);
-                displayCustomCards(customCardsData); // NEW: Call function to display custom cards
+                displayCustomCards(customCardsData);
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
                 if (memberContainer) {
@@ -704,6 +649,7 @@
             renderSipChart(monthlySipData);
         }
 
+        // UPDATED: To handle dynamic colors instead of images
         function displayMembers(members) {
             if (!memberContainer) return;
             memberContainer.innerHTML = '';
@@ -725,23 +671,23 @@
                 
                 if (index === 0) { 
                     rankHTML = `<img src="${goldMedalURL}" class="rank-icon" alt="Gold Medal">`;
-                    if (cardBackgrounds.gold) {
-                        card.classList.add('card-has-bg');
-                        card.style.backgroundImage = `url(${cardBackgrounds.gold})`;
+                    if (cardColors.gold) {
+                        card.style.backgroundColor = cardColors.gold;
+                        card.classList.add('colored-card');
                     }
                 } 
                 else if (index === 1) { 
                     rankHTML = `<img src="${silverMedalURL}" class="rank-icon" alt="Silver Medal">`;
-                    if (cardBackgrounds.silver) {
-                        card.classList.add('card-has-bg');
-                        card.style.backgroundImage = `url(${cardBackgrounds.silver})`;
+                    if (cardColors.silver) {
+                        card.style.backgroundColor = cardColors.silver;
+                        card.classList.add('colored-card');
                     }
                 } 
                 else if (index === 2) { 
                     rankHTML = `<img src="${bronzeMedalURL}" class="rank-icon" alt="Bronze Medal">`;
-                    if (cardBackgrounds.bronze) {
-                        card.classList.add('card-has-bg');
-                        card.style.backgroundImage = `url(${cardBackgrounds.bronze})`;
+                    if (cardColors.bronze) {
+                        card.style.backgroundColor = cardColors.bronze;
+                        card.classList.add('colored-card');
                     }
                 }
                 
@@ -760,12 +706,10 @@
             observeElements(document.querySelectorAll('.animate-on-scroll'));
         }
 
-        // NEW: Function to display dynamically generated cards
         function displayCustomCards(cards) {
             if (!customCardsContainer) return;
-            customCardsContainer.innerHTML = ''; // Clear previous cards
+            customCardsContainer.innerHTML = '';
 
-            // Firebase objects don't have a guaranteed order, so if order matters, consider adding an 'order' field.
             for (const cardId in cards) {
                 const cardData = cards[cardId];
                 
@@ -777,7 +721,7 @@
                     <div class="custom-card-content">
                         <h3 class="custom-card-title">${cardData.title || 'Untitled Card'}</h3>
                         <p class="custom-card-desc">${cardData.description || ''}</p>
-                        <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}">
+                        <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}" target="_blank" rel="noopener noreferrer">
                             ${cardData.buttonText || 'Learn More'}
                         </a>
                     </div>
@@ -796,16 +740,14 @@
             const correctPassword = allMembersData[currentMemberForFullView]?.password;
             
             if (enteredPassword === correctPassword) {
-                // Redirect to view.html with the member's ID as a URL parameter
                 window.location.href = `view.html?memberId=${currentMemberForFullView}`;
             } else {
                 alert('Incorrect password. Please try again.');
-                passwordInput.value = ''; // Clear password field on failure
+                passwordInput.value = '';
             }
         }
 
-        // --- All other functions (showMemberProfileModal, etc.) remain the same ---
-        // --- They are included here for completeness ---
+        // --- Other functions remain unchanged ---
 
         function updateInfoCards(memberCount, totalLoan) {
             if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
