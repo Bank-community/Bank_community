@@ -5,25 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>लॉगिन - बैंक कम्युनिटी लोन</title>
     
-    <!-- Using modern Firebase SDKs to match your admin panel -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         
-        // --- Main Application Starter ---
         async function initializeAppWithConfig() {
             try {
-                // Step 1: Fetch the configuration from your Vercel serverless function
-                const response = await fetch('/api/config'); // Using the same config as your admin panel
+                const response = await fetch('/api/config');
                 if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल।');
                 
                 const config = await response.json();
                 
-                // Step 2: Initialize Firebase with the fetched config
                 const app = initializeApp(config.firebase);
                 const auth = getAuth(app);
                 
-                // Step 3: Attach the login logic
                 setupLoginListener(auth);
 
             } catch (error) {
@@ -34,13 +29,17 @@
             }
         }
 
-        // --- Login Logic with Smart Redirect ---
         function setupLoginListener(auth) {
             const loginForm = document.getElementById('loginForm');
             const errorMessageElement = document.getElementById('errorMessage');
             const loginBtn = document.getElementById('loginBtn');
             const loginBtnText = document.getElementById('loginBtnText');
             const loader = document.getElementById('loader');
+
+            // --- SMART REDIRECT LOGIC ---
+            // Step 1: Check if a redirect URL was passed
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
 
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -51,19 +50,18 @@
 
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
-                const adminUid = 'hWsZo6gONzOOccP7y4GCT4oV93A2'; // Your Admin UID
+                const adminUid = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
 
                 try {
                     const userCredential = await signInWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
 
-                    // --- UPDATED SMART REDIRECT LOGIC ---
                     if (user.uid === adminUid) {
-                        // If user is ADMIN, go to admin.html
-                        sessionStorage.setItem('isAdminLoggedIn', 'true'); // Important for admin panel security
-                        window.location.href = '/admin.html'; 
+                        sessionStorage.setItem('isAdminLoggedIn', 'true');
+                        // Step 2: If a redirect URL exists, go there. Otherwise, go to admin.html
+                        window.location.href = redirectUrl || '/admin.html'; 
                     } else {
-                        // If user is a REGULAR MEMBER, go to index.html
+                        // Regular members will always go to index.html
                         window.location.href = '/index.html'; 
                     }
 
@@ -79,7 +77,6 @@
             });
         }
         
-        // --- Start the app ---
         initializeAppWithConfig();
     </script>
 
