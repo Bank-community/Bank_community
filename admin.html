@@ -47,6 +47,7 @@
 <body class="bg-gray-100 antialiased">
 
     <div class="relative min-h-screen md:flex">
+        <!-- Sidebar -->
         <aside id="sidebar" class="sidebar-mobile fixed inset-y-0 left-0 bg-white shadow-xl w-64 z-30 md:relative md:translate-x-0">
             <div class="p-6 flex items-center justify-between border-b">
                 <span class="text-2xl font-bold text-indigo-600">Admin Panel</span>
@@ -68,6 +69,7 @@
             <div class="p-4 border-t"><button id="logoutBtn" class="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600"><i class="ph-sign-out text-xl mr-3"></i><span>Logout</span></button></div>
         </aside>
 
+        <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto">
             <header class="flex justify-between items-center mb-6">
                 <h1 id="view-title" class="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
@@ -89,7 +91,9 @@
         </main>
     </div>
 
+    <!-- All Modals -->
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 scale-95">
             <h3 id="confirmModalTitle" class="text-lg font-bold text-gray-900">Confirmation</h3>
@@ -114,10 +118,10 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getDatabase, ref, onValue, get, update, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+        import { getDatabase, ref, onValue, get, update, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         let db, auth, IMGBB_API_KEY;
-        let allMembersData = {}, allTransactions = [], approvedMemberObjects = [], allGalleryData = {};
+        let allMembersData = {}, allTransactions = [], approvedMemberObjects = [], allGalleryData = {}, penaltyWalletData = {};
 
         async function startApp() {
             try {
@@ -144,6 +148,7 @@
                 const data = snapshot.val();
                 allMembersData = data.members || {};
                 allGalleryData = data.gallery || {};
+                penaltyWalletData = data.penaltyWallet || { incomes: {}, expenses: {} };
                 processAllData(allMembersData);
             });
         }
@@ -187,8 +192,6 @@
             }
         }
         
-        // --- RENDER FUNCTIONS FOR EACH VIEW ---
-
         function renderDashboard() {
             const container = document.getElementById('dashboard-view');
             
@@ -202,7 +205,10 @@
 
             const todaysSip = todaysTransactions.reduce((sum, t) => sum + parseFloat(t['SIP Payment'] || 0), 0);
             const todaysLoan = todaysTransactions.reduce((sum, t) => sum + parseFloat(t.Loan || 0), 0);
-            const totalPenalty = allTransactions.reduce((sum, t) => sum + parseFloat(t['Penalty amount'] || 0), 0);
+            
+            const totalPenaltyIncomes = Object.values(penaltyWalletData.incomes || {}).reduce((sum, income) => sum + income.amount, 0);
+            const totalPenaltyExpenses = Object.values(penaltyWalletData.expenses || {}).reduce((sum, expense) => sum + expense.amount, 0);
+            const totalPenalty = totalPenaltyIncomes - totalPenaltyExpenses;
 
             const currentDay = today.getDate();
             const isSipWindow = currentDay >= 1 && currentDay <= 10;
@@ -240,7 +246,7 @@
                     </div>
                     <div class="data-card p-6 flex flex-col justify-center items-center action-card" id="penalty-wallet-card">
                         <i class="ph-shield-warning text-4xl text-orange-500"></i>
-                        <h2 class="font-medium text-gray-600 mt-2">Penalty Wallet</h2>
+                        <h2 class="font-medium text-gray-600 mt-2">Bank Penalty Wallet</h2>
                         <p class="text-3xl font-bold text-orange-600 mt-1">₹${totalPenalty.toLocaleString('en-IN')}</p>
                         <p class="text-xs text-gray-400 mt-1">Click to view history</p>
                     </div>
@@ -361,6 +367,7 @@
                         <input type="text" id="current-balance" class="form-input w-full p-3 rounded-lg bg-gray-200" value="Select a member to see balance" readonly>
                     </div>
 
+                    <!-- Dynamic Fields -->
                     <div id="sip-fields">
                         <label for="sip-payment" class="block text-sm font-medium text-gray-700 mb-1">SIP Payment Amount</label>
                         <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg">
@@ -384,8 +391,9 @@
                         <input type="number" id="extra-balance-amount" placeholder="e.g., 1000" class="form-input w-full p-3 rounded-lg">
                     </div>
 
+                    <!-- Common Fields -->
                     <div>
-                        <label for="penalty-amount" class="block text-sm font-medium text-gray-700 mb-1">Penalty Amount (Optional)</label>
+                        <label for="penalty-amount" class="block text-sm font-medium text-gray-700 mb-1">Penalty Amount (Manual)</label>
                         <input type="number" id="penalty-amount" placeholder="e.g., 10" class="form-input w-full p-3 rounded-lg">
                     </div>
                     <div>
@@ -534,44 +542,79 @@
         
         function renderPenaltyHistoryModal() {
             const modal = document.getElementById('penaltyHistoryModal');
-            const penaltyTransactions = allTransactions.filter(tx => tx['Penalty amount'] && parseFloat(tx['Penalty amount']) > 0);
-            
+            const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
+            const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
+            const history = [...incomes, ...expenses].sort((a, b) => b.timestamp - a.timestamp);
+
             let content = `
                 <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
                     <div class="flex justify-between items-center p-4 border-b">
-                        <h3 class="text-lg font-bold text-gray-900">Penalty History</h3>
-                        <button class="close-modal-btn text-gray-500 hover:text-gray-800">&times;</button>
+                        <h3 class="text-lg font-bold text-gray-900">Bank Penalty Wallet History</h3>
+                        <button class="close-modal-btn text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                     </div>
-                    <div class="p-4 max-h-[70vh] overflow-y-auto">
+                    <div class="p-4 max-h-[60vh] overflow-y-auto">
             `;
 
-            if (penaltyTransactions.length === 0) {
+            if (history.length === 0) {
                 content += `<p class="text-center text-gray-500 py-8">No penalty records found.</p>`;
             } else {
                 content += `<ul class="space-y-3">`;
-                penaltyTransactions.forEach(tx => {
+                history.forEach(tx => {
+                    const isIncome = tx.type === 'income';
                     content += `
                         <li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
                             <div>
-                                <p class="font-semibold">${tx.Name}</p>
-                                <p class="text-xs text-gray-500">${new Date(tx.Date).toLocaleDateString('en-GB')}</p>
+                                <p class="font-semibold">${isIncome ? tx.from : tx.reason}</p>
+                                <p class="text-xs text-gray-500">${new Date(tx.timestamp).toLocaleString('en-GB')}</p>
                             </div>
-                            <p class="font-bold text-orange-600">₹${parseFloat(tx['Penalty amount']).toLocaleString('en-IN')}</p>
+                            <p class="font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</p>
                         </li>
                     `;
                 });
                 content += `</ul>`;
             }
 
-            content += `</div></div>`;
+            content += `</div><div class="p-4 border-t flex justify-end">
+                            <button id="burn-money-btn" class="btn-danger flex items-center gap-2 px-4 py-2 rounded-lg">
+                                <i class="ph-fire"></i> Burn Money
+                            </button>
+                        </div></div>`;
             modal.innerHTML = content;
+            openModal(modal);
+        }
+        
+        function renderBurnMoneyModal() {
+            const modal = document.getElementById('burnMoneyModal');
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md scale-95">
+                    <form id="burn-money-form">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-bold">Burn Money (Kharch)</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label for="burn-reason" class="block text-sm font-medium text-gray-700 mb-1">Reason (Karan)</label>
+                                <input type="text" id="burn-reason" class="form-input w-full p-2 rounded-lg" placeholder="e.g., Chai-Nashta" required>
+                            </div>
+                            <div>
+                                <label for="burn-amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (Rashi)</label>
+                                <input type="number" id="burn-amount" class="form-input w-full p-2 rounded-lg" placeholder="e.g., 100" required>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-danger px-4 py-2 text-sm font-medium rounded-md">Submit Expense</button>
+                        </div>
+                    </form>
+                </div>
+            `;
             openModal(modal);
         }
 
         // --- MODAL AND HELPER FUNCTIONS ---
 
         function openModal(modal) { modal.classList.remove('hidden', 'opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }
-        function closeModal(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
+        function closeModal(modal) { if(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); } }
         function showConfirmation(title, message) { return new Promise(resolve => { const modal = document.getElementById('confirmModal'); modal.querySelector('#confirmModalTitle').textContent = title; modal.querySelector('#confirmModalMessage').textContent = message; openModal(modal); const okBtn = modal.querySelector('#confirmOkBtn'); const cancelBtn = modal.querySelector('#confirmCancelBtn'); const cleanup = () => { closeModal(modal); okBtn.onclick = null; cancelBtn.onclick = null; }; okBtn.onclick = () => { cleanup(); resolve(true); }; cancelBtn.onclick = () => { cleanup(); resolve(false); }; }); }
         
         async function handleFormSubmission(e) {
@@ -591,6 +634,7 @@
             const memberName = approvedMemberObjects.find(m => m.id === memberId)?.name;
             const date = document.getElementById('entry-date').value;
             const file = document.getElementById('entry-document').files[0];
+            const entryType = document.getElementById('entry-type').value;
 
             let imageUrl = '';
             if (file) {
@@ -608,6 +652,18 @@
                     return;
                 }
             }
+            
+            let manualPenalty = parseFloat(document.getElementById('penalty-amount').value) || 0;
+            let autoPenalty = 0;
+
+            if (entryType === 'loan_payment') {
+                const returnAmount = parseFloat(document.getElementById('return-amount').value) || 0;
+                if (returnAmount > 0) {
+                    autoPenalty = returnAmount * 0.10; // 10% of return amount
+                }
+            }
+            
+            const totalPenalty = manualPenalty + autoPenalty;
 
             const transactionData = {
                 Date: new Date(date).toISOString(),
@@ -617,13 +673,25 @@
                 "Loan Payment": document.getElementById('loan-payment-amount').value || "",
                 "Return amount": document.getElementById('return-amount').value || "",
                 "Extra Balance": document.getElementById('extra-balance-amount').value || "",
-                "Penalty amount": document.getElementById('penalty-amount').value || "",
+                "Penalty amount": totalPenalty > 0 ? totalPenalty : "",
                 imageUrl: imageUrl
             };
 
             try {
                 const txRef = ref(db, `members/${memberId}/transactions`);
-                await push(txRef, transactionData);
+                const newTx = await push(txRef, transactionData);
+
+                if (totalPenalty > 0) {
+                    const penaltyIncomeRef = ref(db, 'penaltyWallet/incomes');
+                    await push(penaltyIncomeRef, {
+                        amount: totalPenalty,
+                        from: memberName,
+                        reason: autoPenalty > 0 ? "10% of Return" : "Manual Penalty",
+                        timestamp: serverTimestamp(),
+                        originalTxId: newTx.key
+                    });
+                }
+
                 alert('Transaction added successfully!');
                 e.target.reset();
                 document.getElementById('entry-type').dispatchEvent(new Event('change'));
@@ -716,9 +784,29 @@
             }
         });
         
-        document.body.addEventListener('submit', e => {
+        document.body.addEventListener('submit', async e => {
             if (e.target.id === 'data-entry-form') {
                 handleFormSubmission(e);
+            }
+            if (e.target.id === 'burn-money-form') {
+                e.preventDefault();
+                const reason = document.getElementById('burn-reason').value;
+                const amount = parseFloat(document.getElementById('burn-amount').value);
+                if (!reason || !amount || amount <= 0) {
+                    alert('Please provide a valid reason and amount.');
+                    return;
+                }
+                const confirmed = await showConfirmation('Confirm Expense', `Are you sure you want to burn ₹${amount} for "${reason}"?`);
+                if(confirmed) {
+                    const expenseRef = ref(db, 'penaltyWallet/expenses');
+                    await push(expenseRef, {
+                        amount: amount,
+                        reason: reason,
+                        timestamp: serverTimestamp()
+                    });
+                    alert('Expense recorded successfully.');
+                    closeModal(document.getElementById('burnMoneyModal'));
+                }
             }
         });
         
@@ -733,7 +821,17 @@
             if(editMemberBtn) alert('Edit member functionality to be implemented.');
 
             const deleteMemberBtn = e.target.closest('.delete-member-btn');
-            if(deleteMemberBtn) { /* ... same as before ... */ }
+            if(deleteMemberBtn) { 
+                const confirmed = await showConfirmation(`Delete ${deleteMemberBtn.dataset.name}?`, 'This will permanently delete the member and all their transactions. This action cannot be undone.');
+                if(confirmed) {
+                    try {
+                        await remove(ref(db, `members/${deleteMemberBtn.dataset.id}`));
+                        alert('Member deleted successfully.');
+                    } catch (err) {
+                        alert('Error deleting member: ' + err.message);
+                    }
+                }
+            }
 
             const galleryImg = e.target.closest('.gallery-image');
             if (galleryImg) {
@@ -759,6 +857,11 @@
             const penaltyCard = e.target.closest('#penalty-wallet-card');
             if (penaltyCard) {
                 renderPenaltyHistoryModal();
+            }
+
+            const burnMoneyBtn = e.target.closest('#burn-money-btn');
+            if (burnMoneyBtn) {
+                renderBurnMoneyModal();
             }
             
             const closeBtn = e.target.closest('.close-modal-btn');
