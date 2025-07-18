@@ -126,7 +126,6 @@
         .member-slider::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid #e0f2f7; }
         .member-slider::-webkit-scrollbar-thumb:hover { background-color: var(--primary-darker); }
         
-        /* --- MEMBER CARD UI UPDATES V2 --- */
         .member-card { 
             position: relative; 
             background-color: var(--card-bg); 
@@ -144,7 +143,6 @@
         }
         .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
         
-        /* NEW: Container for 1:1 aspect ratio */
         .member-photo-container {
             width: 100%;
             aspect-ratio: 1 / 1;
@@ -156,7 +154,7 @@
         .member-card img.member-photo { 
             width: 100%; 
             height: 100%;
-            object-fit: cover; /* Ensures image covers the square area without distortion */
+            object-fit: cover;
             display: block; 
             transition: transform 0.3s ease; 
         }
@@ -164,7 +162,7 @@
 
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
         .member-balance { background-color: var(--primary-color); color: white; padding: 6px 15px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
-        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 3; } /* z-index increased */
+        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 3; }
         
         .rank-icon { 
             position: absolute; 
@@ -172,7 +170,7 @@
             left: -10px; 
             width: 40px;
             height: 40px; 
-            z-index: 3; /* z-index increased */
+            z-index: 3;
             filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3));
             background: white;
             border-radius: 50%;
@@ -180,21 +178,19 @@
             box-shadow: 0 0 5px rgba(0,0,0,0.2);
         }
 
-        /* NEW: Styles for Dynamic Card Backgrounds */
         .card-has-bg {
             background-size: cover;
             background-position: center;
-            color: white; /* Change default text color for better contrast */
+            color: white;
         }
         .card-has-bg::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.4); /* Dark overlay for readability */
-            border-radius: 11px; /* Match parent's border-radius */
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 11px;
             z-index: 1;
         }
-        /* Ensure content is above the overlay */
         .card-has-bg .member-photo-container,
         .card-has-bg .member-name,
         .card-has-bg .member-balance,
@@ -209,6 +205,87 @@
         }
         .card-has-bg .member-balance {
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        /* --- NEW: Custom Cards Section Styles --- */
+        #customCardsSection {
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin-top: -20px; /* Pulls it closer to the members section */
+        }
+        .custom-cards-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Single column on mobile */
+            gap: 25px;
+            padding: 0 10px;
+        }
+        .custom-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .custom-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .custom-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+        .custom-card-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .custom-card-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--primary-darker);
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .custom-card-desc {
+            font-size: 1em;
+            color: var(--light-text);
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+        .custom-card-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .custom-card-btn:hover {
+            transform: scale(1.02);
+        }
+
+        @media (min-width: 768px) {
+            .custom-cards-container {
+                grid-template-columns: repeat(2, 1fr); /* Two columns on tablets */
+            }
+        }
+        @media (min-width: 992px) {
+            .custom-cards-container {
+                grid-template-columns: repeat(3, 1fr); /* Three columns on desktop */
+            }
         }
 
 
@@ -318,7 +395,21 @@
 </head>
 <body>
 
-<header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> <main class="content-wrapper"> <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides"> <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div> <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div> <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div> </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> </main> <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
+<header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> 
+<main class="content-wrapper">
+    <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> 
+    
+    <!-- NEW: DYNAMIC CUSTOM CARDS SECTION -->
+    <section id="customCardsSection" class="animate-on-scroll">
+        <div class="custom-cards-container" id="customCardsContainer">
+            <!-- Dynamic cards will be inserted here by JavaScript -->
+        </div>
+    </section>
+
+    <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> 
+    <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides"> <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div> <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div> <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div> </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> 
+</main>
+<footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
 
 <!-- NEW MODALS FOR FULL VIEW FEATURE -->
 <div id="passwordPromptModal" class="modal">
@@ -370,7 +461,7 @@
     async function initializeAndRunApp() {
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=3') // Version updated
+                navigator.serviceWorker.register('/sw.js?v=4') // Version updated
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -403,7 +494,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V3) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V4) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -412,8 +503,9 @@
         const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-        // --- Element Selectors (No changes needed here) ---
+        // --- Element Selectors ---
         const memberContainer = document.getElementById('memberContainer');
+        const customCardsContainer = document.getElementById('customCardsContainer'); // NEW
         const totalMembersValueElement = document.getElementById('totalMembersValue');
         const totalLoanValueElement = document.getElementById('totalLoanValue');
         const currentYearElement = document.getElementById('currentYear');
@@ -474,9 +566,10 @@
         let sipChartInstance = null;
         let deferredInstallPrompt = null;
         let currentMemberForFullView = null;
-        let cardBackgrounds = {}; // NEW: To store dynamic card background URLs
+        let cardBackgrounds = {};
+        let customCardsData = {}; // NEW
 
-        // --- PWA Installation Logic (No changes) ---
+        // --- PWA Installation Logic ---
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
@@ -505,7 +598,6 @@
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         };
 
-        // UPDATED: To fetch card backgrounds from admin settings
         function fetchAllDataFromFirebase() {
             if (!memberContainer) return;
             memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
@@ -518,10 +610,11 @@
                 allMembersData = data.members || {};
                 const penaltyIncomes = data.penaltyWallet ? data.penaltyWallet.incomes || {} : {};
                 
-                // NEW: Fetch card background URLs from admin node
                 cardBackgrounds = data.admin?.card_backgrounds || {};
+                customCardsData = data.admin?.custom_cards || {}; // NEW: Fetch custom cards data
 
                 processAndDisplayData(allMembersData, penaltyIncomes);
+                displayCustomCards(customCardsData); // NEW: Call function to display custom cards
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
                 if (memberContainer) {
@@ -530,7 +623,6 @@
             });
         }
 
-        // processAndDisplayData remains largely the same, just passes data down
         function processAndDisplayData(membersData, penaltyIncomes) {
             const processedMembers = {};
             let totalLoanDisbursed = 0;
@@ -604,7 +696,7 @@
             processTodaysTransactions(allTransactions);
             const monthlySipData = processMonthlySipData(allTransactions);
 
-            displayMembers(memberList); // Pass the fetched backgrounds
+            displayMembers(memberList);
             updateTotalBalanceDisplay(memberList);
             updateInfoCards(memberList.length, totalLoanDisbursed);
             startHeaderDisplayRotator();
@@ -612,7 +704,6 @@
             renderSipChart(monthlySipData);
         }
 
-        // UPDATED: To handle dynamic backgrounds
         function displayMembers(members) {
             if (!memberContainer) return;
             memberContainer.innerHTML = '';
@@ -666,10 +757,54 @@
                 card.onclick = () => showMemberProfileModal(member);
                 memberContainer.appendChild(card);
             });
-            observeElements(memberContainer.querySelectorAll('.animate-on-scroll'));
+            observeElements(document.querySelectorAll('.animate-on-scroll'));
+        }
+
+        // NEW: Function to display dynamically generated cards
+        function displayCustomCards(cards) {
+            if (!customCardsContainer) return;
+            customCardsContainer.innerHTML = ''; // Clear previous cards
+
+            // Firebase objects don't have a guaranteed order, so if order matters, consider adding an 'order' field.
+            for (const cardId in cards) {
+                const cardData = cards[cardId];
+                
+                const cardElement = document.createElement('div');
+                cardElement.className = 'custom-card';
+
+                cardElement.innerHTML = `
+                    <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || 'Card Image'}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    <div class="custom-card-content">
+                        <h3 class="custom-card-title">${cardData.title || 'Untitled Card'}</h3>
+                        <p class="custom-card-desc">${cardData.description || ''}</p>
+                        <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}">
+                            ${cardData.buttonText || 'Learn More'}
+                        </a>
+                    </div>
+                `;
+                customCardsContainer.appendChild(cardElement);
+            }
         }
         
-        // --- All other functions (showMemberProfileModal, showBalanceModal, etc.) remain the same ---
+        // UPDATED: Password check now redirects to view.html with memberId
+        function handlePasswordCheck() {
+            const enteredPassword = passwordInput.value;
+            if (!enteredPassword) {
+                alert('Please enter a password.');
+                return;
+            }
+            const correctPassword = allMembersData[currentMemberForFullView]?.password;
+            
+            if (enteredPassword === correctPassword) {
+                // Redirect to view.html with the member's ID as a URL parameter
+                window.location.href = `view.html?memberId=${currentMemberForFullView}`;
+            } else {
+                alert('Incorrect password. Please try again.');
+                passwordInput.value = ''; // Clear password field on failure
+            }
+        }
+
+        // --- All other functions (showMemberProfileModal, etc.) remain the same ---
         // --- They are included here for completeness ---
 
         function updateInfoCards(memberCount, totalLoan) {
@@ -887,8 +1022,6 @@
             }
         }
         
-        // This function already shows all transactions from the `todaysTransactions` array.
-        // No changes needed here as the logic is correct.
         function displayNotifications() {
             notificationList.innerHTML = '';
             if (todaysTransactions.length === 0) {
@@ -930,23 +1063,6 @@
             });
         }
         
-        function handlePasswordCheck() {
-            const enteredPassword = passwordInput.value;
-            if (!enteredPassword) {
-                alert('Please enter a password.');
-                return;
-            }
-            const correctPassword = allMembersData[currentMemberForFullView]?.password;
-            
-            if (enteredPassword === correctPassword) {
-                closeModal(passwordPromptModal);
-                showFullProfileViewModal(currentMemberForFullView);
-            } else {
-                alert('Incorrect password. Please try again.');
-            }
-            passwordInput.value = '';
-        }
-
         function showFullProfileViewModal(memberId) {
             const member = allMembersData[memberId];
             const processedMember = Object.values(allMembersData).find(m => m.id === memberId);
