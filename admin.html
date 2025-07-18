@@ -353,7 +353,7 @@
                     </div>
                     <div id="sip-fields">
                         <label for="sip-payment" class="block text-sm font-medium text-gray-700 mb-1">SIP Payment Amount</label>
-                        <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg">
+                        <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg" value="500">
                     </div>
                     <div id="loan-fields" class="hidden">
                          <label for="loan-amount" class="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
@@ -457,11 +457,16 @@
                 let type = 'Unknown';
                 let amountHtml = '';
                 let amountColor = 'text-gray-800';
+                const penaltyAmt = parseFloat(tx['Penalty amount'] || 0);
 
                 if (tx['SIP Payment']) {
                     type = 'SIP';
                     amountColor = 'text-green-600';
-                    amountHtml = `₹${parseFloat(tx['SIP Payment']).toLocaleString('en-IN')}`;
+                    const sipAmt = parseFloat(tx['SIP Payment']);
+                    amountHtml = `<div class="font-bold text-lg">₹${sipAmt.toLocaleString('en-IN')}</div>`;
+                    if (penaltyAmt > 0) {
+                        amountHtml += `<div class="text-xs text-gray-500 mt-1">Penalty: ₹${penaltyAmt.toLocaleString()}</div>`;
+                    }
                 } else if (tx['Loan']) {
                     type = 'Loan';
                     amountColor = 'text-red-600';
@@ -471,7 +476,6 @@
                     amountColor = 'text-blue-600';
                     const payment = parseFloat(tx['Loan Payment'] || 0);
                     const returnAmt = parseFloat(tx['Return amount'] || 0);
-                    const penaltyAmt = parseFloat(tx['Penalty amount'] || 0);
                     amountHtml = `<div class="font-bold text-lg">₹${payment.toLocaleString('en-IN')}</div>`;
                     if (returnAmt > 0 || penaltyAmt > 0) {
                         amountHtml += `<div class="text-xs text-gray-500 mt-1">`;
@@ -551,7 +555,7 @@
                         <li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
                             <div>
                                 <p class="font-semibold">${isIncome ? tx.from : tx.reason}</p>
-                                <p class="text-xs text-gray-500">${new Date(tx.timestamp).toLocaleString('en-GB')}</p>
+                                <p class="text-xs text-gray-500">${new Date(tx.timestamp).toLocaleString('en-GB')} - <span class="italic">${isIncome ? tx.reason : 'Expense'}</span></p>
                             </div>
                             <p class="font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</p>
                         </li>
@@ -773,12 +777,16 @@
             
             let manualPenalty = parseFloat(document.getElementById('penalty-amount').value) || 0;
             let autoPenalty = 0;
+            let penaltyReason = "Manual Penalty";
 
             if (entryType === 'loan_payment') {
                 const returnAmount = parseFloat(document.getElementById('return-amount').value) || 0;
                 if (returnAmount > 0) {
                     autoPenalty = returnAmount * 0.10;
+                    penaltyReason = "10% of Return";
                 }
+            } else if (entryType === 'sip' && manualPenalty > 0) {
+                penaltyReason = "Late SIP Fee";
             }
             
             const totalPenalty = manualPenalty + autoPenalty;
@@ -804,7 +812,7 @@
                     await push(penaltyIncomeRef, {
                         amount: totalPenalty,
                         from: memberName,
-                        reason: autoPenalty > 0 ? "10% of Return" : "Manual Penalty",
+                        reason: penaltyReason,
                         timestamp: serverTimestamp(),
                         originalTxId: newTx.key
                     });
@@ -883,10 +891,16 @@
         document.body.addEventListener('change', e => {
             if (e.target.id === 'entry-type') {
                 const type = e.target.value;
+                const sipInput = document.getElementById('sip-payment');
                 document.getElementById('sip-fields').classList.toggle('hidden', type !== 'sip');
                 document.getElementById('loan-fields').classList.toggle('hidden', type !== 'loan');
                 document.getElementById('loan-payment-fields').classList.toggle('hidden', type !== 'loan_payment');
                 document.getElementById('extra-payment-fields').classList.toggle('hidden', type !== 'extra_payment');
+                if (type === 'sip') {
+                    sipInput.value = '500';
+                } else {
+                    sipInput.value = '';
+                }
             }
             if (e.target.id === 'entry-name') {
                 const selectedMemberId = e.target.value;
