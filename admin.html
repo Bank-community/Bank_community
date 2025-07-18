@@ -63,7 +63,6 @@
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="gallery"><i class="ph-images text-xl mr-3"></i><span>Gallery</span></a>
-                <!-- NEW: Site Settings Menu Item -->
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="site-settings"><i class="ph-gear text-xl mr-3"></i><span>Site Settings</span></a>
                 <a href="registration.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span></a>
                 <a href="https://bankcommunity.sbs/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl mr-3"></i><span>Bank Site</span></a>
@@ -90,7 +89,6 @@
             <div id="data-entry-view" class="view"></div>
             <div id="data-explorer-view" class="view"></div>
             <div id="gallery-view" class="view"></div>
-            <!-- NEW: Site Settings View Container -->
             <div id="site-settings-view" class="view"></div>
         </main>
     </div>
@@ -101,8 +99,7 @@
     <div id="editTransactionModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
-    <!-- NEW: Quick Link Modal -->
-    <div id="quickLinkModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="customCardModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 scale-95">
             <h3 id="confirmModalTitle" class="text-lg font-bold text-gray-900">Confirmation</h3>
@@ -131,7 +128,7 @@
 
         let db, auth, IMGBB_API_KEY;
         let allMembersData = {}, allTransactions = [], approvedMemberObjects = [], allGalleryData = {}, penaltyWalletData = {};
-        let adminSettings = {}; // NEW: To hold all admin settings
+        let adminSettings = {};
 
         async function startApp() {
             try {
@@ -159,7 +156,7 @@
                 allMembersData = data.members || {};
                 allGalleryData = data.gallery || {};
                 penaltyWalletData = data.penaltyWallet || { incomes: {}, expenses: {} };
-                adminSettings = data.admin || {}; // NEW: Fetch all admin settings
+                adminSettings = data.admin || {};
                 processAllData(allMembersData);
             });
         }
@@ -231,22 +228,6 @@
                 })
                 .sort((a, b) => a.name.localeCompare(b.name));
 
-            // NEW: Render Quick Links
-            const quickLinks = adminSettings.quick_links || {};
-            const quickLinksHTML = Object.keys(quickLinks).length > 0
-                ? `<div class="bg-white rounded-xl shadow-md p-6 mt-6">
-                       <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Links</h3>
-                       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                           ${Object.entries(quickLinks).map(([key, link]) => `
-                               <a href="${link.url}" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-lg text-white text-center font-semibold shadow-md hover:scale-105 transition-transform" style="background-color: ${link.color || '#4f46e5'}">
-                                   <i class="ph-arrow-square-out text-2xl mb-1"></i>
-                                   <span>${link.name}</span>
-                               </a>
-                           `).join('')}
-                       </div>
-                   </div>`
-                : '';
-
             container.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                     <div class="lg:col-span-2 live-feed-display rounded-xl shadow-md p-4 h-64 flex flex-col">
@@ -271,8 +252,7 @@
                         <p class="text-xs text-gray-400 mt-1">Click to view history</p>
                     </div>
                 </div>
-                ${quickLinksHTML}
-                <div class="bg-white rounded-xl shadow-md p-6 my-6">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
                      <h3 class="text-lg font-semibold text-gray-800 mb-3">Current Month SIP Status ${isSipWindow ? '<span class="text-sm font-normal text-red-500">(Payment Window Active)</span>' : ''}</h3>
                      <div class="overflow-y-auto h-48">
                         <ul id="sip-status-list" class="space-y-3">${sipStatusList.map(s => `<li class="flex justify-between items-center text-sm"><span>${s.name}</span><span class="font-bold ${s.hasPaid ? 'paid' : 'not-paid'}">${s.hasPaid ? 'PAID' : 'NOT PAID'}</span></li>`).join('')}</ul>
@@ -468,59 +448,59 @@
             }
         }
 
-        // NEW: Render function for Site Settings page
+        // UPDATED: Render function for Site Settings page
         function renderSiteSettings() {
             const container = document.getElementById('site-settings-view');
-            const backgrounds = adminSettings.card_backgrounds || {};
-            const quickLinks = adminSettings.quick_links || {};
+            const colors = adminSettings.card_colors || {};
+            const customCards = adminSettings.custom_cards || {};
 
             container.innerHTML = `
                 <div class="space-y-8">
-                    <!-- Card Backgrounds Section -->
+                    <!-- Card Colors Section -->
                     <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Card Backgrounds</h3>
-                        <form id="card-backgrounds-form" class="space-y-4">
-                            <div>
-                                <label for="gold-bg" class="block text-sm font-medium text-gray-700">Gold Card Background URL</label>
-                                <input type="url" id="gold-bg" class="form-input w-full p-2 rounded-lg mt-1" placeholder="https://..." value="${backgrounds.gold || ''}">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Member Card Colors</h3>
+                        <form id="card-colors-form" class="space-y-4">
+                            <div class="flex items-center gap-4">
+                                <label for="gold-color" class="block text-sm font-medium text-gray-700">Gold</label>
+                                <input type="color" id="gold-color" class="form-input h-10 w-16 p-1 rounded-lg" value="${colors.gold || '#FFD700'}">
                             </div>
-                            <div>
-                                <label for="silver-bg" class="block text-sm font-medium text-gray-700">Silver Card Background URL</label>
-                                <input type="url" id="silver-bg" class="form-input w-full p-2 rounded-lg mt-1" placeholder="https://..." value="${backgrounds.silver || ''}">
+                             <div class="flex items-center gap-4">
+                                <label for="silver-color" class="block text-sm font-medium text-gray-700">Silver</label>
+                                <input type="color" id="silver-color" class="form-input h-10 w-16 p-1 rounded-lg" value="${colors.silver || '#C0C0C0'}">
                             </div>
-                            <div>
-                                <label for="bronze-bg" class="block text-sm font-medium text-gray-700">Bronze Card Background URL</label>
-                                <input type="url" id="bronze-bg" class="form-input w-full p-2 rounded-lg mt-1" placeholder="https://..." value="${backgrounds.bronze || ''}">
+                             <div class="flex items-center gap-4">
+                                <label for="bronze-color" class="block text-sm font-medium text-gray-700">Bronze</label>
+                                <input type="color" id="bronze-color" class="form-input h-10 w-16 p-1 rounded-lg" value="${colors.bronze || '#CD7F32'}">
                             </div>
                             <div class="flex justify-end">
-                                <button type="submit" class="btn-primary text-white font-bold py-2 px-5 rounded-lg">Save Backgrounds</button>
+                                <button type="submit" class="btn-primary text-white font-bold py-2 px-5 rounded-lg">Save Colors</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Quick Links Section -->
+                    <!-- Custom Cards Section -->
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-gray-800">Manage Quick Links</h3>
-                            <button id="add-new-link-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
-                                <i class="ph-plus"></i> Add New Link
+                            <h3 class="text-xl font-bold text-gray-800">Manage Custom Cards</h3>
+                            <button id="add-new-card-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
+                                <i class="ph-plus"></i> Add New Card
                             </button>
                         </div>
-                        <div id="quick-links-list" class="space-y-3">
-                           ${Object.keys(quickLinks).length === 0 
-                             ? '<p class="text-center text-gray-500 py-4">No quick links added yet.</p>' 
-                             : Object.entries(quickLinks).map(([key, link]) => `
+                        <div id="custom-cards-list" class="space-y-3">
+                           ${Object.keys(customCards).length === 0 
+                             ? '<p class="text-center text-gray-500 py-4">No custom cards added yet.</p>' 
+                             : Object.entries(customCards).map(([key, card]) => `
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-4 h-4 rounded-full" style="background-color: ${link.color || '#ccc'};"></div>
+                                    <div class="flex items-center gap-4">
+                                        <img src="${card.imageUrl}" class="w-16 h-10 object-cover rounded-md">
                                         <div>
-                                            <p class="font-semibold">${link.name}</p>
-                                            <p class="text-xs text-gray-500">${link.url}</p>
+                                            <p class="font-semibold">${card.title}</p>
+                                            <p class="text-xs text-gray-500">${card.description}</p>
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <button class="edit-link-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
-                                        <button class="delete-link-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button>
+                                        <button class="edit-card-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
+                                        <button class="delete-card-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button>
                                     </div>
                                 </div>
                              `).join('')
@@ -531,35 +511,47 @@
             `;
         }
 
-        // NEW: Render function for Quick Link Modal (Add/Edit)
-        function renderQuickLinkModal(key = null) {
-            const modal = document.getElementById('quickLinkModal');
+        // NEW: Render function for Custom Card Modal (Add/Edit)
+        function renderCustomCardModal(key = null) {
+            const modal = document.getElementById('customCardModal');
             const isEditing = key !== null;
-            const linkData = isEditing ? adminSettings.quick_links[key] : {};
+            const cardData = isEditing ? adminSettings.custom_cards[key] : {};
             
             modal.innerHTML = `
-                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md scale-95">
-                    <form id="quick-link-form" data-key="${isEditing ? key : ''}">
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
+                    <form id="custom-card-form" data-key="${isEditing ? key : ''}">
                         <div class="p-4 border-b">
-                            <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Quick Link</h3>
+                            <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Custom Card</h3>
                         </div>
-                        <div class="p-6 space-y-4">
+                        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                             <div>
-                                <label for="link-name" class="block text-sm font-medium text-gray-700 mb-1">Button Name</label>
-                                <input type="text" id="link-name" class="form-input w-full p-2 rounded-lg" placeholder="e.g., Pay EMI" value="${linkData.name || ''}" required>
+                                <label for="card-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <input type="text" id="card-title" class="form-input w-full p-2 rounded-lg" value="${cardData.title || ''}" required>
                             </div>
                             <div>
-                                <label for="link-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
-                                <input type="url" id="link-url" class="form-input w-full p-2 rounded-lg" placeholder="https://..." value="${linkData.url || ''}" required>
+                                <label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}">
                             </div>
                             <div>
-                                <label for="link-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
-                                <input type="color" id="link-color" class="form-input w-full p-1 h-10 rounded-lg" value="${linkData.color || '#4f46e5'}">
+                                <label for="card-img" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                                <input type="url" id="card-img" class="form-input w-full p-2 rounded-lg" value="${cardData.imageUrl || ''}" required>
+                            </div>
+                             <div>
+                                <label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                                <input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required>
+                            </div>
+                            <div>
+                                <label for="card-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
+                                <input type="url" id="card-btn-url" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonLink || ''}" required>
+                            </div>
+                            <div>
+                                <label for="card-btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
+                                <input type="color" id="card-btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${cardData.buttonColor || '#4f46e5'}">
                             </div>
                         </div>
                         <div class="p-4 bg-gray-50 flex justify-end gap-3">
                             <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Link</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Card</button>
                         </div>
                     </form>
                 </div>
@@ -986,7 +978,7 @@
                     else if (viewId === 'data-entry') renderDataEntryForm();
                     else if (viewId === 'data-explorer') renderDataExplorer();
                     else if (viewId === 'gallery') renderGallery(allGalleryData);
-                    else if (viewId === 'site-settings') renderSiteSettings(); // NEW
+                    else if (viewId === 'site-settings') renderSiteSettings();
                 }
             });
             if (document.getElementById('sidebar').classList.contains('open')) {
@@ -1098,40 +1090,40 @@
                     alert('Failed to update member: ' + err.message);
                 }
             }
-            // NEW: Handle site settings forms
-            if (e.target.id === 'card-backgrounds-form') {
+            if (e.target.id === 'card-colors-form') {
                 e.preventDefault();
-                const backgrounds = {
-                    gold: document.getElementById('gold-bg').value,
-                    silver: document.getElementById('silver-bg').value,
-                    bronze: document.getElementById('bronze-bg').value,
+                const colors = {
+                    gold: document.getElementById('gold-color').value,
+                    silver: document.getElementById('silver-color').value,
+                    bronze: document.getElementById('bronze-color').value,
                 };
                 try {
-                    await set(ref(db, 'admin/card_backgrounds'), backgrounds);
-                    alert('Card backgrounds updated successfully!');
+                    await set(ref(db, 'admin/card_colors'), colors);
+                    alert('Card colors updated successfully!');
                 } catch (err) {
-                    alert('Error saving backgrounds: ' + err.message);
+                    alert('Error saving colors: ' + err.message);
                 }
             }
-            if (e.target.id === 'quick-link-form') {
+            if (e.target.id === 'custom-card-form') {
                 e.preventDefault();
                 const form = e.target;
                 const key = form.dataset.key;
-                const linkData = {
-                    name: document.getElementById('link-name').value,
-                    url: document.getElementById('link-url').value,
-                    color: document.getElementById('link-color').value,
+                const cardData = {
+                    title: document.getElementById('card-title').value,
+                    description: document.getElementById('card-desc').value,
+                    imageUrl: document.getElementById('card-img').value,
+                    buttonText: document.getElementById('card-btn-text').value,
+                    buttonLink: document.getElementById('card-btn-url').value,
+                    buttonColor: document.getElementById('card-btn-color').value,
                 };
                 
-                const path = key ? `admin/quick_links/${key}` : push(ref(db, 'admin/quick_links')).key;
-                const dbRef = ref(db, `admin/quick_links/${path}`);
-
+                const dbRef = key ? ref(db, `admin/custom_cards/${key}`) : push(ref(db, 'admin/custom_cards'));
                 try {
-                    await set(dbRef, linkData);
-                    alert(`Quick link ${key ? 'updated' : 'added'} successfully!`);
-                    closeModal(document.getElementById('quickLinkModal'));
+                    await set(dbRef, cardData);
+                    alert(`Custom card ${key ? 'updated' : 'added'} successfully!`);
+                    closeModal(document.getElementById('customCardModal'));
                 } catch (err) {
-                    alert('Error saving quick link: ' + err.message);
+                    alert('Error saving custom card: ' + err.message);
                 }
             }
         });
@@ -1284,28 +1276,27 @@
                 closeModal(closeBtn.closest('.modal-overlay'));
             }
 
-            // NEW: Event handlers for Site Settings
-            const addNewLinkBtn = e.target.closest('#add-new-link-btn');
-            if(addNewLinkBtn) {
-                renderQuickLinkModal();
+            const addNewCardBtn = e.target.closest('#add-new-card-btn');
+            if(addNewCardBtn) {
+                renderCustomCardModal();
             }
 
-            const editLinkBtn = e.target.closest('.edit-link-btn');
-            if(editLinkBtn) {
-                renderQuickLinkModal(editLinkBtn.dataset.key);
+            const editCardBtn = e.target.closest('.edit-card-btn');
+            if(editCardBtn) {
+                renderCustomCardModal(editCardBtn.dataset.key);
             }
 
-            const deleteLinkBtn = e.target.closest('.delete-link-btn');
-            if(deleteLinkBtn) {
-                const key = deleteLinkBtn.dataset.key;
-                const linkName = adminSettings.quick_links[key]?.name || 'this link';
-                const confirmed = await showConfirmation('Delete Quick Link?', `Are you sure you want to delete "${linkName}"?`);
+            const deleteCardBtn = e.target.closest('.delete-card-btn');
+            if(deleteCardBtn) {
+                const key = deleteCardBtn.dataset.key;
+                const cardTitle = adminSettings.custom_cards[key]?.title || 'this card';
+                const confirmed = await showConfirmation('Delete Custom Card?', `Are you sure you want to delete "${cardTitle}"?`);
                 if (confirmed) {
                     try {
-                        await remove(ref(db, `admin/quick_links/${key}`));
-                        alert('Link deleted successfully.');
+                        await remove(ref(db, `admin/custom_cards/${key}`));
+                        alert('Card deleted successfully.');
                     } catch (err) {
-                        alert('Error deleting link: ' + err.message);
+                        alert('Error deleting card: ' + err.message);
                     }
                 }
             }
