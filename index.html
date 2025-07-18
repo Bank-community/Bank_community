@@ -303,7 +303,7 @@
 
 
 <script>
-    // ##################################################################
+// ##################################################################
 // ## SECURE FIREBASE INITIALIZATION & AUTHENTICATION ##
 // ##################################################################
 async function initializeAndRunApp() {
@@ -407,7 +407,8 @@ function runMainApp(database) {
     let allMembersData = {}; 
     let processedMemberList = []; 
     let netCommunityBalance = 0;
-    let netReturnAmount = 0; // This will store the GROSS return amount
+    let netReturnAmount = 0;
+    let totalPenaltyAmount = 0;
     let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
     let todaysTransactions = [];
     let sipChartInstance = null;
@@ -427,13 +428,14 @@ function runMainApp(database) {
         if (!memberContainer) return;
         memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
         
-        database.ref('members').once('value', (snapshot) => {
-            const membersData = snapshot.val();
-            if (!membersData) {
+        database.ref().once('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data || !data.members) {
                 throw new Error("Data could not be read.");
             }
-            allMembersData = membersData; 
-            processAndDisplayData(allMembersData);
+            allMembersData = data.members; 
+            const penaltyIncomes = data.penaltyWallet ? Object.values(data.penaltyWallet.incomes || {}) : [];
+            processAndDisplayData(allMembersData, penaltyIncomes);
         }, (error) => {
             console.error('Firebase Read Failed:', error);
             if (memberContainer) {
@@ -442,17 +444,19 @@ function runMainApp(database) {
         });
     }
 
-    function processAndDisplayData(membersData) {
+    function processAndDisplayData(membersData, penaltyIncomes) {
         const processedMembers = {};
         let totalLoanDisbursed = 0;
         let totalReturn = 0;
         let allTransactions = [];
 
+        totalPenaltyAmount = penaltyIncomes.reduce((sum, income) => sum + income.amount, 0);
+
         for (const memberId in membersData) {
             const member = membersData[memberId];
             if (member.status !== 'Approved' || !member.fullName) continue;
 
-            let balance = 0, loanCount = 0, memberReturn = 0, extraBalance = 0;
+            let balance = 0, loanCount = 0, memberReturn = 0, extraBalance = 0, memberPenalty = 0;
             let memberTransactions = [];
 
             if (member.transactions) {
@@ -470,6 +474,8 @@ function runMainApp(database) {
                 totalLoanDisbursed += totalLoan;
                 totalReturn += memberReturn;
 
+                memberPenalty = penaltyIncomes.filter(p => p.from === member.fullName).reduce((sum, p) => sum + p.amount, 0);
+
                 memberTransactions.forEach(tx => {
                     allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: new Date(tx.Date) });
                 });
@@ -484,7 +490,7 @@ function runMainApp(database) {
 
             processedMembers[memberId] = {
                 id: memberId, name: member.fullName, balance: balance, totalReturn: memberReturn,
-                loanCount: loanCount, extraBalance: extraBalance,
+                totalPenalty: memberPenalty, loanCount: loanCount, extraBalance: extraBalance,
                 joiningDate: member.joiningDate,
                 displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
                 isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
@@ -492,7 +498,7 @@ function runMainApp(database) {
             };
         }
         
-        netReturnAmount = totalReturn; // Store the gross total return
+        netReturnAmount = totalReturn;
         processedMemberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
         
         adData.topBalanceMember = processedMemberList.length > 0 ? processedMemberList[0] : null;
@@ -565,14 +571,9 @@ function runMainApp(database) {
         document.body.style.overflow = 'hidden';
     }
 
-    /**
-     * LOGIC UPDATED HERE
-     * This function now calculates the net return by deducting 10% from the gross return amount.
-     */
     function showBalanceModal() {
         if (!balanceModalElement) return;
-
-        // Calculate 10% deduction from the community's total return amount.
+        // LOGIC UPDATED: Calculate net return by deducting 10% from the gross return amount.
         const returnDeduction = netReturnAmount * 0.10;
         const netReturnAfterDeduction = netReturnAmount - returnDeduction;
         
@@ -581,13 +582,17 @@ function runMainApp(database) {
         balanceModalElement.classList.add('show');
         document.body.style.overflow = 'hidden';
 
-        // Animate and display the updated values
         animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
         animateValue(returnBalanceElement, 0, netReturnAfterDeduction, 1200);
         animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
     }
 
-    function handlePasswordCheck() {
+    /**
+     * LOGIC UPDATED HERE: This function now prevents the default browser action (like a form submission)
+     * which stops the page from reloading/redirecting.
+     */
+    function handlePasswordCheck(event) {
+        event.preventDefault(); // This is the key fix to prevent redirection
         const enteredPassword = passwordInput.value;
         if (!enteredPassword) { alert('Please enter a password.'); return; }
         
@@ -603,10 +608,6 @@ function runMainApp(database) {
         passwordInput.value = '';
     }
 
-    /**
-     * LOGIC UPDATED HERE
-     * This function now also shows the 10% deduction for an individual member.
-     */
     function showFullProfileViewModal(memberId) {
         const member = allMembersData[memberId];
         const processedMember = processedMemberList.find(m => m.id === memberId);
@@ -618,9 +619,10 @@ function runMainApp(database) {
         document.getElementById('fullProfileAadhaar').textContent = member.aadhaar || 'N/A';
         document.getElementById('fullProfileAddress').textContent = member.address || 'N/A';
         
+        // LOGIC UPDATED: Shows deduction clearly for the individual member.
         const returnDetailsEl = document.getElementById('fullProfileReturnDetails');
         const memberTotalReturn = processedMember.totalReturn;
-        const deduction = memberTotalReturn * 0.10; // Calculate 10% deduction
+        const deduction = memberTotalReturn * 0.10;
         const netReturnForMember = memberTotalReturn - deduction;
 
         returnDetailsEl.innerHTML = `
@@ -646,8 +648,7 @@ function runMainApp(database) {
 
         fullProfileViewModal.classList.add('show');
     }
-
-    // --- All other helper functions remain the same ---
+    
     function setupEventListeners() {
         if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
         if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
@@ -673,8 +674,11 @@ function runMainApp(database) {
             setTimeout(() => passwordInput.focus(), 100);
         });
         if (closePasswordModal) closePasswordModal.addEventListener('click', () => closeModal(passwordPromptModal));
-        if (submitPasswordBtn) submitPasswordBtn.addEventListener('click', handlePasswordCheck);
-        if (passwordInput) passwordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePasswordCheck(); });
+        
+        // LOGIC UPDATED: Pass the 'event' object to the handler.
+        if (submitPasswordBtn) submitPasswordBtn.addEventListener('click', (event) => handlePasswordCheck(event));
+        if (passwordInput) passwordInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') handlePasswordCheck(event); });
+        
         if (closeFullProfileModal) closeFullProfileModal.addEventListener('click', () => closeModal(fullProfileViewModal));
 
         [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal, passwordPromptModal, fullProfileViewModal].forEach(modal => { 
@@ -690,18 +694,20 @@ function runMainApp(database) {
             closeModal(fullProfileViewModal);
         } });
     }
-    function showSipStatusModal() { /* ... same as before ... */ }
+    
+    // --- Other functions are unchanged ---
+    function showSipStatusModal() { /* ... */ }
     function closeModal(modalElement) { if (modalElement) modalElement.classList.remove('show'); document.body.style.overflow = ''; }
-    function showFullImage(imageUrl, altText) { /* ... same as before ... */ }
-    function animateValue(element, start, end, duration) { /* ... same as before ... */ }
-    function observeElements(elements) { /* ... same as before ... */ }
-    function startHeaderDisplayRotator() { /* ... same as before ... */ }
-    function initializeLetterSlider() { /* ... same as before ... */ }
-    function buildInfoSlider() { /* ... same as before ... */ }
-    function processMonthlySipData(transactions) { /* ... same as before ... */ return {labels:[], data:[]}; }
-    function renderSipChart({ labels, data }) { /* ... same as before ... */ }
-    function processTodaysTransactions(transactions) { /* ... same as before ... */ }
-    function displayNotifications() { /* ... same as before ... */ }
+    function showFullImage(imageUrl, altText) { /* ... */ }
+    function animateValue(element, start, end, duration) { /* ... */ }
+    function observeElements(elements) { /* ... */ }
+    function startHeaderDisplayRotator() { /* ... */ }
+    function initializeLetterSlider() { /* ... */ }
+    function buildInfoSlider() { /* ... */ }
+    function processMonthlySipData(transactions) { return {labels:[], data:[]}; /* ... */ }
+    function renderSipChart({ labels, data }) { /* ... */ }
+    function processTodaysTransactions(transactions) { /* ... */ }
+    function displayNotifications() { /* ... */ }
 
     // --- Initial Calls ---
     feather.replace();
@@ -713,6 +719,7 @@ function runMainApp(database) {
 }
 
 document.addEventListener('DOMContentLoaded', initializeAndRunApp);
+
 
 
 </script>
