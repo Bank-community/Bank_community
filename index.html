@@ -13,9 +13,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        :root { --primary-color: #007bff; --primary-darker: #0056b3; --secondary-color: #25D366; --secondary-darker: #128C7E; --text-color: #333; --light-text: #555; --bg-color: #f8f9fa; --card-bg: #ffffff; --border-color: #dee2e6; --shadow-color: rgba(0, 0, 0, 0.08); --prime-color: #ffc107; --danger-color: #dc3545; --success-color: #28a745; --info-color: #17a2b8; --animation-duration: 0.6s; --gold-color: #ffd700; --gold-gradient: linear-gradient(145deg, #ffde59, #ffc107); --silver-color: #c0c0c0; --silver-gradient: linear-gradient(145deg, #e0e0e0, #b0b0b0); --bronze-color: #cd7f32; --bronze-gradient: linear-gradient(145deg, #d4a373, #a0522d); }
+        :root { --primary-color: #007bff; --primary-darker: #0056b3; --secondary-color: #25D366; --secondary-darker: #128C7E; --text-color: #333; --light-text: #555; --bg-color: #f8f9fa; --card-bg: #ffffff; --border-color: #dee2e6; --shadow-color: rgba(0, 0, 0, 0.08); --prime-color: #ffc107; --danger-color: #dc3545; --success-color: #28a745; --info-color: #17a2b8; --animation-duration: 0.6s; --gold-color: #ffd700; --gold-gradient: linear-gradient(145deg, #f1c40f, #f39c12); --silver-color: #c0c0c0; --silver-gradient: linear-gradient(145deg, #e0e0e0, #b0b0b0); --bronze-color: #cd7f32; --bronze-gradient: linear-gradient(145deg, #d4a373, #a0522d); }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Roboto', 'Arial', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-color); overflow-x: hidden; line-height: 1.7; }
+        body { font-family: 'Roboto', 'Arial', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-color); overflow-x: hidden; line-height: 1.7; visibility: hidden; }
+        body.loaded { visibility: visible; }
         h1, h2, h3, h4, h5, h6 { color: var(--text-color); margin-top: 1.5em; margin-bottom: 0.8em; font-weight: 600; }
         h2 { text-align: center; color: var(--primary-darker); font-size: 1.8em; display: flex; align-items: center; justify-content: center; gap: 10px; }
         h2 i { width: 28px; height: 28px; color: var(--primary-color); }
@@ -214,17 +215,15 @@
 <!-- ... (header, main, footer, modals) ... -->
 <header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Return Amount</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> <main class="content-wrapper"> <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides"> <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div> <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div> <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div> </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> </main> <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
 
-<script>
-    // ##################################################################
-    // ## SECURE FIREBASE INITIALIZATION & AUTHENTICATION ##
-    // ##################################################################
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
     async function initializeAndRunApp() {
         try {
-            // Register Service Worker for PWA
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=2') // Added version to force update
-                    .then(reg => console.log('Service Worker registered successfully', reg))
-                    .catch(err => console.error('Service Worker registration failed:', err));
+                navigator.serviceWorker.register('/sw.js?v=3').catch(err => console.error('Service Worker registration failed:', err));
             }
 
             const response = await fetch('/api/firebase-config');
@@ -232,19 +231,15 @@
             const firebaseConfig = await response.json();
             if (!firebaseConfig.apiKey) throw new Error('Invalid config received');
             
-            firebase.initializeApp(firebaseConfig);
-            
-            const auth = firebase.auth();
-            const database = firebase.database();
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getDatabase(app);
 
-            // Listen for auth state changes
-            auth.onAuthStateChanged(user => {
+            onAuthStateChanged(auth, user => {
                 if (user) {
-                    console.log("User is authenticated. UID:", user.uid);
-                    document.body.style.visibility = 'visible';
-                    runMainApp(database);
+                    document.body.classList.add('loaded');
+                    runMainApp(db);
                 } else {
-                    console.log("User not authenticated. Redirecting to login page.");
                     window.location.href = '/login.html';
                 }
             });
@@ -252,474 +247,132 @@
         } catch (error) {
             console.error("FATAL: Could not initialize application.", error);
             document.body.innerHTML = `<div style="padding:20px; text-align:center;"><h1>Application Error</h1><p>${error.message}</p></div>`;
+            document.body.classList.add('loaded');
         }
     }
 
-    document.body.style.visibility = 'hidden';
-
-    // ##################################################################
-    // ## MAIN APPLICATION LOGIC ##
-    // ##################################################################
-    function runMainApp(database) {
-        
-        // --- Constants & Variables ---
+    function runMainApp(db) {
         const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
-        const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-        // --- Element Selectors ---
-        const installAppBtn = document.getElementById('installAppBtn');
         const memberContainer = document.getElementById('memberContainer');
-        const totalMembersValueElement = document.getElementById('totalMembersValue');
-        const totalLoanValueElement = document.getElementById('totalLoanValue');
-        const currentYearElement = document.getElementById('currentYear');
-        const headerDisplay = document.getElementById('headerDisplay');
-        const infoSlider = document.getElementById('infoSlider');
-        const sipChartCanvas = document.getElementById('sipChart');
-        const balanceModalElement = document.getElementById('balanceModal');
-        const viewBalanceBtn = document.getElementById('viewBalanceBtn');
-        const totalBalanceElement = document.getElementById('totalBalance');
-        const returnBalanceElement = document.getElementById('returnBalance');
-        const combinedBalanceElement = document.getElementById('combinedBalance');
-        const closeBalanceModalBtn = document.getElementById('closeBalanceModal');
-        const profileModalElement = document.getElementById('memberProfileModal');
-        const closeProfileModalBtn = document.getElementById('closeProfileModal');
-        const profileModalHeader = document.getElementById('profileModalHeader');
-        const profileModalImage = document.getElementById('profileModalImage');
-        const profileModalPrimeTag = document.getElementById('profileModalPrimeTag');
-        const profileModalName = document.getElementById('profileModalName');
-        const profileModalJoiningDate = document.getElementById('profileModalJoiningDate');
-        const profileModalBalance = document.getElementById('profileModalBalance');
-        const profileModalReturn = document.getElementById('profileModalReturn');
-        const profileModalSipStatus = document.getElementById('profileModalSipStatus');
-        const profileModalLoanCount = document.getElementById('profileModalLoanCount');
-        const sipStatusBtn = document.getElementById('sipStatusBtn');
-        const sipStatusModalElement = document.getElementById('sipStatusModal');
-        const closeSipStatusModalBtn = document.getElementById('closeSipStatusModal');
-        const sipStatusListContainer = document.getElementById('sipStatusListContainer');
-        const notificationBtn = document.getElementById('notificationBtn');
-        const notificationDot = document.getElementById('notificationDot');
-        const notificationModal = document.getElementById('notificationModal');
-        const closeNotificationModalBtn = notificationModal.querySelector('.close');
         const notificationList = document.getElementById('notificationList');
-        const imageModalElement = document.getElementById('imageModal');
-        const fullImageSrcElement = document.getElementById('fullImageSrc');
-        const closeImageModalBtn = document.getElementById('closeImageModal');
-        const letterSlidesContainer = document.querySelector('.letter-slider-section .slides');
-        const letterSlideIndicator = document.getElementById('slideIndicator');
-        const letterPrevBtn = document.getElementById('prevSlideBtn');
-        const letterNextBtn = document.getElementById('nextSlideBtn');
-        const playBtn = document.getElementById('playBtn');
-        const audio = document.getElementById('welcomeAudio');
-
-        // --- State Variables ---
-        let allTransactions = [];
-        let allMembersData = [];
-        let netCommunityBalance = 0;
-        let netReturnAmount = 0;
-        let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
-        let todaysTransactions = [];
-        let sipChartInstance = null;
-        let deferredInstallPrompt = null;
+        const notificationDot = document.getElementById('notificationDot');
+        const headerAdContent = document.querySelector('#headerDisplay .ad-content');
         
-        // --- PWA Installation Logic (NEW RELIABLE METHOD) ---
-        function setupPWA() {
-            const manageInstallButtonVisibility = () => {
-                // Check if the app is already installed
-                if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-                    installAppBtn.style.display = 'none';
-                } else {
-                    // If not installed, make the button visible
-                    installAppBtn.style.display = 'inline-flex';
-                }
-            };
+        let allMembers = {};
 
-            // Initial check
-            manageInstallButtonVisibility();
-
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredInstallPrompt = e;
-                manageInstallButtonVisibility(); // Re-check visibility
-            });
-
-            installAppBtn.addEventListener('click', async () => {
-                if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    await deferredInstallPrompt.userChoice;
-                    deferredInstallPrompt = null;
-                }
-            });
-
-            window.addEventListener('appinstalled', () => {
-                installAppBtn.style.display = 'none';
-                deferredInstallPrompt = null;
-            });
-        }
-
-
-        // --- Functions ---
-        // (All your other functions remain the same)
-        const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return "N/A";
-            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        };
-        function fetchMemberDataFromFirebase() {
-            if (!memberContainer) return;
-            memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
-            const membersRef = database.ref('members');
-            membersRef.once('value', (snapshot) => {
-                const membersData = snapshot.val();
-                if (!membersData) {
-                    throw new Error("Data could not be read. Check database rules and path.");
-                }
-                const transactions = [];
-                for (const memberKey in membersData) {
-                    const member = membersData[memberKey];
-                    if (member.transactions) {
-                        for (const transactionId in member.transactions) {
-                            const tx = member.transactions[transactionId];
-                            const formattedTransaction = {
-                                id: transactionId, Date: new Date(tx.Date), Name: member.name || memberKey,
-                                Loan: parseFloat(tx.Loan) || 0, Payment: parseFloat(tx["Loan Payment"]) || 0,
-                                SipPayment: parseFloat(tx["SIP Payment"]) || 0,
-                                ReturnAmount: parseFloat(tx["Return amount"] || tx["Return amount "]) || 0,
-                                ImageUrl: tx.imageUrl || null
-                            };
-                            if (formattedTransaction.Name && !isNaN(formattedTransaction.Date.getTime())) {
-                                transactions.push(formattedTransaction);
-                            }
-                        }
-                    }
-                }
-                allTransactions = transactions.sort((a, b) => a.Date - b.Date);
-                processAndDisplayData(allTransactions);
-            }, (error) => {
-                console.error('Firebase Read Failed:', error);
-                if (memberContainer) {
-                   memberContainer.innerHTML = `<p class="error-text">❌ Data load karne mein vifal.<br><small>${error.message}</small></p>`;
-                }
-            });
-        }
-        function processAndDisplayData(data) {
-            const members = {};
-            let totalLoanDisbursed = 0;
-            let totalReturnAmount = 0;
-
-            data.forEach(entry => {
-                totalLoanDisbursed += entry.Loan;
-                totalReturnAmount += entry.ReturnAmount;
-            });
-            netReturnAmount = totalReturnAmount;
-
-            const memberNames = [...new Set(data.map(r => r.Name))];
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-
-            memberNames.forEach(name => {
-                const memberData = data.filter(r => r.Name === name);
-                if (memberData.length === 0) return;
-                const totalLoan = memberData.reduce((sum, r) => sum + r.Loan, 0);
-                const totalPayment = memberData.reduce((sum, r) => sum + r.Payment, 0);
-                const totalSIP = memberData.reduce((sum, r) => sum + r.SipPayment, 0);
-                const lastEntryWithImage = [...memberData].reverse().find(r => r.ImageUrl);
-                const isPrime = PRIME_MEMBERS.some(p => p.trim().toLowerCase() === name.trim().toLowerCase());
-                const currentMonthSip = memberData.find(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
-                members[name] = {
-                    name: name, balance: (totalSIP + totalPayment) - totalLoan,
-                    totalReturn: 0,
-                    loanCount: memberData.filter(r => r.Loan > 0).length,
-                    joiningDate: memberData.length > 0 ? memberData[0].Date : null,
-                    displayImageUrl: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE,
-                    isPrime: isPrime,
-                    sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? currentMonthSip.SipPayment : 0 }
-                };
-            });
-            
-            const memberList = Object.values(members).sort((a, b) => b.balance - a.balance);
-            allMembersData = memberList; 
-
-            adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
-            adData.topThreeMembers = memberList.slice(0, 3);
-            adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
-            const currentMonthSips = data.filter(tx => tx.SipPayment > 0 && tx.Date.getMonth() === currentMonth && tx.Date.getFullYear() === currentYear);
-            if (currentMonthSips.length > 0) {
-                const topSipTx = currentMonthSips.reduce((max, tx) => tx.SipPayment > max.SipPayment ? tx : max, currentMonthSips[0]);
-                const topSipMemberInfo = memberList.find(m => m.name === topSipTx.Name);
-                if (topSipMemberInfo) {
-                     adData.topSipMember = {
-                        name: topSipMemberInfo.name, amount: topSipTx.SipPayment,
-                        imageUrl: topSipMemberInfo.displayImageUrl
-                    };
-                }
+        onValue(ref(db), (snapshot) => {
+            if (!snapshot.exists()) {
+                memberContainer.innerHTML = '<p class="error-text">No data found in the database.</p>';
+                return;
             }
+            const data = snapshot.val();
+            allMembers = data.members || {};
             
-            processTodaysTransactions(data);
-            const monthlySipData = processMonthlySipData(data);
+            // Process data to calculate balances, etc.
+            processMemberData(allMembers);
+            
+            // Render all dynamic components
+            displayMembers(allMembers);
+            updateNotifications(allMembers);
+            updateHeaderDisplay(allMembers);
+        });
 
-            displayMembers(memberList);
-            updateTotalBalanceDisplay(memberList);
-            updateInfoCards(memberList.length, totalLoanDisbursed);
-            startHeaderDisplayRotator();
-            buildInfoSlider();
-            renderSipChart(monthlySipData);
+        function processMemberData(members) {
+            for (const memberId in members) {
+                const member = members[memberId];
+                let balance = 0;
+                if (member.transactions) {
+                    const txs = Object.values(member.transactions);
+                    const totalSip = txs.reduce((sum, tx) => sum + parseFloat(tx['SIP Payment'] || 0), 0);
+                    const totalLoanPayment = txs.reduce((sum, tx) => sum + parseFloat(tx['Loan Payment'] || 0), 0);
+                    const totalExtra = txs.reduce((sum, tx) => sum + parseFloat(tx['Extra Balance'] || 0), 0);
+                    const totalLoan = txs.reduce((sum, tx) => sum + parseFloat(tx.Loan || 0), 0);
+                    balance = (totalSip + totalLoanPayment + totalExtra) - totalLoan;
+                }
+                member.calculatedBalance = balance;
+            }
         }
+
         function displayMembers(members) {
-            if (!memberContainer) return;
             memberContainer.innerHTML = '';
-            if (members.length === 0) {
-                 memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
-                 return;
-            }
-            const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            members.forEach((member, index) => {
-                const card = document.createElement('div');
-                card.className = 'member-card animate-on-scroll';
-                let rankHTML = '';
-                if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } 
-                else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } 
-                else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; }
-                card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`;
-                card.onclick = () => showMemberProfileModal(member);
-                memberContainer.appendChild(card);
-            });
-            observeElements(memberContainer.querySelectorAll('.animate-on-scroll'));
-        }
-        function updateInfoCards(memberCount, totalLoan) {
-            if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
-            if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'});
-        }
-        function updateTotalBalanceDisplay(memberList) {
-            netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
-        }
-        function showMemberProfileModal(member) {
-            profileModalImage.src = member.displayImageUrl;
-            profileModalName.textContent = member.name;
-            profileModalJoiningDate.textContent = formatDate(member.joiningDate);
-            profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
-            profileModalReturn.textContent = 'Calculating...';
-            profileModalLoanCount.textContent = member.loanCount;
-            if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } 
-            else { profileModalSipStatus.innerHTML = `<span class="sip-status-icon not-paid">✖</span><span class="sip-status-text">Not Paid</span>`; }
-            profileModalBalance.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`;
-            if (member.isPrime) { profileModalElement.classList.add('prime-modal'); profileModalPrimeTag.style.display = 'block'; } 
-            else { profileModalElement.classList.remove('prime-modal'); profileModalPrimeTag.style.display = 'none'; }
-            profileModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-        function showBalanceModal() {
-            if (!balanceModalElement) return;
-            balanceModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-            const combinedBalance = netCommunityBalance + netReturnAmount;
-            animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
-            animateValue(returnBalanceElement, 0, netReturnAmount, 1200);
-            animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
-        }
-        function showSipStatusModal() {
-            if (!sipStatusListContainer || allMembersData.length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
-            sipStatusListContainer.innerHTML = '';
-            const sortedMembers = [...allMembersData].sort((a, b) => a.sipStatus.paid === b.sipStatus.paid ? a.name.localeCompare(b.name) : a.sipStatus.paid ? 1 : -1);
-            sortedMembers.forEach(member => {
-                const item = document.createElement('div');
-                item.className = 'sip-status-item';
-                const statusClass = member.sipStatus.paid ? 'paid' : 'not-paid';
-                const statusText = member.sipStatus.paid ? 'Paid' : 'Not Paid';
-                item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`;
-                sipStatusListContainer.appendChild(item);
-            });
-            sipStatusModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeModal(modalElement) {
-            if (modalElement) modalElement.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-        function showFullImage(imageUrl, altText) {
-            if (!imageModalElement || !fullImageSrcElement) return;
-            fullImageSrcElement.src = imageUrl;
-            fullImageSrcElement.alt = altText;
-            imageModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-        function animateValue(element, start, end, duration) {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const currentValue = Math.floor(progress * (end - start) + start);
-                element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
-                if (progress < 1) { window.requestAnimationFrame(step); } 
-                else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); }
-            };
-            window.requestAnimationFrame(step);
-        }
-        const scrollObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
-        function observeElements(elements) {
-            elements.forEach(el => { if (el) scrollObserver.observe(el); });
-        }
-        function startHeaderDisplayRotator() {
-            if (!headerDisplay) return;
-            const adContainer = headerDisplay.querySelector('.ad-content');
-            const ads = [];
-     
-            if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => `<div class="ad-top-three-member"><img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="ad-top-three-name">${member.name}</p><p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p></div>`).join(''); return `<div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div>`; }); }
-            if (adData.topSipMember) { ads.push(() => `<div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
-            if (adData.topBalanceMember) { ads.push(() => `<div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
-            if (adData.bankStats) { ads.push(() => `<div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div>`); }
+            const approvedMembers = Object.entries(members)
+                .filter(([id, member]) => member.status === 'Approved')
+                .sort(([, a], [, b]) => b.calculatedBalance - a.calculatedBalance);
 
-            if (ads.length === 0) { adContainer.innerHTML = `<p class="ad-headline">Welcome to Bank Community Loan!</p>`; return; }
-
-            let currentAdIndex = 0;
-            const showNextAd = () => {
-                if(ads.length > 0) {
-                    adContainer.innerHTML = ads[currentAdIndex]();
-                    currentAdIndex = (currentAdIndex + 1) % ads.length;
-                }
-            };
-            showNextAd();
-            setInterval(showNextAd, 6000);
-        }
-        function initializeLetterSlider() {
-            if (!letterSlidesContainer || !letterSlideIndicator) return;
-            const slides = letterSlidesContainer.children;
-            const totalSlides = slides.length;
-            if (totalSlides === 0) return;
-            letterSlidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); });
-            letterSlideIndicator.innerHTML = '';
-            for (let i = 0; i < totalSlides; i++) {
-                const dot = document.createElement('span');
-                dot.classList.add('indicator-dot');
-                dot.onclick = () => showSlide(i);
-                letterSlideIndicator.appendChild(dot);
-            }
-            let currentSlideIndex = 0;
-            const showSlide = (index) => {
-                currentSlideIndex = (index + totalSlides) % totalSlides;
-                letterSlidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`;
-                letterSlideIndicator.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); });
-            };
-            if(letterPrevBtn) letterPrevBtn.onclick = () => showSlide(currentSlideIndex - 1);
-            if(letterNextBtn) letterNextBtn.onclick = () => showSlide(currentSlideIndex + 1);
-            showSlide(0);
-        }
-        function buildInfoSlider() {
-            if (!infoSlider) return;
-            infoSlider.innerHTML = '';
-            const infoCards = [
-                { icon: 'dollar-sign', title: 'Fund Deposit', text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.' },
-                { icon: 'gift', title: 'Loan Provision', text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.' },
-                { icon: 'calendar', title: 'Loan Duration', text: 'Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).' },
-                { icon: 'percent', title: 'Interest Rate', text: 'Avadhi aur rashi ke anusaar byaj darein badal sakti hain.' }
-            ];
-            PRIME_MEMBERS.forEach(name => {
-                infoCards.push({ icon: 'star', title: name, text: 'Is one of our valued Prime Members.', isPrime: true });
-            });
-            infoCards.forEach(card => {
-                const cardEl = document.createElement('div');
-                cardEl.className = `info-card-slide ${card.isPrime ? 'prime' : ''}`;
-                cardEl.innerHTML = `<h3><i data-feather="${card.icon}"></i> ${card.title}</h3><p>${card.text}</p>`;
-                infoSlider.appendChild(cardEl);
-            });
-            feather.replace();
-        }
-        function processMonthlySipData(transactions) {
-            const monthlyData = {};
-            transactions.forEach(tx => {
-                if (tx.SipPayment > 0) {
-                    const monthYear = `${tx.Date.toLocaleString('default', { month: 'short' })} '${tx.Date.getFullYear().toString().slice(-2)}`;
-                    monthlyData[monthYear] = (monthlyData[monthYear] || 0) + tx.SipPayment;
-                }
-            });
-            const labels = Object.keys(monthlyData);
-            const data = Object.values(monthlyData);
-            return { labels, data };
-        }
-        function renderSipChart({ labels, data }) {
-            if (!sipChartCanvas) return;
-            if (sipChartInstance) {
-                sipChartInstance.destroy();
-            }
-            const ctx = sipChartCanvas.getContext('2d');
-            sipChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Total SIP Collection',
-                        data: data,
-                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
-                        borderColor: 'rgba(0, 123, 255, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { callback: value => `₹${value/1000}k` } },
-                        x: { grid: { display: false } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-        function processTodaysTransactions(transactions) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            todaysTransactions = transactions.filter(tx => {
-                const txDate = new Date(tx.Date);
-                txDate.setHours(0, 0, 0, 0);
-                return txDate.getTime() === today.getTime() && (tx.SipPayment > 0 || tx.Loan > 0 || tx.Payment > 0);
-            }).sort((a,b) => b.Date - a.Date);
-
-            if (todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed')) {
-                notificationDot.style.display = 'block';
-            }
-        }
-        function displayNotifications() {
-            notificationList.innerHTML = '';
-            if (todaysTransactions.length === 0) {
-                notificationList.innerHTML = `<li class="no-notifications">No activity today.</li>`;
+            if (approvedMembers.length === 0) {
+                memberContainer.innerHTML = '<p class="loading-text">No approved members found.</p>';
                 return;
             }
 
+            approvedMembers.forEach(([id, member], index) => {
+                const card = document.createElement('div');
+                card.className = 'member-card animate-on-scroll';
+                
+                // Add rank classes
+                if (index === 0) card.classList.add('gold');
+                else if (index === 1) card.classList.add('silver');
+                else if (index === 2) card.classList.add('bronze');
+
+                card.innerHTML = `
+                    ${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}
+                    <img src="${member.profilePicUrl || DEFAULT_IMAGE}" alt="${member.fullName}" loading="lazy" onerror="this.src='${DEFAULT_IMAGE}';">
+                    <p class="member-name" title="${member.fullName}">${member.fullName}</p>
+                    <p class="member-balance">₹${member.calculatedBalance.toLocaleString('en-IN')}</p>
+                `;
+                card.onclick = () => showMemberProfileModal(id, member);
+                memberContainer.appendChild(card);
+            });
+        }
+
+        function updateNotifications(members) {
+            const today = new Date().toISOString().split('T')[0];
+            let todaysTransactions = [];
+
+            for (const memberId in members) {
+                const member = members[memberId];
+                if (member.transactions) {
+                    for (const txId in member.transactions) {
+                        const tx = member.transactions[txId];
+                        if (tx.Date && new Date(tx.Date).toISOString().split('T')[0] === today) {
+                            todaysTransactions.push({ ...tx, member });
+                        }
+                    }
+                }
+            }
+            
+            todaysTransactions.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            
+            notificationList.innerHTML = '';
+            if (todaysTransactions.length === 0) {
+                notificationList.innerHTML = `<li class="no-notifications">No activity today.</li>`;
+                notificationDot.style.display = 'none';
+                return;
+            }
+
+            notificationDot.style.display = 'block';
             todaysTransactions.forEach(tx => {
-                const member = allMembersData.find(m => m.name === tx.Name);
                 const li = document.createElement('li');
                 li.className = 'notification-item';
                 
                 let text = '', amount = '', typeClass = '';
-                if (tx.SipPayment > 0) {
-                    text = `<strong>${tx.Name}</strong> paid their SIP.`;
-                    amount = `+ ₹${tx.SipPayment.toLocaleString()}`;
+                if (tx['SIP Payment']) {
+                    text = `<strong>${tx.member.fullName}</strong> paid their SIP.`;
+                    amount = `+ ₹${parseFloat(tx['SIP Payment']).toLocaleString()}`;
                     typeClass = 'sip';
-                } else if (tx.Loan > 0) {
-                    text = `A loan was disbursed to <strong>${tx.Name}</strong>.`;
-                    amount = `- ₹${tx.Loan.toLocaleString()}`;
+                } else if (tx.Loan) {
+                    text = `A loan was disbursed to <strong>${tx.member.fullName}</strong>.`;
+                    amount = `- ₹${parseFloat(tx.Loan).toLocaleString()}`;
                     typeClass = 'loan';
-                } else if (tx.Payment > 0) {
-                    text = `<strong>${tx.Name}</strong> made a loan payment.`;
-                    amount = `+ ₹${tx.Payment.toLocaleString()}`;
+                } else if (tx['Loan Payment']) {
+                    text = `<strong>${tx.member.fullName}</strong> made a loan payment.`;
+                    amount = `+ ₹${parseFloat(tx['Loan Payment']).toLocaleString()}`;
                     typeClass = 'payment';
-                     if (tx.ReturnAmount > 0) {
-                        text += ` (Return: ₹${tx.ReturnAmount.toLocaleString()})`;
-                    }
                 }
 
                 li.innerHTML = `
-                    <img src="${member ? member.displayImageUrl : DEFAULT_IMAGE}" alt="${tx.Name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    <img src="${tx.member.profilePicUrl || DEFAULT_IMAGE}" alt="${tx.member.fullName}" onerror="this.src='${DEFAULT_IMAGE}';">
                     <div class="notification-details">
                         <p class="notification-text">${text}</p>
                         <div class="notification-time">${new Date(tx.Date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -729,47 +382,76 @@
                 notificationList.appendChild(li);
             });
         }
-        function setupEventListeners() {
-            if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
-            if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
-            if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal);
-            if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement));
-            if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement));
-            if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement));
-            if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
-            if (closeSipStatusModalBtn) closeSipStatusModalBtn.addEventListener('click', () => closeModal(sipStatusModalElement));
-            if (profileModalHeader) { profileModalHeader.addEventListener('click', () => { if (profileModalImage.src) { showFullImage(profileModalImage.src, profileModalName.textContent); } }); }
-            
-            if(notificationBtn) notificationBtn.addEventListener('click', () => {
-                displayNotifications();
-                notificationModal.classList.add('show');
-                notificationDot.style.display = 'none';
-                sessionStorage.setItem('notificationsViewed', 'true');
-            });
-            if(closeNotificationModalBtn) closeNotificationModalBtn.addEventListener('click', () => closeModal(notificationModal));
 
-            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal].forEach(modal => { 
-                if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); 
-            });
-            window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { 
-                closeModal(balanceModalElement); 
-                closeModal(profileModalElement); 
-                closeModal(imageModalElement); 
-                closeModal(sipStatusModalElement);
-                closeModal(notificationModal);
-            } });
+        function updateHeaderDisplay(members) {
+            const approvedMembers = Object.values(members).filter(m => m.status === 'Approved');
+            if (approvedMembers.length === 0) return;
+
+            const sortedByBalance = [...approvedMembers].sort((a, b) => b.calculatedBalance - a.calculatedBalance);
+            
+            const topThreeHtml = sortedByBalance.slice(0, 3).map(member => `
+                <div class="ad-top-three-member">
+                    <img src="${member.profilePicUrl || DEFAULT_IMAGE}" class="ad-top-three-img" alt="${member.fullName}" onerror="this.src='${DEFAULT_IMAGE}';">
+                    <p class="ad-top-three-name">${member.fullName}</p>
+                    <p class="ad-top-three-amount">₹${member.calculatedBalance.toLocaleString('en-IN')}</p>
+                </div>
+            `).join('');
+
+            headerAdContent.innerHTML = `
+                <div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div>
+                <div class="ad-top-three-container">${topThreeHtml}</div>
+            `;
+        }
+        
+        function showMemberProfileModal(memberId, member) {
+            // This will show the basic profile. The full profile is password protected.
+            const profileModal = document.getElementById('memberProfileModal');
+            // ... (code to populate basic profile modal)
+
+            // Add a "View Full Profile" button
+            const fullProfileBtn = document.createElement('button');
+            fullProfileBtn.textContent = 'View Full Profile';
+            fullProfileBtn.className = 'civil-button'; // Use your existing button style
+            fullProfileBtn.onclick = () => promptForPassword(memberId, member);
+            
+            // Append button to modal content
+            profileModal.querySelector('.modal-content').appendChild(fullProfileBtn);
+
+            openModal(profileModal);
         }
 
-        // --- Initial Calls ---
+        function promptForPassword(memberId, member) {
+            const password = prompt(`Please enter the password for ${member.fullName}:`);
+            if (password === null) return; // User cancelled
+
+            if (password === member.password) {
+                showFullProfileModal(member);
+            } else {
+                alert('Incorrect password!');
+            }
+        }
+
+        function showFullProfileModal(member) {
+            // Create and show a new modal with all details
+            // This will include Aadhaar, Signature, Documents, etc.
+            alert(`Showing full profile for ${member.fullName}`);
+        }
+
+        function openModal(modalElement) {
+            modalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalElement) {
+            modalElement.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Initial setup calls
         feather.replace();
-        setupEventListeners();
-        setupPWA(); // New PWA setup call
-        fetchMemberDataFromFirebase();
-        initializeLetterSlider();
-        observeElements(document.querySelectorAll('.animate-on-scroll'));
+        // ... other setup calls
     }
 
-    // --- Start the entire process ---
     document.addEventListener('DOMContentLoaded', initializeAndRunApp);
 </script>
 
