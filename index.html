@@ -23,22 +23,6 @@
             --bg-color: #f8f9fa; --card-bg: #ffffff; --border-color: #dee2e6;
             --shadow-color: rgba(0, 0, 0, 0.08); --prime-color: #ffc107; --danger-color: #dc3545;
             --success-color: #28a745; --info-color: #17a2b8; --animation-duration: 0.6s;
-            
-            /* --- NEW & IMPROVED RANK COLORS --- */
-            --gold-color: #ffd700;
-            --gold-gradient: linear-gradient(145deg, #ffefad, #ffc107);
-            --gold-shadow: rgba(255, 215, 0, 0.3);
-            --gold-text: #8c5a00;
-
-            --silver-color: #c0c0c0;
-            --silver-gradient: linear-gradient(145deg, #f5f7fa, #b8c6db);
-            --silver-shadow: rgba(192, 192, 192, 0.35);
-            --silver-text: #434c5e;
-
-            --bronze-color: #cd7f32;
-            --bronze-gradient: linear-gradient(145deg, #e6a770, #a0522d);
-            --bronze-shadow: rgba(205, 127, 50, 0.3);
-            --bronze-text: #5c3a1a;
         }
         html { scroll-behavior: smooth; }
         body { font-family: 'Roboto', 'Arial', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-color); overflow-x: hidden; line-height: 1.7; }
@@ -150,18 +134,38 @@
         .prime-tag { position: absolute; top: 120px; right: 12px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
         .rank-icon { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
         
-        /* --- IMPROVED RANK STYLES --- */
-        .member-card.gold { border: 2px solid var(--gold-color); background: var(--gold-gradient); box-shadow: 0 8px 25px var(--gold-shadow); }
-        .member-card.gold .member-name { color: var(--gold-text); font-weight: 700; }
-        .member-card.gold .member-balance { background: var(--gold-color); color: var(--gold-text); border: 1px solid rgba(0,0,0,0.1); }
+        /* --- CARD TEXTURE STYLES --- */
+        .member-card.gold, .member-card.silver, .member-card.bronze {
+            background-size: cover;
+            background-position: center;
+            border-width: 2px;
+            position: relative;
+        }
+        .member-card.gold::before, .member-card.silver::before, .member-card.bronze::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px; /* Match parent's border-radius */
+            z-index: 0;
+        }
+        .member-card .member-name, .member-card .member-balance, .member-card .prime-tag, .member-card img, .member-card .rank-icon {
+            position: relative;
+            z-index: 1;
+        }
+        .member-card.gold { background-image: url('https://i.ibb.co/XfWcfwqy/image-search-1752833366681.jpg'); border-color: #e6c100; }
+        .member-card.silver { background-image: url('https://i.ibb.co/5h196znm/image-search-1752833439490.jpg'); border-color: #d1d5db; }
+        .member-card.bronze { background-image: url('https://i.ibb.co/Kjvk6fgF/image-search-1752833487687.jpg'); border-color: #d68c58; }
         
-        .member-card.silver { border: 2px solid var(--silver-color); background: var(--silver-gradient); box-shadow: 0 8px 25px var(--silver-shadow); }
-        .member-card.silver .member-name { color: var(--silver-text); font-weight: 700; }
-        .member-card.silver .member-balance { background: var(--silver-color); color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.1); }
-        
-        .member-card.bronze { border: 2px solid var(--bronze-color); background: var(--bronze-gradient); box-shadow: 0 8px 25px var(--bronze-shadow); }
-        .member-card.bronze .member-name { color: var(--bronze-text); font-weight: 700; }
-        .member-card.bronze .member-balance { background: var(--bronze-color); color: #fff; border: 1px solid rgba(0,0,0,0.1); }
+        .member-card.gold .member-name, .member-card.silver .member-name, .member-card.bronze .member-name {
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        }
+        .member-card.gold .member-balance { background: rgba(255, 215, 0, 0.8); color: #4d3200; border: none; }
+        .member-card.silver .member-balance { background: rgba(192, 192, 192, 0.8); color: #2d3748; border: none; }
+        .member-card.bronze .member-balance { background: rgba(205, 127, 50, 0.8); color: #ffffff; border: none; }
+
 
         .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
         .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
@@ -231,6 +235,19 @@
         .image-modal-close:hover { color: #fff; transform: scale(1.1); }
         .animate-on-scroll { opacity: 0; transform: translateY(40px); transition: opacity var(--animation-duration) ease-out, transform var(--animation-duration) ease-out; }
         .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
+        
+        /* --- NEW MODAL STYLES --- */
+        #fullProfileViewModal .modal-content { max-width: 95%; width: 600px; max-height: 90vh; display: flex; flex-direction: column; }
+        .full-profile-body { overflow-y: auto; padding: 20px; }
+        .full-profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; }
+        .full-profile-item { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef; }
+        .full-profile-item strong { display: block; color: var(--primary-darker); font-size: 0.9em; margin-bottom: 5px; }
+        .full-profile-item span { font-size: 1.1em; }
+        .full-profile-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
+        .full-profile-images div { text-align: center; }
+        .full-profile-images img { width: 100%; height: 120px; object-fit: contain; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; background: #f0f0f0; }
+        .full-profile-images strong { font-size: 0.9em; margin-top: 5px; display: block; }
+
         @media (min-width: 576px) { header h1 { font-size: 2.4em; } .member-card { flex: 0 0 200px; } h2 { font-size: 1.9em; } .info-card-slide { flex: 0 0 320px; } }
         @media (min-width: 768px) { header h1 { font-size: 2.6em; } .member-card { flex: 0 0 210px; } h2 { font-size: 2em; } }
         @media (min-width: 992px) { .member-card { flex: 0 0 220px; } .balance-display { font-size: 3.2em; } h2 { font-size: 2.1em; } }
@@ -240,7 +257,50 @@
 </head>
 <body>
 
-<header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Return Amount</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> <main class="content-wrapper"> <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides"> <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div> <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div> <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div> </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> </main> <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
+<header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After Penalty)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> <main class="content-wrapper"> <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides"> <div class="slide"><img src="https://i.ibb.co/GQ3WbGqP/1000008561.png" alt="Loan Letter"></div> <div class="slide"><img src="https://i.ibb.co/cSckTmKw/1000008651.png" alt="Prime Letter"></div> <div class="slide"><img src="https://i.ibb.co/1tLNVJmb/1000008701.png" alt="Join Letter"></div> </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> </main> <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
+
+<!-- NEW MODALS FOR FULL VIEW FEATURE -->
+<div id="passwordPromptModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closePasswordModal">×</span>
+        <h2>Enter Password</h2>
+        <p style="margin-bottom: 20px; font-size: 0.9em; color: var(--light-text);">Please enter the member's password to view full details.</p>
+        <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; font-size: 1.1em; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px; box-sizing: border-box;">
+        <button id="submitPasswordBtn" style="width: 100%; padding: 12px; background-color: var(--success-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Submit</button>
+    </div>
+</div>
+
+<div id="fullProfileViewModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeFullProfileModal">×</span>
+        <h2 id="fullProfileName">Member Full Details</h2>
+        <div class="full-profile-body">
+            <div class="full-profile-grid">
+                <div class="full-profile-item"><strong>Membership ID</strong><span id="fullProfileMemberId">--</span></div>
+                <div class="full-profile-item"><strong>Mobile Number</strong><span id="fullProfileMobile">--</span></div>
+                <div class="full-profile-item"><strong>Date of Birth</strong><span id="fullProfileDob">--</span></div>
+                <div class="full-profile-item"><strong>Aadhaar No.</strong><span id="fullProfileAadhaar">--</span></div>
+                <div class="full-profile-item" style="grid-column: 1 / -1;"><strong>Address</strong><span id="fullProfileAddress">--</span></div>
+                <div class="full-profile-item" style="background: #e6f7ff;"><strong>Extra Amount</strong><span id="fullProfileExtraAmount" style="font-weight: bold; color: var(--info-color);">--</span></div>
+            </div>
+            <div class="full-profile-images">
+                <div>
+                    <strong>Profile Photo</strong>
+                    <img id="fullProfilePic" src="" alt="Profile Photo">
+                </div>
+                <div>
+                    <strong>Document</strong>
+                    <img id="fullProfileDoc" src="" alt="Document">
+                </div>
+                <div>
+                    <strong>Signature</strong>
+                    <img id="fullProfileSign" src="" alt="Signature">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script>
     // ##################################################################
@@ -248,15 +308,12 @@
     // ##################################################################
     async function initializeAndRunApp() {
         try {
-            // Register Service Worker for PWA
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js?v=2')
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
 
-            // This assumes you have a serverless function at this endpoint
-            // to securely provide your Firebase config.
             const response = await fetch('/api/firebase-config');
             if (!response.ok) throw new Error('Config fetch failed');
             const firebaseConfig = await response.json();
@@ -269,11 +326,9 @@
 
             auth.onAuthStateChanged(user => {
                 if (user) {
-                    console.log("User is authenticated. UID:", user.uid);
                     document.body.style.visibility = 'visible';
                     runMainApp(database);
                 } else {
-                    console.log("User not authenticated. Redirecting to login page.");
                     window.location.href = '/login.html';
                 }
             });
@@ -287,7 +342,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (UPDATED) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -341,14 +396,25 @@
         const audio = document.getElementById('welcomeAudio');
         const installAppBtn = document.getElementById('installAppBtn');
 
+        // --- New Modal Elements ---
+        const fullViewBtn = document.getElementById('fullViewBtn');
+        const passwordPromptModal = document.getElementById('passwordPromptModal');
+        const closePasswordModal = document.getElementById('closePasswordModal');
+        const passwordInput = document.getElementById('passwordInput');
+        const submitPasswordBtn = document.getElementById('submitPasswordBtn');
+        const fullProfileViewModal = document.getElementById('fullProfileViewModal');
+        const closeFullProfileModal = document.getElementById('closeFullProfileModal');
+
         // --- State Variables ---
-        let allMembersData = [];
+        let allMembersData = {}; // Changed to object to store full data
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
+        let totalPenaltyAmount = 0;
         let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
         let todaysTransactions = [];
         let sipChartInstance = null;
         let deferredInstallPrompt = null;
+        let currentMemberForFullView = null;
         
         // --- PWA Installation Logic ---
         function setupPWA() {
@@ -365,9 +431,7 @@
                     installAppBtn.style.display = 'none';
                 }
             });
-            window.addEventListener('appinstalled', () => {
-                if(installAppBtn) installAppBtn.style.display = 'none';
-            });
+            window.addEventListener('appinstalled', () => { if(installAppBtn) installAppBtn.style.display = 'none'; });
             if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
                 if(installAppBtn) installAppBtn.style.display = 'none';
             }
@@ -375,26 +439,24 @@
 
         // --- Functions ---
         const formatDate = (dateString) => {
+            if (!dateString) return "N/A";
             const date = new Date(dateString);
             if (isNaN(date.getTime())) return "N/A";
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         };
 
-        /**
-         * MAJOR UPDATE: This function now fetches the entire 'members' node from Firebase.
-         * This is the core fix for getting correct names and profile pictures.
-         */
         function fetchAllDataFromFirebase() {
             if (!memberContainer) return;
             memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
             
-            const rootRef = database.ref(); // Reference to the root of the database
-            rootRef.once('value', (snapshot) => {
+            database.ref().once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data || !data.members) {
                     throw new Error("Data could not be read. Check database rules and path.");
                 }
-                processAndDisplayData(data.members);
+                allMembersData = data.members; // Store the raw members object
+                const penaltyIncomes = data.penaltyWallet ? data.penaltyWallet.incomes || {} : {};
+                processAndDisplayData(allMembersData, penaltyIncomes);
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
                 if (memberContainer) {
@@ -403,27 +465,19 @@
             });
         }
 
-        /**
-         * MAJOR UPDATE: This function now processes the 'members' object directly.
-         * It calculates balances by iterating through each member's transactions.
-         */
-        function processAndDisplayData(membersData) {
+        function processAndDisplayData(membersData, penaltyIncomes) {
             const processedMembers = {};
             let totalLoanDisbursed = 0;
-            let totalReturnAmount = 0;
+            let totalReturn = 0;
             let allTransactions = [];
 
-            // First, iterate over all members to calculate their stats
+            totalPenaltyAmount = Object.values(penaltyIncomes).reduce((sum, income) => sum + income.amount, 0);
+
             for (const memberId in membersData) {
                 const member = membersData[memberId];
-                
-                // We only want to display approved members
-                if (member.status !== 'Approved' || !member.fullName) {
-                    continue;
-                }
+                if (member.status !== 'Approved' || !member.fullName) continue;
 
-                let balance = 0;
-                let loanCount = 0;
+                let balance = 0, loanCount = 0, memberReturn = 0, extraBalance = 0;
                 let memberTransactions = [];
 
                 if (member.transactions) {
@@ -432,22 +486,17 @@
                     const totalLoanPayment = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Loan Payment'] || 0), 0);
                     const totalExtraPayment = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Extra Balance'] || 0), 0);
                     const totalLoan = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx.Loan || 0), 0);
-                    const memberReturn = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Return amount'] || 0), 0);
+                    memberReturn = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Return amount'] || 0), 0);
                     
                     balance = (totalSip + totalLoanPayment + totalExtraPayment) - totalLoan;
                     loanCount = memberTransactions.filter(tx => parseFloat(tx.Loan || 0) > 0).length;
+                    extraBalance = totalExtraPayment;
                     
                     totalLoanDisbursed += totalLoan;
-                    totalReturnAmount += memberReturn;
+                    totalReturn += memberReturn;
 
-                    // Add member's full name to each transaction for later use
                     memberTransactions.forEach(tx => {
-                        allTransactions.push({
-                            ...tx,
-                            fullName: member.fullName,
-                            profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE,
-                            Date: new Date(tx.Date)
-                        });
+                        allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: new Date(tx.Date) });
                     });
                 }
 
@@ -459,23 +508,18 @@
                 );
 
                 processedMembers[memberId] = {
-                    id: memberId,
-                    name: member.fullName,
-                    balance: balance,
-                    totalReturn: 0, // This can be calculated if needed
-                    loanCount: loanCount,
+                    id: memberId, name: member.fullName, balance: balance, totalReturn: memberReturn,
+                    loanCount: loanCount, extraBalance: extraBalance,
                     joiningDate: member.joiningDate || (memberTransactions.length > 0 ? memberTransactions[0].Date : null),
-                    displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE, // Use the profile pic from the member data
+                    displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
                     isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
                     sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? parseFloat(currentMonthSip['SIP Payment']) : 0 }
                 };
             }
             
-            netReturnAmount = totalReturnAmount;
+            netReturnAmount = totalReturn;
             const memberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
-            allMembersData = memberList; 
-
-            // --- Update Ad Data ---
+            
             adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
             adData.topThreeMembers = memberList.slice(0, 3);
             adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
@@ -485,18 +529,13 @@
                 const topSipTx = currentMonthSips.reduce((max, tx) => parseFloat(tx['SIP Payment']) > parseFloat(max['SIP Payment']) ? tx : max, currentMonthSips[0]);
                 const topSipMemberInfo = memberList.find(m => m.name === topSipTx.fullName);
                 if (topSipMemberInfo) {
-                     adData.topSipMember = {
-                        name: topSipMemberInfo.name,
-                        amount: parseFloat(topSipTx['SIP Payment']),
-                        imageUrl: topSipMemberInfo.displayImageUrl
-                    };
+                     adData.topSipMember = { name: topSipMemberInfo.name, amount: parseFloat(topSipTx['SIP Payment']), imageUrl: topSipMemberInfo.displayImageUrl };
                 }
             }
             
             processTodaysTransactions(allTransactions);
             const monthlySipData = processMonthlySipData(allTransactions);
 
-            // --- Render UI Components ---
             displayMembers(memberList);
             updateTotalBalanceDisplay(memberList);
             updateInfoCards(memberList.length, totalLoanDisbursed);
@@ -515,7 +554,10 @@
             const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
             const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
             const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
-            members.forEach((member, index) => {
+            
+            const memberList = Object.values(members).sort((a, b) => b.balance - a.balance);
+
+            memberList.forEach((member, index) => {
                 const card = document.createElement('div');
                 card.className = 'member-card animate-on-scroll';
                 let rankHTML = '';
@@ -537,11 +579,12 @@
             netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
         }
         function showMemberProfileModal(member) {
+            currentMemberForFullView = member.id; // Store member ID for password check
             profileModalImage.src = member.displayImageUrl;
             profileModalName.textContent = member.name;
             profileModalJoiningDate.textContent = formatDate(member.joiningDate);
             profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
-            profileModalReturn.textContent = 'Calculating...'; // This would need a separate calculation
+            profileModalReturn.textContent = member.totalReturn.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
             profileModalLoanCount.textContent = member.loanCount;
             if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } 
             else { profileModalSipStatus.innerHTML = `<span class="sip-status-icon not-paid">✖</span><span class="sip-status-text">Not Paid</span>`; }
@@ -553,22 +596,41 @@
         }
         function showBalanceModal() {
             if (!balanceModalElement) return;
+            const netReturnAfterPenalty = netReturnAmount - totalPenaltyAmount;
+            const combinedBalance = netCommunityBalance + netReturnAfterPenalty;
+            
             balanceModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
-            const combinedBalance = netCommunityBalance + netReturnAmount;
+
             animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
-            animateValue(returnBalanceElement, 0, netReturnAmount, 1200);
+            animateValue(returnBalanceElement, 0, netReturnAfterPenalty, 1200);
             animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
         }
         function showSipStatusModal() {
-            if (!sipStatusListContainer || allMembersData.length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
+            if (!sipStatusListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
             sipStatusListContainer.innerHTML = '';
-            const sortedMembers = [...allMembersData].sort((a, b) => a.sipStatus.paid === b.sipStatus.paid ? a.name.localeCompare(b.name) : a.sipStatus.paid ? 1 : -1);
+            
+            const memberList = Object.values(allMembersData).filter(m => m.status === 'Approved');
+            const sortedMembers = memberList.map(memberId => {
+                const member = allMembersData[memberId];
+                const now = new Date();
+                const currentMonthSip = Object.values(member.transactions || {}).find(tx => 
+                    parseFloat(tx['SIP Payment'] || 0) > 0 &&
+                    new Date(tx.Date).getMonth() === now.getMonth() &&
+                    new Date(tx.Date).getFullYear() === now.getFullYear()
+                );
+                return {
+                    name: member.fullName,
+                    displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
+                    sipPaid: !!currentMonthSip
+                }
+            }).sort((a, b) => a.sipPaid === b.sipPaid ? a.name.localeCompare(b.name) : a.sipPaid ? 1 : -1);
+
             sortedMembers.forEach(member => {
                 const item = document.createElement('div');
                 item.className = 'sip-status-item';
-                const statusClass = member.sipStatus.paid ? 'paid' : 'not-paid';
-                const statusText = member.sipStatus.paid ? 'Paid' : 'Not Paid';
+                const statusClass = member.sipPaid ? 'paid' : 'not-paid';
+                const statusText = member.sipPaid ? 'Paid' : 'Not Paid';
                 item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`;
                 sipStatusListContainer.appendChild(item);
             });
@@ -688,9 +750,7 @@
         }
         function renderSipChart({ labels, data }) {
             if (!sipChartCanvas) return;
-            if (sipChartInstance) {
-                sipChartInstance.destroy();
-            }
+            if (sipChartInstance) sipChartInstance.destroy();
             const ctx = sipChartCanvas.getContext('2d');
             sipChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -770,6 +830,51 @@
                 notificationList.appendChild(li);
             });
         }
+        
+        function handlePasswordCheck() {
+            const enteredPassword = passwordInput.value;
+            if (!enteredPassword) {
+                alert('Please enter a password.');
+                return;
+            }
+            const correctPassword = allMembersData[currentMemberForFullView]?.password;
+            
+            if (enteredPassword === correctPassword) {
+                closeModal(passwordPromptModal);
+                showFullProfileViewModal(currentMemberForFullView);
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
+            passwordInput.value = '';
+        }
+
+        function showFullProfileViewModal(memberId) {
+            const member = allMembersData[memberId];
+            const processedMember = Object.values(allMembersData).find(m => m.id === memberId);
+
+            document.getElementById('fullProfileName').textContent = member.fullName;
+            document.getElementById('fullProfileMemberId').textContent = member.membershipId || 'N/A';
+            document.getElementById('fullProfileMobile').textContent = member.mobileNumber || 'N/A';
+            document.getElementById('fullProfileDob').textContent = formatDate(member.dob);
+            document.getElementById('fullProfileAadhaar').textContent = member.aadhaar || 'N/A';
+            document.getElementById('fullProfileAddress').textContent = member.address || 'N/A';
+            document.getElementById('fullProfileExtraAmount').textContent = (processedMember.extraBalance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+            
+            const profilePic = document.getElementById('fullProfilePic');
+            profilePic.src = member.profilePicUrl || DEFAULT_IMAGE;
+            profilePic.onclick = () => showFullImage(profilePic.src, 'Profile Photo');
+
+            const docPic = document.getElementById('fullProfileDoc');
+            docPic.src = member.documentUrl || DEFAULT_IMAGE;
+            docPic.onclick = () => showFullImage(docPic.src, 'Document');
+
+            const signPic = document.getElementById('fullProfileSign');
+            signPic.src = member.signatureUrl || DEFAULT_IMAGE;
+            signPic.onclick = () => showFullImage(signPic.src, 'Signature');
+
+            fullProfileViewModal.classList.add('show');
+        }
+
         function setupEventListeners() {
             if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
             if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
@@ -789,7 +894,18 @@
             });
             if(closeNotificationModalBtn) closeNotificationModalBtn.addEventListener('click', () => closeModal(notificationModal));
 
-            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal].forEach(modal => { 
+            // --- New Event Listeners ---
+            if (fullViewBtn) fullViewBtn.addEventListener('click', () => {
+                closeModal(profileModalElement);
+                passwordPromptModal.classList.add('show');
+            });
+            if (closePasswordModal) closePasswordModal.addEventListener('click', () => closeModal(passwordPromptModal));
+            if (submitPasswordBtn) submitPasswordBtn.addEventListener('click', handlePasswordCheck);
+            if (passwordInput) passwordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePasswordCheck(); });
+            if (closeFullProfileModal) closeFullProfileModal.addEventListener('click', () => closeModal(fullProfileViewModal));
+
+
+            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal, passwordPromptModal, fullProfileViewModal].forEach(modal => { 
                 if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); 
             });
             window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { 
@@ -798,6 +914,8 @@
                 closeModal(imageModalElement); 
                 closeModal(sipStatusModalElement);
                 closeModal(notificationModal);
+                closeModal(passwordPromptModal);
+                closeModal(fullProfileViewModal);
             } });
         }
 
@@ -805,7 +923,7 @@
         feather.replace();
         setupEventListeners();
         setupPWA();
-        fetchAllDataFromFirebase(); // Use the updated function
+        fetchAllDataFromFirebase();
         initializeLetterSlider();
         observeElements(document.querySelectorAll('.animate-on-scroll'));
     }
