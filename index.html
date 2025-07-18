@@ -126,13 +126,13 @@
         .member-slider::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid #e0f2f7; }
         .member-slider::-webkit-scrollbar-thumb:hover { background-color: var(--primary-darker); }
         
-        /* --- MEMBER CARD UI UPDATES --- */
+        /* --- MEMBER CARD UI UPDATES V2 --- */
         .member-card { 
             position: relative; 
             background-color: var(--card-bg); 
             border-radius: 12px; 
-            flex: 0 0 45%; /* Two cards per row on mobile */
-            max-width: 160px; /* Max width for smaller cards */
+            flex: 0 0 45%;
+            max-width: 160px;
             text-align: center; 
             padding: 12px; 
             box-shadow: 0 5px 10px var(--shadow-color); 
@@ -140,38 +140,77 @@
             cursor: pointer; 
             border: 1px solid var(--border-color); 
             box-sizing: border-box; 
-            overflow: visible; /* Allow icon to overflow slightly */
+            overflow: visible;
         }
         .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
+        
+        /* NEW: Container for 1:1 aspect ratio */
+        .member-photo-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background-color: #f0f0f0;
+        }
         .member-card img.member-photo { 
             width: 100%; 
-            height: 110px; /* Reduced height */
-            border-radius: 8px; 
-            object-fit: cover; 
-            margin-bottom: 12px; 
+            height: 100%;
+            object-fit: cover; /* Ensures image covers the square area without distortion */
             display: block; 
-            background-color: #f0f0f0; 
             transition: transform 0.3s ease; 
         }
         .member-card:hover img.member-photo { transform: scale(1.05); }
+
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
         .member-balance { background-color: var(--primary-color); color: white; padding: 6px 15px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
-        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
+        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 3; } /* z-index increased */
         
-        /* --- NEW RANK ICON STYLES --- */
         .rank-icon { 
             position: absolute; 
-            top: -10px; /* Positioned on top left of the card */
+            top: -10px;
             left: -10px; 
-            width: 40px; /* Adjusted size */
+            width: 40px;
             height: 40px; 
-            z-index: 3; 
+            z-index: 3; /* z-index increased */
             filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3));
-            background: white; /* Added background for better visibility */
+            background: white;
             border-radius: 50%;
             padding: 2px;
             box-shadow: 0 0 5px rgba(0,0,0,0.2);
         }
+
+        /* NEW: Styles for Dynamic Card Backgrounds */
+        .card-has-bg {
+            background-size: cover;
+            background-position: center;
+            color: white; /* Change default text color for better contrast */
+        }
+        .card-has-bg::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4); /* Dark overlay for readability */
+            border-radius: 11px; /* Match parent's border-radius */
+            z-index: 1;
+        }
+        /* Ensure content is above the overlay */
+        .card-has-bg .member-photo-container,
+        .card-has-bg .member-name,
+        .card-has-bg .member-balance,
+        .card-has-bg .prime-tag,
+        .card-has-bg .rank-icon {
+            position: relative;
+            z-index: 2;
+        }
+        .card-has-bg .member-name {
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+        .card-has-bg .member-balance {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
 
         .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
         .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
@@ -255,13 +294,13 @@
 
         @media (min-width: 576px) { 
             header h1 { font-size: 2.4em; } 
-            .member-card { flex: 0 0 30%; max-width: 180px; } /* 3 cards on small tablets */
+            .member-card { flex: 0 0 30%; max-width: 180px; }
             h2 { font-size: 1.9em; } 
             .info-card-slide { flex: 0 0 320px; } 
         }
         @media (min-width: 768px) { 
             header h1 { font-size: 2.6em; } 
-            .member-card { flex: 0 0 22%; max-width: 200px; } /* 4 cards on tablets */
+            .member-card { flex: 0 0 22%; max-width: 200px; }
             h2 { font-size: 2em; } 
         }
         @media (min-width: 992px) { 
@@ -331,7 +370,7 @@
     async function initializeAndRunApp() {
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=2')
+                navigator.serviceWorker.register('/sw.js?v=3') // Version updated
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -364,7 +403,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V2) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V3) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -373,7 +412,7 @@
         const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-        // --- Element Selectors ---
+        // --- Element Selectors (No changes needed here) ---
         const memberContainer = document.getElementById('memberContainer');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
         const totalLoanValueElement = document.getElementById('totalLoanValue');
@@ -429,14 +468,15 @@
         let allMembersData = {}; 
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
-        let totalPenaltyAmount = 0; // ** NEW: To store 10% deductions
+        let totalPenaltyAmount = 0;
         let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
         let todaysTransactions = [];
         let sipChartInstance = null;
         let deferredInstallPrompt = null;
         let currentMemberForFullView = null;
-        
-        // --- PWA Installation Logic ---
+        let cardBackgrounds = {}; // NEW: To store dynamic card background URLs
+
+        // --- PWA Installation Logic (No changes) ---
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
@@ -465,18 +505,22 @@
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         };
 
+        // UPDATED: To fetch card backgrounds from admin settings
         function fetchAllDataFromFirebase() {
             if (!memberContainer) return;
             memberContainer.innerHTML = '<p class="loading-text">Sadasya data load ho raha hai...</p>';
             
             database.ref().once('value', (snapshot) => {
                 const data = snapshot.val();
-                if (!data || !data.members) {
-                    throw new Error("Data could not be read. Check database rules and path.");
+                if (!data) {
+                    throw new Error("Database is empty or could not be read.");
                 }
-                allMembersData = data.members;
-                // ** NEW: Get penalty incomes for return calculation
+                allMembersData = data.members || {};
                 const penaltyIncomes = data.penaltyWallet ? data.penaltyWallet.incomes || {} : {};
+                
+                // NEW: Fetch card background URLs from admin node
+                cardBackgrounds = data.admin?.card_backgrounds || {};
+
                 processAndDisplayData(allMembersData, penaltyIncomes);
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
@@ -486,13 +530,13 @@
             });
         }
 
+        // processAndDisplayData remains largely the same, just passes data down
         function processAndDisplayData(membersData, penaltyIncomes) {
             const processedMembers = {};
             let totalLoanDisbursed = 0;
-            let totalGrossReturn = 0; // Changed from totalReturn to avoid confusion
+            let totalGrossReturn = 0;
             let allTransactions = [];
 
-            // ** NEW: Calculate total 10% deduction from penalty wallet
             totalPenaltyAmount = Object.values(penaltyIncomes)
                 .filter(income => income.reason && income.reason.includes("10% of Return"))
                 .reduce((sum, income) => sum + (income.amount || 0), 0);
@@ -517,7 +561,7 @@
                     extraBalance = totalExtraPayment;
                     
                     totalLoanDisbursed += totalLoan;
-                    totalGrossReturn += memberReturn; // Calculate gross return before deduction
+                    totalGrossReturn += memberReturn;
 
                     memberTransactions.forEach(tx => {
                         allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: new Date(tx.Date) });
@@ -541,7 +585,7 @@
                 };
             }
             
-            netReturnAmount = totalGrossReturn; // Store the gross return
+            netReturnAmount = totalGrossReturn;
             const memberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
             
             adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
@@ -560,7 +604,7 @@
             processTodaysTransactions(allTransactions);
             const monthlySipData = processMonthlySipData(allTransactions);
 
-            displayMembers(memberList);
+            displayMembers(memberList); // Pass the fetched backgrounds
             updateTotalBalanceDisplay(memberList);
             updateInfoCards(memberList.length, totalLoanDisbursed);
             startHeaderDisplayRotator();
@@ -568,6 +612,7 @@
             renderSipChart(monthlySipData);
         }
 
+        // UPDATED: To handle dynamic backgrounds
         function displayMembers(members) {
             if (!memberContainer) return;
             memberContainer.innerHTML = '';
@@ -576,7 +621,6 @@
                  return;
             }
             
-            // ** NEW: Medal Icon URLs **
             const goldMedalURL = "https://www.svgrepo.com/show/452215/gold-medal.svg";
             const silverMedalURL = "https://www.svgrepo.com/show/452101/silver-medal.svg";
             const bronzeMedalURL = "https://www.svgrepo.com/show/452174/bronze-medal.svg";
@@ -588,15 +632,34 @@
                 card.className = 'member-card animate-on-scroll';
                 let rankHTML = '';
                 
-                // ** UPDATED: Use img tags for medals **
-                if (index === 0) { rankHTML = `<img src="${goldMedalURL}" class="rank-icon" alt="Gold Medal">`; } 
-                else if (index === 1) { rankHTML = `<img src="${silverMedalURL}" class="rank-icon" alt="Silver Medal">`; } 
-                else if (index === 2) { rankHTML = `<img src="${bronzeMedalURL}" class="rank-icon" alt="Bronze Medal">`; }
+                if (index === 0) { 
+                    rankHTML = `<img src="${goldMedalURL}" class="rank-icon" alt="Gold Medal">`;
+                    if (cardBackgrounds.gold) {
+                        card.classList.add('card-has-bg');
+                        card.style.backgroundImage = `url(${cardBackgrounds.gold})`;
+                    }
+                } 
+                else if (index === 1) { 
+                    rankHTML = `<img src="${silverMedalURL}" class="rank-icon" alt="Silver Medal">`;
+                    if (cardBackgrounds.silver) {
+                        card.classList.add('card-has-bg');
+                        card.style.backgroundImage = `url(${cardBackgrounds.silver})`;
+                    }
+                } 
+                else if (index === 2) { 
+                    rankHTML = `<img src="${bronzeMedalURL}" class="rank-icon" alt="Bronze Medal">`;
+                    if (cardBackgrounds.bronze) {
+                        card.classList.add('card-has-bg');
+                        card.style.backgroundImage = `url(${cardBackgrounds.bronze})`;
+                    }
+                }
                 
                 card.innerHTML = `
                     ${rankHTML}
                     ${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}
-                    <img src="${member.displayImageUrl}" alt="${member.name}" class="member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    <div class="member-photo-container">
+                        <img src="${member.displayImageUrl}" alt="${member.name}" class="member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    </div>
                     <p class="member-name" title="${member.name}">${member.name}</p>
                     <p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
                 `;
@@ -605,6 +668,9 @@
             });
             observeElements(memberContainer.querySelectorAll('.animate-on-scroll'));
         }
+        
+        // --- All other functions (showMemberProfileModal, showBalanceModal, etc.) remain the same ---
+        // --- They are included here for completeness ---
 
         function updateInfoCards(memberCount, totalLoan) {
             if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
@@ -629,29 +695,20 @@
             profileModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
-        
-        // ** UPDATED: Balance Modal Logic **
         function showBalanceModal() {
             if (!balanceModalElement) return;
-            
-            // Calculate net return after 10% deduction
             const netReturnAfterPenalty = netReturnAmount - totalPenaltyAmount;
             const combinedBalance = netCommunityBalance + netReturnAfterPenalty;
-            
             balanceModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
-
             animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
             animateValue(returnBalanceElement, 0, netReturnAfterPenalty, 1200);
             animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
         }
-
         function showSipStatusModal() {
             if (!sipStatusListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
             sipStatusListContainer.innerHTML = '';
-            
             const memberList = Object.values(allMembersData).filter(m => m.status === 'Approved' && m.fullName);
-            
             const sortedMembers = memberList.map(member => {
                 const now = new Date();
                 const currentMonthSip = Object.values(member.transactions || {}).find(tx => 
@@ -665,7 +722,6 @@
                     sipPaid: !!currentMonthSip
                 }
             }).sort((a, b) => (b.sipPaid ? 1 : 0) - (a.sipPaid ? 1 : 0) || a.name.localeCompare(b.name));
-
             sortedMembers.forEach(member => {
                 const item = document.createElement('div');
                 item.className = 'sip-status-item';
@@ -830,6 +886,9 @@
                 notificationDot.style.display = 'block';
             }
         }
+        
+        // This function already shows all transactions from the `todaysTransactions` array.
+        // No changes needed here as the logic is correct.
         function displayNotifications() {
             notificationList.innerHTML = '';
             if (todaysTransactions.length === 0) {
