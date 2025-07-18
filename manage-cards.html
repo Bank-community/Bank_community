@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Custom Cards</title>
+    
+    <link rel="icon" type="image/png" href="https://i.ibb.co/20mS3KgF/IMG-20250630-184409.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/phosphor-icons"></script>
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .form-input { background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.3s ease; }
+        .form-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
+        .btn-primary { background-color: #4f46e5; transition: background-color 0.3s ease; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .modal-overlay { background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(5px); transition: opacity 0.3s ease-in-out; }
+        .modal-content { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-100 antialiased">
+
+    <main class="container mx-auto p-4 sm:p-6 md:p-8">
+        <header class="flex justify-between items-center mb-6 pb-4 border-b">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Manage Custom Cards</h1>
+            <button id="add-new-card-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:scale-105 transition-transform">
+                <i class="ph-plus"></i> Add New Card
+            </button>
+        </header>
+
+        <div id="custom-cards-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Cards will be loaded here -->
+            <p class="text-center text-gray-500 col-span-full py-10">Loading cards...</p>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="customCardModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 scale-95">
+            <h3 id="confirmModalTitle" class="text-lg font-bold text-gray-900">Confirmation</h3>
+            <p id="confirmModalMessage" class="mt-2 text-sm text-gray-600">Are you sure?</p>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="confirmCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
+                <button id="confirmOkBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') { window.location.href = 'login.html'; }
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        let db;
+        let adminSettings = {};
+
+        async function startApp() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Config fetch failed');
+                const config = await response.json();
+                
+                const app = initializeApp(config.firebase);
+                db = getDatabase(app);
+
+                attachEventHandlers();
+                fetchCustomCards();
+            } catch (error) {
+                console.error("App Init Failed:", error);
+                document.body.innerHTML = `<div class="text-center p-8"><h1>Initialization Error</h1><p>${error.message}</p></div>`;
+            }
+        }
+
+        function fetchCustomCards() {
+            const cardsRef = ref(db, 'admin/custom_cards');
+            onValue(cardsRef, (snapshot) => {
+                adminSettings.custom_cards = snapshot.val() || {};
+                renderCustomCardsList(adminSettings.custom_cards);
+            });
+        }
+
+        function renderCustomCardsList(cards) {
+            const container = document.getElementById('custom-cards-list');
+            container.innerHTML = '';
+
+            if (Object.keys(cards).length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-500 col-span-full py-10">No custom cards added yet. Click 'Add New Card' to start.</p>`;
+                return;
+            }
+
+            for (const [key, card] of Object.entries(cards)) {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col';
+                cardElement.innerHTML = `
+                    <img src="${card.imageUrl}" class="w-full h-48 object-cover" onerror="this.src='https://placehold.co/600x400/E0E7FF/4F46E5?text=Image'">
+                    <div class="p-4 flex-grow flex flex-col">
+                        <h3 class="text-lg font-bold text-gray-800">${card.title}</h3>
+                        <p class="text-sm text-gray-600 mt-1 mb-4 flex-grow">${card.description}</p>
+                        <a href="${card.buttonLink}" target="_blank" class="w-full text-center text-white font-semibold py-2 rounded-lg" style="background-color: ${card.buttonColor};">${card.buttonText}</a>
+                    </div>
+                    <div class="bg-gray-50 p-3 flex justify-end gap-3 border-t">
+                        <button class="edit-card-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-2xl"></i></button>
+                        <button class="delete-card-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-2xl"></i></button>
+                    </div>
+                `;
+                container.appendChild(cardElement);
+            }
+        }
+
+        function renderCustomCardModal(key = null) {
+            const modal = document.getElementById('customCardModal');
+            const isEditing = key !== null;
+            const cardData = isEditing ? adminSettings.custom_cards[key] : {};
+            
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
+                    <form id="custom-card-form" data-key="${isEditing ? key : ''}">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Custom Card</h3>
+                        </div>
+                        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div>
+                                <label for="card-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <input type="text" id="card-title" class="form-input w-full p-2 rounded-lg" value="${cardData.title || ''}" required>
+                            </div>
+                            <div>
+                                <label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}">
+                            </div>
+                            <div>
+                                <label for="card-img" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                                <input type="url" id="card-img" class="form-input w-full p-2 rounded-lg" value="${cardData.imageUrl || ''}" required>
+                            </div>
+                             <div>
+                                <label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                                <input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required>
+                            </div>
+                            <div>
+                                <label for="card-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
+                                <input type="url" id="card-btn-url" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonLink || ''}" required>
+                            </div>
+                            <div>
+                                <label for="card-btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
+                                <input type="color" id="card-btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${cardData.buttonColor || '#4f46e5'}">
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Card</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            openModal(modal);
+        }
+
+        function openModal(modal) { modal.classList.remove('hidden', 'opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }
+        function closeModal(modal) { if(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); } }
+        function showConfirmation(title, message) { return new Promise(resolve => { const modal = document.getElementById('confirmModal'); modal.querySelector('#confirmModalTitle').textContent = title; modal.querySelector('#confirmModalMessage').textContent = message; openModal(modal); const okBtn = modal.querySelector('#confirmOkBtn'); const cancelBtn = modal.querySelector('#confirmCancelBtn'); const cleanup = () => { closeModal(modal); okBtn.onclick = null; cancelBtn.onclick = null; }; okBtn.onclick = () => { cleanup(); resolve(true); }; cancelBtn.onclick = () => { cleanup(); resolve(false); }; }); }
+
+        function attachEventHandlers() {
+            document.getElementById('add-new-card-btn').addEventListener('click', () => renderCustomCardModal());
+
+            document.body.addEventListener('click', async (e) => {
+                const editBtn = e.target.closest('.edit-card-btn');
+                if (editBtn) {
+                    renderCustomCardModal(editBtn.dataset.key);
+                }
+
+                const deleteBtn = e.target.closest('.delete-card-btn');
+                if (deleteBtn) {
+                    const key = deleteBtn.dataset.key;
+                    const cardTitle = adminSettings.custom_cards[key]?.title || 'this card';
+                    const confirmed = await showConfirmation('Delete Custom Card?', `Are you sure you want to delete "${cardTitle}"?`);
+                    if (confirmed) {
+                        try {
+                            await remove(ref(db, `admin/custom_cards/${key}`));
+                            alert('Card deleted successfully.');
+                        } catch (err) {
+                            alert('Error deleting card: ' + err.message);
+                        }
+                    }
+                }
+                
+                const closeBtn = e.target.closest('.close-modal-btn');
+                if (closeBtn) {
+                    closeModal(closeBtn.closest('.modal-overlay'));
+                }
+            });
+
+            document.body.addEventListener('submit', async (e) => {
+                if (e.target.id === 'custom-card-form') {
+                    e.preventDefault();
+                    const form = e.target;
+                    const key = form.dataset.key;
+                    const cardData = {
+                        title: document.getElementById('card-title').value,
+                        description: document.getElementById('card-desc').value,
+                        imageUrl: document.getElementById('card-img').value,
+                        buttonText: document.getElementById('card-btn-text').value,
+                        buttonLink: document.getElementById('card-btn-url').value,
+                        buttonColor: document.getElementById('card-btn-color').value,
+                    };
+                    
+                    const dbRef = key ? ref(db, `admin/custom_cards/${key}`) : push(ref(db, 'admin/custom_cards'));
+                    try {
+                        await set(dbRef, cardData);
+                        alert(`Custom card ${key ? 'updated' : 'added'} successfully!`);
+                        closeModal(document.getElementById('customCardModal'));
+                    } catch (err) {
+                        alert('Error saving custom card: ' + err.message);
+                    }
+                }
+            });
+        }
+
+        startApp();
+    </script>
+</body>
+</html>
+
