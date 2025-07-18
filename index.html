@@ -125,94 +125,46 @@
         .member-slider::-webkit-scrollbar-track { background: #e0f2f7; border-radius: 4px;}
         .member-slider::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid #e0f2f7; }
         .member-slider::-webkit-scrollbar-thumb:hover { background-color: var(--primary-darker); }
-        
-        /* --- UPDATED CARD STYLES --- */
-        .member-card {
-            position: relative;
-            flex: 0 0 160px; /* Fixed width */
-            height: 230px; /* Fixed height */
-            border-radius: 12px;
-            padding: 10px;
-            box-sizing: border-box;
-            overflow: hidden;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end; /* Align content to the bottom */
-            align-items: center;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .member-card:hover { transform: translateY(-5px); }
-        .member-card img {
-            position: absolute;
-            top: 10px; /* Space from top */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px; /* Fixed image width */
-            height: 100px; /* Fixed image height */
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid white; /* White border added */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            z-index: 2;
-        }
-        .member-card .member-name {
-            font-size: 1em;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-            margin-bottom: 5px;
-        }
-        .member-card .member-balance {
-            font-size: 0.9em;
-            font-weight: bold;
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
+        .member-card { position: relative; background-color: var(--card-bg); border-radius: 12px; flex: 0 0 145px; text-align: center; padding: 12px; box-shadow: 0 5px 10px var(--shadow-color); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; cursor: pointer; border: 1px solid var(--border-color); box-sizing: border-box; overflow: hidden; }
+        .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
+        .member-card img { width: 100%; height: 125px; border-radius: 8px; object-fit: cover; margin-bottom: 12px; display: block; background-color: #f0f0f0; transition: transform 0.3s ease; }
+        .member-card:hover img { transform: scale(1.05); }
+        .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
+        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 20px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
+        .prime-tag { position: absolute; top: 120px; right: 12px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
         .rank-icon { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
-        .prime-tag {
-            position: absolute;
-            top: 85px; /* Positioned relative to the card */
-            right: 25px;
-            background-color: var(--prime-color);
-            color: var(--text-color);
-            padding: 4px 9px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            line-height: 1;
-            z-index: 3; /* Ensure it's on top */
-        }
-
+        
+        /* --- CARD TEXTURE STYLES --- */
         .member-card.gold, .member-card.silver, .member-card.bronze {
             background-size: cover;
             background-position: center;
             border-width: 2px;
+            position: relative;
         }
         .member-card.gold::before, .member-card.silver::before, .member-card.bronze::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent 60%);
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px; /* Match parent's border-radius */
+            z-index: 0;
+        }
+        .member-card .member-name, .member-card .member-balance, .member-card .prime-tag, .member-card img, .member-card .rank-icon {
+            position: relative;
             z-index: 1;
         }
-        .member-card .member-name, .member-card .member-balance { position: relative; z-index: 2; }
         .member-card.gold { background-image: url('https://i.ibb.co/XfWcfwqy/image-search-1752833366681.jpg'); border-color: #e6c100; }
         .member-card.silver { background-image: url('https://i.ibb.co/5h196znm/image-search-1752833439490.jpg'); border-color: #d1d5db; }
         .member-card.bronze { background-image: url('https://i.ibb.co/Kjvk6fgF/image-search-1752833487687.jpg'); border-color: #d68c58; }
         
         .member-card.gold .member-name, .member-card.silver .member-name, .member-card.bronze .member-name {
             color: #ffffff;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
         }
-        .member-card.gold .member-balance { background: rgba(255, 215, 0, 0.9); color: #4d3200; border: none; }
-        .member-card.silver .member-balance { background: rgba(209, 213, 219, 0.9); color: #2d3748; border: none; }
-        .member-card.bronze .member-balance { background: rgba(205, 127, 50, 0.9); color: #ffffff; border: none; }
+        .member-card.gold .member-balance { background: rgba(255, 215, 0, 0.8); color: #4d3200; border: none; }
+        .member-card.silver .member-balance { background: rgba(192, 192, 192, 0.8); color: #2d3748; border: none; }
+        .member-card.bronze .member-balance { background: rgba(205, 127, 50, 0.8); color: #ffffff; border: none; }
 
 
         .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
@@ -284,23 +236,22 @@
         .animate-on-scroll { opacity: 0; transform: translateY(40px); transition: opacity var(--animation-duration) ease-out, transform var(--animation-duration) ease-out; }
         .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
         
+        /* --- NEW MODAL STYLES --- */
         #fullProfileViewModal .modal-content { max-width: 95%; width: 600px; max-height: 90vh; display: flex; flex-direction: column; }
         .full-profile-body { overflow-y: auto; padding: 20px; }
-        .full-profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; margin-bottom: 20px; }
+        .full-profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; }
         .full-profile-item { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef; }
         .full-profile-item strong { display: block; color: var(--primary-darker); font-size: 0.9em; margin-bottom: 5px; }
-        .full-profile-item span { font-size: 1.1em; word-wrap: break-word; }
-        .full-profile-item.full-width { grid-column: 1 / -1; }
+        .full-profile-item span { font-size: 1.1em; }
         .full-profile-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
         .full-profile-images div { text-align: center; }
         .full-profile-images img { width: 100%; height: 120px; object-fit: contain; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; background: #f0f0f0; }
         .full-profile-images strong { font-size: 0.9em; margin-top: 5px; display: block; }
-        .return-details { background: #e6f7ff; padding: 15px; border-radius: 8px; }
 
-        @media (min-width: 576px) { .member-card { flex-basis: 200px; height: 260px; } .member-card img { width: 120px; height: 120px; } .prime-tag { top: 105px; right: 30px; } h2 { font-size: 1.9em; } .info-card-slide { flex: 0 0 320px; } }
-        @media (min-width: 768px) { h2 { font-size: 2em; } }
-        @media (min-width: 992px) { .balance-display { font-size: 3.2em; } h2 { font-size: 2.1em; } }
-        @media (min-width: 1200px) { .content-wrapper, .header-container, .member-slider { max-width: 1140px; } h2 { font-size: 2.2em; } }
+        @media (min-width: 576px) { header h1 { font-size: 2.4em; } .member-card { flex: 0 0 200px; } h2 { font-size: 1.9em; } .info-card-slide { flex: 0 0 320px; } }
+        @media (min-width: 768px) { header h1 { font-size: 2.6em; } .member-card { flex: 0 0 210px; } h2 { font-size: 2em; } }
+        @media (min-width: 992px) { .member-card { flex: 0 0 220px; } .balance-display { font-size: 3.2em; } h2 { font-size: 2.1em; } }
+        @media (min-width: 1200px) { .content-wrapper, .header-container, .member-slider { max-width: 1140px; } .member-card { flex: 0 0 230px; } h2 { font-size: 2.2em; } }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
@@ -329,12 +280,8 @@
                 <div class="full-profile-item"><strong>Mobile Number</strong><span id="fullProfileMobile">--</span></div>
                 <div class="full-profile-item"><strong>Date of Birth</strong><span id="fullProfileDob">--</span></div>
                 <div class="full-profile-item"><strong>Aadhaar No.</strong><span id="fullProfileAadhaar">--</span></div>
-                <div class="full-profile-item full-width"><strong>Address</strong><span id="fullProfileAddress">--</span></div>
-                <div class="full-profile-item full-width return-details">
-                    <strong>Return & Penalty Details</strong>
-                    <span id="fullProfileReturnDetails">--</span>
-                </div>
-                <div class="full-profile-item full-width" style="background: #e6f7ff;"><strong>Extra Amount Balance</strong><span id="fullProfileExtraAmount" style="font-weight: bold; color: var(--info-color);">--</span></div>
+                <div class="full-profile-item" style="grid-column: 1 / -1;"><strong>Address</strong><span id="fullProfileAddress">--</span></div>
+                <div class="full-profile-item" style="background: #e6f7ff;"><strong>Extra Amount</strong><span id="fullProfileExtraAmount" style="font-weight: bold; color: var(--info-color);">--</span></div>
             </div>
             <div class="full-profile-images">
                 <div>
@@ -395,7 +342,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (FINAL UPDATE) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -404,7 +351,7 @@
         const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-        // --- Element Selectors (same as before) ---
+        // --- Element Selectors ---
         const memberContainer = document.getElementById('memberContainer');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
         const totalLoanValueElement = document.getElementById('totalLoanValue');
@@ -448,6 +395,8 @@
         const playBtn = document.getElementById('playBtn');
         const audio = document.getElementById('welcomeAudio');
         const installAppBtn = document.getElementById('installAppBtn');
+
+        // --- New Modal Elements ---
         const fullViewBtn = document.getElementById('fullViewBtn');
         const passwordPromptModal = document.getElementById('passwordPromptModal');
         const closePasswordModal = document.getElementById('closePasswordModal');
@@ -457,8 +406,7 @@
         const closeFullProfileModal = document.getElementById('closeFullProfileModal');
 
         // --- State Variables ---
-        let allMembersData = {}; 
-        let processedMemberList = []; // A list of processed member objects for easy access
+        let allMembersData = {}; // Changed to object to store full data
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
         let totalPenaltyAmount = 0;
@@ -468,8 +416,28 @@
         let deferredInstallPrompt = null;
         let currentMemberForFullView = null;
         
-        function setupPWA() { /* ... same as before ... */ }
+        // --- PWA Installation Logic ---
+        function setupPWA() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredInstallPrompt = e;
+                if(installAppBtn) installAppBtn.style.display = 'inline-flex';
+            });
+            if(installAppBtn) installAppBtn.addEventListener('click', async () => {
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    await deferredInstallPrompt.userChoice;
+                    deferredInstallPrompt = null;
+                    installAppBtn.style.display = 'none';
+                }
+            });
+            window.addEventListener('appinstalled', () => { if(installAppBtn) installAppBtn.style.display = 'none'; });
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                if(installAppBtn) installAppBtn.style.display = 'none';
+            }
+        }
 
+        // --- Functions ---
         const formatDate = (dateString) => {
             if (!dateString) return "N/A";
             const date = new Date(dateString);
@@ -484,10 +452,10 @@
             database.ref().once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data || !data.members) {
-                    throw new Error("Data could not be read.");
+                    throw new Error("Data could not be read. Check database rules and path.");
                 }
-                allMembersData = data.members; 
-                const penaltyIncomes = data.penaltyWallet ? Object.values(data.penaltyWallet.incomes || {}) : [];
+                allMembersData = data.members; // Store the raw members object
+                const penaltyIncomes = data.penaltyWallet ? data.penaltyWallet.incomes || {} : {};
                 processAndDisplayData(allMembersData, penaltyIncomes);
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
@@ -503,13 +471,13 @@
             let totalReturn = 0;
             let allTransactions = [];
 
-            totalPenaltyAmount = penaltyIncomes.reduce((sum, income) => sum + income.amount, 0);
+            totalPenaltyAmount = Object.values(penaltyIncomes).reduce((sum, income) => sum + income.amount, 0);
 
             for (const memberId in membersData) {
                 const member = membersData[memberId];
                 if (member.status !== 'Approved' || !member.fullName) continue;
 
-                let balance = 0, loanCount = 0, memberReturn = 0, extraBalance = 0, memberPenalty = 0;
+                let balance = 0, loanCount = 0, memberReturn = 0, extraBalance = 0;
                 let memberTransactions = [];
 
                 if (member.transactions) {
@@ -527,9 +495,6 @@
                     totalLoanDisbursed += totalLoan;
                     totalReturn += memberReturn;
 
-                    // Calculate this member's specific penalty
-                    memberPenalty = penaltyIncomes.filter(p => p.from === member.fullName).reduce((sum, p) => sum + p.amount, 0);
-
                     memberTransactions.forEach(tx => {
                         allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: new Date(tx.Date) });
                     });
@@ -544,8 +509,8 @@
 
                 processedMembers[memberId] = {
                     id: memberId, name: member.fullName, balance: balance, totalReturn: memberReturn,
-                    totalPenalty: memberPenalty, loanCount: loanCount, extraBalance: extraBalance,
-                    joiningDate: member.joiningDate,
+                    loanCount: loanCount, extraBalance: extraBalance,
+                    joiningDate: member.joiningDate || (memberTransactions.length > 0 ? memberTransactions[0].Date : null),
                     displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
                     isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
                     sipStatus: { paid: !!currentMonthSip, amount: currentMonthSip ? parseFloat(currentMonthSip['SIP Payment']) : 0 }
@@ -553,33 +518,44 @@
             }
             
             netReturnAmount = totalReturn;
-            processedMemberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
+            const memberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
             
-            // ... adData and other processing remains the same ...
-            adData.topBalanceMember = processedMemberList.length > 0 ? processedMemberList[0] : null;
-            adData.topThreeMembers = processedMemberList.slice(0, 3);
-            adData.bankStats = { totalMembers: processedMemberList.length, totalLoan: totalLoanDisbursed };
+            adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
+            adData.topThreeMembers = memberList.slice(0, 3);
+            adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
             
-            // --- Render UI ---
-            displayMembers(processedMemberList);
-            updateTotalBalanceDisplay(processedMemberList);
-            updateInfoCards(processedMemberList.length, totalLoanDisbursed);
+            const currentMonthSips = allTransactions.filter(tx => tx['SIP Payment'] > 0 && tx.Date.getMonth() === new Date().getMonth() && tx.Date.getFullYear() === new Date().getFullYear());
+            if (currentMonthSips.length > 0) {
+                const topSipTx = currentMonthSips.reduce((max, tx) => parseFloat(tx['SIP Payment']) > parseFloat(max['SIP Payment']) ? tx : max, currentMonthSips[0]);
+                const topSipMemberInfo = memberList.find(m => m.name === topSipTx.fullName);
+                if (topSipMemberInfo) {
+                     adData.topSipMember = { name: topSipMemberInfo.name, amount: parseFloat(topSipTx['SIP Payment']), imageUrl: topSipMemberInfo.displayImageUrl };
+                }
+            }
+            
+            processTodaysTransactions(allTransactions);
+            const monthlySipData = processMonthlySipData(allTransactions);
+
+            displayMembers(memberList);
+            updateTotalBalanceDisplay(memberList);
+            updateInfoCards(memberList.length, totalLoanDisbursed);
             startHeaderDisplayRotator();
             buildInfoSlider();
-            renderSipChart(processMonthlySipData(allTransactions));
-            processTodaysTransactions(allTransactions);
+            renderSipChart(monthlySipData);
         }
 
-        function displayMembers(memberList) {
+        function displayMembers(members) {
             if (!memberContainer) return;
             memberContainer.innerHTML = '';
-            if (memberList.length === 0) {
+            if (members.length === 0) {
                  memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
                  return;
             }
             const goldSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#c9a400"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#ffce00"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
             const silverSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#aeb4b7"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d0d5d8"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
             const bronzeSVG = `<svg viewBox="0 0 38 38" class="rank-icon" xmlns="http://www.w3.org/2000/svg"><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831s7.549 16.831 16.831 16.831 16.831-7.549 16.831-16.831S28.282 2.169 19 2.169zm0 31.662c-8.186 0-14.831-6.645-14.831-14.831S10.814 4.169 19 4.169s14.831 6.645 14.831 14.831-6.645 14.831-14.831 14.831z" fill="#a97142"/><path d="M19 2.169c-9.282 0-16.831 7.549-16.831 16.831S9.718 35.831 19 35.831V2.169z" fill="#d4a373"/><path d="M19.998 12.336l1.854 5.709h6.002l-4.854 3.529 1.854 5.709-4.854-3.529-4.854 3.529 1.854-5.709-4.854-3.529h6.002z" fill="#fff"/></svg>`;
+            
+            const memberList = Object.values(members).sort((a, b) => b.balance - a.balance);
 
             memberList.forEach((member, index) => {
                 const card = document.createElement('div');
@@ -588,22 +564,22 @@
                 if (index === 0) { card.classList.add('gold'); rankHTML = goldSVG; } 
                 else if (index === 1) { card.classList.add('silver'); rankHTML = silverSVG; } 
                 else if (index === 2) { card.classList.add('bronze'); rankHTML = bronzeSVG; }
-                card.innerHTML = `
-                    ${rankHTML}
-                    <img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                    ${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}
-                    <p class="member-name" title="${member.name}">${member.name}</p>
-                    <p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
-                `;
+                card.innerHTML = `${rankHTML}${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="member-name" title="${member.name}">${member.name}</p><p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>`;
                 card.onclick = () => showMemberProfileModal(member);
                 memberContainer.appendChild(card);
             });
             observeElements(memberContainer.querySelectorAll('.animate-on-scroll'));
         }
 
+        function updateInfoCards(memberCount, totalLoan) {
+            if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
+            if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'});
+        }
+        function updateTotalBalanceDisplay(memberList) {
+            netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
+        }
         function showMemberProfileModal(member) {
-            currentMemberForFullView = member.id;
-            // ... rest of the function is the same
+            currentMemberForFullView = member.id; // Store member ID for password check
             profileModalImage.src = member.displayImageUrl;
             profileModalName.textContent = member.name;
             profileModalJoiningDate.textContent = formatDate(member.joiningDate);
@@ -618,7 +594,6 @@
             profileModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
-
         function showBalanceModal() {
             if (!balanceModalElement) return;
             const netReturnAfterPenalty = netReturnAmount - totalPenaltyAmount;
@@ -631,13 +606,238 @@
             animateValue(returnBalanceElement, 0, netReturnAfterPenalty, 1200);
             animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
         }
+        function showSipStatusModal() {
+            if (!sipStatusListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
+            sipStatusListContainer.innerHTML = '';
+            
+            const memberList = Object.values(allMembersData).filter(m => m.status === 'Approved');
+            const sortedMembers = memberList.map(memberId => {
+                const member = allMembersData[memberId];
+                const now = new Date();
+                const currentMonthSip = Object.values(member.transactions || {}).find(tx => 
+                    parseFloat(tx['SIP Payment'] || 0) > 0 &&
+                    new Date(tx.Date).getMonth() === now.getMonth() &&
+                    new Date(tx.Date).getFullYear() === now.getFullYear()
+                );
+                return {
+                    name: member.fullName,
+                    displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
+                    sipPaid: !!currentMonthSip
+                }
+            }).sort((a, b) => a.sipPaid === b.sipPaid ? a.name.localeCompare(b.name) : a.sipPaid ? 1 : -1);
 
+            sortedMembers.forEach(member => {
+                const item = document.createElement('div');
+                item.className = 'sip-status-item';
+                const statusClass = member.sipPaid ? 'paid' : 'not-paid';
+                const statusText = member.sipPaid ? 'Paid' : 'Not Paid';
+                item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`;
+                sipStatusListContainer.appendChild(item);
+            });
+            sipStatusModalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal(modalElement) {
+            if (modalElement) modalElement.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        function showFullImage(imageUrl, altText) {
+            if (!imageModalElement || !fullImageSrcElement) return;
+            fullImageSrcElement.src = imageUrl;
+            fullImageSrcElement.alt = altText;
+            imageModalElement.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentValue = Math.floor(progress * (end - start) + start);
+                element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+                if (progress < 1) { window.requestAnimationFrame(step); } 
+                else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); }
+            };
+            window.requestAnimationFrame(step);
+        }
+        const scrollObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
+        function observeElements(elements) {
+            elements.forEach(el => { if (el) scrollObserver.observe(el); });
+        }
+        function startHeaderDisplayRotator() {
+            if (!headerDisplay) return;
+            const adContainer = headerDisplay.querySelector('.ad-content');
+            const ads = [];
+     
+            if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => `<div class="ad-top-three-member"><img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="ad-top-three-name">${member.name}</p><p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p></div>`).join(''); return `<div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div>`; }); }
+            if (adData.topSipMember) { ads.push(() => `<div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
+            if (adData.topBalanceMember) { ads.push(() => `<div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
+            if (adData.bankStats) { ads.push(() => `<div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div>`); }
+
+            if (ads.length === 0) { adContainer.innerHTML = `<p class="ad-headline">Welcome to Bank Community Loan!</p>`; return; }
+
+            let currentAdIndex = 0;
+            const showNextAd = () => {
+                if(ads.length > 0) {
+                    adContainer.innerHTML = ads[currentAdIndex]();
+                    currentAdIndex = (currentAdIndex + 1) % ads.length;
+                }
+            };
+            showNextAd();
+            setInterval(showNextAd, 6000);
+        }
+        function initializeLetterSlider() {
+            if (!letterSlidesContainer || !letterSlideIndicator) return;
+            const slides = letterSlidesContainer.children;
+            const totalSlides = slides.length;
+            if (totalSlides === 0) return;
+            letterSlidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); });
+            letterSlideIndicator.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('span');
+                dot.classList.add('indicator-dot');
+                dot.onclick = () => showSlide(i);
+                letterSlideIndicator.appendChild(dot);
+            }
+            let currentSlideIndex = 0;
+            const showSlide = (index) => {
+                currentSlideIndex = (index + totalSlides) % totalSlides;
+                letterSlidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`;
+                letterSlideIndicator.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); });
+            };
+            if(letterPrevBtn) letterPrevBtn.onclick = () => showSlide(currentSlideIndex - 1);
+            if(letterNextBtn) letterNextBtn.onclick = () => showSlide(currentSlideIndex + 1);
+            showSlide(0);
+        }
+        function buildInfoSlider() {
+            if (!infoSlider) return;
+            infoSlider.innerHTML = '';
+            const infoCards = [
+                { icon: 'dollar-sign', title: 'Fund Deposit', text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.' },
+                { icon: 'gift', title: 'Loan Provision', text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.' },
+                { icon: 'calendar', title: 'Loan Duration', text: 'Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).' },
+                { icon: 'percent', title: 'Interest Rate', text: 'Avadhi aur rashi ke anusaar byaj darein badal sakti hain.' }
+            ];
+            PRIME_MEMBERS.forEach(name => {
+                infoCards.push({ icon: 'star', title: name, text: 'Is one of our valued Prime Members.', isPrime: true });
+            });
+            infoCards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = `info-card-slide ${card.isPrime ? 'prime' : ''}`;
+                cardEl.innerHTML = `<h3><i data-feather="${card.icon}"></i> ${card.title}</h3><p>${card.text}</p>`;
+                infoSlider.appendChild(cardEl);
+            });
+            feather.replace();
+        }
+        function processMonthlySipData(transactions) {
+            const monthlyData = {};
+            transactions.forEach(tx => {
+                if (tx['SIP Payment'] > 0) {
+                    const monthYear = `${tx.Date.toLocaleString('default', { month: 'short' })} '${tx.Date.getFullYear().toString().slice(-2)}`;
+                    monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(tx['SIP Payment']);
+                }
+            });
+            const labels = Object.keys(monthlyData);
+            const data = Object.values(monthlyData);
+            return { labels, data };
+        }
+        function renderSipChart({ labels, data }) {
+            if (!sipChartCanvas) return;
+            if (sipChartInstance) sipChartInstance.destroy();
+            const ctx = sipChartCanvas.getContext('2d');
+            sipChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total SIP Collection',
+                        data: data,
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: value => `₹${value/1000}k` } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+        function processTodaysTransactions(transactions) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            todaysTransactions = transactions.filter(tx => {
+                const txDate = new Date(tx.Date);
+                txDate.setHours(0, 0, 0, 0);
+                const isToday = txDate.getTime() === today.getTime();
+                const hasAmount = parseFloat(tx['SIP Payment'] || 0) > 0 || parseFloat(tx.Loan || 0) > 0 || parseFloat(tx['Loan Payment'] || 0) > 0;
+                return isToday && hasAmount;
+            }).sort((a,b) => b.Date - a.Date);
+
+            if (todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed')) {
+                notificationDot.style.display = 'block';
+            }
+        }
+        function displayNotifications() {
+            notificationList.innerHTML = '';
+            if (todaysTransactions.length === 0) {
+                notificationList.innerHTML = `<li class="no-notifications">No activity today.</li>`;
+                return;
+            }
+
+            todaysTransactions.forEach(tx => {
+                const li = document.createElement('li');
+                li.className = 'notification-item';
+                
+                let text = '', amount = '', typeClass = '';
+                if (tx['SIP Payment'] > 0) {
+                    text = `<strong>${tx.fullName}</strong> paid their SIP.`;
+                    amount = `+ ₹${parseFloat(tx['SIP Payment']).toLocaleString()}`;
+                    typeClass = 'sip';
+                } else if (tx.Loan > 0) {
+                    text = `A loan was disbursed to <strong>${tx.fullName}</strong>.`;
+                    amount = `- ₹${parseFloat(tx.Loan).toLocaleString()}`;
+                    typeClass = 'loan';
+                } else if (tx['Loan Payment'] > 0) {
+                    text = `<strong>${tx.fullName}</strong> made a loan payment.`;
+                    amount = `+ ₹${parseFloat(tx['Loan Payment']).toLocaleString()}`;
+                    typeClass = 'payment';
+                     if (tx['Return amount'] > 0) {
+                        text += ` (Return: ₹${parseFloat(tx['Return amount']).toLocaleString()})`;
+                    }
+                }
+
+                li.innerHTML = `
+                    <img src="${tx.profilePicUrl}" alt="${tx.fullName}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    <div class="notification-details">
+                        <p class="notification-text">${text}</p>
+                        <div class="notification-time">${new Date(tx.Date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <span class="notification-amount ${typeClass}">${amount}</span>
+                `;
+                notificationList.appendChild(li);
+            });
+        }
+        
         function handlePasswordCheck() {
             const enteredPassword = passwordInput.value;
-            if (!enteredPassword) { alert('Please enter a password.'); return; }
-            
-            const memberData = allMembersData[currentMemberForFullView];
-            const correctPassword = memberData?.password;
+            if (!enteredPassword) {
+                alert('Please enter a password.');
+                return;
+            }
+            const correctPassword = allMembersData[currentMemberForFullView]?.password;
             
             if (enteredPassword === correctPassword) {
                 closeModal(passwordPromptModal);
@@ -650,7 +850,7 @@
 
         function showFullProfileViewModal(memberId) {
             const member = allMembersData[memberId];
-            const processedMember = processedMemberList.find(m => m.id === memberId);
+            const processedMember = Object.values(allMembersData).find(m => m.id === memberId);
 
             document.getElementById('fullProfileName').textContent = member.fullName;
             document.getElementById('fullProfileMemberId').textContent = member.membershipId || 'N/A';
@@ -658,17 +858,6 @@
             document.getElementById('fullProfileDob').textContent = formatDate(member.dob);
             document.getElementById('fullProfileAadhaar').textContent = member.aadhaar || 'N/A';
             document.getElementById('fullProfileAddress').textContent = member.address || 'N/A';
-            
-            // Updated Return/Penalty section
-            const returnDetailsEl = document.getElementById('fullProfileReturnDetails');
-            const netReturnForMember = processedMember.totalReturn - processedMember.totalPenalty;
-            returnDetailsEl.innerHTML = `
-                Total Return: <span style="color: var(--success-color);">${processedMember.totalReturn.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span><br>
-                Total Penalty: <span style="color: var(--danger-color);">${processedMember.totalPenalty.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span><br>
-                <hr style="margin: 5px 0;">
-                <strong>Net Return: <span style="color: var(--info-color);">${netReturnForMember.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></strong>
-            `;
-
             document.getElementById('fullProfileExtraAmount').textContent = (processedMember.extraBalance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
             
             const profilePic = document.getElementById('fullProfilePic');
@@ -686,9 +875,6 @@
             fullProfileViewModal.classList.add('show');
         }
 
-        // All other functions like setupEventListeners, closeModal, animateValue, etc., remain the same.
-        // I will just list the setupEventListeners again to show the new bindings.
-        
         function setupEventListeners() {
             if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
             if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
@@ -712,7 +898,6 @@
             if (fullViewBtn) fullViewBtn.addEventListener('click', () => {
                 closeModal(profileModalElement);
                 passwordPromptModal.classList.add('show');
-                setTimeout(() => passwordInput.focus(), 100);
             });
             if (closePasswordModal) closePasswordModal.addEventListener('click', () => closeModal(passwordPromptModal));
             if (submitPasswordBtn) submitPasswordBtn.addEventListener('click', handlePasswordCheck);
@@ -733,20 +918,6 @@
                 closeModal(fullProfileViewModal);
             } });
         }
-        
-        // --- Dummy functions for brevity, the actual code is much longer ---
-        function showSipStatusModal() { /* ... same as before ... */ }
-        function closeModal(modalElement) { if (modalElement) modalElement.classList.remove('show'); document.body.style.overflow = ''; }
-        function showFullImage(imageUrl, altText) { /* ... same as before ... */ }
-        function animateValue(element, start, end, duration) { /* ... same as before ... */ }
-        function observeElements(elements) { /* ... same as before ... */ }
-        function startHeaderDisplayRotator() { /* ... same as before ... */ }
-        function initializeLetterSlider() { /* ... same as before ... */ }
-        function buildInfoSlider() { /* ... same as before ... */ }
-        function processMonthlySipData(transactions) { /* ... same as before ... */ return {labels:[], data:[]}; }
-        function renderSipChart({ labels, data }) { /* ... same as before ... */ }
-        function processTodaysTransactions(transactions) { /* ... same as before ... */ }
-        function displayNotifications() { /* ... same as before ... */ }
 
         // --- Initial Calls ---
         feather.replace();
@@ -757,6 +928,7 @@
         observeElements(document.querySelectorAll('.animate-on-scroll'));
     }
 
+    // --- Start the entire process ---
     document.addEventListener('DOMContentLoaded', initializeAndRunApp);
 </script>
 
