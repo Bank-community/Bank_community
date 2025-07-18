@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/phosphor-icons"></script>
 
     <!-- Custom Styles -->
     <style>
@@ -24,7 +25,6 @@
 
     <!-- UI Initialization (Non-Firebase dependent) -->
     <script>
-      // यह फंक्शन हमेशा काम करेगा क्योंकि यह Firebase पर निर्भर नहीं है।
       function generateMembershipId() {
         const prefix = 'BCL';
         const timestamp = Date.now().toString().slice(-6);
@@ -55,9 +55,30 @@
             </div>
 
             <form id="registrationForm" class="p-6 sm:p-8 space-y-6">
-                <!-- Form fields are complete and unchanged -->
                 <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">नया सदस्य जोड़ें</h2>
-                <div class="border-b border-gray-200 pb-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">व्यक्तिगत विवरण</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="fullName" class="block text-sm font-medium text-gray-700 mb-1 required-label">पूरा नाम</label><input type="text" id="fullName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="mobileNumber" class="block text-sm font-medium text-gray-700 mb-1 required-label">मोबाइल नंबर</label><input type="tel" id="mobileNumber" pattern="[6-9]{1}[0-9]{9}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="dob" class="block text-sm font-medium text-gray-700 mb-1 required-label">जन्म तिथि</label><input type="date" id="dob" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected>चुनें...</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option><option value="अन्य">अन्य</option></select></div><div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div class="md:col-span-2"><label for="address" class="block text-sm font-medium text-gray-700 mb-1 required-label">स्थायी पता</label><textarea id="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></textarea></div></div></div>
+                <div class="border-b border-gray-200 pb-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">व्यक्तिगत विवरण</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label for="fullName" class="block text-sm font-medium text-gray-700 mb-1 required-label">पूरा नाम</label><input type="text" id="fullName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="mobileNumber" class="block text-sm font-medium text-gray-700 mb-1 required-label">मोबाइल नंबर</label><input type="tel" id="mobileNumber" pattern="[6-9]{1}[0-9]{9}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="dob" class="block text-sm font-medium text-gray-700 mb-1 required-label">जन्म तिथि</label><input type="date" id="dob" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected>चुनें...</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option><option value="अन्य">अन्य</option></select></div>
+                        <div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        
+                        <!-- New Password Field -->
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1 required-label">पासवर्ड</label>
+                            <div class="relative">
+                                <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10" required>
+                                <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
+                                    <i class="ph-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2"><label for="address" class="block text-sm font-medium text-gray-700 mb-1 required-label">स्थायी पता</label><textarea id="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></textarea></div>
+                    </div>
+                </div>
                 <div class="border-b border-gray-200 pb-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">सदस्यता विवरण</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="membershipId" class="block text-sm font-medium text-gray-700 mb-1">सदस्यता ID</label><input type="text" id="membershipId" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div><div><label for="joiningDate" class="block text-sm font-medium text-gray-700 mb-1 required-label">जॉइनिंग तिथि</label><input type="date" id="joiningDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="sipAmount" class="block text-sm font-medium text-gray-700 mb-1 required-label">SIP Amount (मासिक)</label><div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₹</span><input type="number" id="sipAmount" min="500" step="100" class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg" required></div></div><div><label for="accountBalance" class="block text-sm font-medium text-gray-700 mb-1">खाता बैलेंस</label><input type="text" id="accountBalance" value="₹ 0" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div></div></div>
                 <div><h3 class="text-lg font-semibold text-gray-700 mb-4">दस्तावेज़ अपलोड</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">प्रोफाइल फोटो</label><div id="profilePicPreview" class="img-preview rounded-full mx-auto">Click to upload</div><input type="file" id="profilePic" class="hidden" accept="image/*" required onchange="previewImage(event, 'profilePicPreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">हस्ताक्षर</label><div id="signaturePreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="signature" class="hidden" accept="image/*" required onchange="previewImage(event, 'signaturePreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">दस्तावेज़</label><div id="documentPreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="document" class="hidden" accept="image/*" required onchange="previewImage(event, 'documentPreview')"></div></div></div>
                 <div class="pt-6 text-right"><button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Review & Submit</button></div>
@@ -76,31 +97,24 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-        // --- Global variable for ImgBB API Key ---
         let IMGBB_API_KEY = null;
 
-        // --- Helper functions ---
         function showToast(message, isError = false) { const t=document.getElementById("toast");t.children[0].textContent=message,t.className=`fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform z-50 ${isError?"bg-red-500":"bg-green-500"}`,t.classList.remove("translate-x-[120%]"),t.classList.add("translate-x-0"),setTimeout(()=>{t.classList.remove("translate-x-0"),t.classList.add("translate-x-[120%]")},5e3); }
         window.previewImage = function(event, previewId) { const f=event.target.files[0];if(f){const r=new FileReader,p=document.getElementById(previewId);r.onload=e=>{p.style.backgroundImage=`url(${e.target.result})`,p.textContent=""},r.readAsDataURL(f)} }
         async function uploadImage(file) { if(!file || !IMGBB_API_KEY) return null; const f=new FormData;f.append("image",file);try{const r=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,{method:"POST",body:f}),s=await r.json();if(s.success)return s.data.url;throw new Error(s.error.message||"Image upload failed.")}catch(e){return console.error("Image Upload Error:",e),showToast(`Image upload failed: ${e.message}`,!0),null} }
 
-        // --- Main Application Starter ---
         async function startApp() {
             try {
-                // 1. Fetch the configuration from our serverless function
                 const response = await fetch('/api/config');
                 if (!response.ok) throw new Error(`Configuration fetch failed: ${response.statusText}`);
                 const config = await response.json();
 
-                // 2. Set the API keys
                 IMGBB_API_KEY = config.imgbb.apiKey;
                 const firebaseConfig = config.firebase;
 
-                // 3. Initialize Firebase
                 const app = initializeApp(firebaseConfig);
                 const db = getDatabase(app);
                 
-                // 4. Attach all event handlers that depend on the database
                 attachDbHandlers(db);
                 showToast("Connection successful!", false);
 
@@ -110,13 +124,22 @@
             }
         }
 
-        // --- Function to attach all database-dependent logic ---
         function attachDbHandlers(db) {
             document.getElementById('closeSearchModalBtn').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
             document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
             document.getElementById('closeImageModalBtn').addEventListener('click', () => document.getElementById('imageModal').classList.add('hidden'));
             document.getElementById('editBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
             ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).addEventListener('click', () => { const bg = document.getElementById(id).style.backgroundImage; if (bg && bg !== 'none') { document.getElementById('fullScreenImage').src = bg.slice(5, -2); document.getElementById('imageModal').classList.remove('hidden'); } else { document.getElementById(id.replace('Preview', '')).click(); } }); });
+
+            // Password toggle logic
+            const togglePassword = document.getElementById('togglePassword');
+            const password = document.getElementById('password');
+            togglePassword.addEventListener('click', function () {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('ph-eye');
+                this.querySelector('i').classList.toggle('ph-eye-slash');
+            });
 
             document.getElementById('searchBtn').addEventListener('click', async () => {
                 const searchId = document.getElementById('searchInput').value.trim();
@@ -137,6 +160,7 @@
                 let statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
                 if (data.status === 'Approved') statusClass = 'bg-green-100 text-green-800 border-green-400';
                 else if (data.status === 'Rejected') statusClass = 'bg-red-100 text-red-800 border-red-400';
+                // IMPORTANT: The password is NOT displayed here for security.
                 document.getElementById('modalContent').innerHTML = `<div class="space-y-6"><div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover border-4"><div><h3 class="text-3xl font-bold">${data.fullName}</h3><p>ID: ${data.membershipId}</p><p>Joined: ${new Date(data.joiningDate).toLocaleDateString('hi-IN')}</p><div class="mt-2"><span class="font-semibold">Status:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>मोबाइल:</strong> ${data.mobileNumber}</div><div><strong>जन्म तिथि:</strong> ${new Date(data.dob).toLocaleDateString('hi-IN')}</div><div><strong>लिंग:</strong> ${data.gender}</div><div><strong>आधार:</strong> ${data.aadhaar}</div><div class="md:col-span-2"><strong>पता:</strong> ${data.address}</div><div><strong>SIP:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>बैलेंस:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">हस्ताक्षर</h4><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">दस्तावेज़</h4><a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div></div>`;
             }
 
@@ -164,7 +188,7 @@
                     const [profilePicUrl, signatureUrl, documentUrl] = await Promise.all([uploadImage(document.getElementById('profilePic').files[0]), uploadImage(document.getElementById('signature').files[0]), uploadImage(document.getElementById('document').files[0])]);
                     if (!profilePicUrl || !signatureUrl || !documentUrl) throw new Error("एक या अधिक छवि अपलोड विफल।");
                     const newMembershipId = document.getElementById('membershipId').value;
-                    const memberData = { fullName: document.getElementById('fullName').value, mobileNumber, dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, aadhaar, address: document.getElementById('address').value, membershipId: newMembershipId, joiningDate: document.getElementById('joiningDate').value, sipAmount: parseFloat(document.getElementById('sipAmount').value), accountBalance: 0, profilePicUrl, signatureUrl, documentUrl, createdAt: new Date().toISOString(), status: 'Pending' };
+                    const memberData = { fullName: document.getElementById('fullName').value, mobileNumber, dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, aadhaar, address: document.getElementById('address').value, password: document.getElementById('password').value, membershipId: newMembershipId, joiningDate: document.getElementById('joiningDate').value, sipAmount: parseFloat(document.getElementById('sipAmount').value), accountBalance: 0, profilePicUrl, signatureUrl, documentUrl, createdAt: new Date().toISOString(), status: 'Pending' };
                     await set(ref(db, 'members/' + newMembershipId), memberData);
                     document.getElementById('reviewModal').classList.add('hidden');
                     showToast("पंजीकरण सफल! आपका आवेदन समीक्षा के लिए लंबित है।");
@@ -176,7 +200,6 @@
             });
         }
 
-        // --- Start the application once the page is loaded ---
         startApp();
     </script>
 </body>
