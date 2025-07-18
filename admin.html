@@ -374,7 +374,7 @@
                     </div>
                     <div id="sip-fields">
                         <label for="sip-payment" class="block text-sm font-medium text-gray-700 mb-1">SIP Payment Amount</label>
-                        <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg">
+                        <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg" value="500">
                     </div>
                     <div id="loan-fields" class="hidden">
                          <label for="loan-amount" class="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
@@ -505,15 +505,15 @@
                            ${Object.keys(dashboardButtons).length === 0 
                              ? '<p class="text-center text-gray-500 py-4">No buttons added yet.</p>' 
                              : Object.entries(dashboardButtons).map(([key, btn]) => `
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-4 h-4 rounded-full" style="background-color: ${btn.color || '#ccc'};"></div>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-8 h-8 rounded-md flex-shrink-0" style="background-color: ${btn.color || '#ccc'};"></div>
                                         <div>
-                                            <p class="font-semibold">${btn.name}</p>
-                                            <p class="text-xs text-gray-500">${btn.url}</p>
+                                            <p class="font-semibold text-gray-800">${btn.name}</p>
+                                            <a href="${btn.url}" target="_blank" class="text-xs text-blue-500 hover:underline truncate">${btn.url}</a>
                                         </div>
                                     </div>
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-3 flex-shrink-0">
                                         <button class="edit-button-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
                                         <button class="delete-button-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button>
                                     </div>
@@ -598,32 +598,34 @@
                 let type = 'Unknown';
                 let amountHtml = '';
                 let amountColor = 'text-gray-800';
+                
+                const returnAmt = parseFloat(tx['Return amount'] || 0);
+                const penaltyAmt = parseFloat(tx['Penalty amount'] || 0);
 
                 if (tx['SIP Payment']) {
                     type = 'SIP';
                     amountColor = 'text-green-600';
-                    amountHtml = `₹${parseFloat(tx['SIP Payment']).toLocaleString('en-IN')}`;
+                    amountHtml = `<div class="font-bold text-lg">₹${parseFloat(tx['SIP Payment']).toLocaleString('en-IN')}</div>`;
                 } else if (tx['Loan']) {
                     type = 'Loan';
                     amountColor = 'text-red-600';
-                    amountHtml = `₹${parseFloat(tx['Loan']).toLocaleString('en-IN')}`;
+                    amountHtml = `<div class="font-bold text-lg">₹${parseFloat(tx['Loan']).toLocaleString('en-IN')}</div>`;
                 } else if (tx['Loan Payment']) {
                     type = 'Payment';
                     amountColor = 'text-blue-600';
                     const payment = parseFloat(tx['Loan Payment'] || 0);
-                    const returnAmt = parseFloat(tx['Return amount'] || 0);
-                    const penaltyAmt = parseFloat(tx['Penalty amount'] || 0);
                     amountHtml = `<div class="font-bold text-lg">₹${payment.toLocaleString('en-IN')}</div>`;
-                    if (returnAmt > 0 || penaltyAmt > 0) {
-                        amountHtml += `<div class="text-xs text-gray-500 mt-1">`;
-                        if (returnAmt > 0) amountHtml += `Return: ₹${returnAmt.toLocaleString()}`;
-                        if (penaltyAmt > 0) amountHtml += `${returnAmt > 0 ? ' <span class="text-gray-300">|</span> ' : ''}Penalty: ₹${penaltyAmt.toLocaleString()}`;
-                        amountHtml += `</div>`;
-                    }
                 } else if (tx['Extra Balance']) {
                     type = 'Extra';
                     amountColor = 'text-yellow-600';
-                    amountHtml = `₹${parseFloat(tx['Extra Balance']).toLocaleString('en-IN')}`;
+                    amountHtml = `<div class="font-bold text-lg">₹${parseFloat(tx['Extra Balance']).toLocaleString('en-IN')}</div>`;
+                }
+                
+                if (returnAmt > 0 || penaltyAmt > 0) {
+                    amountHtml += `<div class="text-xs text-gray-500 mt-1">`;
+                    if (returnAmt > 0) amountHtml += `Return: ₹${returnAmt.toLocaleString()}`;
+                    if (penaltyAmt > 0) amountHtml += `${returnAmt > 0 ? ' <span class="text-gray-300">|</span> ' : ''}Penalty: ₹${penaltyAmt.toLocaleString()}`;
+                    amountHtml += `</div>`;
                 }
 
                 const row = document.createElement('tr');
@@ -666,12 +668,12 @@
                 history.forEach(tx => {
                     const isIncome = tx.type === 'income';
                     content += `
-                        <li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
+                        <li class="flex justify-between items-start p-2 rounded-md hover:bg-gray-50">
                             <div>
                                 <p class="font-semibold">${isIncome ? tx.from : tx.reason}</p>
-                                <p class="text-xs text-gray-500">${new Date(tx.timestamp).toLocaleString('en-GB')}</p>
+                                <p class="text-xs text-gray-500">${tx.reason || ''} <span class="mx-1">&middot;</span> ${new Date(tx.timestamp).toLocaleString('en-GB')}</p>
                             </div>
-                            <p class="font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</p>
+                            <p class="font-bold flex-shrink-0 ml-4 ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</p>
                         </li>
                     `;
                 });
@@ -891,11 +893,13 @@
             
             let manualPenalty = parseFloat(document.getElementById('penalty-amount').value) || 0;
             let autoPenalty = 0;
+            let penaltyReason = "Manual Penalty";
 
             if (entryType === 'loan_payment') {
                 const returnAmount = parseFloat(document.getElementById('return-amount').value) || 0;
                 if (returnAmount > 0) {
                     autoPenalty = returnAmount * 0.10;
+                    penaltyReason = "10% of Return";
                 }
             }
             
@@ -922,7 +926,7 @@
                     await push(penaltyIncomeRef, {
                         amount: totalPenalty,
                         from: memberName,
-                        reason: autoPenalty > 0 ? "10% of Return" : "Manual Penalty",
+                        reason: penaltyReason,
                         timestamp: serverTimestamp(),
                         originalTxId: newTx.key
                     });
@@ -1002,10 +1006,17 @@
         document.body.addEventListener('change', e => {
             if (e.target.id === 'entry-type') {
                 const type = e.target.value;
+                const sipInput = document.getElementById('sip-payment');
                 document.getElementById('sip-fields').classList.toggle('hidden', type !== 'sip');
                 document.getElementById('loan-fields').classList.toggle('hidden', type !== 'loan');
                 document.getElementById('loan-payment-fields').classList.toggle('hidden', type !== 'loan_payment');
                 document.getElementById('extra-payment-fields').classList.toggle('hidden', type !== 'extra_payment');
+                
+                if (type === 'sip') {
+                    sipInput.value = 500;
+                } else {
+                    sipInput.value = '';
+                }
             }
             if (e.target.id === 'entry-name') {
                 const selectedMemberId = e.target.value;
