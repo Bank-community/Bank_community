@@ -67,7 +67,7 @@
         .install-button { display: none; background: green; color: white; border: 2px solid white; border-radius: 50px; padding: 10px 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; gap: 10px; align-items: center; justify-content: center; width: 70%; max-width: 180px; }
         .install-button img { width: 24px; height: 24px; }
         .install-button:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); transform: translateY(-3px); }
-        .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0 20px; }
+        .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0; } /* Removed padding */
         section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
         section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
         .transparency-section p { font-size: 1.1em; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto; }
@@ -81,6 +81,7 @@
         .info-card-slide.prime h3 { color: #8c5a00; }
         .info-card-slide.prime h3 i { color: var(--prime-color); fill: var(--prime-color); }
         .info-card-slide p { color: var(--light-text); font-size: 1em; margin-bottom: 0; }
+        .action-cards-section { padding-left: 20px; padding-right: 20px; }
         .action-cards-section h2 { text-align: center; margin-bottom: 30px; }
         .action-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px; }
         .action-card { background-color: var(--card-bg); border-radius: 10px; padding: 15px 20px; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: var(--primary-color); border: 1px solid var(--border-color); min-height: 90px; overflow: hidden; }
@@ -112,7 +113,7 @@
         .prev { left: 15px; }
         .next { right: 15px; }
         .slide-indicator { text-align: center; margin-top: 15px; padding-bottom: 10px; }
-        .indicator-dot { display: inline-block; width: 5px; height: 5px; background-color: #ccc; border-radius: 50%; margin: 0 6px; cursor: pointer; transition: background-color 0.3s ease, transform 0.3s ease; }
+        .indicator-dot { display: inline-block; width: 8px; height: 8px; background-color: #ccc; border-radius: 50%; margin: 0 6px; cursor: pointer; transition: all 0.3s ease; }
         .indicator-dot.active { background-color: var(--primary-color); transform: scale(1.2); }
         .bank-members { background: linear-gradient(to bottom, #e0f2f7, #ffffff); padding: 30px 0; width: 100%; box-sizing: border-box; border-bottom: 1px solid var(--border-color); }
         .header-container { display: flex; justify-content: space-between; align-items: center; padding: 0 25px 20px 25px; flex-wrap: wrap; gap: 15px; max-width: 1140px; margin: 0 auto; }
@@ -138,8 +139,7 @@
         .member-photo-container {
             width: 100%; aspect-ratio: 1 / 1; border-radius: 8px;
             overflow: hidden; margin-bottom: 12px; background-color: #f0f0f0;
-            border: 3px solid white; /* UPDATED: White border added */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .member-card img.member-photo { 
             width: 100%; height: 100%; object-fit: cover;
@@ -165,23 +165,26 @@
         #customCardsSection {
             background: none; border: none; box-shadow: none; padding: 0; margin-top: -20px;
         }
-        .custom-cards-container {
-            display: flex; /* UPDATED: Changed to flex for horizontal scroll */
-            gap: 20px;
-            overflow-x: auto;
-            scroll-behavior: smooth;
-            padding: 20px 25px;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* Hide scrollbar for Firefox */
+        .custom-card-slider-wrapper {
+            position: relative;
         }
-        .custom-cards-container::-webkit-scrollbar { display: none; } /* Hide scrollbar for Chrome/Safari */
+        .custom-cards-container {
+            display: flex; gap: 15px;
+            overflow-x: auto; scroll-behavior: smooth;
+            padding: 20px; /* Padding on all sides */
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            scroll-snap-type: x mandatory; /* Snapping effect */
+        }
+        .custom-cards-container::-webkit-scrollbar { display: none; }
 
         .custom-card {
             background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);
             overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;
             display: flex; flex-direction: column;
-            flex: 0 0 80%; /* UPDATED: Card width */
-            max-width: 320px; /* Max width for larger screens */
+            flex: 0 0 calc(100% - 40px); /* UPDATED: Card width for full screen feel */
+            max-width: 400px;
+            scroll-snap-align: center; /* Center the card when snapping */
         }
         .custom-card:hover {
             transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15);
@@ -200,15 +203,15 @@
             font-size: 1em; color: var(--light-text); margin-bottom: 20px; flex-grow: 1;
         }
         .custom-card-btn {
-            display: block; width: auto; /* UPDATED: Auto width */
-            min-width: 120px; /* Minimum width */
-            padding: 12px 25px; /* More padding */
-            border-radius: 50px; /* Rounded corners */
+            display: block; width: auto;
+            min-width: 120px;
+            padding: 12px 25px;
+            border-radius: 50px;
             border: none;
             background-color: var(--primary-color); color: white; font-size: 1.1em;
             font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
             transition: all 0.3s ease;
-            margin: auto auto 0; /* UPDATED: Center horizontally and push to bottom */
+            margin: auto auto 0;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         .custom-card-btn:hover {
@@ -218,6 +221,24 @@
         .custom-card-btn:active {
             transform: translateY(0) scale(0.98);
         }
+        
+        /* NEW: Styles for custom card indicator */
+        #custom-cards-indicator {
+            text-align: center;
+            padding-bottom: 20px;
+        }
+        #custom-cards-indicator .indicator-dot {
+            background-image: url('https://placehold.co/200x200/e0e7ff/4f46e5?text=+');
+            background-size: cover;
+            width: 40px;
+            height: 25px;
+            border-radius: 4px;
+            border: 2px solid transparent;
+        }
+        #custom-cards-indicator .indicator-dot.active {
+            border-color: var(--primary-color);
+        }
+
 
         .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
         .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
@@ -330,13 +351,14 @@
     <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> 
     
     <section id="customCardsSection" class="animate-on-scroll">
-        <div class="custom-cards-container" id="customCardsContainer">
+        <div class="custom-card-slider-wrapper">
+            <div class="custom-cards-container" id="customCardsContainer"></div>
         </div>
+        <div class="slide-indicator" id="custom-cards-indicator"></div>
     </section>
 
     <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> 
-    <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides" id="communityLetterSlides"> <!-- UPDATED: Added ID -->
-            <!-- Dynamic slides will be inserted here -->
+    <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides" id="communityLetterSlides">
          </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> 
 </main>
 <footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
@@ -390,7 +412,7 @@
     async function initializeAndRunApp() {
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=6') // Version updated
+                navigator.serviceWorker.register('/sw.js?v=7') // Version updated
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -423,19 +445,17 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V6) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V7) ##
     // ##################################################################
     function runMainApp(database) {
         
-        // --- Constants & Variables ---
         const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
         const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithlesh sahni"];
         const BANK_LOGO_URL = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-        // --- Element Selectors ---
         const memberContainer = document.getElementById('memberContainer');
         const customCardsContainer = document.getElementById('customCardsContainer');
-        const communityLetterSlides = document.getElementById('communityLetterSlides'); // UPDATED
+        const communityLetterSlides = document.getElementById('communityLetterSlides');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
         const totalLoanValueElement = document.getElementById('totalLoanValue');
         const currentYearElement = document.getElementById('currentYear');
@@ -482,7 +502,6 @@
         const fullProfileViewModal = document.getElementById('fullProfileViewModal');
         const closeFullProfileModal = document.getElementById('closeFullProfileModal');
 
-        // --- State Variables ---
         let allMembersData = {}; 
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
@@ -494,9 +513,8 @@
         let currentMemberForFullView = null;
         let cardColors = {};
         let customCardsData = {};
-        let communityLettersData = {}; // NEW
+        let communityLettersData = {};
 
-        // --- PWA Installation Logic ---
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
@@ -517,7 +535,6 @@
             }
         }
 
-        // --- Functions ---
         const formatDate = (dateString) => {
             if (!dateString) return "N/A";
             const date = new Date(dateString);
@@ -539,11 +556,11 @@
                 
                 cardColors = data.admin?.card_colors || {};
                 customCardsData = data.admin?.custom_cards || {};
-                communityLettersData = data.admin?.community_letters || {}; // NEW
+                communityLettersData = data.admin?.community_letters || {};
 
                 processAndDisplayData(allMembersData, penaltyIncomes);
                 displayCustomCards(customCardsData);
-                displayCommunityLetters(communityLettersData); // NEW
+                displayCommunityLetters(communityLettersData);
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
                 if (memberContainer) {
@@ -693,15 +710,15 @@
             if (!customCardsContainer) return;
             customCardsContainer.innerHTML = '';
 
-            if (Object.keys(cards).length === 0) {
+            const cardArray = Object.values(cards);
+
+            if (cardArray.length === 0) {
                 document.getElementById('customCardsSection').style.display = 'none';
                 return;
             }
             document.getElementById('customCardsSection').style.display = 'block';
 
-            for (const cardId in cards) {
-                const cardData = cards[cardId];
-                
+            cardArray.forEach(cardData => {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'custom-card';
 
@@ -716,10 +733,10 @@
                     </div>
                 `;
                 customCardsContainer.appendChild(cardElement);
-            }
+            });
+            initializeCustomCardSlider(cardArray);
         }
-
-        // NEW: Function to display community letters dynamically
+        
         function displayCommunityLetters(letters) {
             if (!communityLetterSlides) return;
             communityLetterSlides.innerHTML = '';
@@ -727,7 +744,6 @@
             const letterArray = Object.values(letters);
 
             if (letterArray.length === 0) {
-                // Optional: Show a default message or hide the section
                 communityLetterSlides.innerHTML = `<div class="slide"><p class="p-8 text-center text-gray-500">No letters available.</p></div>`;
                 initializeLetterSlider();
                 return;
@@ -740,7 +756,7 @@
                 communityLetterSlides.appendChild(slide);
             });
 
-            initializeLetterSlider(); // Initialize slider after adding slides
+            initializeLetterSlider();
         }
         
         function handlePasswordCheck() {
@@ -758,8 +774,6 @@
                 passwordInput.value = '';
             }
         }
-
-        // --- Other functions remain unchanged ---
 
         function updateInfoCards(memberCount, totalLoan) {
             if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
@@ -1049,6 +1063,54 @@
             signPic.onclick = () => showFullImage(signPic.src, 'Signature');
 
             fullProfileViewModal.classList.add('show');
+        }
+
+        // NEW: Function to initialize the custom card slider
+        function initializeCustomCardSlider(cards) {
+            const container = document.getElementById('customCardsContainer');
+            const indicator = document.getElementById('custom-cards-indicator');
+            if (!container || !indicator || cards.length <= 1) {
+                indicator.style.display = 'none';
+                return;
+            };
+            
+            indicator.style.display = 'block';
+            indicator.innerHTML = '';
+
+            cards.forEach((card, index) => {
+                const dot = document.createElement('span');
+                dot.className = 'indicator-dot';
+                dot.style.backgroundImage = `url(${card.imageUrl})`; // Thumbnail preview
+                dot.onclick = () => {
+                    const cardElement = container.children[index];
+                    container.scrollTo({
+                        left: cardElement.offsetLeft - 20, // 20 is the container padding
+                        behavior: 'smooth'
+                    });
+                };
+                indicator.appendChild(dot);
+            });
+
+            // Function to update active dot on scroll
+            const updateActiveDot = () => {
+                const scrollLeft = container.scrollLeft;
+                const containerWidth = container.offsetWidth;
+                let activeIndex = 0;
+                for (let i = 0; i < container.children.length; i++) {
+                    const card = container.children[i];
+                    if (card.offsetLeft >= scrollLeft - containerWidth / 2) {
+                        activeIndex = i;
+                        break;
+                    }
+                }
+                
+                indicator.childNodes.forEach((dot, idx) => {
+                    dot.classList.toggle('active', idx === activeIndex);
+                });
+            };
+
+            container.addEventListener('scroll', updateActiveDot);
+            updateActiveDot(); // Initial call
         }
 
         function setupEventListeners() {
