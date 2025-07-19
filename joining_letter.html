@@ -98,7 +98,8 @@
             transform: translate(-50%, -50%);
             width: 60%;
             height: 60%;
-            background-image: url('https://i.ibb.co/HTNrbJxD/20250716-222246.png');
+            /* FIXED: Using the proxied link for the watermark as well to be safe */
+            background-image: url('https://images.weserv.nl/?url=i.ibb.co/HTNrbJxD/20250716-222246.png');
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
@@ -257,7 +258,6 @@
         
         .signature-title {
             position: absolute;
-            /* FIXED: Moved the headline up slightly */
             bottom: 125px; 
             right: 15px;
             width: 180px;
@@ -313,8 +313,8 @@
 
     <div id="capture">
         <div class="header">
-            <!-- FIXED: Using a reliable proxied link for the logo -->
-            <img src="https://i.ibb.co/HTNrbJxD/20250716-222246.png" alt="Bank Logo" id="logoStamp" crossorigin="anonymous">
+            <!-- ===== FIX: Using the CORS proxy for the bank logo ===== -->
+            <img src="https://images.weserv.nl/?url=i.ibb.co/HTNrbJxD/20250716-222246.png" alt="Bank Logo" id="logoStamp" crossorigin="anonymous">
             <p class="bank-name">Bank Community Loan</p>
             <p class="address">Lalunagar, Begusarai, Bihar</p>
             <p class="date">Date: <span id="displayDate"></span></p>
@@ -436,8 +436,8 @@
             if (!url || typeof url !== 'string' || !url.startsWith('http')) {
                 return 'https://placehold.co/140x180/EFEFEF/AAAAAA&text=No+Image';
             }
-            const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
-            return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
+            // The proxy URL is created by simply prepending the service URL.
+            return `https://images.weserv.nl/?url=${url.replace(/^(https?:\/\/)/, '')}`;
         }
 
         function setApiImage(member) {
@@ -489,12 +489,13 @@
                         img.onload = resolve;
                         img.onerror = () => {
                              console.warn(`Image failed to load: ${img.src}`);
-                             resolve();
+                             resolve(); // Resolve even if an image fails, to not block the process
                         };
                     });
                 }
                 return Promise.resolve();
             });
+            // Wait for all image load promises to settle, then wait a short extra time for rendering.
             return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
         }
 
@@ -502,13 +503,16 @@
             downloadBtn.textContent = 'Preparing Download...';
             downloadBtn.disabled = true;
             try {
+                // Ensure all images are loaded before capturing
                 await waitForImages(captureDiv);
+                
                 const canvas = await html2canvas(captureDiv, {
                     scale: 3,
                     useCORS: true, 
                     logging: false,
                     backgroundColor: '#ffffff'
                 });
+
                 const link = document.createElement('a');
                 const fileName = `Joining_Letter_${displayNameEl.innerText.replace(/\s+/g, '_') || 'User'}.png`;
                 link.download = fileName;
@@ -516,6 +520,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+
             } catch (error) {
                 console.error('Error during download generation:', error);
                 alert('Failed to generate download. Please check console for errors.');
@@ -525,6 +530,7 @@
             }
         });
 
+        // Initial setup
         nameSelect.disabled = true;
         initializeAndFetch();
     </script>
