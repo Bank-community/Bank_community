@@ -117,7 +117,7 @@
 
     <div id="manualUploadSection" class="my-5 mx-auto p-4 border border-dashed border-gray-300 rounded-lg text-center max-w-[80%]" style="display: none;">
         <p class="mb-2 font-bold text-gray-700 text-sm">Additional Document:</p>
-        <img id="manualApplicantPhoto" src="" alt="Manually Uploaded Photo" class="max-w-full max-h-52 h-auto border border-gray-300 rounded-md object-contain">
+        <img id="manualApplicantPhoto" src="" alt="Additional Document" class="max-w-full max-h-52 h-auto border border-gray-300 rounded-md object-contain">
     </div>
 
     <p class="request-text highlight text-center italic text-gray-600 text-sm mt-6 font-bold">I request the bank community members to please approve this loan application.</p>
@@ -260,17 +260,25 @@
       regNumberEl.textContent = generateRegistrationNumber();
       apiApplicantPhotoEl.src = member.profilePicUrl || 'https://placehold.co/100x100?text=No+Photo';
 
+      // --- NEW LOGIC for Additional Document ---
+      // Reset the section first
       manualApplicantPhotoEl.src = "";
       manualUploadSectionEl.style.display = 'none';
 
       if (uploadedFile) {
+          // Priority 1: Handle manual upload
           const reader = new FileReader();
           reader.onload = function(event) {
               manualApplicantPhotoEl.src = event.target.result;
-              manualUploadSectionEl.style.display = 'block';
+              manualUploadSectionEl.style.display = 'block'; // Show section
           }
           reader.readAsDataURL(uploadedFile);
+      } else if (member.documentUrl) {
+          // Priority 2: Fallback to Firebase documentUrl
+          manualApplicantPhotoEl.src = member.documentUrl;
+          manualUploadSectionEl.style.display = 'block'; // Show section
       }
+      // If neither is available, the section remains hidden.
 
       captureDiv.style.display = 'flex';
       downloadBtn.style.display = 'block';
@@ -285,7 +293,7 @@
                     img.onload = resolve;
                     img.onerror = () => {
                          console.warn(`Image failed to load: ${img.src}`);
-                         resolve();
+                         resolve(); // Resolve even on error to not block download
                     };
                 });
             }
