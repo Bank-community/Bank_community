@@ -149,7 +149,7 @@
         .member-card:hover img.member-photo { transform: scale(1.05); }
 
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
-        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 10px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; min-width: 80px; box-sizing: border-box; }
+        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 10px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; min-width: 90px; box-sizing: border-box; text-align: center; }
         .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
         
         .rank-icon { 
@@ -172,7 +172,7 @@
         .custom-cards-container {
             display: flex; gap: 15px;
             overflow-x: auto; scroll-behavior: smooth;
-            padding: 20px 15px; /* Reduced side padding */
+            padding: 20px 15px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             scroll-snap-type: x mandatory;
@@ -182,31 +182,34 @@
         .custom-card {
             background-color: var(--card-bg); border-radius: 12px; 
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color); /* Added border */
+            border: 1px solid var(--border-color);
             overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;
             display: flex; flex-direction: column;
-            flex: 0 0 calc(100% - 30px); /* UPDATED: Card width for even larger size */
-            max-width: 450px;
+            flex: 0 0 calc(100% - 30px);
+            max-width: 500px;
             scroll-snap-align: center;
         }
-        .custom-card:hover {
-            transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        .custom-card-img-wrapper {
+            position: relative;
         }
         .custom-card-img {
-            width: 100%; height: auto; object-fit: cover;
+            width: 100%; height: auto; object-fit: cover; display: block;
         }
         .custom-card-content {
-            padding: 15px; /* Reduced padding */
-            display: flex; flex-direction: column; flex-grow: 1;
+            padding: 15px; display: flex; flex-direction: column; flex-grow: 1;
         }
         .custom-card-title {
             font-size: 1.3em; font-weight: 700; color: var(--primary-darker);
-            margin-top: 0; margin-bottom: 5px; /* Reduced margin */
+            margin-top: 0; margin-bottom: 5px;
         }
         .custom-card-desc {
-            font-size: 0.9em; color: var(--light-text); margin-bottom: 15px; flex-grow: 1;
+            font-size: 0.9em; color: var(--light-text); margin-bottom: 0; flex-grow: 1;
         }
         .custom-card-btn {
+            position: absolute; /* Positioned on the image */
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
             display: block; width: auto;
             min-width: 120px;
             padding: 12px 25px;
@@ -215,15 +218,11 @@
             background-color: var(--primary-color); color: white; font-size: 1.1em;
             font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
             transition: all 0.3s ease;
-            margin: auto auto 0;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         .custom-card-btn:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-        }
-        .custom-card-btn:active {
-            transform: translateY(0) scale(0.98);
+            transform: translateX(-50%) translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
         }
         
         #custom-cards-indicator {
@@ -301,6 +300,9 @@
         .notification-amount.payment { color: var(--info-color); }
         .notification-time, .penalty-time { font-size: 0.8em; color: var(--light-text); margin-top: 4px; }
         .no-notifications, .no-penalty-history { padding: 40px 20px; text-align: center; color: var(--light-text); }
+        .view-history-btn { color: var(--primary-color); background: none; border: none; font-weight: 600; cursor: pointer; margin: 10px 0; }
+        .penalty-history-list { display: none; }
+        .penalty-history-list.visible { display: block; }
         footer { background-color: #343a40; color: #f8f9fa; padding: 25px 15px; margin-top: 50px; font-size: 0.95em; text-align: center; border-top: 5px solid var(--primary-color); }
         footer p { color: #f8f9fa; margin: 0; }
         .image-modal-overlay { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.92); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); justify-content: center; align-items: center; cursor: pointer; padding: 20px; box-sizing: border-box; opacity: 0; transition: opacity 0.4s ease; }
@@ -377,7 +379,8 @@
             <h2>Bank Penalty Wallet</h2>
             <div id="penaltyBalance" class="balance-display" style="color: var(--danger-color);">₹0</div>
             <small class="balance-label">Current Penalty Balance</small>
-            <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
+            <hr style="margin: 15px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
+            <button id="viewHistoryBtn" class="view-history-btn">View History</button>
             <ul class="penalty-history-list" id="penaltyHistoryList"></ul>
         </div>
     </div>
@@ -470,7 +473,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V8) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V9) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -526,16 +529,15 @@
         const submitPasswordBtn = document.getElementById('submitPasswordBtn');
         const fullProfileViewModal = document.getElementById('fullProfileViewModal');
         const closeFullProfileModal = document.getElementById('closeFullProfileModal');
-        // NEW: Penalty Wallet Elements
         const viewPenaltyWalletBtn = document.getElementById('viewPenaltyWalletBtn');
         const penaltyWalletModal = document.getElementById('penaltyWalletModal');
         const closePenaltyWalletModalBtn = document.getElementById('closePenaltyWalletModal');
         const penaltyBalanceElement = document.getElementById('penaltyBalance');
         const penaltyHistoryList = document.getElementById('penaltyHistoryList');
-
+        const viewHistoryBtn = document.getElementById('viewHistoryBtn');
 
         let allMembersData = {}; 
-        let penaltyWalletData = {}; // NEW
+        let penaltyWalletData = {};
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
         let totalPenaltyAmount = 0;
@@ -585,7 +587,7 @@
                     throw new Error("Database is empty or could not be read.");
                 }
                 allMembersData = data.members || {};
-                penaltyWalletData = data.penaltyWallet || {}; // UPDATED
+                penaltyWalletData = data.penaltyWallet || {};
                 
                 cardColors = data.admin?.card_colors || {};
                 customCardsData = data.admin?.custom_cards || {};
@@ -756,13 +758,15 @@
                 cardElement.className = 'custom-card';
 
                 cardElement.innerHTML = `
-                    <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || 'Card Image'}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                    <div class="custom-card-content">
-                        <h3 class="custom-card-title">${cardData.title || 'Untitled Card'}</h3>
-                        <p class="custom-card-desc">${cardData.description || ''}</p>
+                    <div class="custom-card-img-wrapper">
+                        <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || 'Card Image'}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
                         <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}" target="_blank" rel="noopener noreferrer">
                             ${cardData.buttonText || 'Learn More'}
                         </a>
+                    </div>
+                    <div class="custom-card-content">
+                        <h3 class="custom-card-title">${cardData.title || 'Untitled Card'}</h3>
+                        <p class="custom-card-desc">${cardData.description || ''}</p>
                     </div>
                 `;
                 customCardsContainer.appendChild(cardElement);
@@ -882,6 +886,8 @@
 
             penaltyBalanceElement.textContent = `₹${currentBalance.toLocaleString('en-IN')}`;
             penaltyHistoryList.innerHTML = '';
+            penaltyHistoryList.classList.remove('visible'); // Hide history initially
+            viewHistoryBtn.textContent = 'View History';
 
             if (history.length === 0) {
                 penaltyHistoryList.innerHTML = `<li class="no-penalty-history">No penalty records found.</li>`;
@@ -1178,6 +1184,11 @@
             if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement));
             if (viewPenaltyWalletBtn) viewPenaltyWalletBtn.addEventListener('click', showPenaltyWalletModal);
             if (closePenaltyWalletModalBtn) closePenaltyWalletModalBtn.addEventListener('click', () => closeModal(penaltyWalletModal));
+            if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', () => {
+                const list = document.getElementById('penaltyHistoryList');
+                list.classList.toggle('visible');
+                viewHistoryBtn.textContent = list.classList.contains('visible') ? 'Hide History' : 'View History';
+            });
             if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement));
             if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement));
             if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
