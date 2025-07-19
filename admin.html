@@ -63,6 +63,7 @@
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="gallery"><i class="ph-images text-xl mr-3"></i><span>Gallery</span></a>
+                <a href="manage-cards.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-cards text-xl mr-3"></i><span>Manage Cards</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="page-settings"><i class="ph-gear text-xl mr-3"></i><span>Page Settings</span></a>
                 <a href="registration.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span></a>
                 <a href="https://bankcommunity.sbs/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl mr-3"></i><span>Bank Site</span></a>
@@ -505,29 +506,9 @@
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xl font-bold text-gray-800">Manage Dashboard Buttons</h3>
-                            <button id="add-new-button-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
-                                <i class="ph-plus"></i> Add New Button
-                            </button>
-                        </div>
-                        <div id="dashboard-buttons-list" class="space-y-3">
-                           ${Object.keys(dashboardButtons).length === 0 
-                             ? '<p class="text-center text-gray-500 py-4">No buttons added yet.</p>' 
-                             : Object.entries(dashboardButtons).map(([key, btn]) => `
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                                    <div class="flex items-center gap-4 overflow-hidden">
-                                        <div class="w-8 h-8 rounded-md flex-shrink-0" style="background-color: ${btn.color || '#ccc'};"></div>
-                                        <div class="flex-1 overflow-hidden">
-                                            <p class="font-semibold text-gray-800 truncate">${btn.name}</p>
-                                            <a href="${btn.url}" target="_blank" class="text-xs text-blue-500 hover:underline truncate block">${btn.url}</a>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-3 flex-shrink-0">
-                                        <button class="edit-button-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
-                                        <button class="delete-button-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button>
-                                    </div>
-                                </div>
-                             `).join('')
-                           }
+                            <a href="manage-cards.html" target="_blank" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
+                                <i class="ph-pencil-simple"></i> Manage Buttons
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -775,31 +756,59 @@
         function renderEditMemberModal(memberId, member) {
             const modal = document.getElementById('editMemberModal');
             modal.innerHTML = `
-                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl scale-95">
                     <form id="edit-member-form" data-member-id="${memberId}">
-                        <div class="p-4 border-b">
+                        <div class="p-4 border-b flex justify-between items-center">
                             <h3 class="text-lg font-bold">Edit Member: ${member.fullName}</h3>
+                            <button type="button" class="close-modal-btn text-2xl text-gray-500 hover:text-gray-800">&times;</button>
                         </div>
                         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input type="text" id="edit-member-name" class="form-input w-full p-2 rounded-lg" value="${member.fullName || ''}" required>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                    <input type="text" id="edit-member-name" class="form-input w-full p-2 rounded-lg" value="${member.fullName || ''}" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                                    <input type="tel" id="edit-member-mobile" class="form-input w-full p-2 rounded-lg" value="${member.mobileNumber || ''}" required>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                    <input type="text" id="edit-member-address" class="form-input w-full p-2 rounded-lg" value="${member.address || ''}">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Aadhaar Number</label>
+                                    <input type="text" id="edit-member-aadhaar" class="form-input w-full p-2 rounded-lg" value="${member.aadhaar || ''}">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                                    <input type="date" id="edit-member-dob" class="form-input w-full p-2 rounded-lg" value="${member.dob || ''}">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Guarantor Name</label>
+                                    <input type="text" id="edit-member-guarantor" class="form-input w-full p-2 rounded-lg" value="${member.guarantorName || ''}">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                    <input type="text" id="edit-member-password" class="form-input w-full p-2 rounded-lg" value="${member.password || ''}">
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                                <input type="tel" id="edit-member-mobile" class="form-input w-full p-2 rounded-lg" value="${member.mobileNumber || ''}" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <input type="text" id="edit-member-address" class="form-input w-full p-2 rounded-lg" value="${member.address || ''}">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Aadhaar Number</label>
-                                <input type="text" id="edit-member-aadhaar" class="form-input w-full p-2 rounded-lg" value="${member.aadhaar || ''}">
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                                <input type="date" id="edit-member-dob" class="form-input w-full p-2 rounded-lg" value="${member.dob || ''}">
+                            <div class="pt-4 border-t mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Image URLs</label>
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3">
+                                        <img src="${member.profilePicUrl || ''}" class="w-10 h-10 rounded-full object-cover bg-gray-200" onerror="this.src='https://placehold.co/40x40?text=PIC'">
+                                        <input type="url" id="edit-member-profilePicUrl" class="form-input w-full p-2 rounded-lg" value="${member.profilePicUrl || ''}" placeholder="Profile Picture URL">
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <img src="${member.signatureUrl || ''}" class="w-10 h-10 rounded-md object-contain bg-gray-200 p-1" onerror="this.src='https://placehold.co/40x40?text=SIGN'">
+                                        <input type="url" id="edit-member-signatureUrl" class="form-input w-full p-2 rounded-lg" value="${member.signatureUrl || ''}" placeholder="Signature URL">
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <img src="${member.documentUrl || ''}" class="w-10 h-10 rounded-md object-contain bg-gray-200 p-1" onerror="this.src='https://placehold.co/40x40?text=DOC'">
+                                        <input type="url" id="edit-member-documentUrl" class="form-input w-full p-2 rounded-lg" value="${member.documentUrl || ''}" placeholder="Document URL">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="p-4 bg-gray-50 flex justify-end gap-3">
@@ -1110,7 +1119,12 @@
                     mobileNumber: document.getElementById('edit-member-mobile').value,
                     address: document.getElementById('edit-member-address').value,
                     aadhaar: document.getElementById('edit-member-aadhaar').value,
-                    dob: document.getElementById('edit-member-dob').value
+                    dob: document.getElementById('edit-member-dob').value,
+                    guarantorName: document.getElementById('edit-member-guarantor').value,
+                    password: document.getElementById('edit-member-password').value,
+                    profilePicUrl: document.getElementById('edit-member-profilePicUrl').value,
+                    signatureUrl: document.getElementById('edit-member-signatureUrl').value,
+                    documentUrl: document.getElementById('edit-member-documentUrl').value,
                 };
 
                 try {
