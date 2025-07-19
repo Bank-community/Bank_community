@@ -290,9 +290,8 @@
 
             document.body.addEventListener('click', async (e) => {
                 const editCardBtn = e.target.closest('.edit-card-btn');
-                if (editCardBtn) {
-                    renderCustomCardModal(editCardBtn.dataset.key);
-                }
+                if (editCardBtn) renderCustomCardModal(editCardBtn.dataset.key);
+                
                 const deleteCardBtn = e.target.closest('.delete-card-btn');
                 if (deleteCardBtn) {
                     const key = deleteCardBtn.dataset.key;
@@ -308,9 +307,8 @@
                     }
                 }
                 const editLetterBtn = e.target.closest('.edit-letter-btn');
-                if (editLetterBtn) {
-                    renderCommunityLetterModal(editLetterBtn.dataset.key);
-                }
+                if (editLetterBtn) renderCommunityLetterModal(editLetterBtn.dataset.key);
+
                 const deleteLetterBtn = e.target.closest('.delete-letter-btn');
                 if (deleteLetterBtn) {
                     const key = deleteLetterBtn.dataset.key;
@@ -345,7 +343,7 @@
                     loader.style.display = 'inline-block';
 
                     try {
-                        const key = form.dataset.key;
+                        let key = form.dataset.key; // Get existing key
                         const file = form.querySelector('#card-img').files[0];
                         let imageUrl = form.querySelector('#existing-image-url').value;
 
@@ -353,7 +351,7 @@
                             imageUrl = await uploadImage(file);
                         }
 
-                        if (!imageUrl) {
+                        if (!imageUrl && !isLetterForm) { // Image is required for custom cards
                             throw new Error('Please select an image to upload.');
                         }
 
@@ -367,7 +365,7 @@
                                 imageUrl: imageUrl,
                                 altText: form.querySelector('#letter-alt-text').value,
                             };
-                            dbPath = key ? `admin/community_letters/${key}` : push(ref(db, 'admin/community_letters')).key;
+                            dbPath = 'admin/community_letters';
                             modalToClose = document.getElementById('communityLetterModal');
                             successMessage = `Letter ${key ? 'updated' : 'added'} successfully!`;
                         } else {
@@ -379,12 +377,16 @@
                                 buttonLink: form.querySelector('#card-btn-url').value,
                                 buttonColor: form.querySelector('#card-btn-color').value,
                             };
-                            dbPath = key ? `admin/custom_cards/${key}` : push(ref(db, 'admin/custom_cards')).key;
+                            dbPath = 'admin/custom_cards';
                             modalToClose = document.getElementById('customCardModal');
                             successMessage = `Custom card ${key ? 'updated' : 'added'} successfully!`;
                         }
                         
-                        const dbRef = ref(db, isLetterForm ? `admin/community_letters/${dbPath}` : `admin/custom_cards/${dbPath}`);
+                        // --- BUG FIX LOGIC ---
+                        if (!key) { // If it's a new item, generate a key
+                            key = push(ref(db, dbPath)).key;
+                        }
+                        const dbRef = ref(db, `${dbPath}/${key}`); // Construct the final, correct path
                         await set(dbRef, dataToSave);
                         
                         alert(successMessage);
