@@ -92,7 +92,7 @@
   <div id="capture" class="bg-white p-[15mm] border border-gray-300 my-5 mx-auto flex flex-col relative">
     <div class="header text-center pb-4 mb-5 relative">
       <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
-      <img src="https://i.imgur.com/JLyQvpv.png" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
+      <img src="https://i.imgur.com/JLyQvpv.png" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
       <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
       <h2 class="text-lg text-gray-800">बैंक कम्युनिटी लोन</h2>
       <div class="registration-number font-bold mt-4 text-base">Reg. No: <span id="regNumber"></span></div>
@@ -111,25 +111,25 @@
         </div>
         <div class="api-photo-container flex-shrink-0 w-24 text-center">
             <p class="mb-1 font-bold text-gray-600 text-xs">Applicant Photo:</p>
-            <img id="apiApplicantPhoto" src="" alt="Applicant Photo (API)" class="max-w-full h-auto max-h-24 border border-gray-300 rounded-md object-contain mt-1 bg-white">
+            <img id="apiApplicantPhoto" src="" crossorigin="anonymous" alt="Applicant Photo (API)" class="max-w-full h-auto max-h-24 border border-gray-300 rounded-md object-contain mt-1 bg-white">
         </div>
     </div>
 
     <div id="manualUploadSection" class="my-5 mx-auto p-4 border border-dashed border-gray-300 rounded-lg text-center max-w-[80%]" style="display: none;">
         <p class="mb-2 font-bold text-gray-700 text-sm">Additional Document:</p>
-        <img id="manualApplicantPhoto" src="" alt="Additional Document" class="max-w-full max-h-52 h-auto border border-gray-300 rounded-md object-contain">
+        <img id="manualApplicantPhoto" src="" crossorigin="anonymous" alt="Additional Document" class="max-w-full max-h-52 h-auto border border-gray-300 rounded-md object-contain">
     </div>
 
     <p class="request-text highlight text-center italic text-gray-600 text-sm mt-6 font-bold">I request the bank community members to please approve this loan application.</p>
 
     <div class="footer-section mt-auto pt-6 flex justify-between items-end">
         <div class="stamp-section text-center">
-             <img src="https://i.imgur.com/w9J5t2N.png" class="stamp-img w-36 opacity-80" alt="Bank Stamp">
+             <img src="https://i.imgur.com/w9J5t2N.png" crossorigin="anonymous" class="stamp-img w-36 opacity-80" alt="Bank Stamp">
              <p class="m-0 text-xs text-gray-800">Bank Stamp</p>
         </div>
         <div class="signature-section text-center">
           <p class="m-0 text-xs text-gray-800">Authorized Signature</p>
-          <img src="https://i.imgur.com/kkg2glD.png" class="signature-img w-44 mt-1" alt="Signature">
+          <img src="https://i.imgur.com/kkg2glD.png" crossorigin="anonymous" class="signature-img w-44 mt-1" alt="Signature">
           <p class="m-0 text-xs text-gray-800">Prime Members</p>
         </div>
     </div>
@@ -261,24 +261,20 @@
       apiApplicantPhotoEl.src = member.profilePicUrl || 'https://placehold.co/100x100?text=No+Photo';
 
       // --- NEW LOGIC for Additional Document ---
-      // Reset the section first
       manualApplicantPhotoEl.src = "";
       manualUploadSectionEl.style.display = 'none';
 
       if (uploadedFile) {
-          // Priority 1: Handle manual upload
           const reader = new FileReader();
           reader.onload = function(event) {
               manualApplicantPhotoEl.src = event.target.result;
-              manualUploadSectionEl.style.display = 'block'; // Show section
+              manualUploadSectionEl.style.display = 'block';
           }
           reader.readAsDataURL(uploadedFile);
       } else if (member.documentUrl) {
-          // Priority 2: Fallback to Firebase documentUrl
           manualApplicantPhotoEl.src = member.documentUrl;
-          manualUploadSectionEl.style.display = 'block'; // Show section
+          manualUploadSectionEl.style.display = 'block';
       }
-      // If neither is available, the section remains hidden.
 
       captureDiv.style.display = 'flex';
       downloadBtn.style.display = 'block';
@@ -293,7 +289,7 @@
                     img.onload = resolve;
                     img.onerror = () => {
                          console.warn(`Image failed to load: ${img.src}`);
-                         resolve(); // Resolve even on error to not block download
+                         resolve();
                     };
                 });
             }
@@ -307,9 +303,17 @@
       downloadBtn.disabled = true;
 
       try {
+        // Wait for all images to be loaded before capturing
         await waitForImages(captureDiv);
+        
+        // A small extra delay to ensure rendering is complete
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+
          html2canvas(captureDiv, {
-             scale: 2, useCORS: true, allowTaint: true, logging: false
+             scale: 2, 
+             useCORS: true, // This is crucial for external images
+             allowTaint: false,
+             logging: false
          }).then(canvas => {
             const link = document.createElement('a');
             const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
