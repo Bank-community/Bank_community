@@ -92,7 +92,8 @@
   <div id="capture" class="bg-white p-[15mm] border border-gray-300 my-5 mx-auto flex flex-col relative">
     <div class="header text-center pb-4 mb-5 relative">
       <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
-      <img src="https://i.imgur.com/JLyQvpv.png" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
+      <!-- FIXED: Image source updated to use proxy -->
+      <img src="https://images.weserv.nl/?url=i.imgur.com/JLyQvpv.png" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
       <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
       <h2 class="text-lg text-gray-800">बैंक कम्युनिटी लोन</h2>
       <div class="registration-number font-bold mt-4 text-base">Reg. No: <span id="regNumber"></span></div>
@@ -124,12 +125,14 @@
 
     <div class="footer-section mt-auto pt-6 flex justify-between items-end">
         <div class="stamp-section text-center">
-             <img src="https://i.imgur.com/w9J5t2N.png" crossorigin="anonymous" class="stamp-img w-36 opacity-80" alt="Bank Stamp">
+             <!-- FIXED: Image source updated to use proxy -->
+             <img src="https://images.weserv.nl/?url=i.imgur.com/w9J5t2N.png" crossorigin="anonymous" class="stamp-img w-36 opacity-80" alt="Bank Stamp">
              <p class="m-0 text-xs text-gray-800">Bank Stamp</p>
         </div>
         <div class="signature-section text-center">
           <p class="m-0 text-xs text-gray-800">Authorized Signature</p>
-          <img src="https://i.imgur.com/kkg2glD.png" crossorigin="anonymous" class="signature-img w-44 mt-1" alt="Signature">
+          <!-- FIXED: Image source updated to use proxy -->
+          <img src="https://images.weserv.nl/?url=i.imgur.com/kkg2glD.png" crossorigin="anonymous" class="signature-img w-44 mt-1" alt="Signature">
           <p class="m-0 text-xs text-gray-800">Prime Members</p>
         </div>
     </div>
@@ -178,7 +181,7 @@
             const snapshot = await membersRef.once('value');
             if (!snapshot.exists()) throw new Error('No member data found.');
             
-            membersData = snapshot.val(); // Store full member data
+            membersData = snapshot.val();
             
             const approvedMembers = Object.entries(membersData)
                 .filter(([id, member]) => member.status === 'Approved' && member.fullName)
@@ -198,6 +201,16 @@
             nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
             alert('Failed to load member data. Please check console.');
         }
+    }
+
+    // NEW: Helper function to create a proxied URL for images to solve CORS issue
+    function createProxyUrl(url) {
+        if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+            return 'https://placehold.co/100x120/EFEFEF/AAAAAA&text=No+Image';
+        }
+        // Remove protocol (http://, https://) and pass to the proxy
+        const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
+        return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
     }
 
     function formatDate(date) {
@@ -248,7 +261,6 @@
       const repaymentDate = new Date(today);
       repaymentDate.setMonth(repaymentDate.getMonth() + months);
 
-      // --- Populate with Auto-filled and Manual Data ---
       currentDateEl.textContent = formatDate(today);
       displayNameEl.textContent = member.fullName;
       displayGuarantorEl.textContent = member.guarantorName || 'N/A';
@@ -258,21 +270,23 @@
       displayTotalAmountEl.textContent = totalAmount.toFixed(2);
       repaymentDateEl.textContent = formatDate(repaymentDate);
       regNumberEl.textContent = generateRegistrationNumber();
-      apiApplicantPhotoEl.src = member.profilePicUrl || 'https://placehold.co/100x100?text=No+Photo';
+      
+      // FIXED: Use proxy for applicant's photo
+      apiApplicantPhotoEl.src = createProxyUrl(member.profilePicUrl);
 
-      // --- NEW LOGIC for Additional Document ---
       manualApplicantPhotoEl.src = "";
       manualUploadSectionEl.style.display = 'none';
 
       if (uploadedFile) {
           const reader = new FileReader();
           reader.onload = function(event) {
-              manualApplicantPhotoEl.src = event.target.result;
+              manualApplicantPhotoEl.src = event.target.result; // Data URLs don't need proxy
               manualUploadSectionEl.style.display = 'block';
           }
           reader.readAsDataURL(uploadedFile);
       } else if (member.documentUrl) {
-          manualApplicantPhotoEl.src = member.documentUrl;
+          // FIXED: Use proxy for document URL
+          manualApplicantPhotoEl.src = createProxyUrl(member.documentUrl);
           manualUploadSectionEl.style.display = 'block';
       }
 
@@ -303,16 +317,12 @@
       downloadBtn.disabled = true;
 
       try {
-        // Wait for all images to be loaded before capturing
         await waitForImages(captureDiv);
-        
-        // A small extra delay to ensure rendering is complete
         await new Promise(resolve => setTimeout(resolve, 500)); 
 
          html2canvas(captureDiv, {
              scale: 2, 
-             useCORS: true, // This is crucial for external images
-             allowTaint: false,
+             useCORS: true,
              logging: false
          }).then(canvas => {
             const link = document.createElement('a');
@@ -332,7 +342,6 @@
       }
     });
 
-    // --- Initialize ---
     initializeAndFetch();
   </script>
 
