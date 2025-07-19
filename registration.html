@@ -5,22 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BANK COMMUNITY LOAN - पंजीकरण और खोज</title>
     
+    <!-- Tailwind CSS & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
 
+    <!-- Custom Styles -->
     <style>
         body { font-family: 'Inter', sans-serif; }
         .required-label::after { content: '*'; color: red; margin-left: 4px; }
         .img-preview { width: 100px; height: 100px; border: 2px dashed #cbd5e1; background-color: #f8fafc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; text-align: center; cursor: pointer; transition: transform 0.2s; }
         .img-preview:hover { transform: scale(1.05); }
         .modal { transition: opacity 0.3s ease; }
+        .lang-btn.active { background-color: #4f46e5; color: white; }
     </style>
 </head>
 <body class="bg-gray-100">
 
+    <!-- UI Initialization (Non-Firebase dependent) -->
     <script>
       function generateMembershipId() {
         const prefix = 'BCL';
@@ -34,68 +38,154 @@
       });
     </script>
 
+    <!-- Main Application HTML -->
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
             <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 text-center">
                 <img src="https://i.ibb.co/HTNrbJxD/20250716-222246.png" alt="Bank Logo" class="mx-auto h-20 w-20 rounded-full object-cover border-4 border-white/50 shadow-md mb-4">
-                <h1 class="text-3xl font-bold tracking-tight">BANK COMMUNITY LOAN</h1>
-                <p class="text-lg opacity-90 mt-1">सदस्यता पोर्टल</p>
+                <h1 class="text-3xl font-bold tracking-tight" data-lang-key="main_title">BANK COMMUNITY LOAN</h1>
+                <p class="text-lg opacity-90 mt-1" data-lang-key="portal_subtitle">सदस्यता पोर्टल</p>
             </header>
             
+            <!-- Language Switcher -->
+            <div class="p-4 bg-gray-50 flex justify-center gap-2 border-b">
+                <button id="langEnBtn" class="lang-btn px-4 py-1.5 text-sm font-semibold border border-gray-300 rounded-md hover:bg-indigo-100">English</button>
+                <button id="langHiBtn" class="lang-btn px-4 py-1.5 text-sm font-semibold border border-gray-300 rounded-md hover:bg-indigo-100 active">हिन्दी</button>
+            </div>
+
             <div class="p-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">सदस्य खोजें</h2>
+                <h2 class="text-xl font-semibold text-gray-800 mb-4" data-lang-key="search_member_title">सदस्य खोजें</h2>
                 <div class="flex flex-col sm:flex-row gap-4">
-                    <input type="text" id="searchInput" placeholder="सदस्यता ID डालें (जैसे BCL-XXXXXX)" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <button id="searchBtn" class="inline-flex items-center justify-center px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700">खोजें</button>
+                    <input type="text" id="searchInput" data-lang-key-placeholder="search_placeholder" placeholder="सदस्यता ID डालें (जैसे BCL-XXXXXX)" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <button id="searchBtn" class="inline-flex items-center justify-center px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700" data-lang-key="search_btn">खोजें</button>
                 </div>
             </div>
 
             <form id="registrationForm" class="p-6 sm:p-8 space-y-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">नया सदस्य जोड़ें</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center" data-lang-key="add_member_title">नया सदस्य जोड़ें</h2>
                 <div class="border-b border-gray-200 pb-6">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4">व्यक्तिगत विवरण</h3>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4" data-lang-key="personal_details_title">व्यक्तिगत विवरण</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label for="fullName" class="block text-sm font-medium text-gray-700 mb-1 required-label">पूरा नाम</label><input type="text" id="fullName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="mobileNumber" class="block text-sm font-medium text-gray-700 mb-1 required-label">मोबाइल नंबर</label><input type="tel" id="mobileNumber" pattern="[6-9]{1}[0-9]{9}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="dob" class="block text-sm font-medium text-gray-700 mb-1 required-label">जन्म तिथि</label><input type="date" id="dob" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        <div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected>चुनें...</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option><option value="अन्य">अन्य</option></select></div>
-                        <div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
-                        
-                        <div>
-                            <label for="guarantorName" class="block text-sm font-medium text-gray-700 mb-1 required-label">गारंटर का नाम</label>
-                            <input type="text" id="guarantorName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
-                        </div>
-                        
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1 required-label">पासवर्ड</label>
-                            <div class="relative">
-                                <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10" required>
-                                <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
-                                    <i class="ph-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="md:col-span-2"><label for="address" class="block text-sm font-medium text-gray-700 mb-1 required-label">स्थायी पता</label><textarea id="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></textarea></div>
+                        <div><label for="fullName" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="full_name_label">पूरा नाम</label><input type="text" id="fullName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="mobileNumber" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="mobile_label">मोबाइल नंबर</label><input type="tel" id="mobileNumber" pattern="[6-9]{1}[0-9]{9}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="dob" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="dob_label">जन्म तिथि</label><input type="date" id="dob" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="gender_label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected data-lang-key="gender_select">चुनें...</option><option value="पुरुष" data-lang-key="gender_male">पुरुष</option><option value="महिला" data-lang-key="gender_female">महिला</option><option value="अन्य" data-lang-key="gender_other">अन्य</option></select></div>
+                        <div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="aadhaar_label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="guarantorName" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="guarantor_label">गारंटर का नाम</label><input type="text" id="guarantorName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="password" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="password_label">पासवर्ड</label><div class="relative"><input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10" required><button type="button" id="togglePassword" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500"><i class="ph-eye"></i></button></div></div>
+                        <div class="md:col-span-2"><label for="address" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="address_label">स्थायी पता</label><textarea id="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></textarea></div>
                     </div>
                 </div>
-                <div class="border-b border-gray-200 pb-6"><h3 class="text-lg font-semibold text-gray-700 mb-4">सदस्यता विवरण</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="membershipId" class="block text-sm font-medium text-gray-700 mb-1">सदस्यता ID</label><input type="text" id="membershipId" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div><div><label for="joiningDate" class="block text-sm font-medium text-gray-700 mb-1 required-label">जॉइनिंग तिथि</label><input type="date" id="joiningDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="sipAmount" class="block text-sm font-medium text-gray-700 mb-1 required-label">SIP Amount (मासिक)</label><div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₹</span><input type="number" id="sipAmount" min="500" step="100" class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg" required></div></div><div><label for="accountBalance" class="block text-sm font-medium text-gray-700 mb-1">खाता बैलेंस</label><input type="text" id="accountBalance" value="₹ 0" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div></div></div>
-                <div><h3 class="text-lg font-semibold text-gray-700 mb-4">दस्तावेज़ अपलोड</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">प्रोफाइल फोटो</label><div id="profilePicPreview" class="img-preview rounded-full mx-auto">Click to upload</div><input type="file" id="profilePic" class="hidden" accept="image/*" required onchange="previewImage(event, 'profilePicPreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">हस्ताक्षर</label><div id="signaturePreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="signature" class="hidden" accept="image/*" required onchange="previewImage(event, 'signaturePreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label">दस्तावेज़</label><div id="documentPreview" class="img-preview rounded-lg mx-auto">Click to upload</div><input type="file" id="document" class="hidden" accept="image/*" required onchange="previewImage(event, 'documentPreview')"></div></div></div>
-                <div class="pt-6 text-right"><button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Review & Submit</button></div>
+                <div class="border-b border-gray-200 pb-6"><h3 class="text-lg font-semibold text-gray-700 mb-4" data-lang-key="membership_details_title">सदस्यता विवरण</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="membershipId" class="block text-sm font-medium text-gray-700 mb-1" data-lang-key="membership_id_label">सदस्यता ID</label><input type="text" id="membershipId" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div><div><label for="joiningDate" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="joining_date_label">जॉइनिंग तिथि</label><input type="date" id="joiningDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div><div><label for="sipAmount" class="block text-sm font-medium text-gray-700 mb-1 required-label" data-lang-key="sip_amount_label">SIP Amount (मासिक)</label><div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₹</span><input type="number" id="sipAmount" min="500" step="100" class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg" required></div></div><div><label for="accountBalance" class="block text-sm font-medium text-gray-700 mb-1" data-lang-key="account_balance_label">खाता बैलेंस</label><input type="text" id="accountBalance" value="₹ 0" class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" readonly></div></div></div>
+                <div><h3 class="text-lg font-semibold text-gray-700 mb-4" data-lang-key="doc_upload_title">दस्तावेज़ अपलोड</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label" data-lang-key="profile_pic_label">प्रोफाइल फोटो</label><div id="profilePicPreview" class="img-preview rounded-full mx-auto" data-lang-key="upload_placeholder">Click to upload</div><input type="file" id="profilePic" class="hidden" accept="image/*" required onchange="previewImage(event, 'profilePicPreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label" data-lang-key="signature_label">हस्ताक्षर</label><div id="signaturePreview" class="img-preview rounded-lg mx-auto" data-lang-key="upload_placeholder">Click to upload</div><input type="file" id="signature" class="hidden" accept="image/*" required onchange="previewImage(event, 'signaturePreview')"></div><div class="text-center"><label class="block text-sm font-medium text-gray-700 mb-2 required-label" data-lang-key="document_label">दस्तावेज़</label><div id="documentPreview" class="img-preview rounded-lg mx-auto" data-lang-key="upload_placeholder">Click to upload</div><input type="file" id="document" class="hidden" accept="image/*" required onchange="previewImage(event, 'documentPreview')"></div></div></div>
+                <div class="pt-6 text-right"><button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700" data-lang-key="review_submit_btn">Review & Submit</button></div>
             </form>
         </div>
     </div>
 
-    <div id="searchModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">सदस्य विवरण</h2><button id="closeSearchModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="modalContent" class="p-6"></div></div></div>
-    <div id="reviewModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Review Your Details</h2><button id="closeReviewModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="reviewContent" class="p-6"></div><div class="p-6 bg-gray-50 border-t flex justify-end gap-4"><button id="editBtn" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Edit</button><button id="confirmSubmitBtn" class="inline-flex items-center justify-center px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"><span id="btnText">Confirm & Submit</span><svg id="btnSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></button></div></div></div>
+    <!-- Modals -->
+    <div id="searchModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800" data-lang-key="search_modal_title">सदस्य विवरण</h2><button id="closeSearchModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="modalContent" class="p-6"></div></div></div>
+    <div id="reviewModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800" data-lang-key="review_modal_title">Review Your Details</h2><button id="closeReviewModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="reviewContent" class="p-6"></div><div class="p-6 bg-gray-50 border-t flex justify-end gap-4"><button id="editBtn" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300" data-lang-key="edit_btn">Edit</button><button id="confirmSubmitBtn" class="inline-flex items-center justify-center px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"><span id="btnText" data-lang-key="confirm_submit_btn">Confirm & Submit</span><svg id="btnSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></button></div></div></div>
     <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50"><img id="fullScreenImage" src="" class="max-w-full max-h-full object-contain"><button id="closeImageModalBtn" class="absolute top-4 right-4 text-white text-4xl">&times;</button></div>
     <div id="toast" class="fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform translate-x-[120%] z-50"><p id="toastMessage"></p></div>
 
+    <!-- Main Application Logic (Firebase Dependent) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         let IMGBB_API_KEY = null;
+        let currentLanguage = 'hi';
+
+        const translations = {
+            main_title: { en: 'BANK COMMUNITY LOAN', hi: 'बैंक सामुदायिक ऋण' },
+            portal_subtitle: { en: 'Membership Portal', hi: 'सदस्यता पोर्टल' },
+            search_member_title: { en: 'Search Member', hi: 'सदस्य खोजें' },
+            search_placeholder: { en: 'Enter Membership ID (e.g., BCL-XXXXXX)', hi: 'सदस्यता ID डालें (जैसे BCL-XXXXXX)' },
+            search_btn: { en: 'Search', hi: 'खोजें' },
+            add_member_title: { en: 'Add New Member', hi: 'नया सदस्य जोड़ें' },
+            personal_details_title: { en: 'Personal Details', hi: 'व्यक्तिगत विवरण' },
+            full_name_label: { en: 'Full Name', hi: 'पूरा नाम' },
+            mobile_label: { en: 'Mobile Number', hi: 'मोबाइल नंबर' },
+            dob_label: { en: 'Date of Birth', hi: 'जन्म तिथि' },
+            gender_label: { en: 'Gender', hi: 'लिंग' },
+            gender_select: { en: 'Select...', hi: 'चुनें...' },
+            gender_male: { en: 'Male', hi: 'पुरुष' },
+            gender_female: { en: 'Female', hi: 'महिला' },
+            gender_other: { en: 'Other', hi: 'अन्य' },
+            aadhaar_label: { en: 'Aadhaar Card Number', hi: 'आधार कार्ड नंबर' },
+            guarantor_label: { en: 'Guarantor\'s Name', hi: 'गारंटर का नाम' },
+            password_label: { en: 'Password', hi: 'पासवर्ड' },
+            address_label: { en: 'Permanent Address', hi: 'स्थायी पता' },
+            membership_details_title: { en: 'Membership Details', hi: 'सदस्यता विवरण' },
+            membership_id_label: { en: 'Membership ID', hi: 'सदस्यता ID' },
+            joining_date_label: { en: 'Joining Date', hi: 'जॉइनिंग तिथि' },
+            sip_amount_label: { en: 'SIP Amount (Monthly)', hi: 'SIP Amount (मासिक)' },
+            account_balance_label: { en: 'Account Balance', hi: 'खाता बैलेंस' },
+            doc_upload_title: { en: 'Document Upload', hi: 'दस्तावेज़ अपलोड' },
+            profile_pic_label: { en: 'Profile Photo', hi: 'प्रोफाइल फोटो' },
+            signature_label: { en: 'Signature', hi: 'हस्ताक्षर' },
+            document_label: { en: 'Document', hi: 'दस्तावेज़' },
+            upload_placeholder: { en: 'Click to upload', hi: 'अपलोड करने के लिए क्लिक करें' },
+            review_submit_btn: { en: 'Review & Submit', hi: 'समीक्षा करें और सबमिट करें' },
+            search_modal_title: { en: 'Member Details', hi: 'सदस्य विवरण' },
+            review_modal_title: { en: 'Review Your Details', hi: 'अपने विवरण की समीक्षा करें' },
+            edit_btn: { en: 'Edit', hi: 'संपादित करें' },
+            confirm_submit_btn: { en: 'Confirm & Submit', hi: 'पुष्टि करें और सबमिट करें' },
+            toast: {
+                connectionSuccess: { en: 'Connection successful!', hi: 'कनेक्शन सफल!' },
+                dbConnectionFailed: { en: 'Database connection failed. Check configuration.', hi: 'डेटाबेस कनेक्शन विफल। कॉन्फ़िगरेशन जांचें।' },
+                enterSearchId: { en: 'Please enter a Membership ID to search.', hi: 'कृपया खोजने के लिए सदस्यता ID डालें।' },
+                searching: { en: 'Searching...', hi: 'खोज रहा है...' },
+                memberNotFound: { en: 'No member found with ID', hi: 'ID के साथ कोई सदस्य नहीं मिला' },
+                searchError: { en: 'An error occurred during search.', hi: 'खोज के दौरान त्रुटि हुई।' },
+                mobileExists: { en: 'This mobile number is already registered.', hi: 'यह मोबाइल नंबर पहले से पंजीकृत है।' },
+                aadhaarExists: { en: 'This Aadhaar card number is already registered.', hi: 'यह आधार कार्ड नंबर पहले से पंजीकृत है।' },
+                imageUploadFailed: { en: 'One or more image uploads failed.', hi: 'एक या अधिक छवि अपलोड विफल।' },
+                registrationSuccess: { en: 'Registration successful! Your application is pending review.', hi: 'पंजीकरण सफल! आपका आवेदन समीक्षा के लिए लंबित है।' },
+                genericError: { en: 'Error:', hi: 'त्रुटि:' },
+            },
+            modal: {
+                status: { en: 'Status', hi: 'स्थिति' },
+                joined: { en: 'Joined', hi: 'शामिल हुए' },
+                mobile: { en: 'Mobile', hi: 'मोबाइल' },
+                dob: { en: 'DOB', hi: 'जन्म तिथि' },
+                gender: { en: 'Gender', hi: 'लिंग' },
+                aadhaar: { en: 'Aadhaar', hi: 'आधार' },
+                guarantor: { en: 'Guarantor', hi: 'गारंटर' },
+                address: { en: 'Address', hi: 'पता' },
+                sip: { en: 'SIP', hi: 'SIP' },
+                balance: { en: 'Balance', hi: 'बैलेंस' },
+                signature: { en: 'Signature', hi: 'हस्ताक्षर' },
+                document: { en: 'Document', hi: 'दस्तावेज़' },
+            }
+        };
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-lang-key]').forEach(el => {
+                const key = el.dataset.langKey;
+                if (translations[key] && translations[key][lang]) {
+                    el.innerText = translations[key][lang];
+                }
+            });
+            document.querySelectorAll('[data-lang-key-placeholder]').forEach(el => {
+                const key = el.dataset.langKeyPlaceholder;
+                if (translations[key] && translations[key][lang]) {
+                    el.placeholder = translations[key][lang];
+                }
+            });
+            // Special handling for upload placeholders that might not have a background image
+            document.querySelectorAll('.img-preview').forEach(el => {
+                if (!el.style.backgroundImage || el.style.backgroundImage === 'none') {
+                    el.innerText = translations.upload_placeholder[lang];
+                }
+            });
+            // Update active button style
+            document.getElementById('langEnBtn').classList.toggle('active', lang === 'en');
+            document.getElementById('langHiBtn').classList.toggle('active', lang === 'hi');
+        }
 
         function showToast(message, isError = false) { const t=document.getElementById("toast");t.children[0].textContent=message,t.className=`fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform z-50 ${isError?"bg-red-500":"bg-green-500"}`,t.classList.remove("translate-x-[120%]"),t.classList.add("translate-x-0"),setTimeout(()=>{t.classList.remove("translate-x-0"),t.classList.add("translate-x-[120%]")},5e3); }
         window.previewImage = function(event, previewId) { const f=event.target.files[0];if(f){const r=new FileReader,p=document.getElementById(previewId);r.onload=e=>{p.style.backgroundImage=`url(${e.target.result})`,p.textContent=""},r.readAsDataURL(f)} }
@@ -114,22 +204,25 @@
                 const db = getDatabase(app);
                 
                 attachDbHandlers(db);
-                showToast("Connection successful!", false);
+                showToast(translations.toast.connectionSuccess[currentLanguage], false);
 
             } catch (error) {
                 console.error("Application Initialization Failed:", error);
-                showToast("Database connection failed. Check configuration.", true);
+                showToast(translations.toast.dbConnectionFailed[currentLanguage], true);
             }
         }
 
         function attachDbHandlers(db) {
+            // Language buttons
+            document.getElementById('langEnBtn').addEventListener('click', () => setLanguage('en'));
+            document.getElementById('langHiBtn').addEventListener('click', () => setLanguage('hi'));
+            
             document.getElementById('closeSearchModalBtn').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
             document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
             document.getElementById('closeImageModalBtn').addEventListener('click', () => document.getElementById('imageModal').classList.add('hidden'));
             document.getElementById('editBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
             ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).addEventListener('click', () => { const bg = document.getElementById(id).style.backgroundImage; if (bg && bg !== 'none') { document.getElementById('fullScreenImage').src = bg.slice(5, -2); document.getElementById('imageModal').classList.remove('hidden'); } else { document.getElementById(id.replace('Preview', '')).click(); } }); });
 
-            // Password toggle logic
             const togglePassword = document.getElementById('togglePassword');
             const password = document.getElementById('password');
             togglePassword.addEventListener('click', function () {
@@ -141,51 +234,53 @@
 
             document.getElementById('searchBtn').addEventListener('click', async () => {
                 const searchId = document.getElementById('searchInput').value.trim();
-                if (!searchId) { showToast("कृपया खोजने के लिए सदस्यता ID डालें।", true); return; }
-                document.getElementById('modalContent').innerHTML = '<p class="text-center p-8">खोज रहा है...</p>';
+                if (!searchId) { showToast(translations.toast.enterSearchId[currentLanguage], true); return; }
+                document.getElementById('modalContent').innerHTML = `<p class="text-center p-8">${translations.toast.searching[currentLanguage]}</p>`;
                 document.getElementById('searchModal').classList.remove('hidden');
                 try {
                     const snapshot = await get(ref(db, 'members/' + searchId));
                     if (snapshot.exists()) {
                         displayMemberData(snapshot.val());
                     } else {
-                        document.getElementById('modalContent').innerHTML = `<p class="text-center p-8 text-red-500 font-semibold">ID '${searchId}' के साथ कोई सदस्य नहीं मिला।</p>`;
+                        document.getElementById('modalContent').innerHTML = `<p class="text-center p-8 text-red-500 font-semibold">${translations.toast.memberNotFound[currentLanguage]} '${searchId}'.</p>`;
                     }
-                } catch (error) { console.error("Search Error:", error); showToast("खोज के दौरान त्रुटि हुई।", true); }
+                } catch (error) { console.error("Search Error:", error); showToast(translations.toast.searchError[currentLanguage], true); }
             });
             
             function displayMemberData(data) {
                 let statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
                 if (data.status === 'Approved') statusClass = 'bg-green-100 text-green-800 border-green-400';
                 else if (data.status === 'Rejected') statusClass = 'bg-red-100 text-red-800 border-red-400';
-                // IMPORTANT: The password is NOT displayed here for security.
-                document.getElementById('modalContent').innerHTML = `<div class="space-y-6"><div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover border-4"><div><h3 class="text-3xl font-bold">${data.fullName}</h3><p>ID: ${data.membershipId}</p><p>Joined: ${new Date(data.joiningDate).toLocaleDateString('hi-IN')}</p><div class="mt-2"><span class="font-semibold">Status:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>मोबाइल:</strong> ${data.mobileNumber}</div><div><strong>जन्म तिथि:</strong> ${new Date(data.dob).toLocaleDateString('hi-IN')}</div><div><strong>लिंग:</strong> ${data.gender}</div><div><strong>आधार:</strong> ${data.aadhaar}</div>${data.guarantorName ? `<div><strong>गारंटर:</strong> ${data.guarantorName}</div>` : ''}<div class="md:col-span-2"><strong>पता:</strong> ${data.address}</div><div><strong>SIP:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>बैलेंस:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">हस्ताक्षर</h4><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">दस्तावेज़</h4><a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div></div>`;
+                
+                const locale = currentLanguage === 'hi' ? 'hi-IN' : 'en-IN';
+                
+                document.getElementById('modalContent').innerHTML = `<div class="space-y-6"><div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover border-4"><div><h3 class="text-3xl font-bold">${data.fullName}</h3><p>ID: ${data.membershipId}</p><p>${translations.modal.joined[currentLanguage]}: ${new Date(data.joiningDate).toLocaleDateString(locale)}</p><div class="mt-2"><span class="font-semibold">${translations.modal.status[currentLanguage]}:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>${translations.modal.mobile[currentLanguage]}:</strong> ${data.mobileNumber}</div><div><strong>${translations.modal.dob[currentLanguage]}:</strong> ${new Date(data.dob).toLocaleDateString(locale)}</div><div><strong>${translations.modal.gender[currentLanguage]}:</strong> ${data.gender}</div><div><strong>${translations.modal.aadhaar[currentLanguage]}:</strong> ${data.aadhaar}</div>${data.guarantorName ? `<div><strong>${translations.modal.guarantor[currentLanguage]}:</strong> ${data.guarantorName}</div>` : ''}<div class="md:col-span-2"><strong>${translations.modal.address[currentLanguage]}:</strong> ${data.address}</div><div><strong>${translations.modal.sip[currentLanguage]}:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>${translations.modal.balance[currentLanguage]}:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">${translations.modal.signature[currentLanguage]}</h4><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">${translations.modal.document[currentLanguage]}</h4><a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div></div>`;
             }
 
-            // --- Function to populate review modal (for better UX) ---
             function populateReviewModal() {
                 const d = (id) => document.getElementById(id).value;
                 const p = (id) => document.getElementById(id).style.backgroundImage.slice(5, -2);
-                
+                const locale = currentLanguage === 'hi' ? 'hi-IN' : 'en-IN';
+
                 const reviewHTML = `
                     <div class="space-y-4 text-sm">
-                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">व्यक्तिगत और सदस्यता विवरण</h3>
+                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">${translations.personal_details_title[currentLanguage]}</h3>
                         <div class="grid grid-cols-2 gap-x-6 gap-y-3">
-                            <p><strong>पूरा नाम:</strong> ${d('fullName')}</p>
-                            <p><strong>मोबाइल:</strong> ${d('mobileNumber')}</p>
-                            <p><strong>जन्म तिथि:</strong> ${new Date(d('dob')).toLocaleDateString('hi-IN')}</p>
-                            <p><strong>लिंग:</strong> ${d('gender')}</p>
-                            <p><strong>आधार:</strong> ${d('aadhaar')}</p>
-                            <p><strong>गारंटर:</strong> ${d('guarantorName')}</p>
-                            <p><strong>SIP Amount:</strong> ₹${parseInt(d('sipAmount')).toLocaleString('en-IN')}</p>
-                            <p><strong>जॉइनिंग तिथि:</strong> ${new Date(d('joiningDate')).toLocaleDateString('hi-IN')}</p>
-                            <p class="col-span-2"><strong>पता:</strong> ${d('address')}</p>
+                            <p><strong>${translations.full_name_label[currentLanguage]}:</strong> ${d('fullName')}</p>
+                            <p><strong>${translations.mobile_label[currentLanguage]}:</strong> ${d('mobileNumber')}</p>
+                            <p><strong>${translations.dob_label[currentLanguage]}:</strong> ${new Date(d('dob')).toLocaleDateString(locale)}</p>
+                            <p><strong>${translations.gender_label[currentLanguage]}:</strong> ${d('gender')}</p>
+                            <p><strong>${translations.aadhaar_label[currentLanguage]}:</strong> ${d('aadhaar')}</p>
+                            <p><strong>${translations.guarantor_label[currentLanguage]}:</strong> ${d('guarantorName')}</p>
+                            <p><strong>${translations.sip_amount_label[currentLanguage]}:</strong> ₹${parseInt(d('sipAmount')).toLocaleString('en-IN')}</p>
+                            <p><strong>${translations.joining_date_label[currentLanguage]}:</strong> ${new Date(d('joiningDate')).toLocaleDateString(locale)}</p>
+                            <p class="col-span-2"><strong>${translations.address_label[currentLanguage]}:</strong> ${d('address')}</p>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 pt-4">अपलोड किए गए दस्तावेज़</h3>
+                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 pt-4">${translations.doc_upload_title[currentLanguage]}</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                            <div><p class="font-semibold mb-1">प्रोफाइल फोटो</p><img src="${p('profilePicPreview')}" class="w-24 h-24 object-cover mx-auto rounded-lg border"></div>
-                            <div><p class="font-semibold mb-1">हस्ताक्षर</p><img src="${p('signaturePreview')}" class="w-32 h-20 object-contain mx-auto rounded-lg border"></div>
-                            <div><p class="font-semibold mb-1">दस्तावेज़</p><img src="${p('documentPreview')}" class="w-32 h-20 object-contain mx-auto rounded-lg border"></div>
+                            <div><p class="font-semibold mb-1">${translations.profile_pic_label[currentLanguage]}</p><img src="${p('profilePicPreview')}" class="w-24 h-24 object-cover mx-auto rounded-lg border"></div>
+                            <div><p class="font-semibold mb-1">${translations.signature_label[currentLanguage]}</p><img src="${p('signaturePreview')}" class="w-32 h-20 object-contain mx-auto rounded-lg border"></div>
+                            <div><p class="font-semibold mb-1">${translations.document_label[currentLanguage]}</p><img src="${p('documentPreview')}" class="w-32 h-20 object-contain mx-auto rounded-lg border"></div>
                         </div>
                     </div>`;
                 document.getElementById('reviewContent').innerHTML = reviewHTML;
@@ -193,7 +288,7 @@
 
             document.getElementById('registrationForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                populateReviewModal(); // Populate data before showing
+                populateReviewModal();
                 document.getElementById('reviewModal').classList.remove('hidden');
             });
 
@@ -211,24 +306,28 @@
                     const mobileQuery = query(membersRef, orderByChild('mobileNumber'), equalTo(mobileNumber));
                     const aadhaarQuery = query(membersRef, orderByChild('aadhaar'), equalTo(aadhaar));
                     const [mobileSnapshot, aadhaarSnapshot] = await Promise.all([get(mobileQuery), get(aadhaarQuery)]);
-                    if (mobileSnapshot.exists()) throw new Error("यह मोबाइल नंबर पहले से पंजीकृत है।");
-                    if (aadhaarSnapshot.exists()) throw new Error("यह आधार कार्ड नंबर पहले से पंजीकृत है।");
+                    if (mobileSnapshot.exists()) throw new Error(translations.toast.mobileExists[currentLanguage]);
+                    if (aadhaarSnapshot.exists()) throw new Error(translations.toast.aadhaarExists[currentLanguage]);
                     const [profilePicUrl, signatureUrl, documentUrl] = await Promise.all([uploadImage(document.getElementById('profilePic').files[0]), uploadImage(document.getElementById('signature').files[0]), uploadImage(document.getElementById('document').files[0])]);
-                    if (!profilePicUrl || !signatureUrl || !documentUrl) throw new Error("एक या अधिक छवि अपलोड विफल।");
+                    if (!profilePicUrl || !signatureUrl || !documentUrl) throw new Error(translations.toast.imageUploadFailed[currentLanguage]);
                     const newMembershipId = document.getElementById('membershipId').value;
                     const memberData = { fullName: document.getElementById('fullName').value, mobileNumber, dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, aadhaar, guarantorName: document.getElementById('guarantorName').value, address: document.getElementById('address').value, password: document.getElementById('password').value, membershipId: newMembershipId, joiningDate: document.getElementById('joiningDate').value, sipAmount: parseFloat(document.getElementById('sipAmount').value), accountBalance: 0, profilePicUrl, signatureUrl, documentUrl, createdAt: new Date().toISOString(), status: 'Pending' };
                     await set(ref(db, 'members/' + newMembershipId), memberData);
                     document.getElementById('reviewModal').classList.add('hidden');
-                    showToast("पंजीकरण सफल! आपका आवेदन समीक्षा के लिए लंबित है।");
+                    showToast(translations.toast.registrationSuccess[currentLanguage]);
                     document.getElementById('registrationForm').reset();
-                    ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).style.backgroundImage = ''; document.getElementById(id).textContent = 'Click to upload'; });
+                    ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { const el = document.getElementById(id); el.style.backgroundImage = ''; el.textContent = translations.upload_placeholder[currentLanguage]; });
                     document.getElementById('membershipId').value = generateMembershipId();
                     document.getElementById('joiningDate').valueAsDate = new Date();
-                } catch (error) { showToast(`त्रुटि: ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.add('hidden'); }
+                } catch (error) { showToast(`${translations.toast.genericError[currentLanguage]} ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.add('hidden'); }
             });
+
+            // Set initial language
+            setLanguage('hi');
         }
 
         startApp();
     </script>
 </body>
 </html>
+
