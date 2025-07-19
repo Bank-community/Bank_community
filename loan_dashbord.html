@@ -1,95 +1,342 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upgraded Loan Dashboard</title>
+    <title>Smart Loan Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-
+    <!-- Firebase SDKs for backend connection -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 <style>
-/* --- CSS (No Changes Here) --- */
 :root {
-    --primary-bg: #f8fafc; --card-bg: #ffffff; --text-dark: #1f2937; --text-light: #6b7280; --border-color: #e5e7eb;
-    --primary-color: #4f46e5; --primary-dark: #4338ca; --danger-color: #813800; --danger-text: #b91c1c;
-    --success-color: #16a34a; --success-text: #15803d; --black-color: #1f2937;
-    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-    --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    --font-family: 'Inter', sans-serif;
+    --primary-bg: #f7f8fc;
+    --card-bg: #ffffff;
+    --text-dark: #1a202c;
+    --text-light: #718096;
+    --border-color: #e2e8f0;
+    --primary-color: #4f46e5;
+    --primary-dark: #4338ca;
+    --danger-color: #e53e3e;
+    --danger-light: #fff5f5;
+    --success-color: #38a169;
+    --success-light: #f0fff4;
+    --warning-color: #dd6b20;
+    --warning-light: #fffaf0;
+    --font-family: 'Poppins', sans-serif;
 }
+
 body { 
-    font-family: var(--font-family); background-color: var(--primary-bg); margin: 0; padding: 24px; color: var(--text-dark); 
-    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-family); 
+    background-color: var(--primary-bg); 
+    margin: 0; 
+    padding: 24px;
+    color: var(--text-dark); 
 }
-.container { max-width: 1280px; margin: 0 auto; }
-.header { text-align: center; margin-bottom: 40px; }
-.header h1 { margin: 0; font-size: 32px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.025em; }
-.header p { margin: 8px 0 0; color: var(--text-light); font-size: 18px; }
-.summary-section { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
-.summary-card { background: var(--card-bg); border-radius: 12px; padding: 24px; text-align: center; border: 1px solid var(--border-color); transition: all 0.3s ease; }
-.summary-card:hover { border-color: var(--primary-color); }
-.summary-card h3 { margin: 0 0 8px 0; font-size: 16px; color: var(--text-light); font-weight: 500; }
-.summary-card p { margin: 0; font-size: 36px; font-weight: 700; color: var(--primary-color); }
-.filter-controls { margin-bottom: 32px; }
-#search-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; background-color: var(--card-bg); }
-#search-input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
-#loader { text-align: center; padding: 50px; font-size: 16px; color: var(--text-light); }
-.spinner { width: 40px; height: 40px; border: 4px solid rgba(0,0,0,0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+
+.container { 
+    max-width: 1280px; 
+    margin: 0 auto; 
+}
+
+.header { 
+    text-align: center; 
+    margin-bottom: 40px; 
+}
+.header h1 { 
+    margin: 0; 
+    font-size: 32px; 
+    font-weight: 700; 
+    color: var(--text-dark);
+}
+.header p { 
+    margin: 8px 0 0; 
+    color: var(--text-light); 
+    font-size: 18px; 
+}
+
+.summary-section { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 24px; 
+    margin-bottom: 40px; 
+}
+.summary-card { 
+    background: var(--card-bg); 
+    border-radius: 12px; 
+    padding: 24px; 
+    text-align: center; 
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.07);
+}
+.summary-card h3 { 
+    margin: 0 0 8px 0; 
+    font-size: 16px; 
+    color: var(--text-light); 
+    font-weight: 500; 
+}
+.summary-card p { 
+    margin: 0; 
+    font-size: 36px; 
+    font-weight: 700; 
+    color: var(--primary-color); 
+}
+
+.filter-controls { 
+    margin-bottom: 32px; 
+}
+#search-input { 
+    width: 100%; 
+    padding: 12px 16px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 8px; 
+    font-size: 16px; 
+    box-sizing: border-box; 
+    transition: border-color 0.2s, box-shadow 0.2s; 
+    background-color: var(--card-bg);
+}
+#search-input:focus { 
+    outline: none; 
+    border-color: var(--primary-color); 
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+#loader { 
+    text-align: center; 
+    padding: 50px; 
+    font-size: 16px; 
+    color: var(--text-light); 
+}
+.spinner { 
+    width: 40px; height: 40px; 
+    border: 4px solid rgba(0,0,0,0.1); 
+    border-left-color: var(--primary-color); 
+    border-radius: 50%; 
+    animation: spin 1s linear infinite; 
+    margin: 0 auto 15px auto; 
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 #loader.hidden { display: none; }
-.message-box { background-color: #e8f5e9; color: #28a745; padding: 25px; border-radius: 12px; text-align: center; border: 1px solid #c8e6c9; grid-column: 1 / -1; }
-#outstanding-loans-container { display: grid; gap: 24px; grid-template-columns: 1fr; }
+
+.message-box { 
+    background-color: var(--success-light); 
+    color: var(--success-color); 
+    padding: 25px; 
+    border-radius: 12px; 
+    text-align: center; 
+    border: 1px solid #c6f6d5; 
+    grid-column: 1 / -1;
+}
+
+#outstanding-loans-container { 
+    display: grid; 
+    gap: 24px; 
+    grid-template-columns: 1fr; 
+}
 @media (min-width: 640px) { #outstanding-loans-container { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { #outstanding-loans-container { grid-template-columns: repeat(3, 1fr); } }
-.loan-card { background-color: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow); transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; display: flex; flex-direction: column; }
-.loan-card:hover { transform: translateY(-5px); box-shadow: var(--card-hover-shadow); }
-.card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
-.download-btn { position: absolute; top: 16px; right: 16px; background-color: #f3f4f6; color: #4b5563; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
-.download-btn:hover { background-color: #e5e7eb; transform: scale(1.1); }
-.download-btn .icon { width: 20px; height: 20px; }
-.card-top { display: flex; align-items: center; margin-bottom: 20px; }
-.profile-picture { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; margin-right: 16px; flex-shrink: 0; border: 2px solid var(--border-color); }
-.profile-picture img { width: 100%; height: 100%; object-fit: cover; }
-.user-details h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-dark); }
-.loan-date { font-size: 13px; color: var(--text-light); display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-.loan-date .icon { width: 14px; height: 14px; }
-.card-middle { background-color: var(--primary-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); margin-top: auto; }
-.detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-.detail-row:not(:last-child) { margin-bottom: 12px; }
-.detail-label { display: flex; align-items: center; gap: 8px; color: var(--text-light); font-weight: 500; }
-.detail-label .icon { width: 16px; height: 16px; }
-.detail-value { font-weight: 600; font-size: 15px; }
-.detail-value.amount { color: var(--text-dark); }
-.detail-value.penalty-value { color: var(--danger-text); font-weight: 700; }
-.pending-banner { color: white; padding: 12px 20px; text-align: center; font-weight: 500; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.3s ease; background-color: var(--primary-dark); }
-.pending-banner.green { background-color: var(--success-color); }
-.pending-banner.danger { background-color: var(--danger-color); }
-.pending-banner.black { background-color: var(--black-color); }
-.pending-banner .icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+.loan-card { 
+    background-color: var(--card-bg); 
+    border-radius: 16px; 
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+    transition: all 0.3s ease; 
+    overflow: hidden; 
+    display: flex; 
+    flex-direction: column; 
+}
+.loan-card:hover { 
+    transform: translateY(-5px); 
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+}
+
+.card-main-content { 
+    padding: 20px; 
+    position: relative; 
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.download-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.download-btn:hover {
+    background-color: #e5e7eb;
+    transform: scale(1.1);
+}
+.download-btn .icon {
+    width: 20px;
+    height: 20px;
+}
+
+.card-top { 
+    display: flex; 
+    align-items: center; 
+    margin-bottom: 20px; 
+}
+.profile-picture { 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    margin-right: 16px; 
+    flex-shrink: 0; 
+    border: 2px solid var(--border-color); 
+}
+.profile-picture img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+}
+.user-details h3 { 
+    margin: 0; 
+    font-size: 18px; 
+    font-weight: 600; 
+    color: var(--text-dark);
+}
+.loan-date { 
+    font-size: 13px; 
+    color: var(--text-light); 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    margin-top: 4px; 
+}
+.loan-date .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.card-middle { 
+    background-color: var(--primary-bg); 
+    border-radius: 12px; 
+    padding: 16px; 
+    border: 1px solid var(--border-color);
+    margin-top: auto;
+}
+.detail-row { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    font-size: 14px; 
+}
+.detail-row:not(:last-child) { 
+    margin-bottom: 12px; 
+}
+.detail-label { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    color: var(--text-light); 
+    font-weight: 500;
+}
+.detail-label .icon {
+    width: 16px;
+    height: 16px;
+}
+.detail-value { 
+    font-weight: 600; 
+    font-size: 15px; 
+}
+.detail-value.amount { 
+    color: var(--text-dark); 
+}
+.detail-value.penalty-value { 
+    color: var(--danger-color);
+    font-weight: 700; 
+}
+
+.pending-banner { 
+    color: white; 
+    padding: 12px 20px; 
+    text-align: center; 
+    font-weight: 500; 
+    font-size: 14px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; 
+    transition: background-color 0.3s ease; 
+}
+.pending-banner.green { 
+    background-color: var(--success-color); 
+}
+.pending-banner.warning { 
+    background-color: var(--warning-color); 
+}
+.pending-banner.danger { 
+    background-color: var(--danger-color); 
+}
+.pending-banner .icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
 </style>
-<div class="container">
-    <div class="header"><h1>Bank Community Loan Dashboard</h1><p>Track member loans and late fee charges.</p></div>
-    <div class="summary-section">
-        <div class="summary-card"><h3>Total Loan Number</h3><p id="total-outstanding-count">0</p></div>
-        <div class="summary-card"><h3>Total Loan Amount</h3><p id="total-outstanding-amount">₹0</p></div>
+    <div class="container">
+        <div class="header">
+            <h1>Loan Dashboard</h1>
+            <p>Track all outstanding member loans.</p>
+        </div>
+
+        <div class="summary-section">
+            <div class="summary-card">
+                <h3>Outstanding Loans</h3>
+                <p id="total-outstanding-count">0</p>
+            </div>
+            <div class="summary-card">
+                <h3>Total Amount Due</h3>
+                <p id="total-outstanding-amount">₹0</p>
+            </div>
+        </div>
+
+        <div class="filter-controls">
+            <input type="text" id="search-input" placeholder="Search by member name...">
+        </div>
+
+        <div id="loader">
+            <div class="spinner"></div>
+            Loading member data...
+        </div>
+
+        <div id="outstanding-loans-container"></div>
+
     </div>
-    <div class="filter-controls"><input type="text" id="search-input" placeholder="Search by member name..."></div>
-    <div id="loader"><div class="spinner"></div>Loading member data...</div>
-    <div id="outstanding-loans-container"></div>
-</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    const ICONS = { /* ICONS object is unchanged */ };
+    const ICONS = {
+        calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
+        money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
+        penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
+        clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
+        download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`
+    };
 
     const state = {
         allOutstandingLoans: [],
@@ -102,74 +349,58 @@ document.addEventListener("DOMContentLoaded", () => {
         },
     };
 
-    async function fetchDataFromBackend() {
-        const { loader, container } = state.ui;
-        loader.classList.remove('hidden');
-        container.innerHTML = '';
+    async function initializeAndFetch() {
         try {
-            // STEP 1: Fetch the Firebase config from your Vercel function
-            const configResponse = await fetch('/api/firebase-config');
-            if (!configResponse.ok) {
-                throw new Error("Firebase config fetch करने में समस्या।");
-            }
-            const firebaseConfig = await configResponse.json();
-
-            // STEP 2: Initialize Firebase app if not already initialized
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-
-            // STEP 3: Sign in anonymously to meet the security rule ".read: auth != null"
-            await firebase.auth().signInAnonymously();
-
-            // STEP 4: Fetch data directly from Firebase Realtime Database
-            // CORRECTED PATH: Using 'members' instead of 'Transactions'
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
+            
+            firebase.initializeApp(config.firebase);
             const db = firebase.database();
-            const snapshot = await db.ref('members').once('value');
-            const firebaseData = snapshot.val();
-
-            if (!firebaseData) {
-                 throw new Error("Firebase के 'members' नोड से कोई डेटा नहीं मिला।");
+            
+            const membersRef = db.ref('members');
+            const snapshot = await membersRef.once('value');
+            if (!snapshot.exists()) throw new Error('No member data found.');
+            
+            const membersData = snapshot.val();
+            const allTransactions = [];
+            for (const memberId in membersData) {
+                const member = membersData[memberId];
+                if (member.transactions) {
+                    for (const txId in member.transactions) {
+                        allTransactions.push({
+                            ...member.transactions[txId],
+                            fullName: member.fullName,
+                            profilePicUrl: member.profilePicUrl
+                        });
+                    }
+                }
             }
             
-            const data = Object.keys(firebaseData).map(key => ({ id: key, ...firebaseData[key] }));
-
-            const allData = processRawData(data);
-            state.allOutstandingLoans = findOutstandingLoans(allData);
+            const processedData = processRawData(allTransactions);
+            state.allOutstandingLoans = findOutstandingLoans(processedData);
             displayAllData();
             setupEventListeners();
 
         } catch (error) {
             console.error("Data fetch failed:", error);
-            container.innerHTML = `<p style="color: red; text-align: center; grid-column: 1 / -1;">डेटा लोड नहीं हो सका। कृपया अपनी इंटरनेट कनेक्टिविटी, Firebase Rules, और Vercel लॉग्स की जाँच करें।</p>`;
+            state.ui.container.innerHTML = `<p style="color: red; text-align: center; grid-column: 1 / -1;">Data could not be loaded. Please check your connection and API configuration.</p>`;
         } finally {
-            loader.classList.add('hidden');
+            state.ui.loader.classList.add('hidden');
         }
     }
 
-    // All other functions (processRawData, calculatePenalty, findOutstandingLoans, displayAllData, etc.)
-    // remain exactly the same as before. They are omitted here for brevity but should be in your file.
-    // The full HTML provided above includes them.
-
-    function processRawData(data) {
-        const processed = data.map(row => {
-            let parsedDate = new Date(row.Date);
-            if (isNaN(parsedDate.getTime())) {
-                 const dateParts = String(row.Date).match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
-                 if (dateParts) parsedDate = new Date(`${dateParts[2]} ${dateParts[1]}, ${dateParts[3]}`);
-            }
-            if (isNaN(parsedDate.getTime())) parsedDate = null;
-            
-            return {
-                Name: String(row.Name || 'Unknown').trim(),
-                Date: parsedDate,
-                Loan: parseFloat(row.Loan || 0) || 0,
-                Payment: parseFloat(row.Payment || 0) || 0,
-                ImageUrl: row.ImageUrl || null
-            };
-        }).filter(r => r.Name !== 'Unknown' && r.Date !== null);
-        
-        return processed.sort((a, b) => a.Date - b.Date);
+    function processRawData(rawData) {
+        return rawData
+            .map(row => ({
+                Name: String(row.fullName || 'Unknown').trim(),
+                Date: new Date(row.Date),
+                Loan: parseFloat(row.Loan || 0),
+                Payment: parseFloat(row['Loan Payment'] || 0),
+                ImageUrl: row.profilePicUrl || null
+            }))
+            .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
+            .sort((a, b) => a.Date - b.Date);
     }
 
     function calculatePenalty(loanAmount, daysAgo) {
@@ -198,20 +429,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     lastLoanDate = transaction.Date;
                 } else if (transaction.Payment > 0) {
                     currentBalance -= transaction.Payment;
-                    if (currentBalance < 0) currentBalance = 0;
                 }
             });
+            
+            currentBalance = Math.round(currentBalance);
 
             if (currentBalance > 0) {
-                const memberDataSortedDesc = [...memberData].sort((a, b) => b.Date - a.Date);
-                const today = new Date(); // Using current date for accurate calculation
+                const today = new Date();
                 let daysPassed = 0;
                 if (lastLoanDate) {
                      const timeDiff = today.getTime() - lastLoanDate.getTime();
                      daysPassed = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
                 }
                 
-                const latestImage = memberDataSortedDesc.find(r => r.ImageUrl && r.ImageUrl.trim() !== "")?.ImageUrl || null;
+                const latestImage = memberData.find(r => r.ImageUrl)?.ImageUrl || null;
                 const penaltyInfo = calculatePenalty(currentBalance, daysPassed);
 
                 outstanding.push({
@@ -228,6 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
     }
 
+
     function displayAllData() {
         displaySummary(state.allOutstandingLoans);
         displayLoanCards(state.allOutstandingLoans);
@@ -243,38 +475,76 @@ document.addEventListener("DOMContentLoaded", () => {
     function displayLoanCards(loans) {
         const { container } = state.ui;
         container.innerHTML = '';
+
         if (loans.length === 0) {
             container.innerHTML = `<div class="message-box"><h2>All Clear!</h2><p>There are no outstanding loans.</p></div>`;
             return;
         }
+
         loans.forEach(loan => {
             const card = document.createElement('div');
             const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${loan.loanAmount}`;
             card.id = cardId;
             card.className = 'loan-card';
+
             const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
             const profilePic = loan.imageUrl || defaultPic;
+            
             const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
-            let bannerClass = '';
-            if (loan.daysAgo > 90) bannerClass = 'black';
-            else if (loan.daysAgo > 60) bannerClass = 'danger';
-            else if (loan.daysAgo > 30) bannerClass = 'green';
+            
+            let bannerClass = 'green';
+            if (loan.daysAgo > 90) bannerClass = 'danger';
+            else if (loan.daysAgo > 60) bannerClass = 'warning';
+            
             let penaltyHtml = '';
             if (loan.penalty.amount > 0) {
                 penaltyHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} Late Fee (${loan.penalty.percentage}%):</span><span class="detail-value penalty-value">₹${loan.penalty.amount.toLocaleString('en-IN')}</span></div>`;
             }
-            let bannerText;
-            if (loan.daysAgo > 100) bannerText = `100+ दिन से बाकी! सख्त कार्रवाई की ज़रूरत।`;
-            else bannerText = `Payment ${loan.daysAgo} ${loan.daysAgo === 1 ? 'din' : 'din'} से pending है`;
-            card.innerHTML = `<div class="card-main-content"><button class="download-btn" data-card-id="${cardId}" title="Download Card">${ICONS.download}</button><div class="card-top"><div class="profile-picture"><img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div><div class="user-details"><h3>${loan.name}</h3><div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div></div></div><div class="card-middle"><div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>${penaltyHtml}</div></div><div class="pending-banner ${bannerClass}">${ICONS.clock}<span>${bannerText}</span></div>`;
+            
+            let bannerText = `Payment ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} pending`;
+
+            card.innerHTML = `
+                <div class="card-main-content">
+                    <button class="download-btn" data-card-id="${cardId}" title="Download Card">
+                        ${ICONS.download}
+                    </button>
+                    <div class="card-top">
+                        <div class="profile-picture">
+                            <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                        </div>
+                        <div class="user-details">
+                            <h3>${loan.name}</h3>
+                            <div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div>
+                        </div>
+                    </div>
+                    <div class="card-middle">
+                        <div class="detail-row">
+                            <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
+                            <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                        ${penaltyHtml}
+                    </div>
+                </div>
+                <div class="pending-banner ${bannerClass}">
+                    ${ICONS.clock}
+                    <span>${bannerText}</span>
+                </div>
+            `;
             container.appendChild(card);
         });
     }
 
     function downloadCardAsImage(cardId) {
         const cardElement = document.getElementById(cardId);
-        if (!cardElement) { console.error("Card element not found for ID:", cardId); return; }
-        html2canvas(cardElement, { useCORS: true, scale: 2 }).then(canvas => {
+        if (!cardElement) {
+            console.error("Card element not found for ID:", cardId);
+            return;
+        }
+        
+        html2canvas(cardElement, {
+          useCORS: true, 
+          scale: 2 
+        }).then(canvas => {
             const link = document.createElement('a');
             link.download = `${cardId}.png`;
             link.href = canvas.toDataURL('image/png');
@@ -290,6 +560,7 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             displayLoanCards(filteredLoans);
         });
+
         state.ui.container.addEventListener('click', function(event) {
             const downloadButton = event.target.closest('.download-btn');
             if (downloadButton) {
@@ -299,8 +570,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    fetchDataFromBackend();
+    initializeAndFetch();
 });
 </script>
 </body>
 </html>
+
