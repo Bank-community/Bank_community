@@ -98,7 +98,8 @@
             transform: translate(-50%, -50%);
             width: 60%;
             height: 60%;
-            background-image: url('https://images.weserv.nl/?url=i.imgur.com/JLyQvpv.png');
+            /* FIXED: Using a reliable logo URL for the watermark */
+            background-image: url('https://images.weserv.nl/?url=i.ibb.co/pnv1M9q/logo.png');
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
@@ -216,11 +217,11 @@
         }
 
         #capture .footer {
-            margin-top: auto; /* Pushes footer to the bottom */
+            margin-top: auto;
             padding-top: 20px;
-            text-align: right;
             border-top: 1px dashed #ccc;
-            height: 150px; /* Adjust height to fit signature */
+            height: 150px;
+            position: relative;
         }
         
         #capture .footer .team-text {
@@ -233,14 +234,25 @@
             line-height: 1.5;
             color: #444;
         }
+        
+        /* ADDED: Styles for the signature headline */
+        .signature-title {
+            position: absolute;
+            bottom: 115px; /* Positioned above the signature image */
+            right: 15px;
+            width: 180px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
 
         .signature-stamp {
             position: absolute;
             object-fit: contain;
-            /* UPDATED: Styles for the new signature image */
-            bottom: 45px;
+            bottom: 40px; /* Adjusted position */
             right: 15px;
-            width: 180px; /* Increased width for better visibility */
+            width: 180px;
             height: auto;
         }
 
@@ -281,8 +293,8 @@
 
     <div id="capture">
         <div class="header">
-            <!-- FIXED: Ensured proxy and crossorigin attribute are present -->
-            <img src="https://images.weserv.nl/?url=i.imgur.com/JLyQvpv.png" alt="Bank Logo" id="logoStamp" crossorigin="anonymous">
+            <!-- FIXED: Using a new reliable URL for the logo -->
+            <img src="https://images.weserv.nl/?url=i.ibb.co/pnv1M9q/logo.png" alt="Bank Logo" id="logoStamp" crossorigin="anonymous">
             <p class="bank-name">Bank Community Loan</p>
             <p class="address">Lalunagar, Begusarai, Bihar</p>
             <p class="date">Date: <span id="displayDate"></span></p>
@@ -313,13 +325,11 @@
             </div>
         </div>
 
-        <!-- REMOVED: Board members section is no longer needed as names are in the signature image -->
-
         <div class="footer">
              <p class="team-text">Thank you,<br>Bank Community Team</p>
-             <!-- REMOVED: "Authorized Signature" text, as it's part of the image now -->
-            <!-- UPDATED: New signature image with proxy and new class -->
-            <img src="https://images.weserv.nl/?url=i.ibb.co/VrbZyNQ/20250719-172422.png" class="signature-stamp" alt="Authorized Signature Stamp" id="signatureStamp" crossorigin="anonymous">
+             <!-- ADDED: Signature headline text is back -->
+             <p class="signature-title">Authorized Signature</p>
+             <img src="https://images.weserv.nl/?url=i.ibb.co/VrbZyNQ/20250719-172422.png" class="signature-stamp" alt="Authorized Signature Stamp" id="signatureStamp" crossorigin="anonymous">
         </div>
     </div>
 
@@ -457,7 +467,7 @@
                 }
                 return Promise.resolve();
             });
-            return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500))); // Increased timeout slightly
+            return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
         }
 
         downloadBtn.addEventListener('click', async () => {
