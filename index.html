@@ -67,7 +67,7 @@
         .install-button { display: none; background: green; color: white; border: 2px solid white; border-radius: 50px; padding: 10px 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; gap: 10px; align-items: center; justify-content: center; width: 70%; max-width: 180px; }
         .install-button img { width: 24px; height: 24px; }
         .install-button:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); transform: translateY(-3px); }
-        .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0; } /* Removed padding */
+        .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0; }
         section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
         section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
         .transparency-section p { font-size: 1.1em; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto; }
@@ -118,9 +118,10 @@
         .bank-members { background: linear-gradient(to bottom, #e0f2f7, #ffffff); padding: 30px 0; width: 100%; box-sizing: border-box; border-bottom: 1px solid var(--border-color); }
         .header-container { display: flex; justify-content: space-between; align-items: center; padding: 0 25px 20px 25px; flex-wrap: wrap; gap: 15px; max-width: 1140px; margin: 0 auto; }
         .bank-headline { font-size: 1.8em; font-weight: 700; color: var(--primary-darker); margin: 0; flex-grow: 1; }
-        .view-balance { display: flex; align-items: center; gap: 10px; cursor: pointer; background-color: var(--card-bg); padding: 10px 18px; border-radius: 25px; font-weight: 600; font-size: 1em; box-shadow: 0 3px 8px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease; color: var(--primary-color); border: 1px solid var(--border-color); }
-        .view-balance:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.15); color: var(--primary-darker); }
-        .view-balance img.balance-icon { width: 24px; height: 24px; }
+        .header-buttons-wrapper { display: flex; gap: 10px; }
+        .view-balance-btn { display: flex; align-items: center; gap: 10px; cursor: pointer; background-color: var(--card-bg); padding: 10px 18px; border-radius: 25px; font-weight: 600; font-size: 1em; box-shadow: 0 3px 8px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease; color: var(--primary-color); border: 1px solid var(--border-color); }
+        .view-balance-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.15); color: var(--primary-darker); }
+        .view-balance-btn img.balance-icon { width: 24px; height: 24px; }
         .member-slider { display: flex; gap: 15px; overflow-x: auto; scroll-behavior: smooth; padding: 20px 25px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--primary-color) #e0f2f7; max-width: 1140px; margin: 0 auto; }
         .member-slider::-webkit-scrollbar { height: 8px; }
         .member-slider::-webkit-scrollbar-track { background: #e0f2f7; border-radius: 4px;}
@@ -148,7 +149,7 @@
         .member-card:hover img.member-photo { transform: scale(1.05); }
 
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
-        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 15px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; }
+        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 10px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; min-width: 80px; box-sizing: border-box; }
         .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
         
         .rank-icon { 
@@ -171,20 +172,22 @@
         .custom-cards-container {
             display: flex; gap: 15px;
             overflow-x: auto; scroll-behavior: smooth;
-            padding: 20px; /* Padding on all sides */
+            padding: 20px 15px; /* Reduced side padding */
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            scroll-snap-type: x mandatory; /* Snapping effect */
+            scroll-snap-type: x mandatory;
         }
         .custom-cards-container::-webkit-scrollbar { display: none; }
 
         .custom-card {
-            background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            background-color: var(--card-bg); border-radius: 12px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color); /* Added border */
             overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;
             display: flex; flex-direction: column;
-            flex: 0 0 calc(100% - 40px); /* UPDATED: Card width for full screen feel */
-            max-width: 400px;
-            scroll-snap-align: center; /* Center the card when snapping */
+            flex: 0 0 calc(100% - 30px); /* UPDATED: Card width for even larger size */
+            max-width: 450px;
+            scroll-snap-align: center;
         }
         .custom-card:hover {
             transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15);
@@ -193,14 +196,15 @@
             width: 100%; height: auto; object-fit: cover;
         }
         .custom-card-content {
-            padding: 20px; display: flex; flex-direction: column; flex-grow: 1;
+            padding: 15px; /* Reduced padding */
+            display: flex; flex-direction: column; flex-grow: 1;
         }
         .custom-card-title {
-            font-size: 1.4em; font-weight: 700; color: var(--primary-darker);
-            margin-top: 0; margin-bottom: 10px;
+            font-size: 1.3em; font-weight: 700; color: var(--primary-darker);
+            margin-top: 0; margin-bottom: 5px; /* Reduced margin */
         }
         .custom-card-desc {
-            font-size: 1em; color: var(--light-text); margin-bottom: 20px; flex-grow: 1;
+            font-size: 0.9em; color: var(--light-text); margin-bottom: 15px; flex-grow: 1;
         }
         .custom-card-btn {
             display: block; width: auto;
@@ -222,7 +226,6 @@
             transform: translateY(0) scale(0.98);
         }
         
-        /* NEW: Styles for custom card indicator */
         #custom-cards-indicator {
             text-align: center;
             padding-bottom: 20px;
@@ -283,21 +286,21 @@
         .sip-status-badge { padding: 5px 12px; border-radius: 15px; font-size: 0.85em; font-weight: bold; color: white; min-width: 80px; text-align: center; }
         .sip-status-badge.paid { background-color: var(--success-color); }
         .sip-status-badge.not-paid { background-color: var(--danger-color); }
-        #notificationModal .modal-content { max-width: 500px; padding: 0; }
-        #notificationModal h2 { padding: 20px 20px 15px 20px; margin: 0; border-bottom: 1px solid var(--border-color); }
-        .notification-list { list-style: none; padding: 0; margin: 0; max-height: 65vh; overflow-y: auto; }
-        .notification-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
-        .notification-item:last-child { border-bottom: none; }
+        #notificationModal .modal-content, #penaltyWalletModal .modal-content { max-width: 500px; padding: 0; }
+        #notificationModal h2, #penaltyWalletModal h2 { padding: 20px 20px 15px 20px; margin: 0; border-bottom: 1px solid var(--border-color); }
+        .notification-list, .penalty-history-list { list-style: none; padding: 0; margin: 0; max-height: 65vh; overflow-y: auto; }
+        .notification-item, .penalty-history-item { display: flex; align-items: flex-start; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+        .notification-item:last-child, .penalty-history-item:last-child { border-bottom: none; }
         .notification-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 15px; }
-        .notification-details { flex-grow: 1; }
-        .notification-text { margin: 0; font-size: 1em; }
-        .notification-text strong { color: var(--primary-darker); }
-        .notification-amount { font-weight: 700; }
-        .notification-amount.sip { color: var(--success-color); }
-        .notification-amount.loan { color: var(--danger-color); }
+        .notification-details, .penalty-details { flex-grow: 1; }
+        .notification-text, .penalty-text { margin: 0; font-size: 1em; }
+        .notification-text strong, .penalty-text strong { color: var(--primary-darker); }
+        .notification-amount, .penalty-amount { font-weight: 700; flex-shrink: 0; margin-left: 15px; }
+        .notification-amount.sip, .penalty-amount.income { color: var(--success-color); }
+        .notification-amount.loan, .penalty-amount.expense { color: var(--danger-color); }
         .notification-amount.payment { color: var(--info-color); }
-        .notification-time { font-size: 0.8em; color: var(--light-text); margin-top: 4px; }
-        .no-notifications { padding: 40px 20px; text-align: center; color: var(--light-text); }
+        .notification-time, .penalty-time { font-size: 0.8em; color: var(--light-text); margin-top: 4px; }
+        .no-notifications, .no-penalty-history { padding: 40px 20px; text-align: center; color: var(--light-text); }
         footer { background-color: #343a40; color: #f8f9fa; padding: 25px 15px; margin-top: 50px; font-size: 0.95em; text-align: center; border-top: 5px solid var(--primary-color); }
         footer p { color: #f8f9fa; margin: 0; }
         .image-modal-overlay { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.92); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); justify-content: center; align-items: center; cursor: pointer; padding: 20px; box-sizing: border-box; opacity: 0; transition: opacity 0.4s ease; }
@@ -348,7 +351,16 @@
 
 <header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> 
 <main class="content-wrapper">
-    <section class="bank-members animate-on-scroll"> <div class="header-container"> <h2 class="bank-headline">BANK MEMBERS</h2> <div class="view-balance" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> </div> <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> </section> 
+    <section class="bank-members animate-on-scroll"> 
+        <div class="header-container"> 
+            <h2 class="bank-headline">BANK MEMBERS</h2> 
+            <div class="header-buttons-wrapper">
+                <div class="view-balance-btn" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> 
+                <div class="view-balance-btn" id="viewPenaltyWalletBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="Penalty Wallet" class="balance-icon"> <span>Penalty Wallet</span> </div> 
+            </div>
+        </div> 
+        <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> 
+    </section> 
     
     <section id="customCardsSection" class="animate-on-scroll">
         <div class="custom-card-slider-wrapper">
@@ -357,7 +369,20 @@
         <div class="slide-indicator" id="custom-cards-indicator"></div>
     </section>
 
-    <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> 
+    <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> 
+    
+    <div id="penaltyWalletModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closePenaltyWalletModal">×</span>
+            <h2>Bank Penalty Wallet</h2>
+            <div id="penaltyBalance" class="balance-display" style="color: var(--danger-color);">₹0</div>
+            <small class="balance-label">Current Penalty Balance</small>
+            <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
+            <ul class="penalty-history-list" id="penaltyHistoryList"></ul>
+        </div>
+    </div>
+
+    <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> 
     <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides" id="communityLetterSlides">
          </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> 
 </main>
@@ -412,7 +437,7 @@
     async function initializeAndRunApp() {
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=7') // Version updated
+                navigator.serviceWorker.register('/sw.js?v=8') // Version updated
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -445,7 +470,7 @@
     document.body.style.visibility = 'hidden';
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V7) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V8) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -501,8 +526,16 @@
         const submitPasswordBtn = document.getElementById('submitPasswordBtn');
         const fullProfileViewModal = document.getElementById('fullProfileViewModal');
         const closeFullProfileModal = document.getElementById('closeFullProfileModal');
+        // NEW: Penalty Wallet Elements
+        const viewPenaltyWalletBtn = document.getElementById('viewPenaltyWalletBtn');
+        const penaltyWalletModal = document.getElementById('penaltyWalletModal');
+        const closePenaltyWalletModalBtn = document.getElementById('closePenaltyWalletModal');
+        const penaltyBalanceElement = document.getElementById('penaltyBalance');
+        const penaltyHistoryList = document.getElementById('penaltyHistoryList');
+
 
         let allMembersData = {}; 
+        let penaltyWalletData = {}; // NEW
         let netCommunityBalance = 0;
         let netReturnAmount = 0;
         let totalPenaltyAmount = 0;
@@ -552,13 +585,13 @@
                     throw new Error("Database is empty or could not be read.");
                 }
                 allMembersData = data.members || {};
-                const penaltyIncomes = data.penaltyWallet ? data.penaltyWallet.incomes || {} : {};
+                penaltyWalletData = data.penaltyWallet || {}; // UPDATED
                 
                 cardColors = data.admin?.card_colors || {};
                 customCardsData = data.admin?.custom_cards || {};
                 communityLettersData = data.admin?.community_letters || {};
 
-                processAndDisplayData(allMembersData, penaltyIncomes);
+                processAndDisplayData(allMembersData, penaltyWalletData.incomes || {});
                 displayCustomCards(customCardsData);
                 displayCommunityLetters(communityLettersData);
             }, (error) => {
@@ -836,6 +869,40 @@
             sipStatusModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
+        function showPenaltyWalletModal() {
+            if (!penaltyWalletModal) return;
+
+            const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
+            const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
+            const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            const totalIncomes = incomes.reduce((sum, i) => sum + i.amount, 0);
+            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const currentBalance = totalIncomes - totalExpenses;
+
+            penaltyBalanceElement.textContent = `₹${currentBalance.toLocaleString('en-IN')}`;
+            penaltyHistoryList.innerHTML = '';
+
+            if (history.length === 0) {
+                penaltyHistoryList.innerHTML = `<li class="no-penalty-history">No penalty records found.</li>`;
+            } else {
+                history.forEach(tx => {
+                    const li = document.createElement('li');
+                    li.className = 'penalty-history-item';
+                    const isIncome = tx.type === 'income';
+                    li.innerHTML = `
+                        <div class="penalty-details">
+                            <p class="penalty-text"><strong>${isIncome ? tx.from : tx.reason}</strong></p>
+                            <div class="penalty-time">${tx.reason || ''} &middot; ${new Date(tx.timestamp).toLocaleString('en-GB')}</div>
+                        </div>
+                        <span class="penalty-amount ${isIncome ? 'income' : 'expense'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</span>
+                    `;
+                    penaltyHistoryList.appendChild(li);
+                });
+            }
+            penaltyWalletModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
         function closeModal(modalElement) {
             if (modalElement) modalElement.classList.remove('show');
             document.body.style.overflow = '';
@@ -1065,7 +1132,6 @@
             fullProfileViewModal.classList.add('show');
         }
 
-        // NEW: Function to initialize the custom card slider
         function initializeCustomCardSlider(cards) {
             const container = document.getElementById('customCardsContainer');
             const indicator = document.getElementById('custom-cards-indicator');
@@ -1080,29 +1146,21 @@
             cards.forEach((card, index) => {
                 const dot = document.createElement('span');
                 dot.className = 'indicator-dot';
-                dot.style.backgroundImage = `url(${card.imageUrl})`; // Thumbnail preview
+                dot.style.backgroundImage = `url(${card.imageUrl})`;
                 dot.onclick = () => {
                     const cardElement = container.children[index];
                     container.scrollTo({
-                        left: cardElement.offsetLeft - 20, // 20 is the container padding
+                        left: cardElement.offsetLeft - container.offsetLeft,
                         behavior: 'smooth'
                     });
                 };
                 indicator.appendChild(dot);
             });
 
-            // Function to update active dot on scroll
             const updateActiveDot = () => {
                 const scrollLeft = container.scrollLeft;
                 const containerWidth = container.offsetWidth;
-                let activeIndex = 0;
-                for (let i = 0; i < container.children.length; i++) {
-                    const card = container.children[i];
-                    if (card.offsetLeft >= scrollLeft - containerWidth / 2) {
-                        activeIndex = i;
-                        break;
-                    }
-                }
+                let activeIndex = Math.round(scrollLeft / container.children[0].offsetWidth);
                 
                 indicator.childNodes.forEach((dot, idx) => {
                     dot.classList.toggle('active', idx === activeIndex);
@@ -1110,7 +1168,7 @@
             };
 
             container.addEventListener('scroll', updateActiveDot);
-            updateActiveDot(); // Initial call
+            updateActiveDot();
         }
 
         function setupEventListeners() {
@@ -1118,6 +1176,8 @@
             if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
             if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal);
             if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement));
+            if (viewPenaltyWalletBtn) viewPenaltyWalletBtn.addEventListener('click', showPenaltyWalletModal);
+            if (closePenaltyWalletModalBtn) closePenaltyWalletModalBtn.addEventListener('click', () => closeModal(penaltyWalletModal));
             if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement));
             if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement));
             if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
@@ -1142,7 +1202,7 @@
             if (closeFullProfileModal) closeFullProfileModal.addEventListener('click', () => closeModal(fullProfileViewModal));
 
 
-            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal, passwordPromptModal, fullProfileViewModal].forEach(modal => { 
+            [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal, passwordPromptModal, fullProfileViewModal, penaltyWalletModal].forEach(modal => { 
                 if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); 
             });
             window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { 
@@ -1153,6 +1213,7 @@
                 closeModal(notificationModal);
                 closeModal(passwordPromptModal);
                 closeModal(fullProfileViewModal);
+                closeModal(penaltyWalletModal);
             } });
         }
 
