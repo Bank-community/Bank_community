@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Neumorphic Profile Dashboard</title>
+  <title>Member Full Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link
     rel="stylesheet"
@@ -14,71 +14,39 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
     body {
-      font-family: 'Montserrat', sans-serif;
-      background: #e6e3f7;
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f2f5;
     }
-    /* Neumorphic shadows */
-    .neu-container {
-      background: #e6e3f7;
-      box-shadow: 8px 8px 16px #c1bee6, -8px -8px 16px #ffffff;
+    .main-container {
+        background: #f0f2f5;
     }
-    .neu-inset {
-       background: #e6e3f7;
-       box-shadow: inset 4px 4px 6px #c1bee6, inset -4px -4px 6px #ffffff;
+    .profile-card {
+        background-color: white;
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
     }
-    .neu-button {
-      background: #e6e3f7;
-      box-shadow: 4px 4px 6px #c1bee6, -4px -4px 6px #ffffff;
-      transition: all 0.2s ease-in-out;
+    .info-item {
+        border-bottom: 1px solid #e5e7eb;
     }
-    .neu-button:hover {
-      box-shadow: 6px 6px 10px #c1bee6, -6px -6px 10px #ffffff;
+    .info-item:last-child {
+        border-bottom: none;
     }
-    .neu-button:active, .neu-button-pressed {
-      background: #e6e3f7;
-      box-shadow: inset 4px 4px 6px #c1bee6, inset -4px -4px 6px #ffffff;
-      color: #7a75b3;
-    }
-    .neu-progress-bg {
-      background: #d9d7f0;
-      box-shadow: inset 3px 3px 5px #b7b5d6, inset -3px -3px 5px #ffffff;
-    }
-    /* Custom Dropdown */
-    .neu-dropdown {
-        position: relative;
-        display: inline-block;
-    }
-    .neu-dropdown-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        padding: 12px 40px 12px 20px;
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        color: #7a75b3;
+    .document-image {
         cursor: pointer;
-        width: 100%;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     }
-    .neu-dropdown-arrow {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        padding: 0 15px;
-        pointer-events: none;
+    .document-image:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     }
-    /* Loading Spinner */
     .loader {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #7a75b3;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #4f46e5;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
+        width: 50px;
+        height: 50px;
         animation: spin 1s linear infinite;
     }
     @keyframes spin {
@@ -88,364 +56,210 @@
     .hidden {
         display: none;
     }
+    .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+    }
   </style>
 </head>
-<body class="min-h-screen flex items-start justify-center p-4">
-  <div id="loader" class="loader mt-20"></div>
+<body class="min-h-screen flex items-center justify-center p-4 main-container">
   
-  <div id="dashboard-content" class="max-w-4xl w-full rounded-3xl neu-container p-4 sm:p-6 hidden pb-24 md:pb-6">
-    <div class="flex flex-col md:flex-row gap-6">
-      
-      <!-- Main content -->
-      <main class="flex-1 text-[#3f3a6e] w-full">
+  <div id="loader" class="loader"></div>
+  <div id="error-message" class="hidden text-center text-red-600 font-semibold bg-white p-8 rounded-xl shadow-lg">
+      <h2 class="text-2xl mb-2">Error</h2>
+      <p>Could not load member data. Please check the ID and try again.</p>
+  </div>
+  
+  <div id="profile-content" class="max-w-4xl w-full hidden">
+    <div class="profile-card p-6 sm:p-8">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row items-center gap-6 mb-8 pb-8 border-b border-gray-200">
+            <img id="profile-pic" src="" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-indigo-500 shadow-lg">
+            <div class="text-center sm:text-left">
+                <h1 id="profile-name" class="text-3xl font-bold text-gray-800"></h1>
+                <p id="membership-id" class="text-gray-500"></p>
+            </div>
+        </div>
 
-        <!-- Mobile Header -->
-        <div class="md:hidden flex flex-col items-center text-center mb-6">
-            <img id="profile-pic-mobile" src="https://i.imgur.com/6aATcZR.jpeg" alt="Profile Picture" class="neu-button w-24 h-24 rounded-full p-1.5 object-cover mb-4">
-            <h1 class="text-2xl font-bold mb-2">Hello, <span id="profile-name-mobile">Kunal</span>!</h1>
-            <div class="neu-dropdown neu-button rounded-xl w-full max-w-xs">
-                <select id="member-select" class="neu-dropdown-select neu-button">
-                    <option>Select Member</option>
-                </select>
-                <div class="neu-dropdown-arrow">
-                    <i class="fas fa-chevron-down text-[#7a75b3]"></i>
+        <!-- Details Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            <div class="space-y-4">
+                <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Personal Details</h3>
+                <div class="info-item flex justify-between items-center py-2">
+                    <span class="text-gray-500">Mobile Number</span>
+                    <span id="mobile-number" class="font-semibold text-gray-800"></span>
+                </div>
+                <div class="info-item flex justify-between items-center py-2">
+                    <span class="text-gray-500">Date of Birth</span>
+                    <span id="dob" class="font-semibold text-gray-800"></span>
+                </div>
+                <div class="info-item flex justify-between items-center py-2">
+                    <span class="text-gray-500">Aadhaar No.</span>
+                    <span id="aadhaar" class="font-semibold text-gray-800"></span>
+                </div>
+                <div class="info-item flex justify-between items-center py-2">
+                    <span class="text-gray-500">Address</span>
+                    <span id="address" class="font-semibold text-gray-800 text-right"></span>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Financial Details</h3>
+                <div class="info-item flex justify-between items-center py-2">
+                    <span class="text-gray-500">Joining Date</span>
+                    <span id="joining-date" class="font-semibold text-gray-800"></span>
+                </div>
+                <div class="info-item flex justify-between items-center py-2">
+                    <span class="text-gray-500">Extra Balance</span>
+                    <span id="extra-balance" class="font-bold text-2xl text-green-600"></span>
                 </div>
             </div>
         </div>
 
-        <!-- Desktop Header -->
-        <div class="hidden md:flex justify-between items-center mb-6">
-             <h1 class="text-3xl font-semibold leading-tight">Hello, <span id="profile-name-desktop">Kunal</span>!</h1>
-             <img id="profile-pic-desktop" src="https://i.imgur.com/6aATcZR.jpeg" alt="Profile Picture" class="neu-button w-16 h-16 rounded-full p-1 object-cover">
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-            <!-- Current Balance -->
-            <div class="neu-inset rounded-2xl p-4 flex items-center gap-4">
-                <div class="neu-button w-12 h-12 rounded-xl flex items-center justify-center text-green-500 flex-shrink-0">
-                    <i class="fas fa-wallet text-2xl"></i>
+        <!-- Documents Section -->
+        <div class="mt-10 pt-6 border-t border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-700 text-center mb-6">Documents</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <h4 class="font-semibold mb-2 text-gray-600">Profile Photo</h4>
+                    <img id="doc-profile-pic" src="" alt="Profile Photo" class="document-image w-full h-40 object-cover rounded-lg border-2 border-gray-200 bg-gray-100">
                 </div>
-                <div>
-                    <p class="text-sm text-gray-500">Current Balance</p>
-                    <p id="current-balance" class="text-xl font-bold">₹0</p>
+                <div class="text-center">
+                    <h4 class="font-semibold mb-2 text-gray-600">Document</h4>
+                    <img id="doc-document" src="" alt="Document" class="document-image w-full h-40 object-contain rounded-lg border-2 border-gray-200 bg-gray-100 p-2">
                 </div>
-            </div>
-            <!-- Total Loan -->
-            <div class="neu-inset rounded-2xl p-4 flex items-center gap-4">
-                <div class="neu-button w-12 h-12 rounded-xl flex items-center justify-center text-red-500 flex-shrink-0">
-                    <i class="fas fa-hand-holding-usd text-2xl"></i>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Total Loan</p>
-                    <p id="total-loan" class="text-xl font-bold">₹0</p>
-                </div>
-            </div>
-            <!-- Return Earned -->
-            <div class="neu-inset rounded-2xl p-4 flex items-center gap-4">
-                <div class="neu-button w-12 h-12 rounded-xl flex items-center justify-center text-blue-500 flex-shrink-0">
-                    <i class="fas fa-piggy-bank text-2xl"></i>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Return Earned</p>
-                    <p id="return-earned" class="text-xl font-bold">₹0</p>
+                <div class="text-center">
+                    <h4 class="font-semibold mb-2 text-gray-600">Signature</h4>
+                    <img id="doc-signature" src="" alt="Signature" class="document-image w-full h-40 object-contain rounded-lg border-2 border-gray-200 bg-gray-100 p-2">
                 </div>
             </div>
         </div>
-
-        <div class="flex flex-col lg:flex-row gap-6 mb-6">
-            <!-- Progress Circles -->
-            <div class="flex-1 grid grid-cols-2 gap-4 sm:gap-6">
-                <div class="neu-inset rounded-2xl p-4 flex flex-col items-center justify-center">
-                    <div class="relative w-24 h-24 mb-2">
-                        <svg class="w-full h-full" viewBox="0 0 36 36" fill="none">
-                            <circle cx="18" cy="18" r="15.9155" stroke="#d9d7f0" stroke-width="3"/>
-                            <circle id="sip-circle" cx="18" cy="18" r="15.9155" stroke="#7a75b3" stroke-width="3" stroke-linecap="round" stroke-dasharray="100, 100" stroke-dashoffset="100" transform="rotate(-90 18 18)"/>
-                        </svg>
-                        <div id="sip-percentage" class="absolute inset-0 flex items-center justify-center text-2xl font-semibold">0%</div>
-                    </div>
-                    <p class="text-sm text-center">SIP Payment<br>(This Month)</p>
-                </div>
-                <div class="neu-inset rounded-2xl p-4 flex flex-col items-center justify-center">
-                    <div class="relative w-24 h-24 mb-2">
-                        <svg class="w-full h-full" viewBox="0 0 36 36" fill="none">
-                            <circle cx="18" cy="18" r="15.9155" stroke="#d9d7f0" stroke-width="3"/>
-                            <circle id="loan-circle" cx="18" cy="18" r="15.9155" stroke="#28a745" stroke-width="3" stroke-linecap="round" stroke-dasharray="100, 100" stroke-dashoffset="100" transform="rotate(-90 18 18)"/>
-                        </svg>
-                        <div id="loan-percentage" class="absolute inset-0 flex items-center justify-center text-2xl font-semibold">0%</div>
-                    </div>
-                    <p class="text-sm text-center">Loan Repayment<br>(Current)</p>
-                </div>
-            </div>
-            <!-- Weekly Progress -->
-            <section class="neu-inset rounded-2xl p-4 sm:p-6 lg:w-2/3">
-                <h2 class="text-base mb-4">Last 7 Transactions</h2>
-                <div id="transaction-chart" class="flex justify-around items-end space-x-1 sm:space-x-2 h-32">
-                    <!-- Bars will be generated by JS -->
-                </div>
-            </section>
-        </div>
-      </main>
     </div>
-     <!-- Mobile Bottom Navigation -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 neu-container h-16 flex justify-around items-center rounded-t-2xl z-10">
-        <a href="#" class="neu-button w-14 h-14 rounded-xl flex flex-col items-center justify-center text-xs text-[#7a75b3]">
-            <i class="fas fa-home text-xl mb-1"></i>
-            Home
-        </a>
-        <a href="#" class="neu-button w-14 h-14 rounded-xl flex flex-col items-center justify-center text-xs text-[#7a75b3]">
-            <i class="fas fa-exchange-alt text-xl mb-1"></i>
-            History
-        </a>
-        <a href="#" class="neu-button-pressed w-14 h-14 rounded-xl flex flex-col items-center justify-center text-xs">
-            <i class="fas fa-user-alt text-xl mb-1"></i>
-            Profile
-        </a>
-        <a href="#" class="neu-button w-14 h-14 rounded-xl flex flex-col items-center justify-center text-xs text-[#7a75b3]">
-            <i class="fas fa-cog text-xl mb-1"></i>
-            Settings
-        </a>
-    </nav>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBVCDW0Q8YaTPz_MO9FTve1FaPu42jtO2c",
-            authDomain: "bank-master-data.firebaseapp.com",
-            databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "bank-master-data",
-            storageBucket: "bank-master-data.firebasestorage.app",
-            messagingSenderId: "778113641069",
-            appId: "1:778113641069:web:f2d584555dee89b8ca2d64",
+  <!-- Image Viewer Modal -->
+  <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
+      <button id="closeImageViewer" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+  </div>
+
+  <script type="module">
+    // --- Secure Firebase Initialization ---
+    let db;
+    async function initializeAppWithConfig() {
+        try {
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
+            
+            const app = firebase.initializeApp(config.firebase);
+            db = firebase.database();
+            
+            loadMemberData(); // Start loading data after init
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    const loader = document.getElementById('loader');
+    const profileContent = document.getElementById('profile-content');
+    const errorMessage = document.getElementById('error-message');
+    const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
+
+    function showError(message) {
+        loader.classList.add('hidden');
+        errorMessage.querySelector('p').textContent = message;
+        errorMessage.classList.remove('hidden');
+    }
+
+    async function loadMemberData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('memberId');
+
+        if (!memberId) {
+            showError("No member ID provided in the URL.");
+            return;
+        }
+
+        try {
+            const memberRef = db.ref(`members/${memberId}`);
+            const snapshot = await memberRef.once('value');
+            
+            if (!snapshot.exists()) {
+                throw new Error(`Member with ID "${memberId}" not found.`);
+            }
+            
+            const memberData = snapshot.val();
+            populateProfileData(memberData);
+
+            loader.classList.add('hidden');
+            profileContent.classList.remove('hidden');
+        } catch (error) {
+            console.error("Failed to fetch member data:", error);
+            showError(error.message);
+        }
+    }
+
+    function populateProfileData(data) {
+        // Calculate Extra Balance
+        let extraBalance = 0;
+        if (data.transactions) {
+            extraBalance = Object.values(data.transactions).reduce((sum, tx) => sum + (parseFloat(tx['Extra Balance']) || 0), 0);
+        }
+
+        // Helper to format dates
+        const formatDate = (dateString) => {
+            if (!dateString) return "N/A";
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // Populate header
+        document.getElementById('profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
+        document.getElementById('profile-name').textContent = data.fullName || 'N/A';
+        document.getElementById('membership-id').textContent = `Membership ID: ${data.membershipId || 'N/A'}`;
 
-        // --- DOM Elements ---
-        const loader = document.getElementById('loader');
-        const dashboardContent = document.getElementById('dashboard-content');
-        const memberSelect = document.getElementById('member-select');
-        
-        const profilePicMobile = document.getElementById('profile-pic-mobile');
-        const profilePicDesktop = document.getElementById('profile-pic-desktop');
-        const profileNameMobile = document.getElementById('profile-name-mobile');
-        const profileNameDesktop = document.getElementById('profile-name-desktop');
+        // Populate personal details
+        document.getElementById('mobile-number').textContent = data.mobileNumber || 'N/A';
+        document.getElementById('dob').textContent = formatDate(data.dob);
+        document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
+        document.getElementById('address').textContent = data.address || 'N/A';
 
-        const currentBalanceEl = document.getElementById('current-balance');
-        const totalLoanEl = document.getElementById('total-loan');
-        const returnEarnedEl = document.getElementById('return-earned');
-        const sipCircle = document.getElementById('sip-circle');
-        const sipPercentageEl = document.getElementById('sip-percentage');
-        const loanCircle = document.getElementById('loan-circle');
-        const loanPercentageEl = document.getElementById('loan-percentage');
-        const transactionChart = document.getElementById('transaction-chart');
-        
-        const DEFAULT_IMAGE = 'https://i.imgur.com/6aATcZR.jpeg';
-        let allMembersData = {}; // Store all processed data
+        // Populate financial details
+        document.getElementById('joining-date').textContent = formatDate(data.joiningDate);
+        document.getElementById('extra-balance').textContent = `₹${extraBalance.toLocaleString('en-IN')}`;
 
-        // --- Data Fetching and Processing ---
-        async function fetchAndProcessData() {
-            const membersRef = database.ref('members');
-            try {
-                const snapshot = await membersRef.once('value');
-                const membersData = snapshot.val();
-                if (!membersData) {
-                    throw new Error("No member data found.");
-                }
-                
-                const processedData = {};
-                const allTransactions = [];
+        // Populate document images
+        document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
+        document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
+        document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
+    }
 
-                // First pass: Flatten all transactions
-                for (const key in membersData) {
-                    const member = membersData[key];
-                    const name = member.name || key;
-                    if (member.transactions) {
-                        for (const txId in member.transactions) {
-                            const tx = member.transactions[txId];
-                            const returnAmt = tx["Return amount"] || tx["Return amount "];
-                            allTransactions.push({
-                                memberName: name,
-                                Date: new Date(tx.Date),
-                                Loan: parseFloat(tx.Loan) || 0,
-                                Payment: parseFloat(tx["Loan Payment"]) || 0,
-                                SipPayment: parseFloat(tx["SIP Payment"]) || 0,
-                                ReturnAmount: parseFloat(returnAmt) || 0,
-                                ImageUrl: tx.imageUrl || null
-                            });
-                        }
-                    }
-                }
-                allTransactions.sort((a, b) => a.Date - b.Date);
-
-                // Second pass: Process each member's data
-                for (const key in membersData) {
-                    const name = membersData[key].name || key;
-                    const memberTxs = allTransactions.filter(tx => tx.memberName === name);
-                    if (memberTxs.length === 0) continue;
-
-                    const totalLoan = memberTxs.reduce((sum, tx) => sum + tx.Loan, 0);
-                    const totalPayment = memberTxs.reduce((sum, tx) => sum + tx.Payment, 0);
-                    const totalSIP = memberTxs.reduce((sum, tx) => sum + tx.SipPayment, 0);
-                    
-                    const lastEntryWithImage = [...memberTxs].reverse().find(r => r.ImageUrl);
-
-                    // SIP Calculation for current month
-                    const now = new Date();
-                    const currentMonthSipTxs = memberTxs.filter(tx => 
-                        tx.SipPayment > 0 &&
-                        tx.Date.getMonth() === now.getMonth() &&
-                        tx.Date.getFullYear() === now.getFullYear()
-                    );
-                    const totalMonthSip = currentMonthSipTxs.reduce((sum, tx) => sum + tx.SipPayment, 0);
-                    const sipPercentage = Math.min(Math.round((totalMonthSip / 500) * 100), 100);
-
-                    // Loan Repayment Calculation
-                    const lastLoanTx = [...memberTxs].reverse().find(tx => tx.Loan > 0);
-                    let loanRepaymentPercentage = 0;
-                    if (lastLoanTx) {
-                        const paymentsAfterLoan = memberTxs
-                            .filter(tx => tx.Date > lastLoanTx.Date && tx.Payment > 0)
-                            .reduce((sum, tx) => sum + tx.Payment, 0);
-                        loanRepaymentPercentage = Math.min(Math.round((paymentsAfterLoan / lastLoanTx.Loan) * 100), 100);
-                    } else {
-                        loanRepaymentPercentage = 100; // No active loan
-                    }
-                    
-                    processedData[name] = {
-                        name: name,
-                        balance: (totalSIP + totalPayment) - totalLoan,
-                        totalLoan: totalLoan,
-                        totalReturn: calculateTotalReturnForMember(name, allTransactions),
-                        profilePic: lastEntryWithImage ? lastEntryWithImage.ImageUrl : DEFAULT_IMAGE,
-                        sipPercentage: isNaN(sipPercentage) ? 0 : sipPercentage,
-                        loanRepaymentPercentage: isNaN(loanRepaymentPercentage) ? 0 : loanRepaymentPercentage,
-                        transactions: memberTxs
-                    };
-                }
-                
-                allMembersData = processedData;
-                populateDropdown();
-                updateDashboard('Kunal kumar'); // Load Kunal by default
-                
-                loader.classList.add('hidden');
-                dashboardContent.classList.remove('hidden');
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                loader.textContent = "Failed to load data.";
-            }
-        }
-
-        function calculateTotalReturnForMember(memberName, allTransactions) {
-            let totalReturn = 0;
-            const loanPayments = allTransactions.filter(tx => tx.ReturnAmount > 0);
-
-            loanPayments.forEach(paymentTx => {
-                const loanDate = allTransactions
-                    .filter(tx => tx.memberName === paymentTx.memberName && tx.Loan > 0 && tx.Date < paymentTx.Date)
-                    .sort((a,b) => b.Date - a.Date)[0]?.Date;
-                
-                if (!loanDate) return;
-
-                const capitalPool = {};
-                const txsBeforeLoan = allTransactions.filter(tx => tx.Date < loanDate);
-
-                txsBeforeLoan.forEach(tx => {
-                    capitalPool[tx.memberName] = (capitalPool[tx.memberName] || 0) + tx.SipPayment + tx.Payment - tx.Loan;
-                });
-
-                const totalCapital = Object.values(capitalPool).reduce((sum, bal) => bal > 0 ? sum + bal : sum, 0);
-                
-                if (totalCapital > 0 && capitalPool[memberName] > 0) {
-                    const share = (capitalPool[memberName] / totalCapital) * paymentTx.ReturnAmount;
-                    totalReturn += share;
-                }
-            });
-            return totalReturn;
-        }
-
-        function populateDropdown() {
-            const memberNames = Object.keys(allMembersData).sort();
-            memberSelect.innerHTML = '';
-            memberNames.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                memberSelect.appendChild(option);
-            });
-             memberSelect.value = 'Kunal kumar'; // Set default selection
-        }
-
-        function updateDashboard(memberName) {
-            const data = allMembersData[memberName];
-            if (!data) return;
-            
-            const shortName = data.name.split(' ')[0]; // Get first name
-            profilePicMobile.src = data.profilePic || DEFAULT_IMAGE;
-            profilePicDesktop.src = data.profilePic || DEFAULT_IMAGE;
-            profileNameMobile.textContent = shortName;
-            profileNameDesktop.textContent = data.name;
-
-            currentBalanceEl.textContent = `₹${data.balance.toLocaleString('en-IN')}`;
-            totalLoanEl.textContent = `₹${data.totalLoan.toLocaleString('en-IN')}`;
-            returnEarnedEl.textContent = `₹${Math.round(data.totalReturn).toLocaleString('en-IN')}`;
-
-            // Update SIP Circle
-            sipPercentageEl.textContent = `${data.sipPercentage}%`;
-            sipCircle.style.strokeDashoffset = 100 - data.sipPercentage;
-
-            // Update Loan Circle
-            loanPercentageEl.textContent = `${data.loanRepaymentPercentage}%`;
-            loanCircle.style.strokeDashoffset = 100 - data.loanRepaymentPercentage;
-            loanCircle.style.stroke = data.loanRepaymentPercentage >= 100 ? '#22c55e' : '#ef4444'; // Green for paid, red for due
-
-            // Update Transaction Chart
-            updateChart(data.transactions);
-        }
-
-        function updateChart(transactions) {
-            transactionChart.innerHTML = '';
-            const last7Txs = transactions.slice(-7);
-            if (last7Txs.length === 0) {
-                transactionChart.innerHTML = `<p class="text-center text-xs text-gray-400 w-full">No recent transactions.</p>`;
-                return;
-            }
-            const maxAmount = Math.max(...last7Txs.map(tx => tx.Loan || tx.SipPayment || tx.Payment), 1); // Avoid division by zero
-            
-            const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-            last7Txs.forEach(tx => {
-                const amount = tx.Loan || tx.SipPayment || tx.Payment;
-                const heightPercentage = Math.max((amount / maxAmount) * 100, 5); // Minimum height of 5%
-                let barColor = '#a78bfa'; // Default purple
-                if (tx.Loan > 0) barColor = '#ef4444'; // Red for loan
-                if (tx.SipPayment > 0) barColor = '#3b82f6'; // Blue for SIP
-                if (tx.Payment > 0) barColor = '#22c55e'; // Green for payment
-
-                const barContainer = document.createElement('div');
-                barContainer.className = 'flex flex-col items-center space-y-1 h-full justify-end flex-1';
-                barContainer.innerHTML = `
-                    <div class="neu-progress-bg rounded-t-md w-4/5" style="height: 100%;" title="₹${amount.toLocaleString('en-IN')} on ${tx.Date.toLocaleDateString()}">
-                        <div class="rounded-t-md w-full" style="height: ${heightPercentage}%; background: ${barColor};"></div>
-                    </div>
-                    <span class="text-xs font-semibold">${days[tx.Date.getDay()]}</span>
-                `;
-                transactionChart.appendChild(barContainer);
-            });
-        }
-
-        // --- Event Listeners ---
-        memberSelect.addEventListener('change', (e) => {
-            updateDashboard(e.target.value);
+    // --- Image Viewer Modal Logic ---
+    const imageViewerModal = document.getElementById('imageViewerModal');
+    const fullImageView = document.getElementById('fullImageView');
+    
+    document.querySelectorAll('.document-image').forEach(img => {
+        img.addEventListener('click', () => {
+            fullImageView.src = img.src;
+            imageViewerModal.classList.remove('hidden');
+            imageViewerModal.classList.add('flex');
         });
-
-        // --- Initial Call ---
-        fetchAndProcessData();
     });
+
+    document.getElementById('closeImageViewer').addEventListener('click', () => {
+        imageViewerModal.classList.add('hidden');
+        imageViewerModal.classList.remove('flex');
+    });
+    
+    imageViewerModal.addEventListener('click', (e) => {
+        if (e.target === imageViewerModal) {
+            imageViewerModal.classList.add('hidden');
+            imageViewerModal.classList.remove('flex');
+        }
+    });
+
+    // --- Start the application ---
+    initializeAppWithConfig();
   </script>
 </body>
 </html>
