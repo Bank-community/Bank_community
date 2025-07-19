@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BANK COMMUNITY LOAN - पंजीकरण और खोज</title>
     
-    <!-- Tailwind CSS & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
 
-    <!-- Custom Styles -->
     <style>
         body { font-family: 'Inter', sans-serif; }
         .required-label::after { content: '*'; color: red; margin-left: 4px; }
@@ -23,7 +21,6 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- UI Initialization (Non-Firebase dependent) -->
     <script>
       function generateMembershipId() {
         const prefix = 'BCL';
@@ -37,7 +34,6 @@
       });
     </script>
 
-    <!-- Main Application HTML -->
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
             <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 text-center">
@@ -65,7 +61,11 @@
                         <div><label for="gender" class="block text-sm font-medium text-gray-700 mb-1 required-label">लिंग</label><select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required><option value="" disabled selected>चुनें...</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option><option value="अन्य">अन्य</option></select></div>
                         <div><label for="aadhaar" class="block text-sm font-medium text-gray-700 mb-1 required-label">आधार कार्ड नंबर</label><input type="text" id="aadhaar" pattern="\d{12}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required></div>
                         
-                        <!-- New Password Field -->
+                        <div>
+                            <label for="guarantorName" class="block text-sm font-medium text-gray-700 mb-1 required-label">गारंटर का नाम</label>
+                            <input type="text" id="guarantorName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                        </div>
+                        
                         <div>
                             <label for="password" class="block text-sm font-medium text-gray-700 mb-1 required-label">पासवर्ड</label>
                             <div class="relative">
@@ -86,13 +86,11 @@
         </div>
     </div>
 
-    <!-- Modals -->
     <div id="searchModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">सदस्य विवरण</h2><button id="closeSearchModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="modalContent" class="p-6"></div></div></div>
     <div id="reviewModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div class="p-6 border-b flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Review Your Details</h2><button id="closeReviewModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div><div id="reviewContent" class="p-6"></div><div class="p-6 bg-gray-50 border-t flex justify-end gap-4"><button id="editBtn" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Edit</button><button id="confirmSubmitBtn" class="inline-flex items-center justify-center px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"><span id="btnText">Confirm & Submit</span><svg id="btnSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></button></div></div></div>
     <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50"><img id="fullScreenImage" src="" class="max-w-full max-h-full object-contain"><button id="closeImageModalBtn" class="absolute top-4 right-4 text-white text-4xl">&times;</button></div>
     <div id="toast" class="fixed top-5 right-5 px-6 py-3 rounded-lg text-white transition-transform transform translate-x-[120%] z-50"><p id="toastMessage"></p></div>
 
-    <!-- Main Application Logic (Firebase Dependent) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
@@ -161,11 +159,41 @@
                 if (data.status === 'Approved') statusClass = 'bg-green-100 text-green-800 border-green-400';
                 else if (data.status === 'Rejected') statusClass = 'bg-red-100 text-red-800 border-red-400';
                 // IMPORTANT: The password is NOT displayed here for security.
-                document.getElementById('modalContent').innerHTML = `<div class="space-y-6"><div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover border-4"><div><h3 class="text-3xl font-bold">${data.fullName}</h3><p>ID: ${data.membershipId}</p><p>Joined: ${new Date(data.joiningDate).toLocaleDateString('hi-IN')}</p><div class="mt-2"><span class="font-semibold">Status:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>मोबाइल:</strong> ${data.mobileNumber}</div><div><strong>जन्म तिथि:</strong> ${new Date(data.dob).toLocaleDateString('hi-IN')}</div><div><strong>लिंग:</strong> ${data.gender}</div><div><strong>आधार:</strong> ${data.aadhaar}</div><div class="md:col-span-2"><strong>पता:</strong> ${data.address}</div><div><strong>SIP:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>बैलेंस:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">हस्ताक्षर</h4><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">दस्तावेज़</h4><a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div></div>`;
+                document.getElementById('modalContent').innerHTML = `<div class="space-y-6"><div class="flex flex-col sm:flex-row items-center gap-6"><img src="${data.profilePicUrl}" class="w-32 h-32 rounded-full object-cover border-4"><div><h3 class="text-3xl font-bold">${data.fullName}</h3><p>ID: ${data.membershipId}</p><p>Joined: ${new Date(data.joiningDate).toLocaleDateString('hi-IN')}</p><div class="mt-2"><span class="font-semibold">Status:</span> <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass} border">${data.status}</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t"><div><strong>मोबाइल:</strong> ${data.mobileNumber}</div><div><strong>जन्म तिथि:</strong> ${new Date(data.dob).toLocaleDateString('hi-IN')}</div><div><strong>लिंग:</strong> ${data.gender}</div><div><strong>आधार:</strong> ${data.aadhaar}</div>${data.guarantorName ? `<div><strong>गारंटर:</strong> ${data.guarantorName}</div>` : ''}<div class="md:col-span-2"><strong>पता:</strong> ${data.address}</div><div><strong>SIP:</strong> ₹${data.sipAmount.toLocaleString('en-IN')}</div><div><strong>बैलेंस:</strong> ₹${data.accountBalance.toLocaleString('en-IN')}</div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t"><div class="text-center"><h4 class="font-semibold mb-2">हस्ताक्षर</h4><img src="${data.signatureUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></div><div class="text-center"><h4 class="font-semibold mb-2">दस्तावेज़</h4><a href="${data.documentUrl}" target="_blank"><img src="${data.documentUrl}" class="w-48 h-24 object-contain border rounded-lg mx-auto"></a></div></div></div>`;
+            }
+
+            // --- Function to populate review modal (for better UX) ---
+            function populateReviewModal() {
+                const d = (id) => document.getElementById(id).value;
+                const p = (id) => document.getElementById(id).style.backgroundImage.slice(5, -2);
+                
+                const reviewHTML = `
+                    <div class="space-y-4 text-sm">
+                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">व्यक्तिगत और सदस्यता विवरण</h3>
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-3">
+                            <p><strong>पूरा नाम:</strong> ${d('fullName')}</p>
+                            <p><strong>मोबाइल:</strong> ${d('mobileNumber')}</p>
+                            <p><strong>जन्म तिथि:</strong> ${new Date(d('dob')).toLocaleDateString('hi-IN')}</p>
+                            <p><strong>लिंग:</strong> ${d('gender')}</p>
+                            <p><strong>आधार:</strong> ${d('aadhaar')}</p>
+                            <p><strong>गारंटर:</strong> ${d('guarantorName')}</p>
+                            <p><strong>SIP Amount:</strong> ₹${parseInt(d('sipAmount')).toLocaleString('en-IN')}</p>
+                            <p><strong>जॉइनिंग तिथि:</strong> ${new Date(d('joiningDate')).toLocaleDateString('hi-IN')}</p>
+                            <p class="col-span-2"><strong>पता:</strong> ${d('address')}</p>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 pt-4">अपलोड किए गए दस्तावेज़</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                            <div><p class="font-semibold mb-1">प्रोफाइल फोटो</p><img src="${p('profilePicPreview')}" class="w-24 h-24 object-cover mx-auto rounded-lg border"></div>
+                            <div><p class="font-semibold mb-1">हस्ताक्षर</p><img src="${p('signaturePreview')}" class="w-32 h-20 object-contain mx-auto rounded-lg border"></div>
+                            <div><p class="font-semibold mb-1">दस्तावेज़</p><img src="${p('documentPreview')}" class="w-32 h-20 object-contain mx-auto rounded-lg border"></div>
+                        </div>
+                    </div>`;
+                document.getElementById('reviewContent').innerHTML = reviewHTML;
             }
 
             document.getElementById('registrationForm').addEventListener('submit', (e) => {
                 e.preventDefault();
+                populateReviewModal(); // Populate data before showing
                 document.getElementById('reviewModal').classList.remove('hidden');
             });
 
@@ -188,7 +216,7 @@
                     const [profilePicUrl, signatureUrl, documentUrl] = await Promise.all([uploadImage(document.getElementById('profilePic').files[0]), uploadImage(document.getElementById('signature').files[0]), uploadImage(document.getElementById('document').files[0])]);
                     if (!profilePicUrl || !signatureUrl || !documentUrl) throw new Error("एक या अधिक छवि अपलोड विफल।");
                     const newMembershipId = document.getElementById('membershipId').value;
-                    const memberData = { fullName: document.getElementById('fullName').value, mobileNumber, dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, aadhaar, address: document.getElementById('address').value, password: document.getElementById('password').value, membershipId: newMembershipId, joiningDate: document.getElementById('joiningDate').value, sipAmount: parseFloat(document.getElementById('sipAmount').value), accountBalance: 0, profilePicUrl, signatureUrl, documentUrl, createdAt: new Date().toISOString(), status: 'Pending' };
+                    const memberData = { fullName: document.getElementById('fullName').value, mobileNumber, dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, aadhaar, guarantorName: document.getElementById('guarantorName').value, address: document.getElementById('address').value, password: document.getElementById('password').value, membershipId: newMembershipId, joiningDate: document.getElementById('joiningDate').value, sipAmount: parseFloat(document.getElementById('sipAmount').value), accountBalance: 0, profilePicUrl, signatureUrl, documentUrl, createdAt: new Date().toISOString(), status: 'Pending' };
                     await set(ref(db, 'members/' + newMembershipId), memberData);
                     document.getElementById('reviewModal').classList.add('hidden');
                     showToast("पंजीकरण सफल! आपका आवेदन समीक्षा के लिए लंबित है।");
@@ -196,7 +224,7 @@
                     ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { document.getElementById(id).style.backgroundImage = ''; document.getElementById(id).textContent = 'Click to upload'; });
                     document.getElementById('membershipId').value = generateMembershipId();
                     document.getElementById('joiningDate').valueAsDate = new Date();
-                } catch (error) { showToast(`त्रुटि: ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.classList.add('hidden'); }
+                } catch (error) { showToast(`त्रुटि: ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.add('hidden'); }
             });
         }
 
@@ -204,4 +232,3 @@
     </script>
 </body>
 </html>
-
