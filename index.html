@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-                :root {
+        :root {
             --primary-color: #007bff; --primary-darker: #0056b3; --secondary-color: #25D366;
             --secondary-darker: #128C7E; --text-color: #333; --light-text: #555;
             --bg-color: #f8f9fa; --card-bg: #ffffff; --border-color: #dee2e6;
@@ -33,7 +33,7 @@
         a { color: var(--primary-color); text-decoration: none; transition: color 0.3s ease; }
         a:hover { color: var(--primary-darker); text-decoration: none; }
         img { max-width: 100%; height: auto; display: block; }
-        header { background: linear-gradient(135deg, var(--primary-color), var(--primary-darker)); color: white; padding: 20px 0; text-align: center; border-bottom: 5px solid var(--prime-color); }
+        header { background: linear-gradient(135deg, var(--primary-color), var(--primary-darker)); color: white; padding: 20px 0; text-align: center; border-bottom: 5px solid var(--prime-color); position: relative; }
         .header-display { width: 100%; max-width: 500px; height: 180px; margin: 0 auto 15px auto; padding: 10px; box-sizing: border-box; border-radius: 20px; background: linear-gradient(145deg, #2a2a2a, #1a1a1a); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5); position: relative; display: flex; flex-direction: column; }
         .ad-content { background-color: #111; border-radius: 10px; width: 100%; height: 100%; position: relative; overflow: hidden; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; animation: fadeIn 0.8s ease-in-out; flex-grow: 1; }
         .ad-content::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.02) 2px, rgba(255, 255, 255, 0.02) 4px); opacity: 0.5; z-index: 1; pointer-events: none; }
@@ -67,6 +67,42 @@
         .install-button { display: none; background: green; color: white; border: 2px solid white; border-radius: 50px; padding: 10px 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; gap: 10px; align-items: center; justify-content: center; width: 70%; max-width: 180px; }
         .install-button img { width: 24px; height: 24px; }
         .install-button:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); transform: translateY(-3px); }
+        
+        /* NEW: Refresh Button Style */
+        .page-refresh-btn {
+            position: absolute;
+            top: 105px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            opacity: 0.9;
+            transition: opacity 0.2s, transform 0.5s ease;
+        }
+        .page-refresh-btn:hover {
+            opacity: 1;
+        }
+        .page-refresh-btn.refreshing {
+            transform: rotate(360deg);
+            pointer-events: none;
+        }
+        .page-refresh-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        .page-refresh-btn span {
+            font-size: 10px;
+            font-weight: 500;
+            margin-top: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
         .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0; }
         section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
         section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
@@ -388,6 +424,15 @@
             </div>
         </div>
         <h1>Bank Community Loan</h1>
+        <button id="pageRefreshBtn" class="page-refresh-btn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4V10H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 20V14H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 10C4 8.95579 4.28309 7.94729 4.81634 7.06151C5.34959 6.17573 6.11155 5.44973 7.02231 4.96684C7.93307 4.48395 8.95879 4.26621 9.98664 4.33332C11.0145 4.39927 12.0084 4.74858 12.87 5.34" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 14C20 15.0442 19.7169 16.0527 19.1837 16.9385C18.6504 17.8243 17.8885 18.5503 16.9777 19.0332C16.0669 19.5161 15.0412 19.7338 14.0134 19.6667C12.9855 19.6007 11.9916 19.2514 11.13 18.66" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Refresh</span>
+        </button>
         <h4>ESTD: 23 June 2024</h4>
         <div class="header-actions">
             <div class="header-actions-row">
@@ -1390,6 +1435,17 @@
             if (passwordInput) passwordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePasswordCheck(); });
             if (closeFullProfileModal) closeFullProfileModal.addEventListener('click', () => closeModal(fullProfileViewModal));
 
+            // NEW: Event listener for the page refresh button
+            const pageRefreshBtn = document.getElementById('pageRefreshBtn');
+            if (pageRefreshBtn) {
+                pageRefreshBtn.addEventListener('click', () => {
+                    pageRefreshBtn.classList.add('refreshing');
+                    // A short delay to ensure animation starts before reload
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 300);
+                });
+            }
 
             [balanceModalElement, profileModalElement, imageModalElement, sipStatusModalElement, notificationModal, passwordPromptModal, fullProfileViewModal, penaltyWalletModal].forEach(modal => { 
                 if(modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); }); 
@@ -1420,6 +1476,4 @@
 
 </body>
 </html>
-
-
 
