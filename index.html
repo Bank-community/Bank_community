@@ -57,7 +57,7 @@
         .ad-bank-stats li { font-size: 1em; font-weight: 500; margin-bottom: 5px; color: #d1d5db;}
         .ad-bank-stats li strong { color: #93c5fd; }
         header h1 { color: white; font-size: 2.2em; margin: 15px 0 5px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); font-weight: 700; }
-        header h4 { color: rgba(255, 255, 255, 0.9); margin: 0; font-weight: 400; font-size: 1em; }
+        header h4 { color: rgba(255, 255, 255, 0.9); margin: 0 0 20px 0; font-weight: 400; font-size: 1em; }
         .header-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 0 15px; margin-top: 15px; box-sizing: border-box; }
         .header-actions-row { display: flex; justify-content: center; gap: 15px; width: 100%; }
         .civil-button { background: var(--prime-color); border-radius: 50px; border: none; text-shadow: none; box-shadow: 0 4px 10px 0px rgba(0,0,0,0.2); padding: 12px 25px; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); font-size: 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; flex-grow: 1; max-width: 180px; }
@@ -162,6 +162,7 @@
         .colored-card .member-name { color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
         .colored-card .member-balance { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
+        /* --- Custom Cards Section Styles UPDATED --- */
         #customCardsSection {
             background: none; border: none; box-shadow: none; padding: 0; margin-top: -20px;
         }
@@ -345,294 +346,94 @@
             .member-card { flex: 0 0 15%; max-width: 220px; } 
             h2 { font-size: 2.2em; } 
         }
-        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.25); } 50% { transform: scale(1.1); box-shadow: 0 6px 15px rgba(0,0,0,0.35); } 100% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.25); } }
-    
-        /* --- UPDATE NOTIFICATION STYLE (FOR TESTING) --- */
-        #update-notification {
-            /* IMPORTANT: For final version, change 'block' back to 'none' */
-            display: block; /* Initially visible for testing */
-        }
-        #update-notification.show {
-            display: block; /* This class will be added by JS when an update is found */
-            animation: pulse 1.5s infinite;
-        }
-        #update-notification button {
-            background-color: var(--prime-color);
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-            transition: transform 0.2s ease;
-        }
-        #update-notification button:hover {
-            transform: scale(1.1);
-        }
-        #update-notification button img {
-            width: 24px;
-            height: 24px;
-        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <header class="animate-on-scroll">
-        <div id="headerDisplay" class="header-display">
-            <div class="ad-content"></div>
-            <div class="ticker-wrap">
-                <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div>
+<header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> 
+<main class="content-wrapper">
+    <section class="bank-members animate-on-scroll"> 
+        <div class="header-container"> 
+            <h2 class="bank-headline">BANK MEMBERS</h2> 
+            <div class="header-buttons-wrapper">
+                <div class="view-balance-btn" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> 
+                <div class="view-balance-btn" id="viewPenaltyWalletBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="Penalty Wallet" class="balance-icon"> <span>Bank Wallet</span> </div> 
             </div>
-        </div>
-        <h1>Bank Community Loan</h1>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 15px;">
-            <h4>ESTD: 23 June 2024</h4>
-            <div id="update-notification">
-                <button id="update-btn" title="Naya version available hai! Click to refresh.">
-                    <img src="https://www.svgrepo.com/show/533694/refresh-ccw.svg" alt="Refresh Icon">
-                </button>
-            </div>
-        </div>
-        <div class="header-actions">
-            <div class="header-actions-row">
-                <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a>
-                <a href="gallery.html" class="civil-button">Gallery 🖼️</a>
-            </div>
-            <div class="header-actions-row">
-                <a href="profit_return.html" class="civil-button">Return 💵</a>
-                <button class="civil-button" id="sipStatusBtn">SIP Status</button>
-                <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button>
-            </div>
-            <div class="header-actions-row">
-                <button class="install-button" id="installAppBtn">
-                    <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon">
-                    <b>Install Now</b>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="content-wrapper">
-        <section class="bank-members animate-on-scroll">
-            <div class="header-container">
-                <h2 class="bank-headline">BANK MEMBERS</h2>
-                <div class="header-buttons-wrapper">
-                    <div class="view-balance-btn" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div>
-                    <div class="view-balance-btn" id="viewPenaltyWalletBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="Penalty Wallet" class="balance-icon"> <span>Bank Wallet</span> </div>
-                </div>
-            </div>
-            <div class="member-slider" id="memberContainer">
-                <p class="loading-text">Authenticating...</p>
-            </div>
-        </section>
-
-        <section id="customCardsSection" class="animate-on-scroll">
-            <div class="custom-card-slider-wrapper">
-                <div class="custom-cards-container" id="customCardsContainer"></div>
-            </div>
-            <div class="slide-indicator" id="custom-cards-indicator"></div>
-        </section>
-
-        <div id="balanceModal" class="modal">
-            <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span>
-                <h2>Community Funds</h2>
-                <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small>
-                <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small>
-                <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
-                <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small>
-            </div>
-        </div>
-        
-        <div id="penaltyWalletModal" class="modal">
-            <div class="modal-content">
-                <span class="close" id="closePenaltyWalletModal">×</span>
-                <h2>Bank Penalty Wallet</h2>
-                <div id="penaltyBalance" class="balance-display" style="color: var(--danger-color);">₹0</div>
-                <small class="balance-label">Current Penalty Balance</small>
-                <hr style="margin: 15px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
-                <button id="viewHistoryBtn" class="view-history-btn">View History</button>
-                <ul class="penalty-history-list" id="penaltyHistoryList"></ul>
-            </div>
-        </div>
-
-        <div id="memberProfileModal" class="modal">
-            <div class="modal-content"> <span class="close" id="closeProfileModal">×</span>
-                <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div>
-                <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div>
-                <h2 id="profileModalName">Member Name</h2>
-                <ul class="profile-stats-list">
-                    <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li>
-                    <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li>
-                    <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li>
-                    <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li>
-                    <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li>
-                </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button>
-            </div>
-        </div>
-        
-        <div id="sipStatusModal" class="modal">
-            <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span>
-                <h2>Current Month SIP Status</h2>
-                <div class="sip-status-list" id="sipStatusListContainer"></div>
-            </div>
-        </div>
-        
-        <div id="notificationModal" class="modal">
-            <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span>
-                <h2>Today's Activity</h2>
-                <ul class="notification-list" id="notificationList"> </ul>
-            </div>
-        </div>
-        
-        <section class="transparency-section animate-on-scroll">
-            <h2>📝 Transparency info.</h2>
-            <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p>
-            <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p>
-            <div class="audio-wrapper" style="text-align:center; margin-top: 30px;">
-                <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div>
-                <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div>
-                <audio id="welcomeAudio">
-                    <source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.
-                </audio>
-            </div>
-        </section>
-        
-        <section class="action-cards-section animate-on-scroll">
-            <h2>Quick Actions</h2>
-            <div class="action-cards">
-                <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div>
-                <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div>
-                <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a>
-                <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a>
-                <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a>
-                <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a>
-            </div>
-        </section>
-        
-        <section class="info-slider-section animate-on-scroll">
-            <h2>💡 Community Info</h2>
-            <div class="info-slider-container" id="infoSlider"> </div>
-        </section>
-        
-        <section class="sip-chart-section animate-on-scroll">
-            <h2>📈 Monthly SIP Growth</h2>
-            <canvas id="sipChart"></canvas>
-        </section>
-        
-        <section class="letter-slider-section animate-on-scroll">
-            <h2><i data-feather="image"></i> About Community Letter</h2>
-            <div class="slider-container">
-                <div class="slides" id="communityLetterSlides"> </div>
-                <button class="prev" id="prevSlideBtn">❮</button>
-                <button class="next" id="nextSlideBtn">❯</button>
-            </div>
-            <div class="slide-indicator" id="slideIndicator"></div>
-        </section>
-    </main>
-
-    <footer>
-        <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p>
-    </footer>
+        </div> 
+        <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> 
+    </section> 
     
-    <div id="imageModal" class="image-modal-overlay">
-        <span class="close" id="closeImageModal">×</span>
-        <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image">
-    </div>
+    <section id="customCardsSection" class="animate-on-scroll">
+        <div class="custom-card-slider-wrapper">
+            <div class="custom-cards-container" id="customCardsContainer"></div>
+        </div>
+        <div class="slide-indicator" id="custom-cards-indicator"></div>
+    </section>
 
-    <div id="passwordPromptModal" class="modal">
+    <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> 
+    
+    <div id="penaltyWalletModal" class="modal">
         <div class="modal-content">
-            <span class="close" id="closePasswordModal">×</span>
-            <h2>Enter Password</h2>
-            <p style="margin-bottom: 20px; font-size: 0.9em; color: var(--light-text);">Please enter the member's password to view full details.</p>
-            <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; font-size: 1.1em; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px; box-sizing: border-box;">
-            <button id="submitPasswordBtn" style="width: 100%; padding: 12px; background-color: var(--success-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Submit</button>
+            <span class="close" id="closePenaltyWalletModal">×</span>
+            <h2>Bank Penalty Wallet</h2>
+            <div id="penaltyBalance" class="balance-display" style="color: var(--danger-color);">₹0</div>
+            <small class="balance-label">Current Penalty Balance</small>
+            <hr style="margin: 15px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
+            <button id="viewHistoryBtn" class="view-history-btn">View History</button>
+            <ul class="penalty-history-list" id="penaltyHistoryList"></ul>
         </div>
     </div>
 
-    <div id="fullProfileViewModal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="closeFullProfileModal">×</span>
-            <h2 id="fullProfileName">Member Full Details</h2>
-            <div class="full-profile-body">
-                <div class="full-profile-grid">
-                    <div class="full-profile-item"><strong>Membership ID</strong><span id="fullProfileMemberId">--</span></div>
-                    <div class="full-profile-item"><strong>Mobile Number</strong><span id="fullProfileMobile">--</span></div>
-                    <div class="full-profile-item"><strong>Date of Birth</strong><span id="fullProfileDob">--</span></div>
-                    <div class="full-profile-item"><strong>Aadhaar No.</strong><span id="fullProfileAadhaar">--</span></div>
-                    <div class="full-profile-item" style="grid-column: 1 / -1;"><strong>Address</strong><span id="fullProfileAddress">--</span></div>
-                    <div class="full-profile-item" style="background: #e6f7ff;"><strong>Extra Amount</strong><span id="fullProfileExtraAmount" style="font-weight: bold; color: var(--info-color);">--</span></div>
+    <div id="memberProfileModal" class="modal"> <div class="modal-content"> <span class="close" id="closeProfileModal">×</span> <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> <h2 id="profileModalName">Member Name</h2> <ul class="profile-stats-list"> <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> <li><span class="stat-label"><i data-feather="trending-up"></i> Return Earned</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> </ul> <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> </div> </div> <div id="sipStatusModal" class="modal"> <div class="modal-content"> <span class="close" id="closeSipStatusModal">×</span> <h2>Current Month SIP Status</h2> <div class="sip-status-list" id="sipStatusListContainer"></div> </div> </div> <div id="notificationModal" class="modal"> <div class="modal-content"> <span class="close" id="closeNotificationModal">×</span> <h2>Today's Activity</h2> <ul class="notification-list" id="notificationList"> </ul> </div> </div> 
+    <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> <section class="action-cards-section animate-on-scroll"> <h2>Quick Actions</h2> <div class="action-cards"> <div class="action-card info-card animate-on-scroll" id="totalMembersCard"><i data-feather="users" class="action-card-icon"></i><span class="info-card-label">All members</span><span class="info-card-value" id="totalMembersValue">--</span></div> <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;"><i data-feather="trending-up" class="action-card-icon"></i><span class="info-card-label">Kul loan vitrit <span style="color: blue; font-weight: bold;">Click here</span></span><span class="info-card-value total-loan-value" id="totalLoanValue">₹--</span></div> <a href="https://bank-community.github.io/Loan-from/members.html" class="action-card animate-on-scroll"><i data-feather="list" class="action-card-icon"></i><span>All members info</span></a> <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ" target="_blank" class="action-card whatsapp-card animate-on-scroll"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp Icon" class="action-card-icon-img"><span>Community group</span></a> <a href="loan_form.html" class="action-card animate-on-scroll"><i data-feather="file-text" class="action-card-icon"></i><span>Loan form</span></a> <a href="new_join.html" target="_blank" class="action-card animate-on-scroll"><i data-feather="user-plus" class="action-card-icon"></i><span>New join</span></a> </div> </section> <section class="info-slider-section animate-on-scroll"> <h2>💡 Community Info</h2> <div class="info-slider-container" id="infoSlider"> </div> </section> <section class="sip-chart-section animate-on-scroll"> <h2>📈 Monthly SIP Growth</h2> <canvas id="sipChart"></canvas> </section> <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides" id="communityLetterSlides">
+         </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> 
+</main>
+<footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
+
+<div id="passwordPromptModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closePasswordModal">×</span>
+        <h2>Enter Password</h2>
+        <p style="margin-bottom: 20px; font-size: 0.9em; color: var(--light-text);">Please enter the member's password to view full details.</p>
+        <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; font-size: 1.1em; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px; box-sizing: border-box;">
+        <button id="submitPasswordBtn" style="width: 100%; padding: 12px; background-color: var(--success-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Submit</button>
+    </div>
+</div>
+
+<div id="fullProfileViewModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeFullProfileModal">×</span>
+        <h2 id="fullProfileName">Member Full Details</h2>
+        <div class="full-profile-body">
+            <div class="full-profile-grid">
+                <div class="full-profile-item"><strong>Membership ID</strong><span id="fullProfileMemberId">--</span></div>
+                <div class="full-profile-item"><strong>Mobile Number</strong><span id="fullProfileMobile">--</span></div>
+                <div class="full-profile-item"><strong>Date of Birth</strong><span id="fullProfileDob">--</span></div>
+                <div class="full-profile-item"><strong>Aadhaar No.</strong><span id="fullProfileAadhaar">--</span></div>
+                <div class="full-profile-item" style="grid-column: 1 / -1;"><strong>Address</strong><span id="fullProfileAddress">--</span></div>
+                <div class="full-profile-item" style="background: #e6f7ff;"><strong>Extra Amount</strong><span id="fullProfileExtraAmount" style="font-weight: bold; color: var(--info-color);">--</span></div>
+            </div>
+            <div class="full-profile-images">
+                <div>
+                    <strong>Profile Photo</strong>
+                    <img id="fullProfilePic" src="" alt="Profile Photo">
                 </div>
-                <div class="full-profile-images">
-                    <div>
-                        <strong>Profile Photo</strong>
-                        <img id="fullProfilePic" src="" alt="Profile Photo">
-                    </div>
-                    <div>
-                        <strong>Document</strong>
-                        <img id="fullProfileDoc" src="" alt="Document">
-                    </div>
-                    <div>
-                        <strong>Signature</strong>
-                        <img id="fullProfileSign" src="" alt="Signature">
-                    </div>
+                <div>
+                    <strong>Document</strong>
+                    <img id="fullProfileDoc" src="" alt="Document">
+                </div>
+                <div>
+                    <strong>Signature</strong>
+                    <img id="fullProfileSign" src="" alt="Signature">
                 </div>
             </div>
         </div>
     </div>
+</div>
+
 
 <script>
-    // ##################################################################
-    // ## PWA UPDATE LOGIC (UPDATED) ##
-    // ##################################################################
-    if ('serviceWorker' in navigator) {
-        let newWorker;
-        navigator.serviceWorker.register('/sw.js').then(reg => {
-            reg.addEventListener('updatefound', () => {
-                // Naya service worker install ho raha hai
-                newWorker = reg.installing;
-                newWorker.addEventListener('statechange', () => {
-                    // Agar naya worker install ho gaya hai aur purana active hai
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Update notification dikhayein
-                        const notification = document.getElementById('update-notification');
-                        if (notification) {
-                            notification.classList.add('show');
-                        }
-                    }
-                });
-            });
-        });
-
-        // Refresh button ka event listener
-        document.addEventListener('DOMContentLoaded', () => {
-            const updateBtn = document.getElementById('update-btn');
-            if (updateBtn) {
-                updateBtn.addEventListener('click', () => {
-                    if (newWorker) {
-                        newWorker.postMessage({ action: 'skipWaiting' });
-                    }
-                    // Adding a small delay to allow the new service worker to take control
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 50);
-                });
-            }
-        });
-        
-        // Reload page when controller changes
-        let refreshing;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            window.location.reload();
-            refreshing = true;
-        });
-    }
-
-
     // ##################################################################
     // ## SECURE FIREBASE INITIALIZATION & AUTHENTICATION ##
     // ##################################################################
