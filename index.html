@@ -26,6 +26,18 @@
         }
         html { scroll-behavior: smooth; }
         body { font-family: 'Roboto', 'Arial', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-color); overflow-x: hidden; line-height: 1.7; }
+        
+        #custom-splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #0d1a2e; z-index: 9999; display: flex;
+            justify-content: center; align-items: center; transition: opacity 0.8s ease-out;
+        }
+        #custom-splash-screen img {
+            width: 200px; max-width: 60%; height: auto; background: white;
+            padding: 20px; border-radius: 35px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+        }
+
         h1, h2, h3, h4, h5, h6 { color: var(--text-color); margin-top: 1.5em; margin-bottom: 0.8em; font-weight: 600; }
         h2 { text-align: center; color: var(--primary-darker); font-size: 1.8em; display: flex; align-items: center; justify-content: center; gap: 10px; }
         h2 i { width: 28px; height: 28px; color: var(--primary-color); }
@@ -134,6 +146,7 @@
             box-shadow: 0 5px 10px var(--shadow-color); 
             transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease; 
             cursor: pointer; border: 1px solid var(--border-color); box-sizing: border-box; overflow: visible;
+            display: flex; flex-direction: column; align-items: center; /* Center content */
         }
         .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
         
@@ -141,6 +154,7 @@
             width: 100%; aspect-ratio: 1 / 1; border-radius: 8px;
             overflow: hidden; margin-bottom: 12px; background-color: #f0f0f0;
             border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative; /* Added for Prime Tag positioning */
         }
         .member-card img.member-photo { 
             width: 100%; height: 100%; object-fit: cover;
@@ -149,8 +163,23 @@
         .member-card:hover img.member-photo { transform: scale(1.05); }
 
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
-        .member-balance { background-color: var(--primary-color); color: white; padding: 6px 10px; margin-top: 10px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; min-width: 90px; box-sizing: border-box; text-align: center; }
-        .prime-tag { position: absolute; top: 100px; right: 8px; background-color: var(--prime-color); color: var(--text-color); padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1; z-index: 2; }
+        
+        /* Updated Member Balance Style */
+        .member-balance { 
+            background-color: var(--primary-color); color: white; padding: 8px 10px; 
+            margin-top: auto; /* Pushes to the bottom */ border-radius: 8px; font-size: 0.9em; font-weight: bold; 
+            display: block; width: 90%; box-sizing: border-box; text-align: center; 
+            margin-left: auto; margin-right: auto;
+        }
+
+        /* Updated Prime Tag Style */
+        .prime-tag { 
+            position: absolute; bottom: 8px; right: 8px; 
+            background-color: var(--prime-color); color: var(--text-color); 
+            padding: 4px 9px; border-radius: 6px; font-size: 11px; 
+            font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+            line-height: 1; z-index: 2; 
+        }
         
         .rank-icon { 
             position: absolute; top: -10px; left: -10px; width: 40px; height: 40px; 
@@ -162,7 +191,6 @@
         .colored-card .member-name { color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
         .colored-card .member-balance { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
-        /* --- Custom Cards Section Styles UPDATED --- */
         #customCardsSection {
             background: none; border: none; box-shadow: none; padding: 0; margin-top: -20px;
         }
@@ -206,7 +234,7 @@
             font-size: 0.9em; color: var(--light-text); margin-bottom: 0; flex-grow: 1;
         }
         .custom-card-btn {
-            position: absolute; /* Positioned on the image */
+            position: absolute;
             bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
@@ -240,7 +268,6 @@
         #custom-cards-indicator .indicator-dot.active {
             border-color: var(--primary-color);
         }
-
 
         .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
         .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
@@ -351,6 +378,11 @@
 </head>
 <body>
 
+<!-- SPLASH SCREEN HTML (Updated Link) -->
+<div id="custom-splash-screen">
+    <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" alt="Bank Loan Logo">
+</div>
+
 <header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> 
 <main class="content-wrapper">
     <section class="bank-members animate-on-scroll"> 
@@ -440,7 +472,7 @@
     async function initializeAndRunApp() {
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=8') // Version updated
+                navigator.serviceWorker.register('/sw.js?v=12') // Version updated
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -726,11 +758,12 @@
                     }
                 }
                 
+                // Updated HTML structure for the card
                 card.innerHTML = `
                     ${rankHTML}
-                    ${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}
                     <div class="member-photo-container">
                         <img src="${member.displayImageUrl}" alt="${member.name}" class="member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                        ${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}
                     </div>
                     <p class="member-name" title="${member.name}">${member.name}</p>
                     <p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
@@ -1234,6 +1267,18 @@
         setupPWA();
         fetchAllDataFromFirebase();
         observeElements(document.querySelectorAll('.animate-on-scroll'));
+
+        // --- SPLASH SCREEN JAVASCRIPT (Updated Time to 1 second) ---
+        const splashScreen = document.getElementById('custom-splash-screen');
+        if (splashScreen) {
+            // 1 सेकंड (1000ms) के बाद स्प्लैश स्क्रीन को हटाएं
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 800); 
+            }, 1000); // <-- Timing changed to 1000ms
+        }
     }
 
     // --- Start the entire process ---
