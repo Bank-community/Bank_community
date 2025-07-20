@@ -507,9 +507,29 @@
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xl font-bold text-gray-800">Manage Dashboard Buttons</h3>
-                            <button id="manage-buttons-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
-                                <i class="ph-pencil-simple"></i> Manage Buttons
+                            <button id="add-new-button-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
+                                <i class="ph-plus"></i> Add New Button
                             </button>
+                        </div>
+                        <div id="dashboard-buttons-list" class="space-y-3">
+                           ${Object.keys(dashboardButtons).length === 0 
+                             ? '<p class="text-center text-gray-500 py-4">No buttons added yet.</p>' 
+                             : Object.entries(dashboardButtons).map(([key, btn]) => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                    <div class="flex items-center gap-4 overflow-hidden">
+                                        <div class="w-8 h-8 rounded-md flex-shrink-0" style="background-color: ${btn.color || '#ccc'};"></div>
+                                        <div class="flex-1 overflow-hidden">
+                                            <p class="font-semibold text-gray-800 truncate">${btn.name}</p>
+                                            <a href="${btn.url}" target="_blank" class="text-xs text-blue-500 hover:underline truncate block">${btn.url}</a>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3 flex-shrink-0">
+                                        <button class="edit-button-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
+                                        <button class="delete-button-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button>
+                                    </div>
+                                </div>
+                             `).join('')
+                           }
                         </div>
                     </div>
                 </div>
