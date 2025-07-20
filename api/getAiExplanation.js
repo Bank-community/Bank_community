@@ -21,8 +21,8 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'Prompt text is required.' });
     }
 
-    // The official Gemini API endpoint.
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+    // UPDATED: Using the reliable 'gemini-pro' model endpoint.
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`;
 
     const payload = {
       contents: [{
@@ -52,8 +52,8 @@ export default async function handler(request, response) {
       return response.status(200).json({ explanation });
     } else {
       // Handle cases where the response might be blocked or empty
-      const blockReason = data.candidates?.[0]?.finishReason || 'Unknown';
-      throw new Error(`AI se koi valid response nahi mila. Karan: ${blockReason}`);
+      const blockReason = data.promptFeedback?.blockReason || data.candidates?.[0]?.finishReason || 'Unknown';
+      throw new Error(`AI से कोई valid response nahi mila. Karan: ${blockReason}`);
     }
 
   } catch (error) {
