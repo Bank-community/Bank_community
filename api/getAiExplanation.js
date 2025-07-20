@@ -21,8 +21,8 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'Prompt text is required.' });
     }
 
-    // UPDATED: Using the reliable 'gemini-pro' model endpoint.
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`;
+    // UPDATED: Using the correct 'gemini-1.5-flash-latest' model with the correct API version endpoint.
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
 
     const payload = {
       contents: [{
@@ -40,7 +40,9 @@ export default async function handler(request, response) {
     if (!geminiResponse.ok) {
       const errorData = await geminiResponse.json();
       console.error("Gemini API Error:", errorData);
-      throw new Error(`Gemini API request failed: ${errorData.error.message}`);
+      // Provide a more specific error message back to the frontend
+      const errorMessage = errorData.error?.message || 'Unknown API error';
+      throw new Error(`Gemini API request failed: ${errorMessage}`);
     }
 
     const data = await geminiResponse.json();
