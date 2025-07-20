@@ -794,26 +794,38 @@
                                 </div>
                             </div>
                             <div class="pt-4 border-t mt-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Image URLs</label>
-                                <div class="space-y-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Images</label>
+                                <div class="space-y-4">
+                                    <!-- Profile Pic Upload -->
                                     <div class="flex items-center gap-3">
-                                        <img src="${member.profilePicUrl || ''}" class="w-10 h-10 rounded-full object-cover bg-gray-200" onerror="this.src='https://placehold.co/40x40?text=PIC'">
-                                        <input type="url" id="edit-member-profilePicUrl" class="form-input w-full p-2 rounded-lg" value="${member.profilePicUrl || ''}" placeholder="Profile Picture URL">
+                                        <img id="edit-profile-preview" src="${member.profilePicUrl || 'https://placehold.co/40x40?text=PIC'}" class="w-10 h-10 rounded-full object-cover bg-gray-200">
+                                        <input type="file" id="edit-profile-file" class="hidden" accept="image/*">
+                                        <input type="hidden" id="edit-profile-url" value="${member.profilePicUrl || ''}">
+                                        <button type="button" class="change-image-btn text-sm font-medium text-indigo-600 hover:text-indigo-800" data-target="edit-profile">Change Profile Pic</button>
                                     </div>
+                                    <!-- Signature Upload -->
                                     <div class="flex items-center gap-3">
-                                        <img src="${member.signatureUrl || ''}" class="w-10 h-10 rounded-md object-contain bg-gray-200 p-1" onerror="this.src='https://placehold.co/40x40?text=SIGN'">
-                                        <input type="url" id="edit-member-signatureUrl" class="form-input w-full p-2 rounded-lg" value="${member.signatureUrl || ''}" placeholder="Signature URL">
+                                        <img id="edit-signature-preview" src="${member.signatureUrl || 'https://placehold.co/40x40?text=SIGN'}" class="w-10 h-10 rounded-md object-contain bg-gray-200 p-1">
+                                        <input type="file" id="edit-signature-file" class="hidden" accept="image/*">
+                                        <input type="hidden" id="edit-signature-url" value="${member.signatureUrl || ''}">
+                                        <button type="button" class="change-image-btn text-sm font-medium text-indigo-600 hover:text-indigo-800" data-target="edit-signature">Change Signature</button>
                                     </div>
+                                    <!-- Document Upload -->
                                     <div class="flex items-center gap-3">
-                                        <img src="${member.documentUrl || ''}" class="w-10 h-10 rounded-md object-contain bg-gray-200 p-1" onerror="this.src='https://placehold.co/40x40?text=DOC'">
-                                        <input type="url" id="edit-member-documentUrl" class="form-input w-full p-2 rounded-lg" value="${member.documentUrl || ''}" placeholder="Document URL">
+                                        <img id="edit-document-preview" src="${member.documentUrl || 'https://placehold.co/40x40?text=DOC'}" class="w-10 h-10 rounded-md object-contain bg-gray-200 p-1">
+                                        <input type="file" id="edit-document-file" class="hidden" accept="image/*">
+                                        <input type="hidden" id="edit-document-url" value="${member.documentUrl || ''}">
+                                        <button type="button" class="change-image-btn text-sm font-medium text-indigo-600 hover:text-indigo-800" data-target="edit-document">Change Document</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="p-4 bg-gray-50 flex justify-end gap-3">
                             <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Changes</button>
+                            <button type="submit" id="save-member-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md">
+                                <span id="save-member-text">Save Changes</span>
+                                <div class="loader hidden"></div>
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -880,6 +892,22 @@
         function closeModal(modal) { if(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); } }
         function showConfirmation(title, message) { return new Promise(resolve => { const modal = document.getElementById('confirmModal'); modal.querySelector('#confirmModalTitle').textContent = title; modal.querySelector('#confirmModalMessage').textContent = message; openModal(modal); const okBtn = modal.querySelector('#confirmOkBtn'); const cancelBtn = modal.querySelector('#confirmCancelBtn'); const cleanup = () => { closeModal(modal); okBtn.onclick = null; cancelBtn.onclick = null; }; okBtn.onclick = () => { cleanup(); resolve(true); }; cancelBtn.onclick = () => { cleanup(); resolve(false); }; }); }
         
+        async function uploadImage(file) {
+            if (!file) return null;
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error.message);
+                return json.data.url;
+            } catch (err) {
+                console.error('Image upload failed:', err);
+                alert('Image upload failed: ' + err.message);
+                return null;
+            }
+        }
+
         async function handleFormSubmission(e) {
             e.preventDefault();
             const btn = document.getElementById('submit-entry-btn');
@@ -899,22 +927,7 @@
             const file = document.getElementById('entry-document').files[0];
             const entryType = document.getElementById('entry-type').value;
 
-            let imageUrl = '';
-            if (file) {
-                const formData = new FormData();
-                formData.append('image', file);
-                try {
-                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
-                    const json = await res.json();
-                    if (!json.success) throw new Error(json.error.message);
-                    imageUrl = json.data.url;
-                } catch (err) {
-                    alert('Image upload failed: ' + err.message);
-                    btn.disabled = false;
-                    loader.classList.add('hidden');
-                    return;
-                }
-            }
+            let imageUrl = await uploadImage(file);
             
             let manualPenalty = parseFloat(document.getElementById('penalty-amount').value) || 0;
             let autoPenalty = 0;
@@ -940,7 +953,7 @@
                 "Extra Balance": document.getElementById('extra-balance-amount').value || "",
                 "Extra Withdraw": document.getElementById('extra-withdraw-amount').value || "",
                 "Penalty amount": totalPenalty > 0 ? totalPenalty : "",
-                imageUrl: imageUrl
+                imageUrl: imageUrl || ""
             };
 
             try {
@@ -1113,27 +1126,48 @@
                 e.preventDefault();
                 const form = e.target;
                 const memberId = form.dataset.memberId;
-                
-                const updatedData = {
-                    fullName: document.getElementById('edit-member-name').value,
-                    mobileNumber: document.getElementById('edit-member-mobile').value,
-                    address: document.getElementById('edit-member-address').value,
-                    aadhaar: document.getElementById('edit-member-aadhaar').value,
-                    dob: document.getElementById('edit-member-dob').value,
-                    guarantorName: document.getElementById('edit-member-guarantor').value,
-                    password: document.getElementById('edit-member-password').value,
-                    profilePicUrl: document.getElementById('edit-member-profilePicUrl').value,
-                    signatureUrl: document.getElementById('edit-member-signatureUrl').value,
-                    documentUrl: document.getElementById('edit-member-documentUrl').value,
-                };
+                const saveBtn = form.querySelector('#save-member-btn');
+                const btnText = form.querySelector('#save-member-text');
+                const loader = form.querySelector('.loader');
 
+                saveBtn.disabled = true;
+                btnText.textContent = 'Saving...';
+                loader.classList.remove('hidden');
+                
                 try {
+                    const profileFile = document.getElementById('edit-profile-file').files[0];
+                    const signatureFile = document.getElementById('edit-signature-file').files[0];
+                    const documentFile = document.getElementById('edit-document-file').files[0];
+
+                    const [newProfileUrl, newSignatureUrl, newDocumentUrl] = await Promise.all([
+                        uploadImage(profileFile),
+                        uploadImage(signatureFile),
+                        uploadImage(documentFile)
+                    ]);
+                    
+                    const updatedData = {
+                        fullName: document.getElementById('edit-member-name').value,
+                        mobileNumber: document.getElementById('edit-member-mobile').value,
+                        address: document.getElementById('edit-member-address').value,
+                        aadhaar: document.getElementById('edit-member-aadhaar').value,
+                        dob: document.getElementById('edit-member-dob').value,
+                        guarantorName: document.getElementById('edit-member-guarantor').value,
+                        password: document.getElementById('edit-member-password').value,
+                        profilePicUrl: newProfileUrl || document.getElementById('edit-profile-url').value,
+                        signatureUrl: newSignatureUrl || document.getElementById('edit-signature-url').value,
+                        documentUrl: newDocumentUrl || document.getElementById('edit-document-url').value,
+                    };
+
                     const memberRef = ref(db, `members/${memberId}`);
                     await update(memberRef, updatedData);
                     alert('Member details updated successfully!');
                     closeModal(document.getElementById('editMemberModal'));
                 } catch (err) {
                     alert('Failed to update member: ' + err.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    btnText.textContent = 'Save Changes';
+                    loader.classList.add('hidden');
                 }
             }
             if (e.target.id === 'card-colors-form') {
@@ -1270,12 +1304,27 @@
             if (deleteTxBtn) {
                 const memberId = deleteTxBtn.dataset.memberId;
                 const txId = deleteTxBtn.dataset.txId;
+                const transaction = allMembersData[memberId]?.transactions?.[txId];
                 const confirmed = await showConfirmation('Delete Transaction?', 'This action is permanent and cannot be undone.');
                 if (confirmed) {
                     try {
-                        const txRef = ref(db, `members/${memberId}/transactions/${txId}`);
-                        await remove(txRef);
-                        alert('Transaction deleted successfully.');
+                        const updates = {};
+                        updates[`/members/${memberId}/transactions/${txId}`] = null;
+                        
+                        // Check for associated penalty
+                        if (transaction && transaction['Return amount'] > 0) {
+                            const penaltyIncomesRef = ref(db, 'penaltyWallet/incomes');
+                            const penaltyQuery = query(penaltyIncomesRef, orderByChild('originalTxId'), equalTo(txId));
+                            const snapshot = await get(penaltyQuery);
+                            if(snapshot.exists()){
+                                snapshot.forEach(childSnapshot => {
+                                    updates[`/penaltyWallet/incomes/${childSnapshot.key}`] = null;
+                                });
+                            }
+                        }
+                        
+                        await update(ref(db), updates);
+                        alert('Transaction and any associated penalty deleted successfully.');
                     } catch (err) {
                         alert('Error deleting transaction: ' + err.message);
                     }
@@ -1342,6 +1391,28 @@
                         alert('Error deleting button: ' + err.message);
                     }
                 }
+            }
+
+            const changeImageBtn = e.target.closest('.change-image-btn');
+            if(changeImageBtn) {
+                const targetId = changeImageBtn.dataset.target;
+                document.getElementById(`${targetId}-file`).click();
+            }
+        });
+
+        document.body.addEventListener('change', e => {
+            if (e.target.classList.contains('change-image-btn') || e.target.type === 'file') {
+                 const fileInput = e.target;
+                 const targetId = fileInput.id.replace('-file', '');
+                 const preview = document.getElementById(`${targetId}-preview`);
+                 const file = fileInput.files[0];
+                 if (file && preview) {
+                     const reader = new FileReader();
+                     reader.onload = (event) => {
+                         preview.src = event.target.result;
+                     };
+                     reader.readAsDataURL(file);
+                 }
             }
         });
 
