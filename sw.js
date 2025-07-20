@@ -9,7 +9,7 @@ const APP_SHELL_URLS = [
   '/login.html',
   '/manifest.json',
   '/favicon.ico',
-  'https://i.ibb.co/TMQ4X1Tc/1752977035851.jpg', // Naya Padded Main App Icon
+  'https://i.ibb.co/pjB1bQ7J/1752978674430.jpg', // Naya Padded Main App Icon
   'https://i.imgur.com/TEHsZ32.png' // Balance Icon
 ];
 
