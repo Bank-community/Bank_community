@@ -83,6 +83,8 @@
         section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
         section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
         .transparency-section p { font-size: 1.1em; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .audio-wrapper { text-align:center; margin-top: 30px; }
+        .play-button { display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease; }
         .info-slider-section { background: none; border: none; box-shadow: none; padding: 0; }
         .info-slider-container { display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 20px 25px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .info-slider-container::-webkit-scrollbar { display: none; }
@@ -146,7 +148,7 @@
             box-shadow: 0 5px 10px var(--shadow-color); 
             transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease; 
             cursor: pointer; border: 1px solid var(--border-color); box-sizing: border-box; overflow: visible;
-            display: flex; flex-direction: column; align-items: center; /* Center content */
+            display: flex; flex-direction: column; align-items: center;
         }
         .member-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
         
@@ -154,7 +156,7 @@
             width: 100%; aspect-ratio: 1 / 1; border-radius: 8px;
             overflow: hidden; margin-bottom: 12px; background-color: #f0f0f0;
             border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: relative; /* Added for Prime Tag positioning */
+            position: relative;
         }
         .member-card img.member-photo { 
             width: 100%; height: 100%; object-fit: cover;
@@ -164,15 +166,13 @@
 
         .member-name { font-size: 1em; font-weight: 600; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-color); }
         
-        /* Updated Member Balance Style */
         .member-balance { 
             background-color: var(--primary-color); color: white; padding: 8px 10px; 
-            margin-top: auto; /* Pushes to the bottom */ border-radius: 8px; font-size: 0.9em; font-weight: bold; 
+            margin-top: auto; border-radius: 8px; font-size: 0.9em; font-weight: bold; 
             display: block; width: 90%; box-sizing: border-box; text-align: center; 
             margin-left: auto; margin-right: auto;
         }
 
-        /* Updated Prime Tag Style */
         .prime-tag { 
             position: absolute; bottom: 8px; right: 8px; 
             background-color: var(--prime-color); color: var(--text-color); 
@@ -758,7 +758,6 @@
                     }
                 }
                 
-                // Updated HTML structure for the card
                 card.innerHTML = `
                     ${rankHTML}
                     <div class="member-photo-container">
@@ -1268,16 +1267,14 @@
         fetchAllDataFromFirebase();
         observeElements(document.querySelectorAll('.animate-on-scroll'));
 
-        // --- SPLASH SCREEN JAVASCRIPT (Updated Time to 1 second) ---
         const splashScreen = document.getElementById('custom-splash-screen');
         if (splashScreen) {
-            // 1 सेकंड (1000ms) के बाद स्प्लैश स्क्रीन को हटाएं
             setTimeout(() => {
                 splashScreen.style.opacity = '0';
                 setTimeout(() => {
                     splashScreen.style.display = 'none';
                 }, 800); 
-            }, 1000); // <-- Timing changed to 1000ms
+            }, 1000);
         }
     }
 
