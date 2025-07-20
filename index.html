@@ -26,33 +26,6 @@
         }
         html { scroll-behavior: smooth; }
         body { font-family: 'Roboto', 'Arial', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-color); overflow-x: hidden; line-height: 1.7; }
-        
-        /* --- SPLASH SCREEN STYLES (NEW) --- */
-        #custom-splash-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #0d1a2e; /* Dark blue background */
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.8s ease-out;
-        }
-        #custom-splash-screen img {
-            width: 200px;
-            max-width: 60%;
-            height: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 35px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            box-sizing: border-box;
-        }
-        /* --- END OF SPLASH SCREEN STYLES --- */
-
         h1, h2, h3, h4, h5, h6 { color: var(--text-color); margin-top: 1.5em; margin-bottom: 0.8em; font-weight: 600; }
         h2 { text-align: center; color: var(--primary-darker); font-size: 1.8em; display: flex; align-items: center; justify-content: center; gap: 10px; }
         h2 i { width: 28px; height: 28px; color: var(--primary-color); }
@@ -189,6 +162,7 @@
         .colored-card .member-name { color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
         .colored-card .member-balance { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
+        /* --- Custom Cards Section Styles UPDATED --- */
         #customCardsSection {
             background: none; border: none; box-shadow: none; padding: 0; margin-top: -20px;
         }
@@ -232,7 +206,7 @@
             font-size: 0.9em; color: var(--light-text); margin-bottom: 0; flex-grow: 1;
         }
         .custom-card-btn {
-            position: absolute;
+            position: absolute; /* Positioned on the image */
             bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
@@ -266,6 +240,7 @@
         #custom-cards-indicator .indicator-dot.active {
             border-color: var(--primary-color);
         }
+
 
         .loading-text, .error-text { color: var(--light-text); text-align: center; width: 100%; padding: 30px 20px; font-size: 1.1em; font-style: italic; }
         .error-text { color: var(--danger-color); font-weight: bold; font-style: normal; }
@@ -376,11 +351,6 @@
 </head>
 <body>
 
-<!-- SPLASH SCREEN HTML (NEW) -->
-<div id="custom-splash-screen">
-    <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" alt="Bank Loan Logo">
-</div>
-
 <header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="https://bank-community.github.io/Loan-from/chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> 
 <main class="content-wrapper">
     <section class="bank-members animate-on-scroll"> 
@@ -388,7 +358,7 @@
             <h2 class="bank-headline">BANK MEMBERS</h2> 
             <div class="header-buttons-wrapper">
                 <div class="view-balance-btn" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> 
-                <div class="view-balance-btn" id="viewPenaltyWalletBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="Penalty Wallet" class="balance-icon"> <span>Bank Wallet</span> </div> 
+                <div class="view-balance-btn" id="viewPenaltyWalletBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="Penalty Wallet" class="balance-icon"> <span>Penalty Wallet</span> </div> 
             </div>
         </div> 
         <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> 
@@ -1264,19 +1234,6 @@
         setupPWA();
         fetchAllDataFromFirebase();
         observeElements(document.querySelectorAll('.animate-on-scroll'));
-
-        // --- SPLASH SCREEN JAVASCRIPT (NEW) ---
-        const splashScreen = document.getElementById('custom-splash-screen');
-        if (splashScreen) {
-            // 3 सेकंड (3000ms) के बाद स्प्लैश स्क्रीन को हटाएं
-            setTimeout(() => {
-                splashScreen.style.opacity = '0';
-                // opacity ट्रांजीशन पूरा होने के बाद इसे DOM से हटा दें ताकि यह क्लिक करने योग्य न रहे
-                setTimeout(() => {
-                    splashScreen.style.display = 'none';
-                }, 800); // यह समय CSS ट्रांजीशन के समय से मैच होना चाहिए
-            }, 1000);
-        }
     }
 
     // --- Start the entire process ---
