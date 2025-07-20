@@ -1311,8 +1311,7 @@
                         const updates = {};
                         updates[`/members/${memberId}/transactions/${txId}`] = null;
                         
-                        // Check for associated penalty
-                        if (transaction && transaction['Return amount'] > 0) {
+                        if (transaction && (transaction['Penalty amount'] > 0 || transaction['Return amount'] > 0)) {
                             const penaltyIncomesRef = ref(db, 'penaltyWallet/incomes');
                             const penaltyQuery = query(penaltyIncomesRef, orderByChild('originalTxId'), equalTo(txId));
                             const snapshot = await get(penaltyQuery);
@@ -1401,7 +1400,7 @@
         });
 
         document.body.addEventListener('change', e => {
-            if (e.target.classList.contains('change-image-btn') || e.target.type === 'file') {
+            if (e.target.type === 'file' && e.target.id.startsWith('edit-')) {
                  const fileInput = e.target;
                  const targetId = fileInput.id.replace('-file', '');
                  const preview = document.getElementById(`${targetId}-preview`);
