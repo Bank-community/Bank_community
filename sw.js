@@ -1,35 +1,49 @@
-// Cache का नाम और वर्ज़न
-const CACHE_NAME = 'bank-community-cache-v9'; // वर्ज़न बदल दिया गया है
+// Cache ka naya naam aur version
+const CACHE_NAME = 'bank-community-cache-v11-appshel​​l';
 
-// वे जरूरी फाइलें जिन्हें ऐप के पहली बार लोड होने पर कैश करना है
+// Sirf zaroori "App Shell" files jinko cache karna hai
+// Inka size bahut kam hota hai
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/login.html',
   '/manifest.json',
-  'https://i.ibb.co/HTNrbJxD/20250716-222246.png' // Main App Icon
+  '/favicon.ico',
+  'https://i.ibb.co/TMQ4X1Tc/1752977035851.jpg', // Naya Padded Main App Icon
+  'https://i.imgur.com/TEHsZ32.png' // Balance Icon
 ];
 
-// 1. Install Event: सर्विस वर्कर को इनस्टॉल करना और ऐप शेल को कैश करना
+// 1. Install Event: Service Worker ko install karna aur App Shell ko cache karna
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker installing: Caching App Shell');
-        return cache.addAll(APP_SHELL_URLS);
+        console.log('Service Worker: Caching App Shell');
+        // Network errors ko handle karne ke liye individual requests
+        const promises = APP_SHELL_URLS.map(url => {
+            return fetch(url, { mode: 'no-cors' }).then(response => {
+                if (response.ok) {
+                    return cache.put(url, response);
+                }
+                console.warn('Failed to cache:', url);
+                return Promise.resolve();
+            }).catch(err => {
+                console.error('Failed to fetch and cache:', url, err);
+            });
+        });
+        return Promise.all(promises);
       })
   );
 });
 
-// 2. Activate Event: पुराने कैश को हटाना
+// 2. Activate Event: Purane cache ko hatana
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          // अगर कैश का नाम वर्तमान नाम से मेल नहीं खाता है, तो उसे हटा दें
           if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker activating: Deleting old cache:', cacheName);
+            console.log('Service Worker: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -39,28 +53,26 @@ self.addEventListener('activate', event => {
   return self.clients.claim();
 });
 
-// 3. Fetch Event: नेटवर्क-फर्स्ट रणनीति लागू करना
+// 3. Fetch Event: Smartly handle karna
 self.addEventListener('fetch', event => {
-  // हम केवल GET अनुरोधों को संभालेंगे
-  if (event.request.method !== 'GET') {
+  const requestUrl = new URL(event.request.url);
+
+  // Agar request Firebase ya dusre external domains ke liye hai,
+  // to hamesha network se fetch karo aur cache mat karo.
+  if (requestUrl.hostname !== self.location.hostname || requestUrl.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
+  // Agar request App Shell ki file ke liye hai,
+  // to pehle cache mein dekho, fir network par jao.
   event.respondWith(
-    // सबसे पहले नेटवर्क से लाने की कोशिश करें
-    fetch(event.request)
-      .then(networkResponse => {
-        // अगर नेटवर्क से जवाब मिलता है
-        return caches.open(CACHE_NAME).then(cache => {
-          // नेटवर्क से मिले जवाब को कैश में डालें
-          cache.put(event.request, networkResponse.clone());
-          // और नेटवर्क से मिले जवाब को पेज पर दिखाएं
-          return networkResponse;
-        });
-      })
-      .catch(() => {
-        // अगर नेटवर्क फेल हो जाता है (ऑफलाइन), तो कैश से जवाब खोजने की कोशिश करें
-        return caches.match(event.request);
-      })
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request);
+    })
   );
 });
+
