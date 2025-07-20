@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profit Return & Distribution</title>
+    <title>Profit Return & Distribution (Realtime DB)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -16,15 +16,10 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Animation for summary cards */
-        .summary-card {
-            transition: all 0.3s ease-in-out;
-        }
         .summary-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        /* Loading spinner */
         .loader {
             border: 4px solid #f3f3f3;
             border-radius: 50%;
@@ -50,47 +45,41 @@
         <!-- Loading and Error State -->
         <div id="loading-state" class="text-center py-10">
             <div class="loader mx-auto"></div>
-            <p class="mt-4 text-lg font-medium">Loading investor data from Firebase...</p>
+            <p class="mt-4 text-lg font-medium">Loading investor data from Realtime Database...</p>
         </div>
 
         <div id="error-state" class="hidden text-center p-8 bg-red-100 dark:bg-red-900/20 border border-red-400 rounded-lg">
             <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
             <h2 class="text-2xl font-bold text-red-700 dark:text-red-400">Failed to load data from Firebase.</h2>
-            <p class="mt-2 text-red-600 dark:text-red-300">Firebase data is missing or the 'users' collection was not found.</p>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Please check the browser console for more details and ensure you are logged in.</p>
+            <p class="mt-2 text-red-600 dark:text-red-300">Data is missing or the '/members' path was not found in Realtime Database.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Please check your Realtime Database structure and browser console for details.</p>
         </div>
 
         <!-- Main Content - Hidden until data is loaded -->
         <main id="main-content" class="hidden">
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="summary-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                <div class="summary-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md transition-all">
                     <div class="flex items-center">
-                        <div class="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                            <i class="fas fa-users text-2xl text-blue-500"></i>
-                        </div>
+                        <div class="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full"><i class="fas fa-users text-2xl text-blue-500"></i></div>
                         <div class="ml-4">
                             <p class="text-gray-500 dark:text-gray-400">Total Investors</p>
                             <p id="total-investors" class="text-2xl font-bold">0</p>
                         </div>
                     </div>
                 </div>
-                <div class="summary-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                <div class="summary-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md transition-all">
                     <div class="flex items-center">
-                        <div class="p-4 bg-green-100 dark:bg-green-900/30 rounded-full">
-                            <i class="fas fa-wallet text-2xl text-green-500"></i>
-                        </div>
+                        <div class="p-4 bg-green-100 dark:bg-green-900/30 rounded-full"><i class="fas fa-wallet text-2xl text-green-500"></i></div>
                         <div class="ml-4">
                             <p class="text-gray-500 dark:text-gray-400">Total Investment</p>
                             <p id="total-investment" class="text-2xl font-bold">₹0</p>
                         </div>
                     </div>
                 </div>
-                <div class="summary-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                <div class="summary-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md transition-all">
                     <div class="flex items-center">
-                        <div class="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                            <i class="fas fa-chart-pie text-2xl text-purple-500"></i>
-                        </div>
+                        <div class="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full"><i class="fas fa-chart-pie text-2xl text-purple-500"></i></div>
                         <div class="ml-4">
                             <p class="text-gray-500 dark:text-gray-400">Distributed Profit</p>
                             <p id="distributed-profit" class="text-2xl font-bold">₹0</p>
@@ -105,11 +94,9 @@
                 <form id="profit-form" class="flex flex-col md:flex-row items-end gap-4">
                     <div class="w-full">
                         <label for="total-profit-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Enter Total Profit Amount (₹)</label>
-                        <input type="number" id="total-profit-input" placeholder="e.g., 50000" required
-                               class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="number" id="total-profit-input" placeholder="e.g., 50000" required class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
-                    <button type="submit"
-                            class="w-full md:w-auto flex-shrink-0 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                    <button type="submit" class="w-full md:w-auto flex-shrink-0 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
                         <i class="fas fa-calculator mr-2"></i> Calculate & Distribute
                     </button>
                 </form>
@@ -142,8 +129,8 @@
     <script type="module">
         // Firebase se zaroori functions import karein
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // *** REALTIME DATABASE ke liye imports ***
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
         // --- START: CONFIGURATION (Yahan apni Firebase config daalein) ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -155,14 +142,16 @@
                 projectId: "YOUR_PROJECT_ID",
                 storageBucket: "YOUR_STORAGE_BUCKET",
                 messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                appId: "YOUR_APP_ID"
+                appId: "YOUR_APP_ID",
+                // *** REALTIME DATABASE URL YAHAN DAALEIN ***
+                databaseURL: "YOUR_DATABASE_URL" 
             };
         // --- END: CONFIGURATION ---
 
         // Firebase ko shuru karein
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // *** REALTIME DATABASE ka instance prapt karein ***
+        const db = getDatabase(app);
 
         // HTML Elements ko select karein
         const loadingState = document.getElementById('loading-state');
@@ -176,15 +165,13 @@
         const totalProfitInput = document.getElementById('total-profit-input');
         const formStatus = document.getElementById('form-status');
 
-        let investorsData = []; // Sabhi niveshakon ka data store karne ke liye array
+        let investorsData = [];
         let totalInvestment = 0;
 
-        // Currency ko format karne ke liye function
         const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
-        // UI ko update karne ke liye function
         function updateUI() {
-            investorsTableBody.innerHTML = ''; // Table ko saaf karein
+            investorsTableBody.innerHTML = '';
             let totalDistributedProfit = 0;
 
             investorsData.forEach(investor => {
@@ -195,8 +182,8 @@
                 const row = `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium">${investor.name || investor.email || 'N/A'}</div>
-                            <div class="text-xs text-gray-500">${investor.uid}</div>
+                            <div class="text-sm font-medium">${investor.name || 'N/A'}</div>
+                            <div class="text-xs text-gray-500">${investor.id}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">${formatCurrency(investor.investment)}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">${investmentShare.toFixed(2)}%</td>
@@ -206,56 +193,53 @@
                 investorsTableBody.innerHTML += row;
             });
 
-            // Summary cards update karein
             totalInvestorsEl.textContent = investorsData.length;
             totalInvestmentEl.textContent = formatCurrency(totalInvestment);
             distributedProfitEl.textContent = formatCurrency(totalDistributedProfit);
         }
 
-        // Firestore se data laane ka function
+        // *** REALTIME DATABASE se data laane ka function ***
         async function fetchInvestorsData() {
+            // 'members' node ka reference banayein
+            const membersRef = ref(db, 'members');
             try {
-                // 'users' collection se sabhi documents fetch karein
-                const querySnapshot = await getDocs(collection(db, "users"));
+                const snapshot = await get(membersRef);
                 
-                if (querySnapshot.empty) {
-                    throw new Error("No documents found in 'users' collection.");
+                if (snapshot.exists()) {
+                    const members = snapshot.val();
+                    investorsData = [];
+                    totalInvestment = 0;
+
+                    // Har member ke data ko process karein
+                    for (const memberId in members) {
+                        const memberData = members[memberId];
+                        // 'joiningAmmount' ko number mein convert karein
+                        const investment = Number(memberData.joiningAmmount) || 0;
+                        
+                        investorsData.push({
+                            id: memberId,
+                            name: memberData.name,
+                            investment: investment,
+                            profitShare: 0,
+                        });
+                        totalInvestment += investment;
+                    }
+                    
+                    updateUI();
+                    loadingState.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    errorState.classList.add('hidden');
+                } else {
+                    throw new Error("'/members' path does not exist in Realtime Database.");
                 }
 
-                investorsData = [];
-                totalInvestment = 0;
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // Sunishchit karein ki 'investment' field ek number hai
-                    const investment = Number(data.investment) || 0;
-                    
-                    investorsData.push({
-                        uid: doc.id,
-                        investment: investment,
-                        profitShare: 0, // Shuruaat mein profit 0 rakhein
-                        ...data
-                    });
-                    totalInvestment += investment;
-                });
-                
-                // UI ko update karein
-                updateUI();
-
-                // Loading state ko chupayein aur main content dikhayein
-                loadingState.classList.add('hidden');
-                mainContent.classList.remove('hidden');
-                errorState.classList.add('hidden');
-
             } catch (error) {
-                console.error("Error fetching data from Firestore: ", error);
-                // Error state dikhayein
+                console.error("Error fetching data from Realtime Database: ", error);
                 loadingState.classList.add('hidden');
                 errorState.classList.remove('hidden');
             }
         }
 
-        // Profit distribution form submit hone par
         profitForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const totalProfitToDistribute = parseFloat(totalProfitInput.value);
@@ -275,49 +259,19 @@
             formStatus.textContent = 'Calculating...';
             formStatus.className = 'mt-4 text-sm text-blue-500';
 
-            // Har investor ke liye profit calculate karein
             investorsData.forEach(investor => {
                 const profitShare = (investor.investment / totalInvestment) * totalProfitToDistribute;
                 investor.profitShare = profitShare;
             });
             
-            // UI ko naye profit data ke saath update karein
             updateUI();
 
             formStatus.textContent = 'Profit distribution calculated successfully. Review the table below.';
             formStatus.className = 'mt-4 text-sm text-green-500';
         });
 
-        // Authentication state change hone par check karein
-        onAuthStateChanged(auth, async (user) => {
-            let currentUser = user;
-            if (!currentUser) {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                        currentUser = auth.currentUser;
-                    } else {
-                        await signInAnonymously(auth);
-                        currentUser = auth.currentUser;
-                    }
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    loadingState.classList.add('hidden');
-                    errorState.classList.remove('hidden');
-                    return;
-                }
-            }
-            
-            if (currentUser) {
-                console.log("User authenticated:", currentUser.uid);
-                // User ke login hone ke baad data fetch karein
-                await fetchInvestorsData();
-            } else {
-                 console.log("User is not authenticated.");
-                 loadingState.classList.add('hidden');
-                 errorState.classList.remove('hidden');
-            }
-        });
+        // Page load hone par data fetch karein
+        fetchInvestorsData();
 
     </script>
 </body>
