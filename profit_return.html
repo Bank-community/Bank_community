@@ -50,8 +50,8 @@
 
         <div id="error-state" class="hidden text-center p-8 bg-red-100 dark:bg-red-900/20 border border-red-400 rounded-lg">
             <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
-            <h2 class="text-2xl font-bold text-red-700 dark:text-red-400">Failed to load data from Firebase.</h2>
-            <p class="mt-2 text-red-600 dark:text-red-300">Data is missing or the '/members' path was not found in Realtime Database.</p>
+            <h2 id="error-title" class="text-2xl font-bold text-red-700 dark:text-red-400">Failed to load data from Firebase.</h2>
+            <p id="error-message" class="mt-2 text-red-600 dark:text-red-300">Data is missing or the '/members' path was not found in Realtime Database.</p>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Please check your Realtime Database structure and browser console for details.</p>
         </div>
 
@@ -127,35 +127,30 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        // Firebase se zaroori functions import karein
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // *** REALTIME DATABASE ke liye imports ***
         import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-        // --- START: CONFIGURATION (Yahan apni Firebase config daalein) ---
+        // --- START: CONFIGURATION ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config)
             : {
-                // Agar __firebase_config uplabdh nahi hai to yahan apni config paste karein
                 apiKey: "YOUR_API_KEY",
                 authDomain: "YOUR_AUTH_DOMAIN",
                 projectId: "YOUR_PROJECT_ID",
                 storageBucket: "YOUR_STORAGE_BUCKET",
                 messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
                 appId: "YOUR_APP_ID",
-                // *** REALTIME DATABASE URL YAHAN DAALEIN ***
-                databaseURL: "YOUR_DATABASE_URL" 
+                // *** YAHAN APNA REALTIME DATABASE URL DAALEIN ***
+                // Jaise: "https://your-project-id-default-rtdb.firebaseio.com"
+                databaseURL: "" 
             };
         // --- END: CONFIGURATION ---
 
-        // Firebase ko shuru karein
-        const app = initializeApp(firebaseConfig);
-        // *** REALTIME DATABASE ka instance prapt karein ***
-        const db = getDatabase(app);
-
-        // HTML Elements ko select karein
+        // HTML Elements
         const loadingState = document.getElementById('loading-state');
         const errorState = document.getElementById('error-state');
+        const errorTitle = document.getElementById('error-title');
+        const errorMessage = document.getElementById('error-message');
         const mainContent = document.getElementById('main-content');
         const investorsTableBody = document.getElementById('investors-table-body');
         const totalInvestorsEl = document.getElementById('total-investors');
@@ -168,6 +163,34 @@
         let investorsData = [];
         let totalInvestment = 0;
 
+        function showError(title, message) {
+            errorTitle.textContent = title;
+            errorMessage.textContent = message;
+            loadingState.classList.add('hidden');
+            mainContent.classList.add('hidden');
+            errorState.classList.remove('hidden');
+        }
+
+        // *** YAHAN SE CODE SHURU HOTA HAI ***
+
+        // 1. Check for databaseURL
+        if (!firebaseConfig.databaseURL) {
+            showError(
+                "Configuration Error!",
+                "Firebase config me 'databaseURL' nahi mila. Kripya code me apna Realtime Database URL daalein."
+            );
+        } else {
+            try {
+                // 2. Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                const db = getDatabase(app);
+                fetchInvestorsData(db); // Pass db instance to function
+            } catch (e) {
+                console.error("Firebase Initialization Error:", e);
+                showError("Firebase Error", "Firebase ko initialize karte samay error hua. Console check karein.");
+            }
+        }
+        
         const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
         function updateUI() {
@@ -198,9 +221,7 @@
             distributedProfitEl.textContent = formatCurrency(totalDistributedProfit);
         }
 
-        // *** REALTIME DATABASE se data laane ka function ***
-        async function fetchInvestorsData() {
-            // 'members' node ka reference banayein
+        async function fetchInvestorsData(db) {
             const membersRef = ref(db, 'members');
             try {
                 const snapshot = await get(membersRef);
@@ -210,10 +231,8 @@
                     investorsData = [];
                     totalInvestment = 0;
 
-                    // Har member ke data ko process karein
                     for (const memberId in members) {
                         const memberData = members[memberId];
-                        // 'joiningAmmount' ko number mein convert karein
                         const investment = Number(memberData.joiningAmmount) || 0;
                         
                         investorsData.push({
@@ -230,13 +249,12 @@
                     mainContent.classList.remove('hidden');
                     errorState.classList.add('hidden');
                 } else {
-                    throw new Error("'/members' path does not exist in Realtime Database.");
+                    showError("Data Not Found", "Aapke Realtime Database me '/members' path par koi data nahi mila.");
                 }
 
             } catch (error) {
                 console.error("Error fetching data from Realtime Database: ", error);
-                loadingState.classList.add('hidden');
-                errorState.classList.remove('hidden');
+                showError("Data Fetch Error", `Database se data laate samay error hua: ${error.message}`);
             }
         }
 
@@ -269,9 +287,6 @@
             formStatus.textContent = 'Profit distribution calculated successfully. Review the table below.';
             formStatus.className = 'mt-4 text-sm text-green-500';
         });
-
-        // Page load hone par data fetch karein
-        fetchInvestorsData();
 
     </script>
 </body>
