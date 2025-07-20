@@ -63,6 +63,7 @@
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="gallery"><i class="ph-images text-xl mr-3"></i><span>Gallery</span></a>
+                <a href="manage-cards.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-cards text-xl mr-3"></i><span>Manage Cards</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="page-settings"><i class="ph-gear text-xl mr-3"></i><span>Page Settings</span></a>
                 <a href="registration.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span></a>
                 <a href="https://bankcommunity.sbs/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl mr-3"></i><span>Bank Site</span></a>
@@ -236,12 +237,13 @@
                 ? `<div class="bg-white rounded-xl shadow-md p-6 mt-6">
                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Dashboard Links</h3>
                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                           ${Object.entries(dashboardButtons).map(([key, btn]) => `
-                               <a href="${btn.url}" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-lg text-white text-center font-semibold shadow-md hover:scale-105 transition-transform" style="background-color: ${btn.color || '#4f46e5'}">
-                                   <i class="ph-arrow-square-out text-2xl mb-1"></i>
+                           ${Object.entries(dashboardButtons).map(([key, btn]) => {
+                                const icon = getIconForButton(btn.name);
+                                return `<a href="${btn.url}" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-lg text-white text-center font-semibold shadow-md hover:scale-105 transition-transform" style="background-color: ${btn.color || '#4f46e5'}">
+                                   <i class="${icon} text-2xl mb-1"></i>
                                    <span>${btn.name}</span>
-                               </a>
-                           `).join('')}
+                               </a>`
+                           }).join('')}
                        </div>
                    </div>`
                 : '';
@@ -505,9 +507,9 @@
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xl font-bold text-gray-800">Manage Dashboard Buttons</h3>
-                            <a href="manage-cards.html" target="_blank" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
+                            <button id="manage-buttons-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
                                 <i class="ph-pencil-simple"></i> Manage Buttons
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1366,8 +1368,8 @@
                 closeModal(closeBtn.closest('.modal-overlay'));
             }
 
-            const addNewButtonBtn = e.target.closest('#add-new-button-btn');
-            if(addNewButtonBtn) {
+            const manageButtonsBtn = e.target.closest('#manage-buttons-btn');
+            if(manageButtonsBtn) {
                 renderDashboardButtonModal();
             }
 
@@ -1413,6 +1415,15 @@
                  }
             }
         });
+        
+        function getIconForButton(name) {
+            const lowerCaseName = name.toLowerCase();
+            if (lowerCaseName.includes('card')) return 'ph ph-cardholder';
+            if (lowerCaseName.includes('join')) return 'ph ph-user-plus';
+            if (lowerCaseName.includes('loan')) return 'ph ph-money';
+            if (lowerCaseName.includes('gallery')) return 'ph ph-images';
+            return 'ph ph-arrow-square-out'; // Default icon
+        }
 
         startApp();
     </script>
