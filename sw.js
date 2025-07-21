@@ -1,5 +1,5 @@
-// Cache ka naya, aur zyada robust version
-const CACHE_NAME = 'bank-community-cache-v14-final';
+ Cache ka naya, aur zyada robust version
+const CACHE_NAME = 'bank-community-cache-v15-final'; // Version badha diya hai
 
 // Zaroori files jinko install ke time cache karna hai
 const APP_SHELL_URLS = [
@@ -58,13 +58,6 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then(response => {
-          // Response theek hai to use cache bhi kar lo
-          return caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, response.clone());
-            return response;
-          });
-        })
         .catch(() => {
           // Network fail hone par cache se fallback
           return caches.match(request);
@@ -73,15 +66,17 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Baaki sab files (CSS, JS, Images) ke liye: Cache-First strategy
-  // Pehle cache me dekho, agar nahi hai to network se lao.
+  // Baaki sab files (CSS, JS, Images) ke liye: Stale-While-Revalidate strategy
+  // Pehle cache se response do (taaki app fast lage), fir background me network se update karo.
   event.respondWith(
-    caches.match(request).then(cachedResponse => {
-      return cachedResponse || fetch(request).then(networkResponse => {
-        return caches.open(CACHE_NAME).then(cache => {
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(request).then(response => {
+        const fetchPromise = fetch(request).then(networkResponse => {
           cache.put(request, networkResponse.clone());
           return networkResponse;
         });
+        // Cache se return karo agar available hai, warna network ka wait karo
+        return response || fetchPromise;
       });
     })
   );
