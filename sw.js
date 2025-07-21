@@ -1,5 +1,5 @@
 // Cache ka naya naam aur version
-const CACHE_NAME = 'bank-community-cache-v12-appshel​​l';
+const CACHE_NAME = 'bank-community-cache-v13-appshell';
 
 // Sirf zaroori "App Shell" files jinko cache karna hai
 const APP_SHELL_URLS = [
@@ -19,7 +19,10 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Service Worker: Caching App Shell');
-        return cache.addAll(APP_SHELL_URLS);
+        // Network failures ko ignore karein, taki install fail na ho
+        return cache.addAll(APP_SHELL_URLS).catch(error => {
+          console.warn('Service Worker: Failed to cache some app shell URLs, but continuing.', error);
+        });
       })
   );
 });
@@ -37,25 +40,43 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  return self.clients.claim();
 });
 
 // 3. Fetch Event: Page ko kaise load karna hai, yeh batata hai
 self.addEventListener('fetch', event => {
-  const requestUrl = new URL(event.request.url);
+  const { request } = event;
+  const url = new URL(request.url);
 
   // Firebase ya doosre server ke data ko hamesha internet se lao
-  if (requestUrl.hostname !== self.location.hostname || requestUrl.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(event.request));
+  if (url.hostname !== self.location.hostname || url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  // HTML pages ke liye: Network-First strategy
+  // Pehle network se fetch karo, agar fail ho to cache se do.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return caches.match(request);
+      })
+    );
     return;
   }
 
-  // App ki zaroori files ko pehle cache se, fir internet se lao
+  // Baaki sab files (CSS, JS, Images) ke liye: Cache-First strategy
+  // Pehle cache me dekho, agar nahi hai to network se lao.
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      return cachedResponse || fetch(event.request);
+    caches.match(request).then(cachedResponse => {
+      return cachedResponse || fetch(request).then(networkResponse => {
+        // Response ko cache me bhi daal do future ke liye
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, networkResponse.clone());
+          return networkResponse;
+        });
+      });
     })
   );
 });
