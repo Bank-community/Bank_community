@@ -66,7 +66,6 @@
                 <a href="manage-cards.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-cards text-xl mr-3"></i><span>Manage Cards</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="page-settings"><i class="ph-gear text-xl mr-3"></i><span>Page Settings</span></a>
                 <a href="registration.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span></a>
-                <a href="https://bankcommunity.sbs/" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-bank text-xl mr-3"></i><span>Bank Site</span></a>
             </nav>
             <div class="p-4 border-t"><button id="logoutBtn" class="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600"><i class="ph-sign-out text-xl mr-3"></i><span>Logout</span></button></div>
         </aside>
@@ -480,6 +479,24 @@
             const colors = adminSettings.card_colors || {};
             const dashboardButtons = adminSettings.dashboard_buttons || {};
 
+            let buttonsHTML = Object.keys(dashboardButtons).length > 0 
+                ? Object.entries(dashboardButtons).map(([key, btn]) => `
+                    <li class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 h-6 rounded" style="background-color: ${btn.color || '#4f46e5'};"></div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${btn.name}</p>
+                                <p class="text-xs text-gray-500">${btn.url}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button class="edit-button-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
+                            <button class="delete-button-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button>
+                        </div>
+                    </li>
+                `).join('')
+                : '<p class="text-center text-gray-500 py-4">No dashboard buttons configured.</p>';
+
             container.innerHTML = `
                 <div class="space-y-8">
                     <div class="bg-white p-6 rounded-xl shadow-md">
@@ -506,10 +523,13 @@
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xl font-bold text-gray-800">Manage Dashboard Buttons</h3>
-                            <a href="manage-cards.html" target="_blank" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
-                                <i class="ph-pencil-simple"></i> Manage Buttons
-                            </a>
+                            <button id="add-new-button-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
+                                <i class="ph-plus-circle"></i> Add New
+                            </button>
                         </div>
+                        <ul class="space-y-3">
+                            ${buttonsHTML}
+                        </ul>
                     </div>
                 </div>
             `;
