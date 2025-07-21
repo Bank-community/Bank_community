@@ -120,6 +120,24 @@
     </div>
     
     <script type="module">
+        // Ye script Service Worker ko register karne ke liye hai.
+        // Isse pehle hum check karenge ki purana koi SW to nahi hai aur use unregister karenge.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('Old service worker unregistered.');
+                }
+                // Purane SW hatane ke baad naya register karo
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('New service worker registered successfully.', reg);
+                }).catch(function(err) {
+                    console.error('Service worker registration failed:', err);
+                });
+            });
+        }
+
+
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             window.location.href = `login.html?redirect=${window.location.pathname}`;
         }
