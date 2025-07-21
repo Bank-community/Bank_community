@@ -63,7 +63,6 @@
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="gallery"><i class="ph-images text-xl mr-3"></i><span>Gallery</span></a>
-                <a href="manage-cards.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-cards text-xl mr-3"></i><span>Manage Cards</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="page-settings"><i class="ph-gear text-xl mr-3"></i><span>Page Settings</span></a>
                 <a href="registration.html" target="_blank" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700"><i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span></a>
             </nav>
@@ -538,7 +537,8 @@
         function renderDashboardButtonModal(key = null) {
             const modal = document.getElementById('dashboardButtonModal');
             const isEditing = key !== null;
-            const btnData = isEditing ? adminSettings.dashboard_buttons[key] : {};
+            const dashboardButtons = adminSettings.dashboard_buttons || {};
+            const btnData = isEditing ? dashboardButtons[key] : {};
             
             modal.innerHTML = `
                 <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md scale-95">
@@ -553,7 +553,7 @@
                             </div>
                             <div>
                                 <label for="btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
-                                <input type="text" id="btn-url" class="form-input w-full p-2 rounded-lg" placeholder="https://... or page.html" value="${btnData.url || ''}" required>
+                                <input type="url" id="btn-url" class="form-input w-full p-2 rounded-lg" placeholder="https://... or page.html" value="${btnData.url || ''}" required>
                             </div>
                             <div>
                                 <label for="btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
@@ -1204,25 +1204,31 @@
                     alert('Error saving colors: ' + err.message);
                 }
             }
+            // --- FIX START: Corrected logic for adding/editing dashboard buttons ---
             if (e.target.id === 'dashboard-button-form') {
                 e.preventDefault();
                 const form = e.target;
-                const key = form.dataset.key;
+                const key = form.dataset.key; // Will be empty string "" for new, or a key for edit
                 const btnData = {
                     name: document.getElementById('btn-name').value,
                     url: document.getElementById('btn-url').value,
                     color: document.getElementById('btn-color').value,
                 };
                 
-                const dbRef = key ? ref(db, `admin/dashboard_buttons/${key}`) : push(ref(db, 'admin/dashboard_buttons'));
                 try {
-                    await set(dbRef, btnData);
+                    if (key) { // If key exists, it's an edit
+                        await set(ref(db, `admin/dashboard_buttons/${key}`), btnData);
+                    } else { // If key is empty, it's a new button
+                        await push(ref(db, 'admin/dashboard_buttons'), btnData);
+                    }
                     alert(`Button ${key ? 'updated' : 'added'} successfully!`);
                     closeModal(document.getElementById('dashboardButtonModal'));
                 } catch (err) {
+                    console.error("Error saving dashboard button:", err);
                     alert('Error saving button: ' + err.message);
                 }
             }
+            // --- FIX END ---
         });
         
         document.body.addEventListener('click', async e => {
