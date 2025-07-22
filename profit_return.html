@@ -170,6 +170,9 @@ td { font-size: 0.95em; }
 #aiExplanationResult h3 { margin-top: 0; }
 #aiExplanationResult ul { padding-left: 20px; }
 #aiExplanationResult strong { color: var(--primary-color); }
+#aiExplanationResult table { margin-top: 1em; margin-bottom: 1em; }
+#aiExplanationResult th, #aiExplanationResult td { padding: 8px 12px; font-size: 0.9em; text-align: left; }
+#aiExplanationResult th { background-color: var(--light-bg); }
 .ai-loader { text-align: center; padding: 40px 0; }
 .ai-loader .spinner { margin: 0 auto 15px auto; }
 .ai-loader span { font-size: 1.1em; color: var(--text-light); }
@@ -463,7 +466,7 @@ async function initializeFirebaseAndFetchData() {
     }
 }
 
-// --- AI EXPLANATION FUNCTIONS (REMAINS THE SAME) ---
+// --- AI EXPLANATION FUNCTIONS ---
 async function getGeminiExplanation(promptText) {
     try {
         const response = await fetch('/api/getAiExplanation', {
@@ -524,7 +527,6 @@ async function handleLanguageToggle(event) {
 }
 
 // --- All other original JavaScript functions remain here ---
-// They will work correctly with the Firebase data in 'allData'
 function initializeDashboard() {
     document.getElementById('dashboardContent').classList.remove('visually-hidden');
     document.getElementById('dashboardContent').classList.add('visible');
@@ -794,7 +796,7 @@ function displayReturnRanking() {
                         profitBreakdown += `\n- ${event.name} ke loan (Date: ${formatDate(event.date)}) se mila profit: ₹${share.share.toFixed(2)}.`;
                     }
                 });
-                return `Tum ek financial advisor ho. Member '${member.name}' ko mile total profit (₹${member.totalProfit.toFixed(2)}) ko aasan Hindi me samjhao. Unhe yeh profit kahan kahan se mila, iska breakdown do. Data:\n${profitBreakdown}`;
+                return `Tum ek financial advisor ho. Member '${member.name}' ko mile total profit (₹${member.totalProfit.toFixed(2)}) ko aasan Hindi me samjhao. Unhe yeh profit kahan kahan se mila, iska breakdown do: ${profitBreakdown}\n\nAnt mein, 'Salah' section mein batao ki total profit badhane ke liye unhe apna performance score hamesha accha rakhna chahiye.`;
             };
             generateAndShowExplanation(promptGenerator);
         });
@@ -815,7 +817,7 @@ function displayScoreRanking() {
         row.querySelector('.btn-ai-small').addEventListener('click', () => {
             const promptGenerator = () => {
                 const { name, scores } = member;
-                return `Tum ek financial advisor ho. Member '${name}' ka performance score ${scores.totalScore.toFixed(2)} hai. Is score ko aasan Hindi me samjhao. Batao ki yeh score in teen cheezon se milkar bana hai: 1. Capital Score: ${scores.capitalScore.toFixed(2)} (Weight: 40%) - Yeh score batata hai ki member ne kitna paisa system me rakha hai. 2. Consistency Score: ${scores.consistencyScore.toFixed(2)} (Weight: 30%) - Yeh score batata hai ki member har mahine samay par SIP jama karta hai ya nahi. 3. Credit Score: ${scores.creditScore.toFixed(2)} (Weight: 30%) - Yeh score batata hai ki member liye gaye loan ko samay par chukata hai ya nahi. Finally, yeh bhi batao ki woh apna score kaise sudhar sakte hain.`;
+                return `Tum ek financial advisor ho. Member '${name}' ka performance score ${scores.totalScore.toFixed(2)} hai. Is score ko aasan Hindi me samjhao. Batao ki yeh score in teen cheezon se milkar bana hai: 1. Capital Score: ${scores.capitalScore.toFixed(2)} (Weight: 40%), 2. Consistency Score: ${scores.consistencyScore.toFixed(2)} (Weight: 30%), 3. Credit Score: ${scores.creditScore.toFixed(2)} (Weight: 30%).\n\nAnt mein, 'Aapko Kya Karna Chahiye' naam ka ek section jodkar 2-3 line mein sabse zaroori kadam batao jisse ve apna score sudhar sakein.`;
             };
             generateAndShowExplanation(promptGenerator);
         });
@@ -844,9 +846,9 @@ function displayEligibilityRanking() {
             const promptGenerator = () => {
                 const { name, capital, score, eligibility, maxLoan } = member;
                 if (eligibility.eligible) {
-                    return `Tum ek financial advisor ho. Member '${name}' ki loan eligibility ko aasan Hindi me samjhao. Data: - Capital: ₹${capital.toFixed(2)} - Performance Score: ${score.toFixed(2)} - Eligibility Multiplier: ${eligibility.multiplier.toFixed(2)}x - Max Loan Amount: ₹${maxLoan.toFixed(2)} Samjhao ki unka multiplier unke score par depend karta hai, aur isliye woh apne capital ka ${eligibility.multiplier.toFixed(2)} guna tak loan le sakte hain.`;
+                    return `Tum ek financial advisor ho. Member '${name}' ki loan eligibility ko aasan Hindi me samjhao. Data: - Capital: ₹${capital.toFixed(2)} - Performance Score: ${score.toFixed(2)} - Eligibility Multiplier: ${eligibility.multiplier.toFixed(2)}x - Max Loan Amount: ₹${maxLoan.toFixed(2)} Samjhao ki unka multiplier unke score par depend karta hai.\n\nAnt mein, 'Salah' section mein batao ki score accha banaye rakhne se unhe hamesha fayda hoga.`;
                 } else {
-                    return `Tum ek financial advisor ho. Member '${name}' abhi loan ke liye eligible kyun nahi hai, yeh aasan Hindi me samjhao. Karan: ${eligibility.reason}. Is karan ka matlab samjhao. Jaise, 'Outstanding Loan' ka matlab hai ki unka purana loan abhi baki hai.`;
+                    return `Tum ek financial advisor ho. Member '${name}' abhi loan ke liye eligible kyun nahi hai, yeh aasan Hindi me samjhao. Karan: ${eligibility.reason}. Is karan ka matlab samjhao.\n\nAnt mein, 'Salah' section mein batao ki is samasya ko kaise theek kiya ja sakta hai.`;
                 }
             };
             generateAndShowExplanation(promptGenerator);
@@ -934,13 +936,54 @@ function showDistributionModal(profitEvent) {
     if (!distributionData || distributionData.length === 0) { listEl.innerHTML = '<li>No beneficiaries found for this event.</li>'; } 
     else {
         const labels = distributionData.map(d => d.name); const data = distributionData.map(d => d.share.toFixed(2));
-        distributionData.forEach(item => {
+        distributionData.forEach((item, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `<span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
+            li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
             li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'profit_event', member: item, profitEvent: profitEvent}));
+            
+            // --- UPDATED AI PROMPT LOGIC ---
             li.querySelector('.btn-ai-small').addEventListener('click', () => {
                 const promptGenerator = () => {
-                     return `Tum ek financial advisor ho. Member '${item.name}' ko ${profitEvent.relevantLoan.name} ke loan se ₹${item.share.toFixed(2)} ka profit kyu mila? Aasan Hindi me samjhao. Data: - Loan lene wale ka naam: ${profitEvent.relevantLoan.name} - Total profit jo is loan se hua: ₹${profitEvent.profit.toFixed(2)} - Jab loan diya gaya tha, tab '${item.name}' ka score: ${item.snapshotScore.toFixed(2)} - Us samay sabhi members ka total score: ${item.totalSnapshotScore.toFixed(2)} Samjhao ki unka hissa unke score ke anupat me milta hai. Agar unka 'inactive policy multiplier' 1 se kam hai, to yeh bhi batao ki unka share kyu kata gaya. Multiplier: ${item.multiplier}`;
+                    let prompt = `Tum ek financial advisor ho. Member '${item.name}' ko is loan event se mile munafey (₹${item.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;
+
+                    // Explain Inactive Policy if applicable
+                    if (item.multiplier < 1) {
+                        const initialShare = item.share / item.multiplier;
+                        prompt += `**Is baat par zor do ki unka mool munafa zyada (₹${initialShare.toFixed(2)}) tha, lekin 'Inactive Policy' ke karan usmein katoati hui hai.**\n\n`;
+                        prompt += `### 'Inactive Policy' Kya Hai?\nYeh ek system ka niyam hai. Yeh un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-item.multiplier)*100).toFixed(0)}% kam kar diya gaya hai.\n\n`;
+                    }
+
+                    // 3-Way Comparison Logic
+                    const myRankIndex = distributionData.findIndex(d => d.name === item.name);
+                    const topper = distributionData[0];
+                    const personAbove = myRankIndex > 0 ? distributionData[myRankIndex - 1] : null;
+
+                    if (myRankIndex === 0) { // User is the topper
+                        prompt += `Aap is event ke topper hain! Badhai ho! Aapka score sabse behtar tha.\n\n`;
+                    } else { // User is not the topper
+                        prompt += `### Vistrit Tulna (Comparison)\nAaiye dekhein ki aapki tulna aapse upar ke sadasyon se kaisi hai:\n\n`;
+                        prompt += `| Vivaran | ${topper.name} (Topper) | ${personAbove ? personAbove.name + ' (Aapse Upar)' : ''} | ${item.name} (Aap) |\n`;
+                        prompt += `| :--- | :--- | :--- | :--- |\n`;
+                        prompt += `| **Rank** | #1 | ${personAbove ? '#' + (myRankIndex) : ''} | #${myRankIndex + 1} |\n`;
+                        prompt += `| **Mila Munafa** | ₹${topper.share.toFixed(2)} | ${personAbove ? '₹' + personAbove.share.toFixed(2) : ''} | ₹${item.share.toFixed(2)} |\n`;
+                        prompt += `| **Loan ke samay Score** | **${topper.snapshotScore.toFixed(2)}** | ${personAbove ? '**' + personAbove.snapshotScore.toFixed(2) + '**' : ''} | ${item.snapshotScore.toFixed(2)} |\n\n`;
+                        
+                        prompt += `### Nishkarsh\nJaisa ki aap table mein dekh sakte hain, ${topper.name} ${personAbove ? 'aur ' + personAbove.name : ''} ko aapse zyada munafa isliye mila kyunki jis samay yeh loan diya gaya tha, unka Performance Score aapse behtar tha. Yeh system poori tarah se score par aadharit hai.\n\n`;
+                    }
+
+                    // Final Advice
+                    prompt += `### Aage Ke Liye Salah\n`;
+                    if (item.multiplier < 1) {
+                        prompt += `Bhavishya mein is katoati se bachne ke liye, aapko saal mein kam se kam ek baar loan lena zaroori hai. `;
+                    }
+                    if (personAbove) {
+                        prompt += `Agle rank par jaane ke liye aapko apna score **${personAbove.snapshotScore.toFixed(2)}** se behtar karna hoga. Niyamit SIP aur samay par loan chukane se aapka score zaroor badhega.`;
+                    } else if (myRankIndex === 0) {
+                        prompt += `Apna behtareen pradarshan banaye rakhein!`;
+                    } else {
+                        prompt += `Apna score behtar karke aap agle munafey mein aur bhi zyada hissa paa sakte hain.`;
+                    }
+                    return prompt;
                 };
                 generateAndShowExplanation(promptGenerator);
             });
