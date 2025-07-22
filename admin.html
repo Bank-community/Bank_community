@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Panel</title>
     
-<link rel="manifest" href="/manifest-admin.json">
-
+    <!-- Admin PWA ke liye Manifest Link -->
+    <link rel="manifest" href="/manifest-admin.json">
+    
+    <link rel="icon" type="image/png" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
@@ -47,19 +49,13 @@
 </head>
 <body class="bg-gray-100 antialiased">
 
-    <div class="relative min-h-screen md:flex">
+    
+        <div class="relative min-h-screen md:flex">
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar-mobile fixed inset-y-0 left-0 bg-white shadow-xl w-64 z-30 md:relative md:translate-x-0">
-            <div class="p-6 flex items-center justify-between border-b">
-                <span class="text-2xl font-bold text-indigo-600">Admin Panel</span>
-                <button id="closeMobileMenuBtn" class="md:hidden text-gray-500 hover:text-gray-800"><i class="ph-x text-2xl"></i></button>
-            </div>
             <nav class="flex-1 p-4 space-y-2">
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700 active" data-view="dashboard"><i class="ph-layout text-xl mr-3"></i><span>Dashboard</span></a>
-                <a href="#" class="sidebar-item flex items-center justify-between p-3 rounded-lg text-gray-700" data-view="approvals">
-                    <div class="flex items-center"><i class="ph-check-square-offset text-xl mr-3"></i><span>Approvals</span></div>
-                    <span id="pending-count-badge" class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
-                </a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="approvals"><i class="ph-check-square-offset text-xl mr-3"></i><span>Approvals</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="all-members"><i class="ph-users-three text-xl mr-3"></i><span>All Members</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
@@ -119,6 +115,20 @@
             </button>
         </div>
     </div>
+    
+    <script>
+      // PWA ke liye Service Worker ko register karne wala script
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('Admin Panel ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('Admin Panel ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+
     
     <script type="module">
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
