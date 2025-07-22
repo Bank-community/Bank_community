@@ -37,6 +37,7 @@
             const loader = document.getElementById('loader');
 
             // --- SMART REDIRECT LOGIC ---
+            // Step 1: Check if a redirect URL was passed
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUrl = urlParams.get('redirect');
 
@@ -57,9 +58,8 @@
 
                     if (user.uid === adminUid) {
                         sessionStorage.setItem('isAdminLoggedIn', 'true');
-                        // *** YAHAN BADLAV KIYA GAYA HAI ***
-                        // Ab admin ko /admin/ folder par bheja jayega.
-                        window.location.href = redirectUrl || '/admin/'; 
+                        // Step 2: If a redirect URL exists, go there. Otherwise, go to admin.html
+                        window.location.href = redirectUrl || '/admin.html'; 
                     } else {
                         // Regular members will always go to index.html
                         window.location.href = '/index.html'; 
