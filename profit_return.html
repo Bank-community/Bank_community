@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loan Profit Analytics - Advanced AI</title>
+    <title>Loan Profit Analytics - Firebase Version</title>
     
     <!-- Google Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,6 +52,10 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 .container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
 .hidden { display: none !important; }
 .visually-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+.highlight { font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+.highlight.high { background-color: rgba(39, 174, 96, 0.15); color: var(--positive-color); }
+.highlight.medium { background-color: rgba(52, 152, 219, 0.15); color: var(--secondary-color); }
+.highlight.low { background-color: rgba(243, 156, 18, 0.15); color: var(--warning-color); }
 .btn-details-small, .btn-ai-small { background-color: var(--details-btn-bg); color: var(--details-btn-text); padding: 5px 10px; font-size: 0.8em; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; font-weight: 600; border: none; margin-left: 8px; }
 .btn-ai-small { background-color: var(--ai-btn-bg); }
 .btn-details-small:hover, .btn-ai-small:hover { opacity: 0.85; transform: scale(1.05); }
@@ -63,10 +67,12 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 #loader .spinner, .ai-loader .spinner { width: 50px; height: 50px; border: 5px solid rgba(0,0,0,0.1); border-left-color: var(--secondary-color); border-radius: 50%; animation: spin 1.2s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #passwordPromptContainer { background-color: var(--modal-bg); backdrop-filter: blur(5px); }
+#passwordPromptContainer.visually-hidden { opacity: 0; }
 #passwordPromptMessage { padding: 30px 35px; background-color: var(--card-bg); border-radius: 16px; box-shadow: var(--card-shadow); text-align: center; max-width: 340px; width: 90%; }
-#passwordInput { width: calc(100% - 24px); padding: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 22px; text-align: center; letter-spacing: 10px; }
+#passwordPromptMessage h3 { margin-top: 0; font-size: 1.3em; }
+#passwordInput { width: calc(100% - 24px); padding: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 22px; text-align: center; letter-spacing: 10px; font-family: 'Poppins', sans-serif; }
 #passwordSubmit { width: 100%; padding: 12px 20px; font-size: 1em; font-weight: 600; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
-#passwordSubmit:hover { background-color: var(--secondary-color); }
+#passwordSubmit:hover { background-color: var(--secondary-color); transform: translateY(-2px); }
 
 /* --- HEADER & FILTERS --- */
 .header { text-align: center; background: var(--gradient-header); color: white; padding: 15px 0; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
@@ -82,7 +88,6 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 .btn-score { background-color: var(--secondary-color); color: white; }
 .btn-eligibility { background-color: #8e44ad; color: white; }
 .rank-buttons button:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-
 
 /* --- MAIN CONTENT & SECTIONS --- */
 .main-content { display: grid; grid-template-columns: 1fr; gap: 30px; align-items: flex-start; }
@@ -112,7 +117,7 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 .icon-score { color: var(--secondary-color); }
 .icon-limit { color: #8e44ad; }
 
-/* --- TABLES --- */
+/* --- TABLES (PROFIT, HISTORY, RANKING) --- */
 .table-container { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
 th, td { padding: 15px; border-bottom: 1px solid var(--border-color); text-align: center; vertical-align: middle; }
@@ -131,52 +136,84 @@ td { font-size: 0.95em; }
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-bg); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2500; padding: 15px; box-sizing: border-box; transition: opacity 0.3s ease, visibility 0.3s ease; }
 .modal-content { background-color: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: var(--card-shadow); max-width: 700px; width: 95%; position: relative; max-height: 90vh; display: flex; flex-direction: column; }
 .modal.visually-hidden { opacity: 0; visibility: hidden; }
-.modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 30px; color: #bdc3c7; cursor: pointer; z-index: 2510;}
+.modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 30px; color: #bdc3c7; cursor: pointer; transition: color 0.2s; z-index: 2510;}
 .modal-close:hover { color: var(--text-dark); }
 .modal h2 { margin-top: 0; text-align: center; color: var(--primary-color); font-weight: 600; }
 .modal .list-container { overflow-y: auto; flex-grow: 1; }
 .modal ul, .modal ol { list-style: none; padding: 0; margin-top: 15px; }
-.modal li { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; background-color: var(--light-bg); }
-.modal .rank { font-weight: bold; color: var(--secondary-color); min-width: 35px; }
+.modal li { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; background-color: var(--light-bg); transition: background-color 0.2s; }
+.modal li:hover { background-color: #dfe6e9; }
+.modal .rank { font-weight: bold; color: var(--secondary-color); min-width: 35px; font-size: 1.1em; }
 .modal .name { font-weight: 600; flex-grow: 1; }
-.modal .share { font-weight: bold; color: var(--positive-color); }
+.modal .share { font-weight: bold; color: var(--positive-color); white-space: nowrap; }
 .chart-container { margin-bottom: 20px; }
 .list-header { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); font-size: 1.1em; color: var(--text-light); }
 #imageModal .modal-content { background: transparent; padding: 0; box-shadow: none; max-width: 90vw; }
 #imageModal img { max-height: 85vh; width: auto; object-fit: contain; border-radius: 12px; }
 #imageModal .modal-close { color: white; background-color: rgba(0,0,0,0.4); border-radius: 50%; width: 35px; height: 35px; line-height: 35px; font-size: 22px; text-align: center; top: 20px; right: 20px; }
+#calculationDetailsContent { font-size: 0.95em; line-height: 1.8; }
+#calculationDetailsContent .calc-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border-color); }
+#calculationDetailsContent .calc-row:last-child { border-bottom: none; }
+#calculationDetailsContent .calc-label { color: var(--text-light); }
+#calculationDetailsContent .calc-value { font-weight: 600; }
+#calculationDetailsContent .calc-formula { font-size: 0.85em; color: var(--text-light); text-align: right; margin-top: -5px; }
+#calculationDetailsContent .calc-final { font-size: 1.2em; font-weight: 700; color: var(--positive-color); text-align: center; margin-top: 15px; padding: 10px; background-color: var(--light-bg); border-radius: 8px; }
 .improvement-tips { margin-top: 20px; padding: 15px; background-color: rgba(39, 174, 96, 0.05); border: 1px solid rgba(39, 174, 96, 0.2); border-radius: 8px; color: #218c52; }
+.improvement-tips h4 { margin-top: 0; }
+.improvement-tips ul { padding-left: 20px; margin-bottom: 0; }
 
-/* --- AI & INTERACTIVE EXPLANATION STYLES --- */
+/* --- AI MODAL STYLES --- */
 #aiExplainModal .modal-content { max-width: 800px; }
-#aiExplanationResult { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }
-#aiExplanationResult h3, #aiExplanationResult h4 { margin-top: 1.5em; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
-#aiExplanationResult table { width: 100%; border-collapse: collapse; margin: 1.2em 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
-#aiExplanationResult th, #aiExplanationResult td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-#aiExplanationResult th { background-color: var(--primary-color); color: white; }
-#aiExplanationResult td:first-child { font-weight: 600; color: var(--text-light); }
-#aiExplanationResult tr:last-child td { border-bottom: none; }
+#aiExplainModal h2 { display: flex; align-items: center; justify-content: center; gap: 10px; }
+#aiExplanationContainer { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
+#aiExplanationResult { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; min-height: 200px; max-height: 60vh; overflow-y: auto; line-height: 1.7; color: var(--text-dark); }
+#aiExplanationResult h3, #aiExplanationResult h4 { margin-top: 1.5em; margin-bottom: 0.5em; color: var(--primary-color); padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
+#aiExplanationResult ul { padding-left: 20px; }
+#aiExplanationResult strong { color: var(--primary-color); }
 
-#textExplainPopup {
-    position: absolute;
-    background-color: #fff;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    border-radius: 10px;
-    padding: 15px;
-    max-width: 300px;
-    width: max-content;
-    z-index: 3000;
-    font-size: 0.9em;
-    line-height: 1.5;
-    transition: opacity 0.2s;
+/* UPDATED AI TABLE STYLES */
+#aiExplanationResult table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.2em;
+    margin-bottom: 1.2em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-radius: 8px;
+    overflow: hidden; 
 }
-#explainPopupContent { padding-bottom: 10px; }
-#explainPopupClose { position: absolute; top: 5px; right: 8px; background: none; border: none; font-size: 22px; cursor: pointer; color: #aaa; }
-#explainItBtn { background-color: var(--ai-btn-bg); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: 600; }
+#aiExplanationResult th, #aiExplanationResult td {
+    padding: 12px 15px;
+    font-size: 0.95em;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+#aiExplanationResult th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+#aiExplanationResult td {
+    color: var(--text-dark);
+}
+#aiExplanationResult td:first-child {
+    font-weight: 600;
+    color: var(--text-light);
+}
+#aiExplanationResult tr:last-child td {
+    border-bottom: none;
+}
+/* END OF UPDATED AI TABLE STYLES */
+
+.ai-loader { text-align: center; padding: 40px 0; }
+.ai-loader .spinner { margin: 0 auto 15px auto; }
+.ai-loader span { font-size: 1.1em; color: var(--text-light); }
+#languageToggleContainer { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; }
+.lang-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; font-size: 0.8em; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; }
+.lang-btn:hover { background-color: var(--border-color); }
 
 /* --- RESPONSIVE DESIGN --- */
 @media (min-width: 992px) { .main-content { grid-template-columns: 380px 1fr; } .profile-card { position: sticky; top: 100px; } }
+@media (max-width: 991px) { .profile-card { margin-bottom: 30px; } }
 @media (max-width: 600px) { body { padding-top: 60px; } .container { padding: 0 15px; } .header h1 { font-size: 1.2em; } .filter-group { flex-direction: column; align-items: stretch; } .rank-buttons { flex-direction: column; } .profile-card h2 { font-size: 1.5em; } th, td { padding: 12px 8px; } .modal-content { padding: 20px; } #growthChartContainer { height: 300px; } }
 </style>
     <div id="loader">
@@ -196,8 +233,8 @@ td { font-size: 0.95em; }
         <header class="header">
             <h1><i class="fas fa-chart-line"></i> Bank Loan Profit</h1>
         </header>
+
         <div class="container">
-            <!-- Filters and other content here -->
             <div class="filters">
                 <div class="filter-group">
                     <label for="memberFilter"><i class="fas fa-user-friends"></i> Select View:</label>
@@ -251,6 +288,7 @@ td { font-size: 0.95em; }
                             <canvas id="growthChart"></canvas>
                         </div>
                     </section>
+
                     <section id="profitLogSection" class="content-section">
                         <h2><i class="fas fa-exchange-alt"></i> Profit Distribution Events</h2>
                         <div class="table-container">
@@ -262,6 +300,7 @@ td { font-size: 0.95em; }
                             </table>
                         </div>
                     </section>
+
                     <section id="memberHistorySection" class="content-section hidden">
                         <h2><i class="fas fa-history"></i> Member Transaction History</h2>
                          <div class="table-container">
@@ -288,6 +327,7 @@ td { font-size: 0.95em; }
             <div class="list-container"><ul id="distributionDetails"></ul></div>
         </div>
     </div>
+
     <div id="returnRankModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -295,6 +335,7 @@ td { font-size: 0.95em; }
             <div class="list-container"><ol id="returnRankList"></ol></div>
         </div>
     </div>
+
     <div id="scoreRankModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -315,6 +356,7 @@ td { font-size: 0.95em; }
             </div>
         </div>
     </div>
+
     <div id="eligibilityRankModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -327,6 +369,7 @@ td { font-size: 0.95em; }
             </div>
         </div>
     </div>
+
     <div id="calculationDetailsModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -334,6 +377,7 @@ td { font-size: 0.95em; }
             <div id="calculationDetailsContent" class="list-container"></div>
         </div>
     </div>
+
     <div id="imageModal" class="modal visually-hidden">
          <button class="modal-close">×</button>
          <div class="modal-content"><img id="fullProfileImage" src="" alt="Full Profile Picture View"></div>
@@ -349,16 +393,11 @@ td { font-size: 0.95em; }
                     <button class="lang-btn" data-lang="hi">हिंदी में</button>
                     <button class="lang-btn" data-lang="en">In English</button>
                 </div>
-                <div id="aiExplanationResult"></div>
+                <div id="aiExplanationResult">
+                    <!-- AI response will be appended here -->
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Interactive Explanation Popup -->
-    <div id="textExplainPopup" class="hidden">
-        <button id="explainPopupClose">×</button>
-        <div id="explainPopupContent"></div>
-        <button id="explainItBtn">इसे समझाएं</button>
     </div>
 
 
@@ -367,9 +406,15 @@ td { font-size: 0.95em; }
 const CONFIG = {
     PASSWORD: "7536",
     DEFAULT_PROFILE_PIC: 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png',
+    
+    // Performance Score Weights
     CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
+    
+    // Loan Eligibility Tiers
     LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
     LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
+
+    // Other Niyam
     MINIMUM_MEMBERSHIP_DAYS: 60, SIP_ON_TIME_LIMIT: 10,
     LOAN_TERM_TIER3: 90, LOAN_TERM_LATE_FEE: 100,
     INACTIVE_MEMBER_DAYS_LIMIT: 365, 
@@ -378,7 +423,7 @@ const CONFIG = {
 
 // --- GLOBAL VARIABLES ---
 let allData = [], memberNames = [], distributionChartInstance = null, growthChartInstance = null;
-let db;
+let db; // Firebase database reference
 
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", () => setupPasswordPrompt());
@@ -426,8 +471,8 @@ async function initializeFirebaseAndFetchData() {
                 for (const txId in member.transactions) {
                     allTransactions.push({
                         ...member.transactions[txId],
-                        Name: member.fullName,
-                        imageUrl: member.profilePicUrl
+                        Name: member.fullName, // Use fullName from member object
+                        imageUrl: member.profilePicUrl // Use profilePicUrl
                     });
                 }
             }
@@ -488,7 +533,7 @@ async function generateAndShowExplanation(promptGenerator) {
         resultDiv.dataset.originalText = explanation;
         langToggleContainer.classList.remove('hidden');
     } catch (error) {
-        resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> AI se jawab nahi mil saka.</p>`;
+        resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> AI se jawab nahi mil saka. Kripya Vercel logs check karein.</p><p style="font-size:0.8em; color: var(--text-light);">${error.message}</p>`;
     }
 }
 
@@ -496,10 +541,14 @@ async function handleLanguageToggle(event) {
     const targetLang = event.target.dataset.lang;
     const resultDiv = document.getElementById('aiExplanationResult');
     const textToTranslate = resultDiv.dataset.originalText;
+    
     if (!textToTranslate) return;
+
     const langFullName = targetLang === 'hi' ? 'Hindi' : 'English';
     const translationPrompt = `Translate the following text into ${langFullName}. Provide only the translated text, without any additional formatting or introductory phrases:\n\n"${textToTranslate}"`;
+    
     resultDiv.innerHTML = `<div class="ai-loader"><div class="spinner"></div></div>`;
+
     try {
         const translatedText = await getGeminiExplanation(translationPrompt);
         resultDiv.innerHTML = marked.parse(translatedText);
@@ -508,47 +557,9 @@ async function handleLanguageToggle(event) {
     }
 }
 
-// --- INTERACTIVE EXPLANATION ---
-function handleTextSelection(event) {
-    const selection = window.getSelection();
-    const selectedText = selection.toString().trim();
-    const popup = document.getElementById('textExplainPopup');
-    const aiResultDiv = document.getElementById('aiExplanationResult');
-
-    if (aiResultDiv.contains(selection.anchorNode) && selectedText.length > 2 && selectedText.length < 100) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        const modalContent = document.querySelector('#aiExplainModal .modal-content');
-        const modalRect = modalContent.getBoundingClientRect();
-
-        popup.style.left = `${event.clientX - modalRect.left}px`;
-        popup.style.top = `${event.clientY - modalRect.top + 20}px`;
-        
-        const explainContent = document.getElementById('explainPopupContent');
-        const explainBtn = document.getElementById('explainItBtn');
-        
-        explainContent.innerHTML = '';
-        explainBtn.classList.remove('hidden');
-        popup.classList.remove('hidden');
-
-        explainBtn.onclick = async () => {
-            explainContent.innerHTML = `<div class="ai-loader" style="padding:10px 0;"><div class="spinner" style="width:25px; height:25px; border-width:3px;"></div></div>`;
-            explainBtn.classList.add('hidden');
-            const prompt = `Ek expert ki tarah, neeche diye gaye term/phrase ko behad saral Hindi mein 1-2 line me samjhao. Sirf us term ka matlab batao, aur kuch nahi.\n\nTerm: "${selectedText}"`;
-            try {
-                const explanation = await getGeminiExplanation(prompt);
-                explainContent.innerHTML = explanation;
-            } catch (error) {
-                explainContent.innerHTML = 'Samjhane me asamarth.';
-            }
-        };
-    } else {
-        popup.classList.add('hidden');
-    }
-}
-
-// --- DASHBOARD & OTHER FUNCTIONS ---
+// --- All other original JavaScript functions remain here ---
 function initializeDashboard() {
+    document.getElementById('dashboardContent').classList.remove('visually-hidden');
     document.getElementById('dashboardContent').classList.add('visible');
     populateMemberFilter();
     setupEventListeners();
@@ -567,20 +578,24 @@ function setupEventListeners() {
     document.getElementById('showEligibilityRankBtn').addEventListener('click', displayEligibilityRanking);
     document.getElementById('profileImage').addEventListener('click', () => {
         const imageModal = document.getElementById('imageModal');
-        document.getElementById('fullProfileImage').src = document.getElementById('profileImage').src;
-        imageModal.classList.remove('visually-hidden');
-    });
-    document.querySelectorAll('.lang-btn').forEach(btn => btn.addEventListener('click', handleLanguageToggle));
-
-    // Event listeners for interactive explanation
-    const aiResultDiv = document.getElementById('aiExplanationResult');
-    aiResultDiv.addEventListener('mouseup', handleTextSelection);
-    document.getElementById('explainPopupClose').addEventListener('click', () => document.getElementById('textExplainPopup').classList.add('hidden'));
-    document.body.addEventListener('mousedown', (e) => {
-        const popup = document.getElementById('textExplainPopup');
-        if (!popup.contains(e.target) && !aiResultDiv.contains(e.target)) {
-            popup.classList.add('hidden');
+        const fullImage = document.getElementById('fullProfileImage');
+        if(imageModal && fullImage) {
+            fullImage.src = document.getElementById('profileImage').src;
+            imageModal.classList.remove('visually-hidden');
         }
+    });
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', handleLanguageToggle);
+    });
+}
+
+function populateMemberFilter() {
+    const nameFilter = document.getElementById("memberFilter");
+    memberNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        nameFilter.appendChild(option);
     });
 }
 
@@ -598,17 +613,6 @@ function updateDisplay() {
         populateMemberHistory(selectedName);
     }
     updateProfileCard(selectedName);
-}
-
-function populateMemberFilter() {
-    const nameFilter = document.getElementById("memberFilter");
-    nameFilter.innerHTML = '<option value="all">Community Overview</option>';
-    memberNames.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        nameFilter.appendChild(option);
-    });
 }
 
 function updateProfileCard(name) {
@@ -899,6 +903,28 @@ function showCalculationDetails(details) {
         const sharePercentage = (member.snapshotScore / member.totalSnapshotScore) * 100;
         const initialShare = (sharePercentage / 100) * profitEvent.profit;
         html = `<div class="calc-row"><span class="calc-label">Loan From</span> <span class="calc-value">${profitEvent.relevantLoan.name}</span></div><div class="calc-row"><span class="calc-label">Total Profit from Loan</span> <span class="calc-value">₹${profitEvent.profit.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Your Score (at loan time)</span> <span class="calc-value">${member.snapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Total Community Score</span> <span class="calc-value">${member.totalSnapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Your Share (%)</span> <span class="calc-value">${sharePercentage.toFixed(2)}%</span></div><div class="calc-formula">(Your Score / Total Score) * 100</div><hr><div class="calc-row"><span class="calc-label">Initial Share</span> <span class="calc-value">₹${initialShare.toFixed(2)}</span></div>${member.multiplier !== 1 ? `<div class="calc-row"><span class="calc-label">Inactive Policy (x${member.multiplier})</span> <span class="calc-value">- ₹${(initialShare - member.share).toFixed(2)}</span></div>` : ''}<div class="calc-final">Final Profit: ₹${member.share.toFixed(2)}</div>`;
+    } else if (details.type === 'total_profit') {
+        titleEl.textContent = `Total Profit for ${details.memberName}`;
+        let profitBreakdownHtml = '';
+        let totalProfit = 0;
+        allData.filter(r => r.returnAmount > 0).forEach(event => {
+            const result = calculateProfitDistribution(event);
+            const share = result?.distribution.find(d => d.name === details.memberName);
+            if (share) {
+                totalProfit += share.share;
+                profitBreakdownHtml += `<div class="calc-row"><span class="calc-label">From ${event.name}'s loan (${formatDate(event.date)})</span> <span class="calc-value">+ ₹${share.share.toFixed(2)}</span></div>`;
+            }
+        });
+        if (!profitBreakdownHtml) profitBreakdownHtml = '<div class="calc-row"><span class="calc-label">No profit earned yet.</span></div>';
+        html = `${profitBreakdownHtml}<div class="calc-final">Total Profit: ₹${totalProfit.toFixed(2)}</div>`;
+    } else if (details.type === 'eligibility') {
+        const { name, score, eligibility } = details.member;
+        titleEl.textContent = `Eligibility for ${name}`;
+        if(eligibility.eligible) {
+            html = `<div class="calc-row"><span class="calc-label">Your Performance Score</span> <span class="calc-value">${score.toFixed(2)}</span></div><hr><p style="font-size:0.9em; text-align:center; color: var(--text-light);">Aapka multiplier aapke score ke aadhar par scale hota hai.</p><div class="calc-final">Your Multiplier: ${eligibility.multiplier.toFixed(2)}x</div>`;
+        } else {
+             html = `<div class="calc-final" style="color:var(--negative-color);">${eligibility.reason}</div>`;
+        }
     }
     contentEl.innerHTML = html;
     document.getElementById('calculationDetailsModal').classList.remove('visually-hidden');
@@ -906,8 +932,8 @@ function showCalculationDetails(details) {
 
 function renderGrowthChart() {
     const ctx = document.getElementById('growthChart').getContext('2d');
-    if (growthChartInstance) growthChartInstance.destroy();
     const growthData = calculateGrowthData();
+    if (growthChartInstance) growthChartInstance.destroy();
     growthChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -946,61 +972,70 @@ function showDistributionModal(profitEvent) {
             li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
             li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'profit_event', member: item, profitEvent: profitEvent}));
             
+            // --- UPDATED & MORE ROBUST AI PROMPT LOGIC ---
             li.querySelector('.btn-ai-small').addEventListener('click', () => {
                 const promptGenerator = () => {
                     let prompt = `Tum ek financial advisor ho. Member '${item.name}' ko is loan event se mile munafey (₹${item.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;
 
+                    // Explain Inactive Policy if applicable
                     if (item.multiplier < 1) {
                         const initialShare = item.share / item.multiplier;
                         prompt += `Sabse pehle, unka mool munafa ₹${initialShare.toFixed(2)} tha, lekin usmein katoati hui hai.\n\n`;
                         prompt += `#### 'Inactive Policy' Kya Hai?\nSaral bhasha me samjhao ki yeh niyam un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Batao ki 'kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-item.multiplier)*100).toFixed(0)}% kam kar diya gaya hai'.\n\n`;
                     }
 
+                    // 3-Way Comparison Logic
                     const myRankIndex = distributionData.findIndex(d => d.name === item.name);
                     const topper = distributionData[0];
                     const personAbove = myRankIndex > 0 ? distributionData[myRankIndex - 1] : null;
 
-                    if (myRankIndex === 0 && distributionData.length > 1) {
+                    if (myRankIndex === 0 && distributionData.length > 1) { // User is the topper
                         prompt += `Aap is event ke topper hain! Badhai ho! Aapka score (at the time of loan) sabse behtar tha.\n\n`;
-                    } else if (myRankIndex > 0) {
+                    } else if (myRankIndex > 0) { // User is not the topper
                         prompt += `#### Vistrit Tulna (Comparison)\nApne jawab mein neeche di gayi Markdown table ko anivarya roop se (compulsorily) shamil karo. Is table ko mat badalna.\n\n`;
                         
                         let tableHeader = `| Vivaran | ${topper.name} (Topper) |`;
-                        if (personAbove && personAbove.name !== topper.name) tableHeader += ` ${personAbove.name} (Aapse Upar) |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            tableHeader += ` ${personAbove.name} (Aapse Upar) |`;
+                        }
                         tableHeader += ` ${item.name} (Aap) |`;
                         
                         let tableSeparator = `| :--- | :--- |`;
-                        if (personAbove && personAbove.name !== topper.name) tableSeparator += ` :--- |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            tableSeparator += ` :--- |`;
+                        }
                         tableSeparator += ` :--- |`;
 
                         let rankRow = `| **Rank** | #1 |`;
-                        if (personAbove && personAbove.name !== topper.name) rankRow += ` #${myRankIndex} |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            rankRow += ` #${myRankIndex} |`;
+                        }
                         rankRow += ` #${myRankIndex + 1} |`;
                         
                         let profitRow = `| **Mila Munafa** | ₹${topper.share.toFixed(2)} |`;
-                        if (personAbove && personAbove.name !== topper.name) profitRow += ` ₹${personAbove.share.toFixed(2)} |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            profitRow += ` ₹${personAbove.share.toFixed(2)} |`;
+                        }
                         profitRow += ` ₹${item.share.toFixed(2)} |`;
 
                         let scoreRow = `| **Loan ke samay Score** | **${topper.snapshotScore.toFixed(2)}** |`;
-                        if (personAbove && personAbove.name !== topper.name) scoreRow += ` **${personAbove.snapshotScore.toFixed(2)}** |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            scoreRow += ` **${personAbove.snapshotScore.toFixed(2)}** |`;
+                        }
                         scoreRow += ` ${item.snapshotScore.toFixed(2)} |`;
 
                         prompt += `${tableHeader}\n${tableSeparator}\n${rankRow}\n${profitRow}\n${scoreRow}\n\n`;
                         
-                        prompt += `#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai.\n\n`;
+                        prompt += `#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai. Jiska score us samay zyada tha, usey munafey mein zyada hissa mila.\n\n`;
                     }
 
+                    // Final Advice
                     prompt += `#### Aage Ke Liye Salah\n`;
                     if (item.multiplier < 1) {
                         prompt += `Bhavishya mein is katoati se bachne ke liye, aapko saal mein kam se kam ek baar loan lena zaroori hai. `;
                     }
                     if (personAbove) {
-                        prompt += `Agle rank par jaane ke liye aapko apna score **${personAbove.snapshotScore.toFixed(2)}** se behtar karna hoga.\n\n`;
-                        const potentialProfit = (personAbove.snapshotScore / item.totalSnapshotScore) * profitEvent.profit;
-                        const profitGain = potentialProfit - item.share;
-                        if (profitGain > 0) {
-                             prompt += `**Kya Aap Jante Hain?** Agar is loan ke samay aapka score ${personAbove.name} ke barabar (${personAbove.snapshotScore.toFixed(2)}) hota, to aapko is event se lagbhag **₹${profitGain.toFixed(2)} aur zyada** munafa milta!`;
-                        }
+                        prompt += `Agle rank par jaane ke liye aapko apna score **${personAbove.snapshotScore.toFixed(2)}** se behtar karna hoga. Niyamit SIP aur samay par loan chukane se aapka score zaroor badhega.`;
                     } else if (myRankIndex === 0) {
                         prompt += `Apna behtareen pradarshan banaye rakhein!`;
                     } else {
@@ -1013,8 +1048,8 @@ function showDistributionModal(profitEvent) {
             listEl.appendChild(li);
         });
         distributionChartInstance = new Chart(ctx, {
-            type: 'bar', data: { labels, datasets: [{ label: 'Profit Share (₹)', data, backgroundColor: 'rgba(52, 152, 219, 0.7)' }] },
-            options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } } }
+            type: 'bar', data: { labels, datasets: [{ label: 'Profit Share (₹)', data, backgroundColor: 'rgba(52, 152, 219, 0.7)', borderColor: 'rgba(52, 152, 219, 1)', borderWidth: 1 }] },
+            options: { responsive: true, indexAxis: 'y', scales: { x: { beginAtZero: true, title: { display: true, text: 'Amount (₹)' } } }, plugins: { legend: { display: false } } }
         });
     }
     modal.classList.remove('visually-hidden');
