@@ -167,12 +167,12 @@ td { font-size: 0.95em; }
 #aiExplainModal h2 { display: flex; align-items: center; justify-content: center; gap: 10px; }
 #aiExplanationContainer { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
 #aiExplanationResult { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; min-height: 200px; max-height: 60vh; overflow-y: auto; line-height: 1.7; color: var(--text-dark); }
-#aiExplanationResult h3 { margin-top: 0; }
+#aiExplanationResult h3, #aiExplanationResult h4 { margin-top: 1em; margin-bottom: 0.5em; color: var(--primary-color); }
 #aiExplanationResult ul { padding-left: 20px; }
 #aiExplanationResult strong { color: var(--primary-color); }
-#aiExplanationResult table { margin-top: 1em; margin-bottom: 1em; }
-#aiExplanationResult th, #aiExplanationResult td { padding: 8px 12px; font-size: 0.9em; text-align: left; }
-#aiExplanationResult th { background-color: var(--light-bg); }
+#aiExplanationResult table { width: 100%; border-collapse: collapse; margin-top: 1em; margin-bottom: 1em; }
+#aiExplanationResult th, #aiExplanationResult td { padding: 10px; font-size: 0.95em; text-align: left; border: 1px solid var(--border-color); }
+#aiExplanationResult th { background-color: var(--light-bg); font-weight: 600; }
 .ai-loader { text-align: center; padding: 40px 0; }
 .ai-loader .spinner { margin: 0 auto 15px auto; }
 .ai-loader span { font-size: 1.1em; color: var(--text-light); }
@@ -941,7 +941,7 @@ function showDistributionModal(profitEvent) {
             li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
             li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'profit_event', member: item, profitEvent: profitEvent}));
             
-            // --- UPDATED AI PROMPT LOGIC ---
+            // --- UPDATED & MORE ROBUST AI PROMPT LOGIC ---
             li.querySelector('.btn-ai-small').addEventListener('click', () => {
                 const promptGenerator = () => {
                     let prompt = `Tum ek financial advisor ho. Member '${item.name}' ko is loan event se mile munafey (₹${item.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;
@@ -949,8 +949,8 @@ function showDistributionModal(profitEvent) {
                     // Explain Inactive Policy if applicable
                     if (item.multiplier < 1) {
                         const initialShare = item.share / item.multiplier;
-                        prompt += `**Is baat par zor do ki unka mool munafa zyada (₹${initialShare.toFixed(2)}) tha, lekin 'Inactive Policy' ke karan usmein katoati hui hai.**\n\n`;
-                        prompt += `### 'Inactive Policy' Kya Hai?\nYeh ek system ka niyam hai. Yeh un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-item.multiplier)*100).toFixed(0)}% kam kar diya gaya hai.\n\n`;
+                        prompt += `Sabse pehle, unka mool munafa ₹${initialShare.toFixed(2)} tha, lekin usmein katoati hui hai.\n\n`;
+                        prompt += `#### 'Inactive Policy' Kya Hai?\nSaral bhasha me samjhao ki yeh niyam un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Batao ki 'kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-item.multiplier)*100).toFixed(0)}% kam kar diya gaya hai'.\n\n`;
                     }
 
                     // 3-Way Comparison Logic
@@ -958,21 +958,48 @@ function showDistributionModal(profitEvent) {
                     const topper = distributionData[0];
                     const personAbove = myRankIndex > 0 ? distributionData[myRankIndex - 1] : null;
 
-                    if (myRankIndex === 0) { // User is the topper
-                        prompt += `Aap is event ke topper hain! Badhai ho! Aapka score sabse behtar tha.\n\n`;
-                    } else { // User is not the topper
-                        prompt += `### Vistrit Tulna (Comparison)\nAaiye dekhein ki aapki tulna aapse upar ke sadasyon se kaisi hai:\n\n`;
-                        prompt += `| Vivaran | ${topper.name} (Topper) | ${personAbove ? personAbove.name + ' (Aapse Upar)' : ''} | ${item.name} (Aap) |\n`;
-                        prompt += `| :--- | :--- | :--- | :--- |\n`;
-                        prompt += `| **Rank** | #1 | ${personAbove ? '#' + (myRankIndex) : ''} | #${myRankIndex + 1} |\n`;
-                        prompt += `| **Mila Munafa** | ₹${topper.share.toFixed(2)} | ${personAbove ? '₹' + personAbove.share.toFixed(2) : ''} | ₹${item.share.toFixed(2)} |\n`;
-                        prompt += `| **Loan ke samay Score** | **${topper.snapshotScore.toFixed(2)}** | ${personAbove ? '**' + personAbove.snapshotScore.toFixed(2) + '**' : ''} | ${item.snapshotScore.toFixed(2)} |\n\n`;
+                    if (myRankIndex === 0 && distributionData.length > 1) { // User is the topper
+                        prompt += `Aap is event ke topper hain! Badhai ho! Aapka score (at the time of loan) sabse behtar tha.\n\n`;
+                    } else if (myRankIndex > 0) { // User is not the topper
+                        prompt += `#### Vistrit Tulna (Comparison)\nApne jawab mein neeche di gayi Markdown table ko anivarya roop se (compulsorily) shamil karo. Is table ko mat badalna.\n\n`;
                         
-                        prompt += `### Nishkarsh\nJaisa ki aap table mein dekh sakte hain, ${topper.name} ${personAbove ? 'aur ' + personAbove.name : ''} ko aapse zyada munafa isliye mila kyunki jis samay yeh loan diya gaya tha, unka Performance Score aapse behtar tha. Yeh system poori tarah se score par aadharit hai.\n\n`;
+                        let tableHeader = `| Vivaran | ${topper.name} (Topper) |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            tableHeader += ` ${personAbove.name} (Aapse Upar) |`;
+                        }
+                        tableHeader += ` ${item.name} (Aap) |`;
+                        
+                        let tableSeparator = `| :--- | :--- |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            tableSeparator += ` :--- |`;
+                        }
+                        tableSeparator += ` :--- |`;
+
+                        let rankRow = `| **Rank** | #1 |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            rankRow += ` #${myRankIndex} |`;
+                        }
+                        rankRow += ` #${myRankIndex + 1} |`;
+                        
+                        let profitRow = `| **Mila Munafa** | ₹${topper.share.toFixed(2)} |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            profitRow += ` ₹${personAbove.share.toFixed(2)} |`;
+                        }
+                        profitRow += ` ₹${item.share.toFixed(2)} |`;
+
+                        let scoreRow = `| **Loan ke samay Score** | **${topper.snapshotScore.toFixed(2)}** |`;
+                        if (personAbove && personAbove.name !== topper.name) {
+                            scoreRow += ` **${personAbove.snapshotScore.toFixed(2)}** |`;
+                        }
+                        scoreRow += ` ${item.snapshotScore.toFixed(2)} |`;
+
+                        prompt += `${tableHeader}\n${tableSeparator}\n${rankRow}\n${profitRow}\n${scoreRow}\n\n`;
+                        
+                        prompt += `#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai. Jiska score us samay zyada tha, usey munafey mein zyada hissa mila.\n\n`;
                     }
 
                     // Final Advice
-                    prompt += `### Aage Ke Liye Salah\n`;
+                    prompt += `#### Aage Ke Liye Salah\n`;
                     if (item.multiplier < 1) {
                         prompt += `Bhavishya mein is katoati se bachne ke liye, aapko saal mein kam se kam ek baar loan lena zaroori hai. `;
                     }
