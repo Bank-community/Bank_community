@@ -70,38 +70,82 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 
 /* --- HEADER & FILTERS --- */
 .header { text-align: center; background: var(--gradient-header); color: white; padding: 15px 0; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+.header h1 { font-size: 1.4em; margin: 0; font-weight: 600; }
 .filters { margin-bottom: 30px; background-color: var(--card-bg); padding: 15px 20px; border-radius: 12px; box-shadow: var(--card-shadow); }
+.filter-group { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+.filter-group label { font-weight: 500; }
+.filter-group select { padding: 10px 15px; font-size: 1em; border-radius: 8px; border: 1px solid var(--border-color); background-color: white; font-family: 'Poppins', sans-serif; cursor: pointer; flex-grow: 1; }
 .rank-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px; }
 .rank-buttons button { flex-grow: 1; padding: 10px 15px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+.rank-buttons button i { margin-right: 8px; }
+.btn-profit { background-color: var(--accent-color); color: white; }
+.btn-score { background-color: var(--secondary-color); color: white; }
+.btn-eligibility { background-color: #8e44ad; color: white; }
+.rank-buttons button:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
 
 /* --- MAIN CONTENT & SECTIONS --- */
 .main-content { display: grid; grid-template-columns: 1fr; gap: 30px; align-items: flex-start; }
+#dashboardContent { opacity: 0; transition: opacity 0.5s ease-in-out; }
+#dashboardContent.visible { opacity: 1; }
 .content-section { background-color: var(--card-bg); border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px; margin-bottom: 30px;}
+.content-section h2 { margin-top: 0; text-align: center; color: var(--primary-color); }
+#growthChartContainer { position: relative; height: 350px; }
+
+/* --- PROFILE CARD --- */
 .profile-card { border-top: 4px solid var(--secondary-color); }
 .profile-image-container { width: 130px; height: 130px; margin: 0 auto 15px auto; border-radius: 50%; overflow: hidden; border: 5px solid var(--light-bg); box-shadow: 0 0 15px rgba(0,0,0,0.1); }
 .profile-image-container img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s ease; }
 .profile-image-container img:hover { transform: scale(1.05); }
-.stat-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 5px; border-bottom: 1px solid var(--border-color); }
+.profile-card h2 { margin: 10px 0 20px 0; font-size: 1.8em; color: var(--primary-color); word-break: break-word; }
+.profile-stats { margin-top: 20px; text-align: left; }
+.stat-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 5px; border-bottom: 1px solid var(--border-color); font-size: 1em; }
 .stat-item:last-child { border-bottom: none; }
+.stat-item .label { font-weight: 500; color: var(--text-light); display: flex; align-items: center; gap: 10px; }
+.stat-item .label i { width: 20px; text-align: center; }
+.stat-item .value { font-weight: 700; font-size: 1.1em; }
 .value.positive { color: var(--positive-color); }
 .value.negative { color: var(--negative-color); }
+.icon-loan { color: var(--negative-color); }
+.icon-capital { color: var(--primary-color); }
+.icon-profit { color: var(--accent-color); }
+.icon-score { color: var(--secondary-color); }
+.icon-limit { color: #8e44ad; }
 
 /* --- TABLES --- */
 .table-container { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
 th, td { padding: 15px; border-bottom: 1px solid var(--border-color); text-align: center; vertical-align: middle; }
-th { background-color: var(--primary-color); color: white; font-weight: 600; }
+th { background-color: var(--primary-color); color: white; font-size: 0.9em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+td { font-size: 0.95em; }
+.profit-value { font-weight: bold; color: var(--positive-color); }
+.details-btn { padding: 8px 14px; font-size: 0.85em; background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+.details-btn:hover { background-color: #2980b9; transform: scale(1.05); }
+.no-data-row td { text-align: center; padding: 50px; color: var(--text-light); font-size: 1.1em; }
+.transaction-type { font-weight: bold; }
+.transaction-type.sip { color: var(--positive-color); }
+.transaction-type.loan { color: var(--negative-color); }
+.transaction-type.payment { color: var(--secondary-color); }
 
 /* --- MODALS --- */
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-bg); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2500; padding: 15px; box-sizing: border-box; transition: opacity 0.3s ease, visibility 0.3s ease; }
 .modal-content { background-color: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: var(--card-shadow); max-width: 700px; width: 95%; position: relative; max-height: 90vh; display: flex; flex-direction: column; }
+.modal.visually-hidden { opacity: 0; visibility: hidden; }
 .modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 30px; color: #bdc3c7; cursor: pointer; z-index: 2510;}
+.modal-close:hover { color: var(--text-dark); }
+.modal h2 { margin-top: 0; text-align: center; color: var(--primary-color); font-weight: 600; }
 .modal .list-container { overflow-y: auto; flex-grow: 1; }
 .modal ul, .modal ol { list-style: none; padding: 0; margin-top: 15px; }
 .modal li { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; background-color: var(--light-bg); }
 .modal .rank { font-weight: bold; color: var(--secondary-color); min-width: 35px; }
 .modal .name { font-weight: 600; flex-grow: 1; }
 .modal .share { font-weight: bold; color: var(--positive-color); }
+.chart-container { margin-bottom: 20px; }
+.list-header { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); font-size: 1.1em; color: var(--text-light); }
+#imageModal .modal-content { background: transparent; padding: 0; box-shadow: none; max-width: 90vw; }
+#imageModal img { max-height: 85vh; width: auto; object-fit: contain; border-radius: 12px; }
+#imageModal .modal-close { color: white; background-color: rgba(0,0,0,0.4); border-radius: 50%; width: 35px; height: 35px; line-height: 35px; font-size: 22px; text-align: center; top: 20px; right: 20px; }
+.improvement-tips { margin-top: 20px; padding: 15px; background-color: rgba(39, 174, 96, 0.05); border: 1px solid rgba(39, 174, 96, 0.2); border-radius: 8px; color: #218c52; }
 
 /* --- AI & INTERACTIVE EXPLANATION STYLES --- */
 #aiExplainModal .modal-content { max-width: 800px; }
@@ -133,6 +177,7 @@ th { background-color: var(--primary-color); color: white; font-weight: 600; }
 
 /* --- RESPONSIVE DESIGN --- */
 @media (min-width: 992px) { .main-content { grid-template-columns: 380px 1fr; } .profile-card { position: sticky; top: 100px; } }
+@media (max-width: 600px) { body { padding-top: 60px; } .container { padding: 0 15px; } .header h1 { font-size: 1.2em; } .filter-group { flex-direction: column; align-items: stretch; } .rank-buttons { flex-direction: column; } .profile-card h2 { font-size: 1.5em; } th, td { padding: 12px 8px; } .modal-content { padding: 20px; } #growthChartContainer { height: 300px; } }
 </style>
     <div id="loader">
         <div class="spinner"></div>
@@ -313,7 +358,7 @@ th { background-color: var(--primary-color); color: white; font-weight: 600; }
     <div id="textExplainPopup" class="hidden">
         <button id="explainPopupClose">×</button>
         <div id="explainPopupContent"></div>
-        <button id="explainItBtn">Isse Samjhaye</button>
+        <button id="explainItBtn">इसे समझाएं</button>
     </div>
 
 
@@ -468,8 +513,9 @@ function handleTextSelection(event) {
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
     const popup = document.getElementById('textExplainPopup');
+    const aiResultDiv = document.getElementById('aiExplanationResult');
 
-    if (selectedText.length > 2 && selectedText.length < 100) {
+    if (aiResultDiv.contains(selection.anchorNode) && selectedText.length > 2 && selectedText.length < 100) {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         const modalContent = document.querySelector('#aiExplainModal .modal-content');
@@ -503,7 +549,7 @@ function handleTextSelection(event) {
 
 // --- DASHBOARD & OTHER FUNCTIONS ---
 function initializeDashboard() {
-    document.getElementById('dashboardContent').classList.remove('visually-hidden');
+    document.getElementById('dashboardContent').classList.add('visible');
     populateMemberFilter();
     setupEventListeners();
     updateDisplay();
@@ -554,10 +600,9 @@ function updateDisplay() {
     updateProfileCard(selectedName);
 }
 
-// Other functions like updateProfileCard, calculatePerformanceScore, etc. remain the same
-// ... [The rest of the functions from the previous version are here]
 function populateMemberFilter() {
     const nameFilter = document.getElementById("memberFilter");
+    nameFilter.innerHTML = '<option value="all">Community Overview</option>';
     memberNames.forEach(name => {
         const option = document.createElement('option');
         option.value = name;
@@ -759,27 +804,133 @@ function calculateProfitDistribution(paymentRecord) {
 }
 
 function displayReturnRanking() {
-    // This function remains the same
+    const listEl = document.getElementById('returnRankList');
+    let memberProfits = memberNames.map(name => ({ name: name, totalProfit: calculateTotalProfitForMember(name) }))
+        .filter(member => member.totalProfit > 0).sort((a, b) => b.totalProfit - a.totalProfit);
+    listEl.innerHTML = '';
+    if (memberProfits.length === 0) listEl.innerHTML = '<li>No members have earned a return yet.</li>';
+    else memberProfits.forEach((member, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${member.name}</span><span class="share">+ ₹${member.totalProfit.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
+        li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'total_profit', memberName: member.name}));
+        li.querySelector('.btn-ai-small').addEventListener('click', () => {
+             const promptGenerator = () => {
+                let profitBreakdown = '';
+                allData.filter(r => r.returnAmount > 0).forEach(event => {
+                    const result = calculateProfitDistribution(event);
+                    const share = result?.distribution.find(d => d.name === member.name);
+                    if (share) {
+                        profitBreakdown += `\n- ${event.name} ke loan (Date: ${formatDate(event.date)}) se mila profit: ₹${share.share.toFixed(2)}.`;
+                    }
+                });
+                return `Tum ek financial advisor ho. Member '${member.name}' ko mile total profit (₹${member.totalProfit.toFixed(2)}) ko aasan Hindi me samjhao. Unhe yeh profit kahan kahan se mila, iska breakdown do: ${profitBreakdown}\n\nAnt mein, 'Salah' section mein batao ki total profit badhane ke liye unhe apna performance score hamesha accha rakhna chahiye.`;
+            };
+            generateAndShowExplanation(promptGenerator);
+        });
+        listEl.appendChild(li);
+    });
+    document.getElementById('returnRankModal').classList.remove('visually-hidden');
 }
 
 function displayScoreRanking() {
-    // This function remains the same
+    const tableBody = document.querySelector("#scoreRankTable tbody");
+    let memberScores = memberNames.map(name => ({ name, scores: calculatePerformanceScore(name, new Date()) }))
+        .sort((a, b) => b.scores.totalScore - a.scores.totalScore);
+    tableBody.innerHTML = '';
+    memberScores.forEach((member, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${index + 1}</td><td>${member.name}</td><td>${member.scores.totalScore.toFixed(2)}</td><td><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div></td>`;
+        row.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'score', member: member}));
+        row.querySelector('.btn-ai-small').addEventListener('click', () => {
+            const promptGenerator = () => {
+                const { name, scores } = member;
+                return `Tum ek financial advisor ho. Member '${name}' ka performance score ${scores.totalScore.toFixed(2)} hai. Is score ko aasan Hindi me samjhao. Batao ki yeh score in teen cheezon se milkar bana hai: 1. Capital Score: ${scores.capitalScore.toFixed(2)} (Weight: 40%), 2. Consistency Score: ${scores.consistencyScore.toFixed(2)} (Weight: 30%), 3. Credit Score: ${scores.creditScore.toFixed(2)} (Weight: 30%).\n\nAnt mein, 'Aapko Kya Karna Chahiye' naam ka ek section jodkar 2-3 line mein sabse zaroori kadam batao jisse ve apna score sudhar sakein.`;
+            };
+            generateAndShowExplanation(promptGenerator);
+        });
+        tableBody.appendChild(row);
+    });
+    document.getElementById('scoreRankModal').classList.remove('visually-hidden');
 }
 
 function displayEligibilityRanking() {
-    // This function remains the same
+    const tableBody = document.querySelector("#eligibilityRankTable tbody");
+    let memberEligibility = memberNames.map(name => {
+        const capital = allData.filter(r => r.name === name).reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
+        const score = calculatePerformanceScore(name, new Date()).totalScore;
+        const eligibility = getLoanEligibility(name, score);
+        return { name, capital, score, eligibility, maxLoan: eligibility.eligible ? capital * eligibility.multiplier : 0 };
+    }).sort((a, b) => b.maxLoan - a.maxLoan);
+    tableBody.innerHTML = '';
+    memberEligibility.forEach(member => {
+        const row = document.createElement('tr');
+        let eligibilityText = '';
+        if (member.eligibility.eligible) eligibilityText = `${member.eligibility.multiplier.toFixed(2)}x`;
+        else eligibilityText = `<span class="negative">${member.eligibility.reason}</span>`;
+        row.innerHTML = `<td>${member.name}</td><td>₹${member.capital.toFixed(2)}</td><td>${eligibilityText}</td><td>₹${member.maxLoan.toFixed(2)}</td><td><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div></td>`;
+        row.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'eligibility', member: member}));
+        row.querySelector('.btn-ai-small').addEventListener('click', () => {
+            const promptGenerator = () => {
+                const { name, capital, score, eligibility, maxLoan } = member;
+                if (eligibility.eligible) {
+                    return `Tum ek financial advisor ho. Member '${name}' ki loan eligibility ko aasan Hindi me samjhao. Data: - Capital: ₹${capital.toFixed(2)} - Performance Score: ${score.toFixed(2)} - Eligibility Multiplier: ${eligibility.multiplier.toFixed(2)}x - Max Loan Amount: ₹${maxLoan.toFixed(2)} Samjhao ki unka multiplier unke score par depend karta hai.\n\nAnt mein, 'Salah' section mein batao ki score accha banaye rakhne se unhe hamesha fayda hoga.`;
+                } else {
+                    return `Tum ek financial advisor ho. Member '${name}' abhi loan ke liye eligible kyun nahi hai, yeh aasan Hindi me samjhao. Karan: ${eligibility.reason}. Is karan ka matlab samjhao.\n\nAnt mein, 'Salah' section mein batao ki is samasya ko kaise theek kiya ja sakta hai.`;
+                }
+            };
+            generateAndShowExplanation(promptGenerator);
+        });
+        tableBody.appendChild(row);
+    });
+    document.getElementById('eligibilityRankModal').classList.remove('visually-hidden');
 }
 
 function showCalculationDetails(details) {
-    // This function remains the same
+    const titleEl = document.getElementById('calculationDetailsTitle');
+    const contentEl = document.getElementById('calculationDetailsContent');
+    let html = '';
+    if (details.type === 'score') {
+        const { name, scores } = details.member;
+        titleEl.textContent = `Score Calculation for ${name}`;
+        html = `<div class="calc-row"><span class="calc-label">Capital Score</span> <span class="calc-value">${scores.capitalScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Consistency Score</span> <span class="calc-value">${scores.consistencyScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Credit Behavior Score</span> <span class="calc-value">${scores.creditScore.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Weighted Capital (40%)</span> <span class="calc-value">${(scores.capitalScore * CONFIG.CAPITAL_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Consistency (30%)</span> <span class="calc-value">${(scores.consistencyScore * CONFIG.CONSISTENCY_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Credit (30%)</span> <span class="calc-value">${(scores.creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT).toFixed(2)}</span></div><div class="calc-final">Total Score: ${scores.totalScore.toFixed(2)}</div>`;
+    } else if (details.type === 'profit_event') {
+        const { member, profitEvent } = details;
+        titleEl.textContent = `Profit Share for ${member.name}`;
+        const sharePercentage = (member.snapshotScore / member.totalSnapshotScore) * 100;
+        const initialShare = (sharePercentage / 100) * profitEvent.profit;
+        html = `<div class="calc-row"><span class="calc-label">Loan From</span> <span class="calc-value">${profitEvent.relevantLoan.name}</span></div><div class="calc-row"><span class="calc-label">Total Profit from Loan</span> <span class="calc-value">₹${profitEvent.profit.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Your Score (at loan time)</span> <span class="calc-value">${member.snapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Total Community Score</span> <span class="calc-value">${member.totalSnapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Your Share (%)</span> <span class="calc-value">${sharePercentage.toFixed(2)}%</span></div><div class="calc-formula">(Your Score / Total Score) * 100</div><hr><div class="calc-row"><span class="calc-label">Initial Share</span> <span class="calc-value">₹${initialShare.toFixed(2)}</span></div>${member.multiplier !== 1 ? `<div class="calc-row"><span class="calc-label">Inactive Policy (x${member.multiplier})</span> <span class="calc-value">- ₹${(initialShare - member.share).toFixed(2)}</span></div>` : ''}<div class="calc-final">Final Profit: ₹${member.share.toFixed(2)}</div>`;
+    }
+    contentEl.innerHTML = html;
+    document.getElementById('calculationDetailsModal').classList.remove('visually-hidden');
 }
 
 function renderGrowthChart() {
-    // This function remains the same
+    const ctx = document.getElementById('growthChart').getContext('2d');
+    if (growthChartInstance) growthChartInstance.destroy();
+    const growthData = calculateGrowthData();
+    growthChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: growthData.labels,
+            datasets: [
+                { label: 'Total Capital', data: growthData.capital, borderColor: 'rgba(52, 152, 219, 1)', backgroundColor: 'rgba(52, 152, 219, 0.1)', fill: true, tension: 0.1 },
+                { label: 'Total Loans', data: growthData.loans, borderColor: 'rgba(231, 76, 60, 1)', backgroundColor: 'rgba(231, 76, 60, 0.1)', fill: true, tension: 0.1 },
+                { label: 'Total Profit', data: growthData.profits, borderColor: 'rgba(39, 174, 96, 1)', backgroundColor: 'rgba(39, 174, 96, 0.1)', fill: true, tension: 0.1 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: value => `₹${value}` } } }, plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}: ₹${context.parsed.y.toFixed(2)}` } } } }
+    });
 }
 
 function calculateGrowthData() {
-    // This function remains the same
+    const snapshots = {}; let cumulativeCapital = 0, cumulativeLoan = 0, cumulativeProfit = 0;
+    allData.forEach(r => {
+        cumulativeCapital += r.sipPayment + r.payment - r.loan; cumulativeLoan += r.loan; cumulativeProfit += r.returnAmount;
+        const monthKey = r.date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+        snapshots[monthKey] = { capital: cumulativeCapital, loans: cumulativeLoan, profits: cumulativeProfit, date: new Date(r.date.getFullYear(), r.date.getMonth(), 1) };
+    });
+    const sortedKeys = Object.keys(snapshots).sort((a,b) => snapshots[a].date - snapshots[b].date);
+    return { labels: sortedKeys, capital: sortedKeys.map(key => snapshots[key].capital), loans: sortedKeys.map(key => snapshots[key].loans), profits: sortedKeys.map(key => snapshots[key].profits) };
 }
 
 function showDistributionModal(profitEvent) {
@@ -795,7 +946,6 @@ function showDistributionModal(profitEvent) {
             li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
             li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'profit_event', member: item, profitEvent: profitEvent}));
             
-            // --- UPDATED & MORE ROBUST AI PROMPT LOGIC ---
             li.querySelector('.btn-ai-small').addEventListener('click', () => {
                 const promptGenerator = () => {
                     let prompt = `Tum ek financial advisor ho. Member '${item.name}' ko is loan event se mile munafey (₹${item.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;
@@ -860,7 +1010,6 @@ function showDistributionModal(profitEvent) {
                 };
                 generateAndShowExplanation(promptGenerator);
             });
-            li.appendChild(li.querySelector('.button-group'));
             listEl.appendChild(li);
         });
         distributionChartInstance = new Chart(ctx, {
@@ -872,14 +1021,6 @@ function showDistributionModal(profitEvent) {
 }
 
 function formatDate(date) { if (!(date instanceof Date) || isNaN(date)) return "N/A"; return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } 
-
-// Dummy functions for brevity, as their logic is unchanged
-function displayReturnRanking() { /* ... */ }
-function displayScoreRanking() { /* ... */ }
-function displayEligibilityRanking() { /* ... */ }
-function showCalculationDetails(details) { /* ... */ }
-function renderGrowthChart() { /* ... */ }
-function calculateGrowthData() { /* ... */ }
 </script>
 </body>
 </html>
