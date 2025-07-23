@@ -6,10 +6,7 @@
     <title>Super Admin Panel</title>
     
    <link rel="icon" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg" type="image/jpeg">
-
     <link rel="apple-touch-icon" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg">
-
-    
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -47,6 +44,25 @@
         .not-paid { color: #ef4444; }
         #imageViewerModal .modal-content { animation: zoomIn 0.3s ease-out; }
         @keyframes zoomIn { from { transform: scale(0.8); } to { transform: scale(1); } }
+        .dashboard-stat-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+        .dashboard-stat-card:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+        .dashboard-stat-card .icon-bg {
+            padding: 10px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
@@ -103,6 +119,7 @@
     <div id="editMemberModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editTransactionModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editPenaltyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="dashboardButtonModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
@@ -136,7 +153,6 @@
         });
       }
     </script>
-
     
     <script type="module">
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
@@ -150,6 +166,9 @@
         let db, auth, IMGBB_API_KEY;
         let allMembersData = {}, allTransactions = [], approvedMemberObjects = [], allGalleryData = {}, penaltyWalletData = {};
         let adminSettings = {};
+
+        // Store for initial filters passed from other views
+        let initialExplorerFilters = null;
 
         async function startApp() {
             try {
@@ -257,16 +276,38 @@
                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                            ${Object.entries(dashboardButtons).map(([key, btn]) => `
                                <a href="${btn.url}" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-lg text-white text-center font-semibold shadow-md hover:scale-105 transition-transform" style="background-color: ${btn.color || '#4f46e5'}">
-                                   <i class="ph-arrow-square-out text-2xl mb-1"></i>
+                                   ${btn.icon ? `<div class="w-8 h-8 mb-1">${btn.icon}</div>` : '<i class="ph-arrow-square-out text-2xl mb-1"></i>'}
                                    <span>${btn.name}</span>
                                </a>
                            `).join('')}
                        </div>
                    </div>`
                 : '';
+            
+            const pendingCount = Object.values(allMembersData).filter(m => m.status === 'Pending').length;
+            const approvedCount = Object.values(allMembersData).filter(m => m.status === 'Approved').length;
 
             container.innerHTML = `
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <button class="dashboard-stat-card p-4 flex items-center" data-action="view-todays-sip">
+                        <div class="icon-bg bg-green-100"><i class="ph-money text-2xl text-green-600"></i></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Today's SIP</p><p class="text-2xl font-bold text-green-600">₹${todaysSip.toLocaleString('en-IN')}</p></div>
+                    </button>
+                    <button class="dashboard-stat-card p-4 flex items-center" data-action="view-todays-loan">
+                        <div class="icon-bg bg-red-100"><i class="ph-chart-line-down text-2xl text-red-600"></i></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Today's Loan</p><p class="text-2xl font-bold text-red-600">₹${todaysLoan.toLocaleString('en-IN')}</p></div>
+                    </button>
+                    <button class="dashboard-stat-card p-4 flex items-center" data-action="view-approvals">
+                        <div class="icon-bg bg-yellow-100"><i class="ph-clock text-2xl text-yellow-600"></i></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Pending</p><p class="text-2xl font-bold text-yellow-600">${pendingCount}</p></div>
+                    </button>
+                    <button class="dashboard-stat-card p-4 flex items-center" data-action="view-all-members">
+                        <div class="icon-bg bg-indigo-100"><i class="ph-users-three text-2xl text-indigo-600"></i></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Members</p><p class="text-2xl font-bold text-indigo-600">${approvedCount}</p></div>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                     <div class="lg:col-span-2 live-feed-display rounded-xl shadow-md p-4 h-64 flex flex-col">
                         <h3 class="text-lg font-semibold text-white mb-3">Live Activity Today</h3>
                         <div id="live-feed-container" class="flex-grow overflow-y-auto space-y-2 pr-2">
@@ -297,17 +338,7 @@
                         <ul id="sip-status-list" class="space-y-3">${sipStatusList.map(s => `<li class="flex justify-between items-center text-sm"><span>${s.name}</span><span class="font-bold ${s.hasPaid ? 'paid' : 'not-paid'}">${s.hasPaid ? 'PAID' : 'NOT PAID'}</span></li>`).join('')}</ul>
                      </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="data-card p-6"><div class="flex items-center text-green-500"><i class="ph-money text-2xl mr-3"></i><h2 class="font-medium">Today's SIP Collection</h2></div><p class="text-3xl font-bold text-green-600 mt-2">₹${todaysSip.toLocaleString('en-IN')}</p></div>
-                    <div class="data-card p-6"><div class="flex items-center text-red-500"><i class="ph-chart-line-down text-2xl mr-3"></i><h2 class="font-medium">Today's Loan Disbursed</h2></div><p class="text-3xl font-bold text-red-600 mt-2">₹${todaysLoan.toLocaleString('en-IN')}</p></div>
-                    <div class="data-card action-card p-6" data-target-view="approvals"><div class="flex items-center text-yellow-500"><i class="ph-clock text-2xl mr-3"></i><h2 class="font-medium">Pending Approvals</h2></div><p id="pending-count-stat" class="text-3xl font-bold text-yellow-600 mt-2">0</p></div>
-                    <div class="data-card action-card p-6" data-target-view="all-members"><div class="flex items-center text-indigo-500"><i class="ph-users-three text-2xl mr-3"></i><h2 class="font-medium">Approved Members</h2></div><p id="approved-count-stat" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
-                </div>
             `;
-            const pendingCount = Object.values(allMembersData).filter(m => m.status === 'Pending').length;
-            const approvedCount = Object.values(allMembersData).filter(m => m.status === 'Approved').length;
-            document.getElementById('pending-count-stat').textContent = pendingCount;
-            document.getElementById('approved-count-stat').textContent = approvedCount;
         }
         
         function renderApprovals(members) { 
@@ -442,9 +473,11 @@
 
         function renderDataExplorer() {
             const container = document.getElementById('data-explorer-view');
+            const today = new Date().toISOString().split('T')[0];
+            
             container.innerHTML = `
                 <div class="bg-white p-4 rounded-xl shadow-md mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label for="explorer-name-filter" class="text-sm font-medium text-gray-700">Filter by Name</label>
                             <select id="explorer-name-filter" class="filter-input w-full p-2 rounded-lg mt-1">
@@ -463,10 +496,21 @@
                                 <option value="Extra Withdraw">Extra Withdraw</option>
                             </select>
                         </div>
+                        <div>
+                            <label for="explorer-date-filter" class="text-sm font-medium text-gray-700">Filter by Date</label>
+                            <input type="date" id="explorer-date-filter" class="filter-input w-full p-2 rounded-lg mt-1">
+                        </div>
                     </div>
                 </div>
                 <div id="explorer-results-container" class="bg-white rounded-xl shadow-md overflow-x-auto"></div>
             `;
+            
+            if (initialExplorerFilters) {
+                if (initialExplorerFilters.type) document.getElementById('explorer-type-filter').value = initialExplorerFilters.type;
+                if (initialExplorerFilters.date === 'today') document.getElementById('explorer-date-filter').value = today;
+                initialExplorerFilters = null; // Clear after applying
+            }
+
             applyExplorerFilters();
         }
         
@@ -532,7 +576,9 @@
                             ${Object.keys(dashboardButtons).length > 0 ? Object.entries(dashboardButtons).map(([key, btn]) => `
                                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-6 h-6 rounded" style="background-color: ${btn.color || '#ccc'};"></div>
+                                        <div class="w-8 h-8 rounded flex items-center justify-center" style="background-color: ${btn.color || '#ccc'};">
+                                            ${btn.icon ? btn.icon : ''}
+                                        </div>
                                         <div>
                                             <p class="font-semibold text-gray-800">${btn.name}</p>
                                             <p class="text-xs text-gray-500">${btn.url}</p>
@@ -574,6 +620,11 @@
                                 <label for="btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
                                 <input type="color" id="btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${btnData.color || '#4f46e5'}">
                             </div>
+                            <div>
+                                <label for="btn-icon" class="block text-sm font-medium text-gray-700 mb-1">Button Icon (SVG Code)</label>
+                                <textarea id="btn-icon" class="form-input w-full p-2 rounded-lg" rows="3" placeholder='<svg>...</svg>'>${btnData.icon || ''}</textarea>
+                                <p class="text-xs text-gray-500 mt-1">Paste the full SVG code. Make sure it has a white fill/stroke for visibility.</p>
+                            </div>
                         </div>
                         <div class="p-4 bg-gray-50 flex justify-end gap-3">
                             <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
@@ -591,6 +642,7 @@
 
             const nameFilter = document.getElementById('explorer-name-filter').value;
             const typeFilter = document.getElementById('explorer-type-filter').value;
+            const dateFilter = document.getElementById('explorer-date-filter').value;
 
             let filteredTransactions = allTransactions;
 
@@ -600,6 +652,10 @@
 
             if (typeFilter !== 'all') {
                 filteredTransactions = filteredTransactions.filter(tx => (tx[typeFilter] && parseFloat(tx[typeFilter]) > 0));
+            }
+
+            if (dateFilter) {
+                filteredTransactions = filteredTransactions.filter(tx => tx.Date && new Date(tx.Date).toISOString().split('T')[0] === dateFilter);
             }
 
             if (filteredTransactions.length === 0) {
@@ -676,8 +732,8 @@
 
         function renderPenaltyHistoryModal() {
             const modal = document.getElementById('penaltyHistoryModal');
-            const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
-            const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
+            const incomes = Object.entries(penaltyWalletData.incomes || {}).map(([key, i]) => ({...i, type: 'income', key}));
+            const expenses = Object.entries(penaltyWalletData.expenses || {}).map(([key, e]) => ({...e, type: 'expense', key}));
             const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
             let content = `
@@ -699,9 +755,13 @@
                         <li class="flex justify-between items-start p-2 rounded-md hover:bg-gray-50">
                             <div>
                                 <p class="font-semibold">${isIncome ? tx.from : tx.reason}</p>
-                                <p class="text-xs text-gray-500">${tx.reason || ''} <span class="mx-1">&middot;</span> ${new Date(tx.timestamp).toLocaleString('en-GB')}</p>
+                                <p class="text-xs text-gray-500">${isIncome ? tx.reason : ''} <span class="mx-1">&middot;</span> ${new Date(tx.timestamp).toLocaleString('en-GB')}</p>
                             </div>
-                            <p class="font-bold flex-shrink-0 ml-4 ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</p>
+                            <div class="flex items-center flex-shrink-0 ml-4">
+                                <p class="font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</p>
+                                <button class="edit-penalty-btn p-1 text-gray-400 hover:text-green-600 ml-2" data-key="${tx.key}" data-type="${tx.type}"><i class="ph-note-pencil text-lg"></i></button>
+                                <button class="delete-penalty-btn p-1 text-gray-400 hover:text-red-600" data-key="${tx.key}" data-type="${tx.type}"><i class="ph-trash text-lg"></i></button>
+                            </div>
                         </li>
                     `;
                 });
@@ -717,6 +777,38 @@
             openModal(modal);
         }
         
+        function renderEditPenaltyModal(key, type) {
+            const modal = document.getElementById('editPenaltyModal');
+            const data = penaltyWalletData[type === 'income' ? 'incomes' : 'expenses'][key];
+            const isIncome = type === 'income';
+
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md scale-95">
+                    <form id="edit-penalty-form" data-key="${key}" data-type="${type}">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-bold">Edit Penalty/Expense</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label for="edit-penalty-reason" class="block text-sm font-medium text-gray-700 mb-1">Reason / From</label>
+                                <input type="text" id="edit-penalty-reason" class="form-input w-full p-2 rounded-lg" value="${isIncome ? data.from : data.reason}" ${isIncome ? 'disabled' : ''} required>
+                                <p class="text-xs text-gray-500 mt-1">${isIncome ? 'Income source cannot be changed.' : 'Reason for expense.'}</p>
+                            </div>
+                            <div>
+                                <label for="edit-penalty-amount" class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                <input type="number" id="edit-penalty-amount" class="form-input w-full p-2 rounded-lg" value="${data.amount}" required>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            openModal(modal);
+        }
+
         function renderBurnMoneyModal() {
             const modal = document.getElementById('burnMoneyModal');
             modal.innerHTML = `
@@ -1037,10 +1129,15 @@
             });
         }
 
-        function navigateToView(viewId, forceRender = false) {
+        function navigateToView(viewId, options = {}) {
+            const forceRender = options.forceRender || false;
             const currentActiveView = document.querySelector('.view.active');
-            if (currentActiveView?.id === `${viewId}-view` && !forceRender) {
+            if (currentActiveView?.id === `${viewId}-view` && !forceRender && !options.filters) {
                 return;
+            }
+
+            if (options.filters) {
+                initialExplorerFilters = options.filters;
             }
 
             const viewTitle = viewId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -1072,7 +1169,8 @@
             }
             const explorerNameFilter = document.getElementById('explorer-name-filter');
             const explorerTypeFilter = document.getElementById('explorer-type-filter');
-            if (e.target === explorerNameFilter || e.target === explorerTypeFilter) {
+            const explorerDateFilter = document.getElementById('explorer-date-filter');
+            if (e.target === explorerNameFilter || e.target === explorerTypeFilter || e.target === explorerDateFilter) {
                 applyExplorerFilters();
             }
         });
@@ -1227,6 +1325,7 @@
                     name: document.getElementById('btn-name').value,
                     url: document.getElementById('btn-url').value,
                     color: document.getElementById('btn-color').value,
+                    icon: document.getElementById('btn-icon').value,
                 };
                 
                 const dbRef = key ? ref(db, `admin/dashboard_buttons/${key}`) : push(ref(db, 'admin/dashboard_buttons'));
@@ -1238,9 +1337,49 @@
                     alert('Error saving button: ' + err.message);
                 }
             }
+            if (e.target.id === 'edit-penalty-form') {
+                e.preventDefault();
+                const form = e.target;
+                const key = form.dataset.key;
+                const type = form.dataset.type;
+                const path = type === 'income' ? 'incomes' : 'expenses';
+
+                const updates = {
+                    amount: parseFloat(document.getElementById('edit-penalty-amount').value)
+                };
+                if (type === 'expense') {
+                    updates.reason = document.getElementById('edit-penalty-reason').value;
+                }
+
+                try {
+                    await update(ref(db, `penaltyWallet/${path}/${key}`), updates);
+                    alert('Record updated successfully.');
+                    closeModal(document.getElementById('editPenaltyModal'));
+                    // Re-render penalty modal if it's open
+                    if (!document.getElementById('penaltyHistoryModal').classList.contains('hidden')) {
+                       renderPenaltyHistoryModal();
+                    }
+                } catch (err) {
+                    alert('Failed to update record: ' + err.message);
+                }
+            }
         });
         
         document.body.addEventListener('click', async e => {
+            const dashboardCard = e.target.closest('.dashboard-stat-card');
+            if(dashboardCard) {
+                const action = dashboardCard.dataset.action;
+                if (action === 'view-todays-sip') {
+                    navigateToView('data-explorer', { filters: { type: 'SIP Payment', date: 'today' } });
+                } else if (action === 'view-todays-loan') {
+                    navigateToView('data-explorer', { filters: { type: 'Loan', date: 'today' } });
+                } else if (action === 'view-approvals') {
+                    navigateToView('approvals');
+                } else if (action === 'view-all-members') {
+                    navigateToView('all-members');
+                }
+            }
+
             const reviewBtn = e.target.closest('.review-btn');
             if(reviewBtn) {
                 const memberId = reviewBtn.dataset.id;
@@ -1431,6 +1570,30 @@
             if(changeImageBtn) {
                 const targetId = changeImageBtn.dataset.target;
                 document.getElementById(`${targetId}-file`).click();
+            }
+
+            const editPenaltyBtn = e.target.closest('.edit-penalty-btn');
+            if (editPenaltyBtn) {
+                const key = editPenaltyBtn.dataset.key;
+                const type = editPenaltyBtn.dataset.type;
+                renderEditPenaltyModal(key, type);
+            }
+
+            const deletePenaltyBtn = e.target.closest('.delete-penalty-btn');
+            if (deletePenaltyBtn) {
+                const key = deletePenaltyBtn.dataset.key;
+                const type = deletePenaltyBtn.dataset.type;
+                const path = type === 'income' ? 'incomes' : 'expenses';
+                const confirmed = await showConfirmation('Delete Record?', 'Are you sure you want to delete this penalty/expense record? This cannot be undone.');
+                if (confirmed) {
+                    try {
+                        await remove(ref(db, `penaltyWallet/${path}/${key}`));
+                        alert('Record deleted successfully.');
+                        renderPenaltyHistoryModal(); // Re-render the modal
+                    } catch (err) {
+                        alert('Failed to delete record: ' + err.message);
+                    }
+                }
             }
         });
 
