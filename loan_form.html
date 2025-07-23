@@ -12,6 +12,7 @@
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <style>
@@ -148,238 +149,262 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
   <script>
-    let membersData = {};
-
-    // Form elements
-    const nameSelect = document.getElementById('nameSelect');
-    const amountInput = document.getElementById('amount');
-    const rateSelect = document.getElementById('monthlyRate');
-    const imageUploadInput = document.getElementById('imageUpload');
-    const loanForm = document.getElementById('loanForm');
-    const captureDiv = document.getElementById('capture');
-    const downloadBtn = document.getElementById('downloadBtn');
-    
-    // NEW: Guarantor elements
-    const guarantorSection = document.getElementById('guarantorSection');
-    const guarantorSelect = document.getElementById('guarantorSelect');
-
-    // Display elements in the letter
-    const currentDateEl = document.getElementById('currentDate');
-    const displayNameEl = document.getElementById('displayName');
-    const displayGuarantorEl = document.getElementById('displayGuarantor');
-    const displayMobileEl = document.getElementById('displayMobile');
-    const displayAmountEl = document.getElementById('displayAmount');
-    const displayRateEl = document.getElementById('displayRate');
-    const displayTotalAmountEl = document.getElementById('displayTotalAmount');
-    const displayEMIEl = document.getElementById('displayEMI');
-    const repaymentDateEl = document.getElementById('repaymentDate');
-    const regNumberEl = document.getElementById('regNumber');
-    const emiRowEl = document.getElementById('emiRow');
-    const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
-    const manualUploadSectionEl = document.getElementById('manualUploadSection');
-    const manualApplicantPhotoEl = document.getElementById('manualApplicantPhoto');
-
-    async function initializeAndFetch() {
+    // ✅ NAYA LOGIC: Authentication check
+    async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
             
             firebase.initializeApp(config.firebase);
-            const db = firebase.database();
             
-            const membersRef = db.ref('members');
-            const snapshot = await membersRef.once('value');
-            if (!snapshot.exists()) throw new Error('No member data found.');
-            
-            membersData = snapshot.val();
-            
-            const approvedMembers = Object.entries(membersData)
-                .filter(([id, member]) => member.status === 'Approved' && member.fullName)
-                .map(([id, member]) => ({ id, name: member.fullName }))
-                .sort((a, b) => a.name.localeCompare(b.name));
-
-            // Populate both applicant and guarantor dropdowns
-            nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
-            guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor Name</option>';
-            
-            approvedMembers.forEach(member => {
-                const option = document.createElement('option');
-                option.value = member.id; 
-                option.textContent = member.name;
-                
-                nameSelect.appendChild(option.cloneNode(true)); // Add to applicants
-                guarantorSelect.appendChild(option.cloneNode(true)); // Add to guarantors
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    // User is logged in, proceed to fetch data.
+                    console.log("User authenticated, fetching data...");
+                    runAppLogic(); 
+                } else {
+                    // User is not logged in, redirect to login page.
+                    console.log("User not authenticated, redirecting to login...");
+                    // Hum vartaman URL ko redirect parameter ke roop mein bhejte hain
+                    // taaki login ke baad user is page par wapas aa sake.
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                }
             });
 
         } catch (error) {
-            console.error('Error:', error);
-            nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
-            alert('Failed to load member data. Please check console.');
+            console.error('Initialization Error:', error);
+            alert('Application failed to initialize. Please check console.');
         }
     }
 
-    // NEW: Event listener to show/hide guarantor section
-    nameSelect.addEventListener('input', () => {
-        const selectedOptionText = nameSelect.options[nameSelect.selectedIndex].text;
-        if (selectedOptionText.toLowerCase().includes('bank')) {
-            guarantorSection.style.display = 'block';
-            guarantorSelect.required = true;
-        } else {
-            guarantorSection.style.display = 'none';
-            guarantorSelect.required = false;
-        }
-    });
+    // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+    function runAppLogic() {
+        let membersData = {};
 
-    function createProxyUrl(url) {
-        if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-            return 'https://placehold.co/100x120/EFEFEF/AAAAAA&text=No+Image';
-        }
-        const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
-        return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
-    }
+        // Form elements
+        const nameSelect = document.getElementById('nameSelect');
+        const amountInput = document.getElementById('amount');
+        const rateSelect = document.getElementById('monthlyRate');
+        const imageUploadInput = document.getElementById('imageUpload');
+        const loanForm = document.getElementById('loanForm');
+        const captureDiv = document.getElementById('capture');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        const guarantorSection = document.getElementById('guarantorSection');
+        const guarantorSelect = document.getElementById('guarantorSelect');
 
-    function formatDate(date) {
-      const day = date.getDate();
-      const month = date.toLocaleString('default', { month: 'long' });
-      const year = date.getFullYear();
-      return `${day} ${month} ${year}`;
-    }
+        // Display elements
+        const currentDateEl = document.getElementById('currentDate');
+        const displayNameEl = document.getElementById('displayName');
+        const displayGuarantorEl = document.getElementById('displayGuarantor');
+        const displayMobileEl = document.getElementById('displayMobile');
+        const displayAmountEl = document.getElementById('displayAmount');
+        const displayRateEl = document.getElementById('displayRate');
+        const displayTotalAmountEl = document.getElementById('displayTotalAmount');
+        const displayEMIEl = document.getElementById('displayEMI');
+        const repaymentDateEl = document.getElementById('repaymentDate');
+        const regNumberEl = document.getElementById('regNumber');
+        const emiRowEl = document.getElementById('emiRow');
+        const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
+        const manualUploadSectionEl = document.getElementById('manualUploadSection');
+        const manualApplicantPhotoEl = document.getElementById('manualApplicantPhoto');
 
-    function generateRegistrationNumber() {
-      const timestamp = Date.now().toString();
-      const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-      return `BCL-${timestamp.slice(-6)}-${randomPart}`;
-    }
+        async function fetchMemberData() {
+            try {
+                const db = firebase.database();
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
+                if (!snapshot.exists()) throw new Error('No member data found.');
+                
+                membersData = snapshot.val();
+                
+                const approvedMembers = Object.entries(membersData)
+                    .filter(([id, member]) => member.status === 'Approved' && member.fullName)
+                    .map(([id, member]) => ({ id, name: member.fullName }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
 
-    loanForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const selectedMemberId = nameSelect.value;
-      const member = membersData[selectedMemberId];
-
-      if (!member) {
-          alert('Please select a valid member.');
-          return;
-      }
-      
-      const amount = parseFloat(amountInput.value);
-      const rateValue = rateSelect.value;
-      const uploadedFile = imageUploadInput.files[0];
-
-      // Form validation
-      if (isNaN(amount) || !rateValue) {
-          alert('Please fill in all required fields.');
-          return;
-      }
-      
-      // NEW: Guarantor validation
-      let guarantorName = member.guarantorName || 'N/A';
-      if (guarantorSection.style.display === 'block') {
-          const guarantorId = guarantorSelect.value;
-          if (!guarantorId) {
-              alert('Please select a guarantor for the bank.');
-              return;
-          }
-          guarantorName = membersData[guarantorId].fullName;
-      }
-
-      let interest = 0, months = 1, rateText = '';
-      if (rateValue === '1_2x') { interest = 2; months = 1; rateText = `2% for 1 Month`; }
-      else if (rateValue === '1') { interest = 1; months = 1; rateText = `1% for 1 Month`; }
-      else if (rateValue === '2') { interest = 3; months = 2; rateText = `3% for 2 Months`; }
-      else if (rateValue === '3') { interest = 5; months = 3; rateText = `5% for 3 Months`; }
-
-      const totalInterestAmount = amount * (interest / 100);
-      const totalAmount = amount + totalInterestAmount;
-      
-      emiRowEl.style.display = 'none';
-
-      const today = new Date();
-      const repaymentDate = new Date(today);
-      repaymentDate.setMonth(repaymentDate.getMonth() + months);
-
-      // Populate the letter
-      currentDateEl.textContent = formatDate(today);
-      displayNameEl.textContent = member.fullName;
-      displayGuarantorEl.textContent = guarantorName; // Use the determined guarantor name
-      displayMobileEl.textContent = member.mobileNumber || 'N/A';
-      displayAmountEl.textContent = amount.toFixed(2);
-      displayRateEl.textContent = rateText;
-      displayTotalAmountEl.textContent = totalAmount.toFixed(2);
-      repaymentDateEl.textContent = formatDate(repaymentDate);
-      regNumberEl.textContent = generateRegistrationNumber();
-      
-      apiApplicantPhotoEl.src = createProxyUrl(member.profilePicUrl);
-
-      manualApplicantPhotoEl.src = "";
-      manualUploadSectionEl.style.display = 'none';
-
-      if (uploadedFile) {
-          const reader = new FileReader();
-          reader.onload = function(event) {
-              manualApplicantPhotoEl.src = event.target.result;
-              manualUploadSectionEl.style.display = 'block';
-          }
-          reader.readAsDataURL(uploadedFile);
-      } else if (member.documentUrl) {
-          manualApplicantPhotoEl.src = createProxyUrl(member.documentUrl);
-          manualUploadSectionEl.style.display = 'block';
-      }
-
-      captureDiv.style.display = 'flex';
-      downloadBtn.style.display = 'block';
-      captureDiv.scrollIntoView({ behavior: 'smooth' });
-    });
-
-    async function waitForImages(containerElement) {
-        const images = Array.from(containerElement.getElementsByTagName('img'));
-        const promises = images.map(img => {
-            if (img.src && !img.complete) {
-                return new Promise((resolve) => {
-                    img.onload = resolve;
-                    img.onerror = () => {
-                         console.warn(`Image failed to load: ${img.src}`);
-                         resolve();
-                    };
+                nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
+                guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor Name</option>';
+                
+                approvedMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id; 
+                    option.textContent = member.name;
+                    
+                    nameSelect.appendChild(option.cloneNode(true));
+                    guarantorSelect.appendChild(option.cloneNode(true));
                 });
+
+            } catch (error) {
+                console.error('Error fetching member data:', error);
+                nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
+                alert('Failed to load member data. Please check console.');
             }
-            return Promise.resolve();
+        }
+
+        nameSelect.addEventListener('input', () => {
+            const selectedOptionText = nameSelect.options[nameSelect.selectedIndex].text;
+            if (selectedOptionText.toLowerCase().includes('bank')) {
+                guarantorSection.style.display = 'block';
+                guarantorSelect.required = true;
+            } else {
+                guarantorSection.style.display = 'none';
+                guarantorSelect.required = false;
+            }
         });
-        return Promise.all(promises);
+
+        function createProxyUrl(url) {
+            if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+                return 'https://placehold.co/100x120/EFEFEF/AAAAAA&text=No+Image';
+            }
+            const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
+            return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
+        }
+
+        function formatDate(date) {
+            const day = date.getDate();
+            const month = date.toLocaleString('default', { month: 'long' });
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
+        function generateRegistrationNumber() {
+            const timestamp = Date.now().toString();
+            const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `BCL-${timestamp.slice(-6)}-${randomPart}`;
+        }
+
+        loanForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const selectedMemberId = nameSelect.value;
+            const member = membersData[selectedMemberId];
+
+            if (!member) {
+                alert('Please select a valid member.');
+                return;
+            }
+            
+            const amount = parseFloat(amountInput.value);
+            const rateValue = rateSelect.value;
+            const uploadedFile = imageUploadInput.files[0];
+
+            if (isNaN(amount) || !rateValue) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            let guarantorName = member.guarantorName || 'N/A';
+            if (guarantorSection.style.display === 'block') {
+                const guarantorId = guarantorSelect.value;
+                if (!guarantorId) {
+                    alert('Please select a guarantor for the bank.');
+                    return;
+                }
+                guarantorName = membersData[guarantorId].fullName;
+            }
+
+            let interest = 0, months = 1, rateText = '';
+            if (rateValue === '1_2x') { interest = 2; months = 1; rateText = `2% for 1 Month`; }
+            else if (rateValue === '1') { interest = 1; months = 1; rateText = `1% for 1 Month`; }
+            else if (rateValue === '2') { interest = 3; months = 2; rateText = `3% for 2 Months`; }
+            else if (rateValue === '3') { interest = 5; months = 3; rateText = `5% for 3 Months`; }
+
+            const totalInterestAmount = amount * (interest / 100);
+            const totalAmount = amount + totalInterestAmount;
+            
+            emiRowEl.style.display = 'none';
+
+            const today = new Date();
+            const repaymentDate = new Date(today);
+            repaymentDate.setMonth(repaymentDate.getMonth() + months);
+
+            currentDateEl.textContent = formatDate(today);
+            displayNameEl.textContent = member.fullName;
+            displayGuarantorEl.textContent = guarantorName;
+            displayMobileEl.textContent = member.mobileNumber || 'N/A';
+            displayAmountEl.textContent = amount.toFixed(2);
+            displayRateEl.textContent = rateText;
+            displayTotalAmountEl.textContent = totalAmount.toFixed(2);
+            repaymentDateEl.textContent = formatDate(repaymentDate);
+            regNumberEl.textContent = generateRegistrationNumber();
+            
+            apiApplicantPhotoEl.src = createProxyUrl(member.profilePicUrl);
+
+            manualApplicantPhotoEl.src = "";
+            manualUploadSectionEl.style.display = 'none';
+
+            if (uploadedFile) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    manualApplicantPhotoEl.src = event.target.result;
+                    manualUploadSectionEl.style.display = 'block';
+                }
+                reader.readAsDataURL(uploadedFile);
+            } else if (member.documentUrl) {
+                manualApplicantPhotoEl.src = createProxyUrl(member.documentUrl);
+                manualUploadSectionEl.style.display = 'block';
+            }
+
+            captureDiv.style.display = 'flex';
+            downloadBtn.style.display = 'block';
+            captureDiv.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        async function waitForImages(containerElement) {
+            const images = Array.from(containerElement.getElementsByTagName('img'));
+            const promises = images.map(img => {
+                if (img.src && !img.complete) {
+                    return new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = () => {
+                            console.warn(`Image failed to load: ${img.src}`);
+                            resolve();
+                        };
+                    });
+                }
+                return Promise.resolve();
+            });
+            return Promise.all(promises);
+        }
+
+        downloadBtn.addEventListener('click', async function() {
+            downloadBtn.textContent = 'Preparing Download...';
+            downloadBtn.disabled = true;
+
+            try {
+                await waitForImages(captureDiv);
+                await new Promise(resolve => setTimeout(resolve, 500)); 
+
+                html2canvas(captureDiv, {
+                    scale: 2, 
+                    useCORS: true,
+                    logging: false
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
+                    link.download = fileName;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    link.remove();
+                    downloadBtn.textContent = 'Download Letter';
+                    downloadBtn.disabled = false;
+                });
+            } catch (error) {
+                console.error('Error during download generation:', error);
+                alert('Could not generate the download image.');
+                downloadBtn.textContent = 'Download Letter';
+                downloadBtn.disabled = false;
+            }
+        });
+
+        // Data fetch karna shuru karein
+        fetchMemberData();
     }
 
-    downloadBtn.addEventListener('click', async function() {
-      downloadBtn.textContent = 'Preparing Download...';
-      downloadBtn.disabled = true;
-
-      try {
-        await waitForImages(captureDiv);
-        await new Promise(resolve => setTimeout(resolve, 500)); 
-
-         html2canvas(captureDiv, {
-             scale: 2, 
-             useCORS: true,
-             logging: false
-         }).then(canvas => {
-            const link = document.createElement('a');
-            const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
-            link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            link.remove();
-            downloadBtn.textContent = 'Download Letter';
-            downloadBtn.disabled = false;
-        });
-      } catch (error) {
-            console.error('Error during download generation:', error);
-            alert('Could not generate the download image.');
-            downloadBtn.textContent = 'Download Letter';
-            downloadBtn.disabled = false;
-      }
-    });
-
-    initializeAndFetch();
+    // ✅ App ko shuru karein
+    checkAuthAndInitialize();
   </script>
 
 </body>
