@@ -16,7 +16,7 @@
     <!-- Marked.js for rendering Markdown from Gemini -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (Version 8.10.1) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -170,40 +170,12 @@ td { font-size: 0.95em; }
 #aiExplanationResult h3, #aiExplanationResult h4 { margin-top: 1.5em; margin-bottom: 0.5em; color: var(--primary-color); padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
 #aiExplanationResult ul { padding-left: 20px; }
 #aiExplanationResult strong { color: var(--primary-color); }
-
-/* UPDATED AI TABLE STYLES */
-#aiExplanationResult table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1.2em;
-    margin-bottom: 1.2em;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    border-radius: 8px;
-    overflow: hidden; 
-}
-#aiExplanationResult th, #aiExplanationResult td {
-    padding: 12px 15px;
-    font-size: 0.95em;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
-#aiExplanationResult th {
-    background-color: var(--primary-color);
-    color: white;
-    font-weight: 600;
-}
-#aiExplanationResult td {
-    color: var(--text-dark);
-}
-#aiExplanationResult td:first-child {
-    font-weight: 600;
-    color: var(--text-light);
-}
-#aiExplanationResult tr:last-child td {
-    border-bottom: none;
-}
-/* END OF UPDATED AI TABLE STYLES */
-
+#aiExplanationResult table { width: 100%; border-collapse: collapse; margin-top: 1.2em; margin-bottom: 1.2em; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+#aiExplanationResult th, #aiExplanationResult td { padding: 12px 15px; font-size: 0.95em; text-align: left; border-bottom: 1px solid var(--border-color); }
+#aiExplanationResult th { background-color: var(--primary-color); color: white; font-weight: 600; }
+#aiExplanationResult td { color: var(--text-dark); }
+#aiExplanationResult td:first-child { font-weight: 600; color: var(--text-light); }
+#aiExplanationResult tr:last-child td { border-bottom: none; }
 .ai-loader { text-align: center; padding: 40px 0; }
 .ai-loader .spinner { margin: 0 auto 15px auto; }
 .ai-loader span { font-size: 1.1em; color: var(--text-light); }
@@ -317,7 +289,7 @@ td { font-size: 0.95em; }
         </div>
     </div>
     
-    <!-- Modals -->
+    <!-- All Modals remain the same -->
     <div id="detailsModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -327,7 +299,6 @@ td { font-size: 0.95em; }
             <div class="list-container"><ul id="distributionDetails"></ul></div>
         </div>
     </div>
-
     <div id="returnRankModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -335,7 +306,6 @@ td { font-size: 0.95em; }
             <div class="list-container"><ol id="returnRankList"></ol></div>
         </div>
     </div>
-
     <div id="scoreRankModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -356,7 +326,6 @@ td { font-size: 0.95em; }
             </div>
         </div>
     </div>
-
     <div id="eligibilityRankModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -369,7 +338,6 @@ td { font-size: 0.95em; }
             </div>
         </div>
     </div>
-
     <div id="calculationDetailsModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -377,13 +345,10 @@ td { font-size: 0.95em; }
             <div id="calculationDetailsContent" class="list-container"></div>
         </div>
     </div>
-
     <div id="imageModal" class="modal visually-hidden">
          <button class="modal-close">×</button>
          <div class="modal-content"><img id="fullProfileImage" src="" alt="Full Profile Picture View"></div>
     </div>
-
-    <!-- AI Explanation Modal -->
     <div id="aiExplainModal" class="modal visually-hidden">
         <div class="modal-content">
             <button class="modal-close">×</button>
@@ -393,9 +358,7 @@ td { font-size: 0.95em; }
                     <button class="lang-btn" data-lang="hi">हिंदी में</button>
                     <button class="lang-btn" data-lang="en">In English</button>
                 </div>
-                <div id="aiExplanationResult">
-                    <!-- AI response will be appended here -->
-                </div>
+                <div id="aiExplanationResult"></div>
             </div>
         </div>
     </div>
@@ -406,15 +369,9 @@ td { font-size: 0.95em; }
 const CONFIG = {
     PASSWORD: "7536",
     DEFAULT_PROFILE_PIC: 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png',
-    
-    // Performance Score Weights
     CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
-    
-    // Loan Eligibility Tiers
     LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
     LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
-
-    // Other Niyam
     MINIMUM_MEMBERSHIP_DAYS: 60, SIP_ON_TIME_LIMIT: 10,
     LOAN_TERM_TIER3: 90, LOAN_TERM_LATE_FEE: 100,
     INACTIVE_MEMBER_DAYS_LIMIT: 365, 
@@ -449,21 +406,34 @@ function setupPasswordPrompt() {
     passwordInput.addEventListener('keydown', (e) => e.key === 'Enter' && checkPassword());
 }
 
-// --- DATA FETCHING AND PROCESSING ---
+// --- DATA FETCHING AND PROCESSING (Firebase v8 Syntax) ---
 async function initializeFirebaseAndFetchData() {
     try {
+        // Step 1: Server se config file fetch karein
         const response = await fetch('/api/config');
         if (!response.ok) throw new Error('Configuration failed to load.');
         const config = await response.json();
         
-        firebase.initializeApp(config.firebase);
+        // Step 2: Firebase v8 tarike se initialize karein
+        // Yeh check karega ki app pehle se initialize to nahi hai
+        if (!firebase.apps.length) {
+            firebase.initializeApp(config.firebase);
+        }
+        
+        // Step 3: Firebase Realtime Database ka reference prapt karein (v8 syntax)
         db = firebase.database();
         
+        // Step 4: Database mein 'members' node ka reference banayein
         const membersRef = db.ref('members');
-        const snapshot = await membersRef.once('value');
-        if (!snapshot.exists()) throw new Error('No member data found in Firebase.');
         
+        // Step 5: .once('value') ka istemal karke data ko ek baar mein fetch karein
+        const snapshot = await membersRef.once('value');
+        if (!snapshot.exists()) throw new Error('Firebase mein member data nahi mila.');
+        
+        // Step 6: .val() se data ko JavaScript object ke roop mein prapt karein
         const membersData = snapshot.val();
+        
+        // --- Data Processing Logic ---
         const allTransactions = [];
         for (const memberId in membersData) {
             const member = membersData[memberId];
@@ -471,8 +441,8 @@ async function initializeFirebaseAndFetchData() {
                 for (const txId in member.transactions) {
                     allTransactions.push({
                         ...member.transactions[txId],
-                        Name: member.fullName, // Use fullName from member object
-                        imageUrl: member.profilePicUrl // Use profilePicUrl
+                        Name: member.fullName, // Member object se fullName lein
+                        imageUrl: member.profilePicUrl // Member object se profilePicUrl lein
                     });
                 }
             }
@@ -487,11 +457,13 @@ async function initializeFirebaseAndFetchData() {
 
         allData.sort((a, b) => a.date - b.date || a.id - b.id);
         memberNames = [...new Set(allData.map(row => row.name))].sort();
+        
+        // Dashboard ko data ke saath initialize karein
         initializeDashboard();
 
     } catch (error) {
         console.error("Error fetching data:", error);
-        document.body.innerHTML = `<div style="text-align:center; padding:50px; color:red;">Failed to load data. Please check Firebase connection and Vercel logs.</div>`;
+        document.body.innerHTML = `<div style="text-align:center; padding:50px; color:red;">Failed to load data. Please check Firebase connection and Vercel logs. Error: ${error.message}</div>`;
     } finally {
         document.getElementById('loader').classList.add('hidden');
     }
@@ -557,7 +529,9 @@ async function handleLanguageToggle(event) {
     }
 }
 
-// --- All other original JavaScript functions remain here ---
+// --- DASHBOARD & UI FUNCTIONS ---
+// (The rest of the JavaScript functions remain unchanged as they are for UI and calculations)
+
 function initializeDashboard() {
     document.getElementById('dashboardContent').classList.remove('visually-hidden');
     document.getElementById('dashboardContent').classList.add('visible');
@@ -971,76 +945,42 @@ function showDistributionModal(profitEvent) {
             const li = document.createElement('li');
             li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
             li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'profit_event', member: item, profitEvent: profitEvent}));
-            
-            // --- UPDATED & MORE ROBUST AI PROMPT LOGIC ---
             li.querySelector('.btn-ai-small').addEventListener('click', () => {
                 const promptGenerator = () => {
                     let prompt = `Tum ek financial advisor ho. Member '${item.name}' ko is loan event se mile munafey (₹${item.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;
-
-                    // Explain Inactive Policy if applicable
                     if (item.multiplier < 1) {
                         const initialShare = item.share / item.multiplier;
-                        prompt += `Sabse pehle, unka mool munafa ₹${initialShare.toFixed(2)} tha, lekin usmein katoati hui hai.\n\n`;
-                        prompt += `#### 'Inactive Policy' Kya Hai?\nSaral bhasha me samjhao ki yeh niyam un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Batao ki 'kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-item.multiplier)*100).toFixed(0)}% kam kar diya gaya hai'.\n\n`;
+                        prompt += `Sabse pehle, unka mool munafa ₹${initialShare.toFixed(2)} tha, lekin usmein katoati hui hai.\n\n#### 'Inactive Policy' Kya Hai?\nSaral bhasha me samjhao ki yeh niyam un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Batao ki 'kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-item.multiplier)*100).toFixed(0)}% kam kar diya gaya hai'.\n\n`;
                     }
-
-                    // 3-Way Comparison Logic
                     const myRankIndex = distributionData.findIndex(d => d.name === item.name);
                     const topper = distributionData[0];
                     const personAbove = myRankIndex > 0 ? distributionData[myRankIndex - 1] : null;
-
-                    if (myRankIndex === 0 && distributionData.length > 1) { // User is the topper
+                    if (myRankIndex === 0 && distributionData.length > 1) {
                         prompt += `Aap is event ke topper hain! Badhai ho! Aapka score (at the time of loan) sabse behtar tha.\n\n`;
-                    } else if (myRankIndex > 0) { // User is not the topper
+                    } else if (myRankIndex > 0) {
                         prompt += `#### Vistrit Tulna (Comparison)\nApne jawab mein neeche di gayi Markdown table ko anivarya roop se (compulsorily) shamil karo. Is table ko mat badalna.\n\n`;
-                        
                         let tableHeader = `| Vivaran | ${topper.name} (Topper) |`;
-                        if (personAbove && personAbove.name !== topper.name) {
-                            tableHeader += ` ${personAbove.name} (Aapse Upar) |`;
-                        }
+                        if (personAbove && personAbove.name !== topper.name) { tableHeader += ` ${personAbove.name} (Aapse Upar) |`; }
                         tableHeader += ` ${item.name} (Aap) |`;
-                        
                         let tableSeparator = `| :--- | :--- |`;
-                        if (personAbove && personAbove.name !== topper.name) {
-                            tableSeparator += ` :--- |`;
-                        }
+                        if (personAbove && personAbove.name !== topper.name) { tableSeparator += ` :--- |`; }
                         tableSeparator += ` :--- |`;
-
                         let rankRow = `| **Rank** | #1 |`;
-                        if (personAbove && personAbove.name !== topper.name) {
-                            rankRow += ` #${myRankIndex} |`;
-                        }
+                        if (personAbove && personAbove.name !== topper.name) { rankRow += ` #${myRankIndex} |`; }
                         rankRow += ` #${myRankIndex + 1} |`;
-                        
                         let profitRow = `| **Mila Munafa** | ₹${topper.share.toFixed(2)} |`;
-                        if (personAbove && personAbove.name !== topper.name) {
-                            profitRow += ` ₹${personAbove.share.toFixed(2)} |`;
-                        }
+                        if (personAbove && personAbove.name !== topper.name) { profitRow += ` ₹${personAbove.share.toFixed(2)} |`; }
                         profitRow += ` ₹${item.share.toFixed(2)} |`;
-
                         let scoreRow = `| **Loan ke samay Score** | **${topper.snapshotScore.toFixed(2)}** |`;
-                        if (personAbove && personAbove.name !== topper.name) {
-                            scoreRow += ` **${personAbove.snapshotScore.toFixed(2)}** |`;
-                        }
+                        if (personAbove && personAbove.name !== topper.name) { scoreRow += ` **${personAbove.snapshotScore.toFixed(2)}** |`; }
                         scoreRow += ` ${item.snapshotScore.toFixed(2)} |`;
-
-                        prompt += `${tableHeader}\n${tableSeparator}\n${rankRow}\n${profitRow}\n${scoreRow}\n\n`;
-                        
-                        prompt += `#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai. Jiska score us samay zyada tha, usey munafey mein zyada hissa mila.\n\n`;
+                        prompt += `${tableHeader}\n${tableSeparator}\n${rankRow}\n${profitRow}\n${scoreRow}\n\n#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai. Jiska score us samay zyada tha, usey munafey mein zyada hissa mila.\n\n`;
                     }
-
-                    // Final Advice
                     prompt += `#### Aage Ke Liye Salah\n`;
-                    if (item.multiplier < 1) {
-                        prompt += `Bhavishya mein is katoati se bachne ke liye, aapko saal mein kam se kam ek baar loan lena zaroori hai. `;
-                    }
-                    if (personAbove) {
-                        prompt += `Agle rank par jaane ke liye aapko apna score **${personAbove.snapshotScore.toFixed(2)}** se behtar karna hoga. Niyamit SIP aur samay par loan chukane se aapka score zaroor badhega.`;
-                    } else if (myRankIndex === 0) {
-                        prompt += `Apna behtareen pradarshan banaye rakhein!`;
-                    } else {
-                        prompt += `Apna score behtar karke aap agle munafey mein aur bhi zyada hissa paa sakte hain.`;
-                    }
+                    if (item.multiplier < 1) { prompt += `Bhavishya mein is katoati se bachne ke liye, aapko saal mein kam se kam ek baar loan lena zaroori hai. `; }
+                    if (personAbove) { prompt += `Agle rank par jaane ke liye aapko apna score **${personAbove.snapshotScore.toFixed(2)}** se behtar karna hoga. Niyamit SIP aur samay par loan chukane se aapka score zaroor badhega.`; } 
+                    else if (myRankIndex === 0) { prompt += `Apna behtareen pradarshan banaye rakhein!`; } 
+                    else { prompt += `Apna score behtar karke aap agle munafey mein aur bhi zyada hissa paa sakte hain.`; }
                     return prompt;
                 };
                 generateAndShowExplanation(promptGenerator);
