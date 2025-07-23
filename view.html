@@ -11,6 +11,7 @@
   />
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <style>
@@ -25,7 +26,7 @@
     .profile-card {
         background-color: white;
         border-radius: 1.5rem;
-        box-shadow: 0 10px S30px -10px rgba(0,0,0,0.1);
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
     }
     .info-item {
         border-bottom: 1px solid #e5e7eb;
@@ -134,119 +135,138 @@
   </div>
 
   <script type="module">
-    let db;
-    async function initializeAppWithConfig() {
+    // ✅ NAYA LOGIC: Authentication check
+    async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
             
-            const app = firebase.initializeApp(config.firebase);
-            db = firebase.database();
+            firebase.initializeApp(config.firebase);
             
-            loadMemberData();
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    // User is logged in, now load the member data.
+                    console.log("User authenticated, loading member data...");
+                    runAppLogic();
+                } else {
+                    // User is not logged in, redirect to login page.
+                    console.log("User not authenticated, redirecting to login...");
+                    // Hum vartaman URL aur uske parameters (jaise ?memberId=...) ko redirect ke roop mein bhejte hain
+                    window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
+                }
+            });
+
         } catch (error) {
             showError(error.message);
         }
     }
 
-    const loader = document.getElementById('loader');
-    const profileContent = document.getElementById('profile-content');
-    const errorMessage = document.getElementById('error-message');
-    const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
+    // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+    function runAppLogic() {
+        const loader = document.getElementById('loader');
+        const profileContent = document.getElementById('profile-content');
+        const errorMessage = document.getElementById('error-message');
+        const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
-    function showError(message) {
-        loader.classList.add('hidden');
-        errorMessage.querySelector('p').textContent = message;
-        errorMessage.classList.remove('hidden');
-    }
-
-    async function loadMemberData() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const memberId = urlParams.get('memberId');
-
-        if (!memberId) {
-            showError("No member ID provided in the URL.");
-            return;
-        }
-
-        try {
-            const memberRef = db.ref(`members/${memberId}`);
-            const snapshot = await memberRef.once('value');
-            
-            if (!snapshot.exists()) {
-                throw new Error(`Member with ID "${memberId}" not found.`);
-            }
-            
-            const memberData = snapshot.val();
-            populateProfileData(memberData);
-
+        function showError(message) {
             loader.classList.add('hidden');
-            profileContent.classList.remove('hidden');
-        } catch (error) {
-            console.error("Failed to fetch member data:", error);
-            showError(error.message);
-        }
-    }
-
-    function populateProfileData(data) {
-        let extraBalance = 0;
-        let totalSip = 0;
-        if (data.transactions) {
-            const transactions = Object.values(data.transactions);
-            extraBalance = transactions.reduce((sum, tx) => sum + (parseFloat(tx['Extra Balance']) || 0), 0);
-            totalSip = transactions.reduce((sum, tx) => sum + (parseFloat(tx['SIP Payment']) || 0), 0);
+            errorMessage.querySelector('p').textContent = message;
+            errorMessage.classList.remove('hidden');
         }
 
-        const formatDate = (dateString) => {
-            if (!dateString) return "N/A";
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        };
+        async function loadMemberData() {
+            const db = firebase.database();
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberId = urlParams.get('memberId');
 
-        document.getElementById('profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
-        document.getElementById('profile-name').textContent = data.fullName || 'N/A';
-        document.getElementById('membership-id').textContent = `Membership ID: ${data.membershipId || 'N/A'}`;
+            if (!memberId) {
+                showError("No member ID provided in the URL.");
+                return;
+            }
 
-        document.getElementById('mobile-number').textContent = data.mobileNumber || 'N/A';
-        document.getElementById('dob').textContent = formatDate(data.dob);
-        document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
-        document.getElementById('address').textContent = data.address || 'N/A';
+            try {
+                const memberRef = db.ref(`members/${memberId}`);
+                const snapshot = await memberRef.once('value');
+                
+                if (!snapshot.exists()) {
+                    throw new Error(`Member with ID "${memberId}" not found.`);
+                }
+                
+                const memberData = snapshot.val();
+                populateProfileData(memberData);
 
-        document.getElementById('joining-date').textContent = `Joined: ${formatDate(data.joiningDate)}`;
-        document.getElementById('guarantor-name').textContent = `Guarantor: ${data.guarantorName || 'N/A'}`;
-        document.getElementById('total-sip').textContent = `Total SIP: ₹${totalSip.toLocaleString('en-IN')}`;
-        document.getElementById('extra-balance').textContent = `Extra Balance: ₹${extraBalance.toLocaleString('en-IN')}`;
+                loader.classList.add('hidden');
+                profileContent.classList.remove('hidden');
+            } catch (error) {
+                console.error("Failed to fetch member data:", error);
+                showError(error.message);
+            }
+        }
 
-        document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
-        document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
-        document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
-    }
+        function populateProfileData(data) {
+            let extraBalance = 0;
+            let totalSip = 0;
+            if (data.transactions) {
+                const transactions = Object.values(data.transactions);
+                extraBalance = transactions.reduce((sum, tx) => sum + (parseFloat(tx['Extra Balance']) || 0), 0);
+                totalSip = transactions.reduce((sum, tx) => sum + (parseFloat(tx['SIP Payment']) || 0), 0);
+            }
 
-    const imageViewerModal = document.getElementById('imageViewerModal');
-    const fullImageView = document.getElementById('fullImageView');
-    
-    document.querySelectorAll('.document-image').forEach(img => {
-        img.addEventListener('click', () => {
-            fullImageView.src = img.src;
-            imageViewerModal.classList.remove('hidden');
-            imageViewerModal.classList.add('flex');
+            const formatDate = (dateString) => {
+                if (!dateString) return "N/A";
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            };
+
+            document.getElementById('profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
+            document.getElementById('profile-name').textContent = data.fullName || 'N/A';
+            document.getElementById('membership-id').textContent = `Membership ID: ${data.membershipId || 'N/A'}`;
+
+            document.getElementById('mobile-number').textContent = data.mobileNumber || 'N/A';
+            document.getElementById('dob').textContent = formatDate(data.dob);
+            document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
+            document.getElementById('address').textContent = data.address || 'N/A';
+
+            document.getElementById('joining-date').textContent = `Joined: ${formatDate(data.joiningDate)}`;
+            document.getElementById('guarantor-name').textContent = `Guarantor: ${data.guarantorName || 'N/A'}`;
+            document.getElementById('total-sip').textContent = `Total SIP: ₹${totalSip.toLocaleString('en-IN')}`;
+            document.getElementById('extra-balance').textContent = `Extra Balance: ₹${extraBalance.toLocaleString('en-IN')}`;
+
+            document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
+            document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
+            document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
+        }
+
+        const imageViewerModal = document.getElementById('imageViewerModal');
+        const fullImageView = document.getElementById('fullImageView');
+        
+        document.querySelectorAll('.document-image').forEach(img => {
+            img.addEventListener('click', () => {
+                fullImageView.src = img.src;
+                imageViewerModal.classList.remove('hidden');
+                imageViewerModal.classList.add('flex');
+            });
         });
-    });
 
-    document.getElementById('closeImageViewer').addEventListener('click', () => {
-        imageViewerModal.classList.add('hidden');
-        imageViewerModal.classList.remove('flex');
-    });
-    
-    imageViewerModal.addEventListener('click', (e) => {
-        if (e.target === imageViewerModal) {
+        document.getElementById('closeImageViewer').addEventListener('click', () => {
             imageViewerModal.classList.add('hidden');
             imageViewerModal.classList.remove('flex');
-        }
-    });
+        });
+        
+        imageViewerModal.addEventListener('click', (e) => {
+            if (e.target === imageViewerModal) {
+                imageViewerModal.classList.add('hidden');
+                imageViewerModal.classList.remove('flex');
+            }
+        });
 
-    initializeAppWithConfig();
+        // Start loading data
+        loadMemberData();
+    }
+
+    // ✅ App ko shuru karein
+    checkAuthAndInitialize();
   </script>
 </body>
 </html>
