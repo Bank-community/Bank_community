@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body {
@@ -98,7 +99,6 @@
             transform: translate(-50%, -50%);
             width: 60%;
             height: 60%;
-            /* FIXED: Use proxy for background image */
             background-image: url('https://images.weserv.nl/?url=i.imgur.com/JLyQvpv.png');
             background-repeat: no-repeat;
             background-position: center;
@@ -311,7 +311,6 @@
 
     <div id="capture">
         <div class="header">
-            <!-- FIXED: Use proxy and add crossorigin -->
             <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" alt="Bank Logo" id="logoStamp">
             <p class="bank-name">Bank Community Loan</p>
             <p class="address">Lalunagar, Begusarai, Bihar</p>
@@ -339,7 +338,6 @@
             </div>
              <div class="api-photo-container-joining">
                 <p>Applicant Photo:</p>
-                <!-- FIXED: Add crossorigin -->
                 <img id="apiApplicantPhoto" src="" crossorigin="anonymous" alt="Applicant Photo">
             </div>
         </div>
@@ -356,7 +354,6 @@
         <div class="footer">
              <p class="team-text">Thank you,<br>Bank Community Team</p>
              <p class="signature-text">Authorized Signature</p>
-            <!-- FIXED: Use proxy and add crossorigin -->
             <img src="https://images.weserv.nl/?url=i.imgur.com/P0rtQjw.png" crossorigin="anonymous" class="stamp stamp-bottom-right" alt="Authorized Signature Stamp" id="signatureStamp">
         </div>
     </div>
@@ -364,170 +361,196 @@
     <button id="download">Download Letter</button>
 
     <script>
-        let membersData = {};
-        const primeMemberNames =  ["amit kumar", "Mithilesh Sahni", "prince rama"];
-        const form = document.getElementById('letterForm');
-        const nameSelect = document.getElementById('nameSelect');
-        const captureDiv = document.getElementById('capture');
-        const displayDateEl = document.getElementById('displayDate');
-        const displayNameEl = document.getElementById('displayName');
-        const displayPositionEl = document.getElementById('displayPosition');
-        const displayGuarantorEl = document.getElementById('displayGuarantor');
-        const displayAadhaarEl = document.getElementById('displayAadhaar');
-        const displayStartDateEl = document.getElementById('displayStartDate');
-        const displayExtraTextEl = document.getElementById('displayExtraText');
-        const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
-        const downloadBtn = document.getElementById('download');
-        
-        async function initializeAndFetch() {
+        // ✅ NAYA LOGIC: Authentication check
+        async function checkAuthAndInitialize() {
             try {
                 const response = await fetch('/api/config');
                 if (!response.ok) throw new Error('Configuration failed to load.');
                 const config = await response.json();
                 
                 firebase.initializeApp(config.firebase);
-                const db = firebase.database();
                 
-                const membersRef = db.ref('members');
-                const snapshot = await membersRef.once('value');
-                if (!snapshot.exists()) throw new Error('No member data found.');
-                
-                membersData = snapshot.val();
-                
-                const approvedMembers = Object.entries(membersData)
-                    .filter(([id, member]) => member.status === 'Approved' && member.fullName)
-                    .map(([id, member]) => ({ id, name: member.fullName }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-
-                nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
-                approvedMembers.forEach(member => {
-                    const option = document.createElement('option');
-                    option.value = member.id; 
-                    option.textContent = member.name;
-                    nameSelect.appendChild(option);
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        // User is logged in, run the main app logic.
+                        console.log("User authenticated, running app logic...");
+                        runAppLogic();
+                    } else {
+                        // User is not logged in, redirect to login page.
+                        console.log("User not authenticated, redirecting to login...");
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
                 });
-                nameSelect.disabled = false;
 
             } catch (error) {
-                console.error('Error:', error);
-                nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
-                alert('Failed to load member data. Please check console.');
+                console.error('Initialization Error:', error);
+                alert('Application failed to initialize. Please check console.');
             }
         }
 
-        // NEW: Helper function to create a proxied URL for images
-        function createProxyUrl(url) {
-            if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-                return ''; // Return empty if no valid URL
-            }
-            const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
-            return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
-        }
-
-        function formatDisplayDate(dateString) {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return "N/A";
-            const options = { day: 'numeric', month: 'long', year: 'numeric' };
-            return date.toLocaleDateString('en-GB', options);
-        }
-
-        function generateExtraText(name, position) {
-            if (position === "Prime Member") {
-                return `प्रिय ${name},<br>आपका हमारे बैंक community में प्राइम मेंबर के रूप में स्वागत है। आपकी सहभागिता हमारे लिए सम्मान की बात है। हमें विश्वास है कि आपका अनुभव हमारे साथ शानदार रहेगा।`;
-            } else {
-                return `प्रिय ${name},<br>आपका हमारे बैंक मेंबर के रूप में स्वागत है। आपकी सहभागिता हमारे लिए मूल्यवान है, और हम आपके साथ एक मजबूत रिश्ता बनाने की आशा करते हैं।`;
-            }
-        }
-
-        function setApiImage(member) {
-            const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=daa520&color=fff&size=140`;
-            const imageUrl = member.profilePicUrl || defaultPic;
+        // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+        function runAppLogic() {
+            let membersData = {};
+            // ✅ Updated Prime Member list (in lowercase for reliable matching)
+            const primeMemberNames = ["amit kumar", "mithilesh sahni", "prince rama"];
             
-            // FIXED: Use proxy for all external images
-            apiApplicantPhotoEl.src = createProxyUrl(imageUrl);
+            const form = document.getElementById('letterForm');
+            const nameSelect = document.getElementById('nameSelect');
+            const captureDiv = document.getElementById('capture');
+            const displayDateEl = document.getElementById('displayDate');
+            const displayNameEl = document.getElementById('displayName');
+            const displayPositionEl = document.getElementById('displayPosition');
+            const displayGuarantorEl = document.getElementById('displayGuarantor');
+            const displayAadhaarEl = document.getElementById('displayAadhaar');
+            const displayStartDateEl = document.getElementById('displayStartDate');
+            const displayExtraTextEl = document.getElementById('displayExtraText');
+            const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
+            const downloadBtn = document.getElementById('download');
             
-            apiApplicantPhotoEl.onerror = () => {
-                // Fallback to a proxied default image if the primary one fails
-                apiApplicantPhotoEl.src = createProxyUrl(defaultPic);
-            };
-        }
+            async function fetchMemberData() {
+                try {
+                    const db = firebase.database();
+                    const membersRef = db.ref('members');
+                    const snapshot = await membersRef.once('value');
+                    if (!snapshot.exists()) throw new Error('No member data found.');
+                    
+                    membersData = snapshot.val();
+                    
+                    const approvedMembers = Object.entries(membersData)
+                        .filter(([id, member]) => member.status === 'Approved' && member.fullName)
+                        .map(([id, member]) => ({ id, name: member.fullName }))
+                        .sort((a, b) => a.name.localeCompare(b.name));
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const selectedMemberId = nameSelect.value;
-            if (!selectedMemberId) {
-                alert('Please select an applicant.');
-                return;
-            }
-            const member = membersData[selectedMemberId];
-            if (!member) {
-                alert('Selected member data not found.');
-                return;
-            }
-            
-            const position = primeMemberNames.includes(member.fullName.toLowerCase()) ? "Prime Member" : "Bank Member";
-            
-            displayDateEl.innerText = formatDisplayDate(new Date().toISOString());
-            displayNameEl.innerText = member.fullName;
-            displayPositionEl.innerText = position;
-            displayGuarantorEl.innerText = member.guarantorName || 'N/A';
-            displayAadhaarEl.innerText = member.aadhaar || 'N/A';
-            displayStartDateEl.innerText = formatDisplayDate(member.joiningDate);
-            displayExtraTextEl.innerHTML = generateExtraText(member.fullName, position);
-            setApiImage(member);
-
-            captureDiv.style.display = 'flex';
-            downloadBtn.style.display = 'block';
-            captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-
-        async function waitForImages(containerElement) {
-            const images = Array.from(containerElement.querySelectorAll('img:not([src=""])'));
-            const promises = images.map(img => {
-                if (!img.complete) {
-                    return new Promise((resolve) => {
-                        img.onload = resolve;
-                        img.onerror = () => {
-                             console.warn(`Image failed to load: ${img.src}`);
-                             resolve(); // Resolve even on error
-                        };
+                    nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
+                    approvedMembers.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id; 
+                        option.textContent = member.name;
+                        nameSelect.appendChild(option);
                     });
+                    nameSelect.disabled = false;
+
+                } catch (error) {
+                    console.error('Error fetching member data:', error);
+                    nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
+                    alert('Failed to load member data. Please check console.');
                 }
-                return Promise.resolve();
+            }
+
+            function createProxyUrl(url) {
+                if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+                    return '';
+                }
+                const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
+                return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
+            }
+
+            function formatDisplayDate(dateString) {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return "N/A";
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                return date.toLocaleDateString('en-GB', options);
+            }
+
+            function generateExtraText(name, position) {
+                if (position === "Prime Member") {
+                    return `प्रिय ${name},<br>आपका हमारे बैंक community में प्राइम मेंबर के रूप में स्वागत है। आपकी सहभागिता हमारे लिए सम्मान की बात है। हमें विश्वास है कि आपका अनुभव हमारे साथ शानदार रहेगा।`;
+                } else {
+                    return `प्रिय ${name},<br>आपका हमारे बैंक मेंबर के रूप में स्वागत है। आपकी सहभागिता हमारे लिए मूल्यवान है, और हम आपके साथ एक मजबूत रिश्ता बनाने की आशा करते हैं।`;
+                }
+            }
+
+            function setApiImage(member) {
+                const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=daa520&color=fff&size=140`;
+                const imageUrl = member.profilePicUrl || defaultPic;
+                
+                apiApplicantPhotoEl.src = createProxyUrl(imageUrl);
+                
+                apiApplicantPhotoEl.onerror = () => {
+                    apiApplicantPhotoEl.src = createProxyUrl(defaultPic);
+                };
+            }
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const selectedMemberId = nameSelect.value;
+                if (!selectedMemberId) {
+                    alert('Please select an applicant.');
+                    return;
+                }
+                const member = membersData[selectedMemberId];
+                if (!member) {
+                    alert('Selected member data not found.');
+                    return;
+                }
+                
+                // ✅ Use .toLowerCase() for case-insensitive matching
+                const position = primeMemberNames.includes(member.fullName.toLowerCase()) ? "Prime Member" : "Bank Member";
+                
+                displayDateEl.innerText = formatDisplayDate(new Date().toISOString());
+                displayNameEl.innerText = member.fullName;
+                displayPositionEl.innerText = position;
+                displayGuarantorEl.innerText = member.guarantorName || 'N/A';
+                displayAadhaarEl.innerText = member.aadhaar || 'N/A';
+                displayStartDateEl.innerText = formatDisplayDate(member.joiningDate);
+                displayExtraTextEl.innerHTML = generateExtraText(member.fullName, position);
+                setApiImage(member);
+
+                captureDiv.style.display = 'flex';
+                downloadBtn.style.display = 'block';
+                captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
-            // Wait for all images and add a small delay for rendering
-            return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
+
+            async function waitForImages(containerElement) {
+                const images = Array.from(containerElement.querySelectorAll('img:not([src=""])'));
+                const promises = images.map(img => {
+                    if (!img.complete) {
+                        return new Promise((resolve) => {
+                            img.onload = resolve;
+                            img.onerror = () => {
+                                console.warn(`Image failed to load: ${img.src}`);
+                                resolve();
+                            };
+                        });
+                    }
+                    return Promise.resolve();
+                });
+                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
+            }
+
+            downloadBtn.addEventListener('click', async () => {
+                downloadBtn.textContent = 'Preparing Download...';
+                downloadBtn.disabled = true;
+                try {
+                    await waitForImages(captureDiv);
+                    const canvas = await html2canvas(captureDiv, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+                    const link = document.createElement('a');
+                    const fileName = `Joining_Letter_${displayNameEl.innerText.replace(/\s+/g, '_') || 'User'}.png`;
+                    link.download = fileName;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (error) {
+                    console.error('Error during download generation:', error);
+                    alert('Failed to generate download. Please check console for errors.');
+                } finally {
+                    downloadBtn.textContent = 'Download Letter';
+                    downloadBtn.disabled = false;
+                }
+            });
+
+            nameSelect.disabled = true;
+            fetchMemberData();
         }
 
-        downloadBtn.addEventListener('click', async () => {
-            downloadBtn.textContent = 'Preparing Download...';
-            downloadBtn.disabled = true;
-            try {
-                await waitForImages(captureDiv);
-                const canvas = await html2canvas(captureDiv, {
-                    scale: 3,
-                    useCORS: true, // Crucial for proxied images
-                    logging: false,
-                    backgroundColor: '#ffffff'
-                });
-                const link = document.createElement('a');
-                const fileName = `Joining_Letter_${displayNameEl.innerText.replace(/\s+/g, '_') || 'User'}.png`;
-                link.download = fileName;
-                link.href = canvas.toDataURL('image/png', 1.0);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (error) {
-                console.error('Error during download generation:', error);
-                alert('Failed to generate download. Please check console for errors.');
-            } finally {
-                downloadBtn.textContent = 'Download Letter';
-                downloadBtn.disabled = false;
-            }
-        });
-
-        nameSelect.disabled = true;
-        initializeAndFetch();
+        // ✅ App ko shuru karein
+        checkAuthAndInitialize();
     </script>
 </body>
 </html>
