@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>लॉगिन - बैंक कम्युनिटी लोन</title>
     
-    <!-- Yahan login.js file ko module ke roop mein jodein -->
-    <script type="module" src="/login.js" defer></script>
-
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
     <style>
         body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .login-container { background-color: #fff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 380px; }
@@ -45,6 +45,80 @@
         </form>
         <p id="errorMessage" class="error-message"></p>
     </div>
+
+    <script>
+        // v8 Syntax for Login Logic
+        async function initializeAppWithConfig() {
+            try {
+                // Vercel se config laayein
+                const response = await fetch('/api/config'); // Aapka config endpoint
+                if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल।');
+                
+                const config = await response.json();
+                
+                // Firebase v8 tarike se initialize karein
+                firebase.initializeApp(config.firebase);
+                
+                setupLoginListener();
+
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                const errorMessageElement = document.getElementById('errorMessage');
+                errorMessageElement.textContent = error.message;
+                errorMessageElement.style.display = 'block';
+            }
+        }
+
+        function setupLoginListener() {
+            const auth = firebase.auth(); // v8 tarike se auth object prapt karein
+
+            const loginForm = document.getElementById('loginForm');
+            const errorMessageElement = document.getElementById('errorMessage');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            const loader = document.getElementById('loader');
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                errorMessageElement.style.display = 'none';
+                loginBtn.disabled = true;
+                loginBtnText.style.display = 'none';
+                loader.style.display = 'inline-block';
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const adminUid = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+
+                        if (user.uid === adminUid) {
+                            sessionStorage.setItem('isAdminLoggedIn', 'true');
+                            window.location.href = redirectUrl || '/admin.html'; 
+                        } else {
+                            window.location.href = '/index.html'; 
+                        }
+                    })
+                    .catch((error) => {
+                        errorMessageElement.textContent = 'गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।';
+                        errorMessageElement.style.display = 'block';
+                        console.error("Login Error:", error.code, error.message);
+                    })
+                    .finally(() => {
+                        loginBtn.disabled = false;
+                        loginBtnText.style.display = 'inline';
+                        loader.style.display = 'none';
+                    });
+            });
+        }
+        
+        // App ko initialize karein
+        initializeAppWithConfig();
+    </script>
 </body>
 </html>
 
