@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase SDKs for backend connection -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
@@ -232,6 +232,24 @@ body {
     height: 14px;
 }
 
+/* ✅ NAYA STYLE: Smart Slab Badge ke liye */
+.smart-slab-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #e0e7ff; /* Indigo-100 */
+    color: var(--primary-color);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+.smart-slab-badge .icon {
+    width: 12px;
+    height: 12px;
+}
+
 .card-middle { 
     background-color: var(--primary-bg); 
     border-radius: 12px; 
@@ -331,7 +349,6 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    // ✅ NAYA LOGIC: Authentication check
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -342,11 +359,9 @@ document.addEventListener("DOMContentLoaded", () => {
             
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    // User is logged in, run the main app logic.
                     console.log("User authenticated, fetching loan data...");
                     runAppLogic();
                 } else {
-                    // User is not logged in, redirect to login page.
                     console.log("User not authenticated, redirecting to login...");
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
@@ -359,14 +374,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
     function runAppLogic() {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
             money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
             penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
-            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`
+            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
+            star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`
         };
 
         const state = {
@@ -429,6 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 .sort((a, b) => a.Date - b.Date);
         }
 
+        // Purana penalty calculation function
         function calculatePenalty(loanAmount, daysAgo) {
             let percentage = 0;
             if (daysAgo > 0 && daysAgo <= 30)       percentage = 1;
@@ -437,8 +453,34 @@ document.addEventListener("DOMContentLoaded", () => {
             else if (daysAgo >= 91 && daysAgo <= 100) percentage = 5.5;
             else if (daysAgo > 100)                  percentage = 6;
             const amount = Math.round((loanAmount * percentage) / 100);
-            return { percentage, amount };
+            return { type: 'penalty', percentage, amount };
         }
+
+        // ✅ NAYA FUNCTION: Smart Slab interest calculation ke liye
+        function calculateSmartSlabInterest(loanAmount, daysAgo) {
+            let percentage = 0;
+            let slabName = "";
+            
+            // Yahan hum progressive interest rate lagayenge
+            if (daysAgo > 90) {
+                 // 90 din ke baad, hum 2% par cap kar rahe hain, ya aap standard penalty par revert kar sakte hain
+                percentage = 2; 
+                slabName = "Month 3+";
+            } else if (daysAgo > 60) {
+                percentage = 2; // Tisre mahine ke liye 2%
+                slabName = "Month 3";
+            } else if (daysAgo > 30) {
+                percentage = 1.5; // Doosre mahine ke liye 1.5%
+                slabName = "Month 2";
+            } else if (daysAgo > 0) {
+                percentage = 1; // Pehle mahine ke liye 1%
+                slabName = "Month 1";
+            }
+
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { type: 'smart-interest', percentage, amount, slabName };
+        }
+
 
         function findOutstandingLoans(allData) {
             const outstanding = [];
@@ -448,11 +490,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 const memberData = allData.filter(r => r.Name === name);
                 let currentBalance = 0;
                 let lastLoanDate = null;
+                let lastLoanAmount = 0;
 
                 memberData.forEach(transaction => {
                     if (transaction.Loan > 0) {
                         currentBalance += transaction.Loan;
                         lastLoanDate = transaction.Date;
+                        lastLoanAmount = transaction.Loan;
                     } else if (transaction.Payment > 0) {
                         currentBalance -= transaction.Payment;
                     }
@@ -460,16 +504,40 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 currentBalance = Math.round(currentBalance);
 
-                if (currentBalance > 0) {
+                if (currentBalance > 0 && lastLoanDate) {
                     const today = new Date();
-                    let daysPassed = 0;
-                    if (lastLoanDate) {
-                        const timeDiff = today.getTime() - lastLoanDate.getTime();
-                        daysPassed = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
-                    }
+                    const timeDiff = today.getTime() - lastLoanDate.getTime();
+                    const daysPassed = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
                     
                     const latestImage = memberData.find(r => r.ImageUrl)?.ImageUrl || null;
-                    const penaltyInfo = calculatePenalty(currentBalance, daysPassed);
+                    
+                    // --- ✅ NAYA LOGIC: Smart Slab check karne ke liye ---
+                    let isSmartSlabApplicable = false;
+                    let interestInfo;
+
+                    // Aakhri loan ke baad pehla payment dhundhein
+                    const lastLoanTimestamp = lastLoanDate.getTime();
+                    const firstPaymentAfterLoan = memberData
+                        .filter(tx => tx.Payment > 0 && tx.Date.getTime() > lastLoanTimestamp)
+                        .sort((a, b) => a.Date - b.Date)[0]; // Sabse pehla payment
+
+                    if (firstPaymentAfterLoan) {
+                        const firstPaymentDate = firstPaymentAfterLoan.Date;
+                        const daysBetweenLoanAndFirstPayment = (firstPaymentDate.getTime() - lastLoanTimestamp) / (1000 * 3600 * 24);
+
+                        // Check karein ki pehla payment 30 din ke andar kiya gaya hai ya nahi
+                        if (daysBetweenLoanAndFirstPayment <= 30) {
+                            isSmartSlabApplicable = true;
+                        }
+                    }
+
+                    // Sahi calculation function chunein
+                    if (isSmartSlabApplicable) {
+                        interestInfo = calculateSmartSlabInterest(currentBalance, daysPassed);
+                    } else {
+                        interestInfo = calculatePenalty(currentBalance, daysPassed);
+                    }
+                    // --- Naya logic yahan khatm hota hai ---
 
                     outstanding.push({
                         name: name,
@@ -477,7 +545,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         daysAgo: daysPassed,
                         imageUrl: latestImage,
                         loanDate: lastLoanDate,
-                        penalty: penaltyInfo,
+                        interest: interestInfo, // Pehle 'penalty' tha, ab 'interest' hai
+                        isSmartSlab: isSmartSlabApplicable, // UI mein dikhane ke liye flag
                     });
                 }
             });
@@ -521,11 +590,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (loan.daysAgo > 90) bannerClass = 'danger';
                 else if (loan.daysAgo > 60) bannerClass = 'warning';
                 
-                let penaltyHtml = '';
-                if (loan.penalty.amount > 0) {
-                    penaltyHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} Late Fee (${loan.penalty.percentage}%):</span><span class="detail-value penalty-value">₹${loan.penalty.amount.toLocaleString('en-IN')}</span></div>`;
+                // ✅ UPDATE: Interest/Penalty display logic
+                let interestHtml = '';
+                if (loan.interest.amount > 0) {
+                    const label = loan.isSmartSlab ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
+                    interestHtml = `
+                        <div class="detail-row">
+                            <span class="detail-label">${ICONS.penalty} ${label} (${loan.interest.percentage}%):</span>
+                            <span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span>
+                        </div>`;
                 }
                 
+                // ✅ UPDATE: Smart Slab badge ke liye HTML
+                const smartSlabBadge = loan.isSmartSlab 
+                    ? `<div class="smart-slab-badge">${ICONS.star} Smart Slab Active</div>` 
+                    : '';
+
                 let bannerText = `Payment ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} pending`;
 
                 card.innerHTML = `
@@ -539,6 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="user-details">
                                 <h3>${loan.name}</h3>
+                                ${smartSlabBadge}
                                 <div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div>
                             </div>
                         </div>
@@ -547,7 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
                                 <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
                             </div>
-                            ${penaltyHtml}
+                            ${interestHtml}
                         </div>
                     </div>
                     <div class="pending-banner ${bannerClass}">
@@ -567,8 +648,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             
             html2canvas(cardElement, {
-            useCORS: true, 
-            scale: 2 
+                useCORS: true, 
+                scale: 2 
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `${cardId}.png`;
@@ -594,12 +675,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
         }
-
-        // Start fetching data
+        
         fetchAndProcessData();
     }
     
-    // ✅ App ko shuru karein
     checkAuthAndInitialize();
 });
 </script>
