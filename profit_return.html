@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loan Profit Analytics - Firebase Version</title>
+    <title>Loan Profit Analytics - Final Version</title>
     
     <!-- Google Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +17,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <!-- Firebase SDKs (Version 8.10.1) -->
-    <!-- App aur Database ke saath Auth SDK bhi joda gaya hai -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -50,7 +49,7 @@
 }
 
 /* --- BASE & UTILITIES --- */
-body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--light-bg); color: var(--text-dark); line-height: 1.6; padding-top: 70px; }
+body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--light-bg); color: var(--text-dark); line-height: 1.6; }
 .container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
 .hidden { display: none !important; }
 .visually-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
@@ -63,21 +62,14 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 .btn-details-small:hover, .btn-ai-small:hover { opacity: 0.85; transform: scale(1.05); }
 .button-group { display: flex; align-items: center; justify-content: center; }
 
-/* --- LOADER & PASSWORD PROMPT --- */
-#loader, #passwordPromptContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 5000; transition: opacity 0.5s ease; flex-direction: column; }
-#loader { background-color: var(--light-bg); }
-#loader .spinner, .ai-loader .spinner { width: 50px; height: 50px; border: 5px solid rgba(0,0,0,0.1); border-left-color: var(--secondary-color); border-radius: 50%; animation: spin 1.2s linear infinite; }
+/* --- LOADER --- */
+#loader-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 5000; background-color: var(--light-bg); flex-direction: column; gap: 1rem; }
+#loader-container .spinner { width: 50px; height: 50px; border: 5px solid rgba(0,0,0,0.1); border-left-color: var(--secondary-color); border-radius: 50%; animation: spin 1.2s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-#passwordPromptContainer { background-color: var(--modal-bg); backdrop-filter: blur(5px); }
-#passwordPromptContainer.visually-hidden { opacity: 0; }
-#passwordPromptMessage { padding: 30px 35px; background-color: var(--card-bg); border-radius: 16px; box-shadow: var(--card-shadow); text-align: center; max-width: 340px; width: 90%; }
-#passwordPromptMessage h3 { margin-top: 0; font-size: 1.3em; }
-#passwordInput { width: calc(100% - 24px); padding: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 22px; text-align: center; letter-spacing: 10px; font-family: 'Poppins', sans-serif; }
-#passwordSubmit { width: 100%; padding: 12px 20px; font-size: 1em; font-weight: 600; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
-#passwordSubmit:hover { background-color: var(--secondary-color); transform: translateY(-2px); }
+#loader-container span { font-weight: 500; color: var(--text-light); }
 
-/* Baaki saari CSS pehle jaisi hi rahegi... */
-.header { text-align: center; background: var(--gradient-header); color: white; padding: 15px 0; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+/* --- HEADER & FILTERS --- */
+.header { text-align: center; background: var(--gradient-header); color: white; padding: 15px 0; position: sticky; top: 0; left: 0; width: 100%; z-index: 1000; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
 .header h1 { font-size: 1.4em; margin: 0; font-weight: 600; }
 .filters { margin-bottom: 30px; background-color: var(--card-bg); padding: 15px 20px; border-radius: 12px; box-shadow: var(--card-shadow); }
 .filter-group { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
@@ -90,12 +82,14 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 .btn-score { background-color: var(--secondary-color); color: white; }
 .btn-eligibility { background-color: #8e44ad; color: white; }
 .rank-buttons button:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+/* --- MAIN CONTENT & SECTIONS --- */
 .main-content { display: grid; grid-template-columns: 1fr; gap: 30px; align-items: flex-start; }
-#dashboardContent { opacity: 0; transition: opacity 0.5s ease-in-out; }
-#dashboardContent.visible { opacity: 1; }
 .content-section { background-color: var(--card-bg); border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px; margin-bottom: 30px;}
 .content-section h2 { margin-top: 0; text-align: center; color: var(--primary-color); }
 #growthChartContainer { position: relative; height: 350px; }
+
+/* --- PROFILE CARD --- */
 .profile-card { border-top: 4px solid var(--secondary-color); }
 .profile-image-container { width: 130px; height: 130px; margin: 0 auto 15px auto; border-radius: 50%; overflow: hidden; border: 5px solid var(--light-bg); box-shadow: 0 0 15px rgba(0,0,0,0.1); }
 .profile-image-container img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s ease; }
@@ -114,326 +108,318 @@ body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--li
 .icon-profit { color: var(--accent-color); }
 .icon-score { color: var(--secondary-color); }
 .icon-limit { color: #8e44ad; }
-.table-container { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { padding: 15px; border-bottom: 1px solid var(--border-color); text-align: center; vertical-align: middle; }
-th { background-color: var(--primary-color); color: white; font-size: 0.9em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-td { font-size: 0.95em; }
-.profit-value { font-weight: bold; color: var(--positive-color); }
-.details-btn { padding: 8px 14px; font-size: 0.85em; background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
-.details-btn:hover { background-color: #2980b9; transform: scale(1.05); }
-.no-data-row td { text-align: center; padding: 50px; color: var(--text-light); font-size: 1.1em; }
-.transaction-type { font-weight: bold; }
-.transaction-type.sip { color: var(--positive-color); }
-.transaction-type.loan { color: var(--negative-color); }
-.transaction-type.payment { color: var(--secondary-color); }
-.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-bg); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2500; padding: 15px; box-sizing: border-box; transition: opacity 0.3s ease, visibility 0.3s ease; }
-.modal-content { background-color: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: var(--card-shadow); max-width: 700px; width: 95%; position: relative; max-height: 90vh; display: flex; flex-direction: column; }
-.modal.visually-hidden { opacity: 0; visibility: hidden; }
-.modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 30px; color: #bdc3c7; cursor: pointer; transition: color 0.2s; z-index: 2510;}
-.modal-close:hover { color: var(--text-dark); }
-.modal h2 { margin-top: 0; text-align: center; color: var(--primary-color); font-weight: 600; }
-.modal .list-container { overflow-y: auto; flex-grow: 1; }
-.modal ul, .modal ol { list-style: none; padding: 0; margin-top: 15px; }
-.modal li { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; background-color: var(--light-bg); transition: background-color 0.2s; }
-.modal li:hover { background-color: #dfe6e9; }
-.modal .rank { font-weight: bold; color: var(--secondary-color); min-width: 35px; font-size: 1.1em; }
-.modal .name { font-weight: 600; flex-grow: 1; }
-.modal .share { font-weight: bold; color: var(--positive-color); white-space: nowrap; }
-.chart-container { margin-bottom: 20px; }
-.list-header { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); font-size: 1.1em; color: var(--text-light); }
-#imageModal .modal-content { background: transparent; padding: 0; box-shadow: none; max-width: 90vw; }
-#imageModal img { max-height: 85vh; width: auto; object-fit: contain; border-radius: 12px; }
-#imageModal .modal-close { color: white; background-color: rgba(0,0,0,0.4); border-radius: 50%; width: 35px; height: 35px; line-height: 35px; font-size: 22px; text-align: center; top: 20px; right: 20px; }
-#calculationDetailsContent { font-size: 0.95em; line-height: 1.8; }
-#calculationDetailsContent .calc-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border-color); }
-#calculationDetailsContent .calc-row:last-child { border-bottom: none; }
-#calculationDetailsContent .calc-label { color: var(--text-light); }
-#calculationDetailsContent .calc-value { font-weight: 600; }
-#calculationDetailsContent .calc-formula { font-size: 0.85em; color: var(--text-light); text-align: right; margin-top: -5px; }
-#calculationDetailsContent .calc-final { font-size: 1.2em; font-weight: 700; color: var(--positive-color); text-align: center; margin-top: 15px; padding: 10px; background-color: var(--light-bg); border-radius: 8px; }
-.improvement-tips { margin-top: 20px; padding: 15px; background-color: rgba(39, 174, 96, 0.05); border: 1px solid rgba(39, 174, 96, 0.2); border-radius: 8px; color: #218c52; }
-.improvement-tips h4 { margin-top: 0; }
-.improvement-tips ul { padding-left: 20px; margin-bottom: 0; }
-#aiExplainModal .modal-content { max-width: 800px; }
-#aiExplainModal h2 { display: flex; align-items: center; justify-content: center; gap: 10px; }
-#aiExplanationContainer { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
-#aiExplanationResult { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; min-height: 200px; max-height: 60vh; overflow-y: auto; line-height: 1.7; color: var(--text-dark); }
-#aiExplanationResult h3, #aiExplanationResult h4 { margin-top: 1.5em; margin-bottom: 0.5em; color: var(--primary-color); padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
-#aiExplanationResult ul { padding-left: 20px; }
-#aiExplanationResult strong { color: var(--primary-color); }
-#aiExplanationResult table { width: 100%; border-collapse: collapse; margin-top: 1.2em; margin-bottom: 1.2em; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
-#aiExplanationResult th, #aiExplanationResult td { padding: 12px 15px; font-size: 0.95em; text-align: left; border-bottom: 1px solid var(--border-color); }
-#aiExplanationResult th { background-color: var(--primary-color); color: white; font-weight: 600; }
-#aiExplanationResult td { color: var(--text-dark); }
-#aiExplanationResult td:first-child { font-weight: 600; color: var(--text-light); }
-#aiExplanationResult tr:last-child td { border-bottom: none; }
-.ai-loader { text-align: center; padding: 40px 0; }
-.ai-loader .spinner { margin: 0 auto 15px auto; }
-.ai-loader span { font-size: 1.1em; color: var(--text-light); }
-#languageToggleContainer { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; }
-.lang-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; font-size: 0.8em; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; }
-.lang-btn:hover { background-color: var(--border-color); }
-@media (min-width: 992px) { .main-content { grid-template-columns: 380px 1fr; } .profile-card { position: sticky; top: 100px; } }
+
+/* --- TABLES & MODALS (Remaining CSS is the same) --- */
+.table-container{width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{padding:15px;border-bottom:1px solid var(--border-color);text-align:center;vertical-align:middle}th{background-color:var(--primary-color);color:white;font-size:.9em;font-weight:600;text-transform:uppercase;white-space:nowrap}td{font-size:.95em}.profit-value{font-weight:700;color:var(--positive-color)}.details-btn{padding:8px 14px;font-size:.85em;background-color:var(--secondary-color);color:white;border:none;border-radius:6px;cursor:pointer;transition:all .2s ease}.details-btn:hover{background-color:#2980b9;transform:scale(1.05)}.no-data-row td{text-align:center;padding:50px;color:var(--text-light);font-size:1.1em}.transaction-type{font-weight:700}.transaction-type.sip{color:var(--positive-color)}.transaction-type.loan{color:var(--negative-color)}.transaction-type.payment{color:var(--secondary-color)}.modal{position:fixed;top:0;left:0;width:100%;height:100%;background-color:var(--modal-bg);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:2500;padding:15px;box-sizing:border-box;transition:opacity .3s ease,visibility .3s ease}.modal-content{background-color:var(--card-bg);padding:30px;border-radius:16px;box-shadow:var(--card-shadow);max-width:700px;width:95%;position:relative;max-height:90vh;display:flex;flex-direction:column}.modal.visually-hidden{opacity:0;visibility:hidden}.modal-close{position:absolute;top:15px;right:20px;background:0 0;border:none;font-size:30px;color:#bdc3c7;cursor:pointer;transition:color .2s;z-index:2510}.modal-close:hover{color:var(--text-dark)}.modal h2{margin-top:0;text-align:center;color:var(--primary-color);font-weight:600}.modal .list-container{overflow-y:auto;flex-grow:1}.modal ol,.modal ul{list-style:none;padding:0;margin-top:15px}.modal li{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-radius:8px;margin-bottom:8px;background-color:var(--light-bg);transition:background-color .2s}.modal li:hover{background-color:#dfe6e9}.modal .rank{font-weight:700;color:var(--secondary-color);min-width:35px;font-size:1.1em}.modal .name{font-weight:600;flex-grow:1}.modal .share{font-weight:700;color:var(--positive-color);white-space:nowrap}.chart-container{margin-bottom:20px}.list-header{margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border-color);font-size:1.1em;color:var(--text-light)}#imageModal .modal-content{background:0 0;padding:0;box-shadow:none;max-width:90vw}#imageModal img{max-height:85vh;width:auto;object-fit:contain;border-radius:12px}#imageModal .modal-close{color:#fff;background-color:rgba(0,0,0,.4);border-radius:50%;width:35px;height:35px;line-height:35px;font-size:22px;text-align:center;top:20px;right:20px}#calculationDetailsContent{font-size:.95em;line-height:1.8}#calculationDetailsContent .calc-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border-color)}#calculationDetailsContent .calc-row:last-child{border-bottom:none}#calculationDetailsContent .calc-label{color:var(--text-light)}#calculationDetailsContent .calc-value{font-weight:600}#calculationDetailsContent .calc-formula{font-size:.85em;color:var(--text-light);text-align:right;margin-top:-5px}#calculationDetailsContent .calc-final{font-size:1.2em;font-weight:700;color:var(--positive-color);text-align:center;margin-top:15px;padding:10px;background-color:var(--light-bg);border-radius:8px}.improvement-tips{margin-top:20px;padding:15px;background-color:rgba(39,174,96,.05);border:1px solid rgba(39,174,96,.2);border-radius:8px;color:#218c52}.improvement-tips h4{margin-top:0}.improvement-tips ul{padding-left:20px;margin-bottom:0}#aiExplainModal .modal-content{max-width:800px}#aiExplainModal h2{display:flex;align-items:center;justify-content:center;gap:10px}#aiExplanationContainer{margin-top:15px;display:flex;flex-direction:column;gap:15px}#aiExplanationResult{border:1px solid var(--border-color);border-radius:8px;padding:15px;min-height:200px;max-height:60vh;overflow-y:auto;line-height:1.7;color:var(--text-dark)}#aiExplanationResult h3,#aiExplanationResult h4{margin-top:1.5em;margin-bottom:.5em;color:var(--primary-color);padding-bottom:5px;border-bottom:1px solid var(--border-color)}#aiExplanationResult ul{padding-left:20px}#aiExplanationResult strong{color:var(--primary-color)}#aiExplanationResult table{width:100%;border-collapse:collapse;margin-top:1.2em;margin-bottom:1.2em;box-shadow:0 2px 8px rgba(0,0,0,.05);border-radius:8px;overflow:hidden}#aiExplanationResult td,#aiExplanationResult th{padding:12px 15px;font-size:.95em;text-align:left;border-bottom:1px solid var(--border-color)}#aiExplanationResult th{background-color:var(--primary-color);color:#fff;font-weight:600}#aiExplanationResult td{color:var(--text-dark)}#aiExplanationResult td:first-child{font-weight:600;color:var(--text-light)}#aiExplanationResult tr:last-child td{border-bottom:none}.ai-loader{text-align:center;padding:40px 0}.ai-loader .spinner{margin:0 auto 15px auto}.ai-loader span{font-size:1.1em;color:var(--text-light)}#languageToggleContainer{display:flex;gap:10px;justify-content:flex-end;margin-bottom:10px}.lang-btn{background:0 0;border:1px solid var(--border-color);padding:4px 8px;font-size:.8em;border-radius:5px;cursor:pointer;transition:all .2s ease}.lang-btn:hover{background-color:var(--border-color)}
+
+/* --- RESPONSIVE DESIGN --- */
+@media (min-width: 992px) { .main-content { grid-template-columns: 380px 1fr; } .profile-card { position: sticky; top: 25px; } }
 @media (max-width: 991px) { .profile-card { margin-bottom: 30px; } }
-@media (max-width: 600px) { body { padding-top: 60px; } .container { padding: 0 15px; } .header h1 { font-size: 1.2em; } .filter-group { flex-direction: column; align-items: stretch; } .rank-buttons { flex-direction: column; } .profile-card h2 { font-size: 1.5em; } th, td { padding: 12px 8px; } .modal-content { padding: 20px; } #growthChartContainer { height: 300px; } }
+@media (max-width: 600px) { .container { padding: 0 15px; } .header h1 { font-size: 1.2em; } .filter-group { flex-direction: column; align-items: stretch; } .rank-buttons { flex-direction: column; } .profile-card h2 { font-size: 1.5em; } td,th { padding: 12px 8px; } .modal-content { padding: 20px; } #growthChartContainer { height: 300px; } }
 </style>
-    <div id="loader">
+
+    <div id="loader-container">
         <div class="spinner"></div>
-        <span>Authenticating and Loading Data...</span>
+        <span id="loader-text">Authenticating...</span>
     </div>
 
-    <div id="passwordPromptContainer">
-        <div id="passwordPromptMessage">
-            <h3><i class="fas fa-lock"></i> Enter Access PIN</h3>
-            <input type="password" id="passwordInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••">
-            <button id="passwordSubmit">Enter</button>
-        </div>
-    </div>
-
-    <div id="dashboardContent" class="visually-hidden">
+    <div id="dashboardContent" class="hidden">
         <header class="header">
             <h1><i class="fas fa-chart-line"></i> Bank Loan Profit</h1>
         </header>
 
         <div class="container">
-            <div class="main-content">
-                <!-- Baaki saara HTML content (filters, profile card, tables, modals) pehle jaisa hi rahega -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="memberFilter"><i class="fas fa-user-friends"></i> Select View:</label>
+                    <select id="memberFilter">
+                        <option value="all">Community Overview</option>
+                    </select>
+                </div>
+                <div class="rank-buttons">
+                    <button id="showReturnRankBtn" class="btn-profit"><i class="fas fa-trophy"></i> Profit Ranking</button>
+                    <button id="showScoreRankBtn" class="btn-score"><i class="fas fa-star"></i> Score Ranking</button>
+                    <button id="showEligibilityRankBtn" class="btn-eligibility"><i class="fas fa-gavel"></i> Eligibility Ranking</button>
+                </div>
             </div>
+
+            <main class="main-content">
+                <aside class="profile-card content-section" id="profileSection">
+                    <div class="profile-image-container">
+                        <img id="profileImage" src="https://i.postimg.cc/XNpR3cN1/20241030-065157.png" alt="Profile Picture">
+                    </div>
+                    <h2 id="profileName">Community</h2>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <span class="label"><i class="fas fa-coins icon-capital"></i> Total Capital</span>
+                            <span class="value" id="profileTotalCapital">₹0.00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label"><i class="fas fa-arrow-up-from-bracket icon-loan"></i> Total Loan Given</span>
+                            <span class="value negative" id="profileTotalLoan">₹0.00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label"><i class="fas fa-sack-dollar icon-profit"></i> Profit Distributed</span>
+                            <span class="value positive" id="profileTotalProfit">₹0.00</span>
+                        </div>
+                        <div id="memberSpecificStats" class="hidden">
+                             <div class="stat-item">
+                                <span class="label"><i class="fas fa-star icon-score"></i> Performance Score</span>
+                                <span class="value" id="profilePerformanceScore">0</span>
+                            </div>
+                             <div class="stat-item">
+                                <span class="label"><i class="fas fa-gavel icon-limit"></i> Loan Eligibility</span>
+                                <span class="value" id="profileLoanLimit">1.00x</span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <div id="right-column">
+                    <section id="growthChartSection" class="content-section">
+                        <h2><i class="fas fa-chart-area"></i> Community Growth Over Time</h2>
+                        <div id="growthChartContainer">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </section>
+
+                    <section id="profitLogSection" class="content-section">
+                        <h2><i class="fas fa-exchange-alt"></i> Profit Distribution Events</h2>
+                        <div class="table-container">
+                            <table id="profitLogTable">
+                                <thead>
+                                    <tr><th>Date</th><th>Payer</th><th>Loan Amt</th><th>Profit</th><th>Details</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section id="memberHistorySection" class="content-section hidden">
+                        <h2><i class="fas fa-history"></i> Member Transaction History</h2>
+                         <div class="table-container">
+                            <table id="memberHistoryTable">
+                                <thead>
+                                    <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </main>
         </div>
     </div>
     
-    <!-- All HTML for dashboard, tables, and modals remains unchanged -->
-    <!-- ... -->
-
-
-<script>
-// --- CONFIGURATION & NIYAM ---
-const CONFIG = {
-    PASSWORD: "7536",
-    DEFAULT_PROFILE_PIC: 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png',
-    CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
-    LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
-    LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
-    MINIMUM_MEMBERSHIP_DAYS: 60, SIP_ON_TIME_LIMIT: 10,
-    LOAN_TERM_TIER3: 90, LOAN_TERM_LATE_FEE: 100,
-    INACTIVE_MEMBER_DAYS_LIMIT: 365, 
-    INACTIVE_MEMBER_PROFIT_MULTIPLIER: 0.75
-};
-
-// --- GLOBAL VARIABLES ---
-let allData = [], memberNames = [], distributionChartInstance = null, growthChartInstance = null;
-let db, auth; // Firebase services references
-
-// --- INITIALIZATION ---
-document.addEventListener("DOMContentLoaded", () => setupPasswordPrompt());
-
-function setupPasswordPrompt() {
-    const passwordContainer = document.getElementById('passwordPromptContainer');
-    const passwordInput = document.getElementById('passwordInput');
-    const passwordSubmit = document.getElementById('passwordSubmit');
-    passwordContainer.classList.remove('visually-hidden');
-    passwordInput.focus();
-    const checkPassword = () => {
-        if (passwordInput.value === CONFIG.PASSWORD) {
-            passwordContainer.classList.add('visually-hidden');
-            document.getElementById('loader').classList.remove('hidden');
-            initializeAppAndCheckAuth(); // PIN sahi hone par authentication check shuru karein
-        } else {
-            alert("Incorrect PIN");
-            passwordInput.value = "";
-            passwordInput.focus();
-        }
-    };
-    passwordSubmit.addEventListener('click', checkPassword);
-    passwordInput.addEventListener('keydown', (e) => e.key === 'Enter' && checkPassword());
-}
-
-// --- FIREBASE INITIALIZATION & AUTHENTICATION CHECK (UPDATED) ---
-async function initializeAppAndCheckAuth() {
-    try {
-        // Step 1: Vercel se config file layein
-        const response = await fetch('/api/config');
-        if (!response.ok) throw new Error('Configuration failed to load.');
-        const config = await response.json();
-        
-        // Step 2: Firebase App ko initialize karein (v8 syntax)
-        if (!firebase.apps.length) {
-            firebase.initializeApp(config.firebase);
-        }
-        
-        // Step 3: Auth aur Database services ka reference lein
-        auth = firebase.auth();
-        db = firebase.database();
-
-        // Step 4: Authentication state ko check karein
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                // Yadi user signed in hai
-                console.log("User is authenticated:", user.uid);
-                // Ab data fetch kar sakte hain
-                await fetchData();
-            } else {
-                // Yadi user signed in nahin hai
-                console.log("User not authenticated. Redirecting to login page.");
-                // Use ko login page par redirect karein.
-                // Vartaman URL ko parameter ke roop mein pass karein taki login ke baad vapas aa sakein.
-                window.location.href = `login.html?redirect=${window.location.pathname}`;
-            }
-        });
-
-    } catch (error) {
-        console.error("Initialization or Auth check failed:", error);
-        document.getElementById('loader').classList.add('hidden');
-        document.body.innerHTML = `<div style="text-align:center; padding:50px; color:red;">Initialization failed. Error: ${error.message}</div>`;
-    }
-}
-
-
-// --- DATA FETCHING AND PROCESSING (RUNS ONLY AFTER AUTH) ---
-async function fetchData() {
-    try {
-        const membersRef = db.ref('members');
-        // .once() ab kaam karega kyunki user authenticated hai
-        const snapshot = await membersRef.once('value');
-        
-        if (!snapshot.exists()) {
-            throw new Error('No member data found in Firebase.');
-        }
-        
-        const membersData = snapshot.val();
-        
-        // Baaki data processing logic pehle jaisa hi hai
-        const allTransactions = [];
-        for (const memberId in membersData) {
-            const member = membersData[memberId];
-            if (member.transactions) {
-                for (const txId in member.transactions) {
-                    allTransactions.push({
-                        ...member.transactions[txId],
-                        Name: member.fullName,
-                        imageUrl: member.profilePicUrl
-                    });
-                }
-            }
-        }
-
-        allData = allTransactions.map((row, index) => ({
-            id: index, date: new Date(row.Date), name: String(row.Name).trim(),
-            loan: parseFloat(row.Loan) || 0, payment: parseFloat(row["Loan Payment"]) || 0,
-            sipPayment: parseFloat(row["SIP Payment"]) || 0, returnAmount: parseFloat(row["Return amount"] || 0),
-            imageUrl: row.imageUrl || null
-        })).filter(r => r.name && !isNaN(r.date.getTime()));
-
-        allData.sort((a, b) => a.date - b.date || a.id - b.id);
-        memberNames = [...new Set(allData.map(row => row.name))].sort();
-        
-        initializeDashboard();
-
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        // Yahan "permission_denied" error dikhega agar koi samasya hui
-        document.body.innerHTML = `<div style="text-align:center; padding:50px; color:red;">
-            <h2>Failed to load data.</h2>
-            <p>Please check Firebase connection and Vercel logs.</p>
-            <p><strong>Error:</strong> ${error.message}</p>
-        </div>`;
-    } finally {
-        document.getElementById('loader').classList.add('hidden');
-    }
-}
-
-// --- Baaki sabhi JavaScript functions (AI, UI, Calculations) pehle jaise hi rahenge ---
-// --- All other original JavaScript functions remain here ---
-function initializeDashboard() {
-    document.getElementById('dashboardContent').classList.remove('visually-hidden');
-    document.getElementById('dashboardContent').classList.add('visible');
-    // NOTE: Make sure the HTML for these elements exists in your file.
-    // I have removed it from the example for brevity, but you should have it.
-    const fullHtml = `
-        <div class="filters">
-            <div class="filter-group">
-                <label for="memberFilter"><i class="fas fa-user-friends"></i> Select View:</label>
-                <select id="memberFilter">
-                    <option value="all">Community Overview</option>
-                </select>
+    <!-- Modals -->
+    <div id="detailsModal" class="modal visually-hidden">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h2><i class="fas fa-chart-pie"></i> Profit Distribution</h2>
+            <div class="chart-container"><canvas id="distributionChart"></canvas></div>
+            <h3 class="list-header">Beneficiaries</h3>
+            <div class="list-container"><ul id="distributionDetails"></ul></div>
+        </div>
+    </div>
+    <div id="returnRankModal" class="modal visually-hidden">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h2><i class="fas fa-trophy"></i> Member Profit Ranking</h2>
+            <div class="list-container"><ol id="returnRankList"></ol></div>
+        </div>
+    </div>
+    <div id="scoreRankModal" class="modal visually-hidden">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h2><i class="fas fa-star"></i> Performance Score Ranking</h2>
+            <div class="table-container list-container">
+                <table id="scoreRankTable">
+                    <thead><tr><th>Rank</th><th>Name</th><th>Score</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
-            <div class="rank-buttons">
-                <button id="showReturnRankBtn" class="btn-profit"><i class="fas fa-trophy"></i> Profit Ranking</button>
-                <button id="showScoreRankBtn" class="btn-score"><i class="fas fa-star"></i> Score Ranking</button>
-                <button id="showEligibilityRankBtn" class="btn-eligibility"><i class="fas fa-gavel"></i> Eligibility Ranking</button>
+            <div class="improvement-tips">
+                <h4><i class="fas fa-lightbulb"></i> Score Kaise Badhaye?</h4>
+                <ul>
+                    <li>Har mahine 1 se 10 tarikh ke beech SIP jama karein.</li>
+                    <li>Liye gaye loan ko samay par (90 din ke andar) chukayein.</li>
+                    <li>System mein lambe samay tak apna capital banaye rakhein.</li>
+                </ul>
             </div>
         </div>
-        <main class="main-content">
-            <aside class="profile-card content-section" id="profileSection">
-                <div class="profile-image-container">
-                    <img id="profileImage" src="https://i.postimg.cc/XNpR3cN1/20241030-065157.png" alt="Profile Picture">
-                </div>
-                <h2 id="profileName">Community</h2>
-                <div class="profile-stats">
-                    <div class="stat-item">
-                        <span class="label"><i class="fas fa-coins icon-capital"></i> Total Capital</span>
-                        <span class="value" id="profileTotalCapital">₹0.00</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label"><i class="fas fa-arrow-up-from-bracket icon-loan"></i> Total Loan Given</span>
-                        <span class="value negative" id="profileTotalLoan">₹0.00</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label"><i class="fas fa-sack-dollar icon-profit"></i> Profit Distributed</span>
-                        <span class="value positive" id="profileTotalProfit">₹0.00</span>
-                    </div>
-                    <div id="memberSpecificStats" class="hidden">
-                         <div class="stat-item">
-                            <span class="label"><i class="fas fa-star icon-score"></i> Performance Score</span>
-                            <span class="value" id="profilePerformanceScore">0</span>
-                        </div>
-                         <div class="stat-item">
-                            <span class="label"><i class="fas fa-gavel icon-limit"></i> Loan Eligibility</span>
-                            <span class="value" id="profileLoanLimit">1.00x</span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-            <div id="right-column">
-                <section id="growthChartSection" class="content-section">
-                    <h2><i class="fas fa-chart-area"></i> Community Growth Over Time</h2>
-                    <div id="growthChartContainer">
-                        <canvas id="growthChart"></canvas>
-                    </div>
-                </section>
-                <section id="profitLogSection" class="content-section">
-                    <h2><i class="fas fa-exchange-alt"></i> Profit Distribution Events</h2>
-                    <div class="table-container">
-                        <table id="profitLogTable">
-                            <thead>
-                                <tr><th>Date</th><th>Payer</th><th>Loan Amt</th><th>Profit</th><th>Details</th></tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </section>
-                <section id="memberHistorySection" class="content-section hidden">
-                    <h2><i class="fas fa-history"></i> Member Transaction History</h2>
-                     <div class="table-container">
-                        <table id="memberHistoryTable">
-                            <thead>
-                                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th></tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </section>
+    </div>
+    <div id="eligibilityRankModal" class="modal visually-hidden">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h2><i class="fas fa-gavel"></i> Loan Eligibility Ranking</h2>
+            <div class="table-container list-container">
+                <table id="eligibilityRankTable">
+                    <thead><tr><th>Name</th><th>Capital</th><th>Eligibility</th><th>Max Loan Amt</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
-        </main>
-    `;
-    document.querySelector('.container .main-content').parentElement.innerHTML = fullHtml;
+        </div>
+    </div>
+    <div id="calculationDetailsModal" class="modal visually-hidden">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h2 id="calculationDetailsTitle">Calculation Details</h2>
+            <div id="calculationDetailsContent" class="list-container"></div>
+        </div>
+    </div>
+    <div id="imageModal" class="modal visually-hidden">
+         <button class="modal-close">×</button>
+         <div class="modal-content"><img id="fullProfileImage" src="" alt="Full Profile Picture View"></div>
+    </div>
+    <div id="aiExplainModal" class="modal visually-hidden">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h2><i class="fas fa-robot"></i> AI Assistant</h2>
+            <div id="aiExplanationContainer">
+                <div id="languageToggleContainer" class="hidden">
+                    <button class="lang-btn" data-lang="hi">हिंदी में</button>
+                    <button class="lang-btn" data-lang="en">In English</button>
+                </div>
+                <div id="aiExplanationResult"></div>
+            </div>
+        </div>
+    </div>
 
-    populateMemberFilter();
-    setupEventListeners();
-    updateDisplay();
-}
-// ... (rest of the functions: setupEventListeners, populateMemberFilter, updateDisplay, etc. are unchanged)
+
+<script type="module">
+    // Mukhya function jo app ko shuru karega
+    async function checkAuthAndInitialize() {
+        try {
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
+            
+            if (!firebase.apps.length) {
+                firebase.initializeApp(config.firebase);
+            }
+            
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    // User logged in hai, ab app ka logic chalayein.
+                    console.log("User authenticated, running app logic...");
+                    runAppLogic();
+                } else {
+                    // User logged in nahin hai, login page par redirect karein.
+                    console.log("User not authenticated, redirecting to login...");
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                }
+            });
+
+        } catch (error) {
+            const loaderContainer = document.getElementById('loader-container');
+            loaderContainer.innerHTML = `<p class="text-red-500 font-bold">Error: ${error.message}</p>`;
+        }
+    }
+
+    // Is function ke andar saare app-specific functions honge
+    function runAppLogic() {
+        // --- GLOBAL VARIABLES ---
+        let allData = [], memberNames = [], distributionChartInstance = null, growthChartInstance = null;
+        const db = firebase.database();
+        const loaderContainer = document.getElementById('loader-container');
+        const loaderText = document.getElementById('loader-text');
+
+        // --- CONFIGURATION & NIYAM ---
+        const CONFIG = {
+            DEFAULT_PROFILE_PIC: 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png',
+            CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
+            LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
+            LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
+            MINIMUM_MEMBERSHIP_DAYS: 60, SIP_ON_TIME_LIMIT: 10,
+            LOAN_TERM_TIER3: 90, LOAN_TERM_LATE_FEE: 100,
+            INACTIVE_MEMBER_DAYS_LIMIT: 365, 
+            INACTIVE_MEMBER_PROFIT_MULTIPLIER: 0.75
+        };
+
+        // --- DATA FETCHING AND PROCESSING ---
+        async function fetchDataAndBuildUI() {
+            loaderText.textContent = 'Loading member data...';
+            try {
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
+                
+                if (!snapshot.exists()) {
+                    throw new Error('No member data found in Firebase.');
+                }
+                
+                const membersData = snapshot.val();
+                
+                const allTransactions = [];
+                for (const memberId in membersData) {
+                    const member = membersData[memberId];
+                    if (member.transactions) {
+                        for (const txId in member.transactions) {
+                            allTransactions.push({
+                                ...member.transactions[txId],
+                                Name: member.fullName,
+                                imageUrl: member.profilePicUrl
+                            });
+                        }
+                    }
+                }
+
+                allData = allTransactions.map((row, index) => ({
+                    id: index, date: new Date(row.Date), name: String(row.Name).trim(),
+                    loan: parseFloat(row.Loan) || 0, payment: parseFloat(row["Loan Payment"]) || 0,
+                    sipPayment: parseFloat(row["SIP Payment"]) || 0, returnAmount: parseFloat(row["Return amount"] || 0),
+                    imageUrl: row.imageUrl || null
+                })).filter(r => r.name && !isNaN(r.date.getTime()));
+
+                allData.sort((a, b) => a.date - b.date || a.id - b.id);
+                memberNames = [...new Set(allData.map(row => row.name))].sort();
+                
+                initializeDashboard();
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                loaderContainer.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Failed to load data.<br>Error: ${error.message}</p>`;
+            }
+        }
+
+        // --- UI INITIALIZATION ---
+        function initializeDashboard() {
+            loaderContainer.classList.add('hidden');
+            document.getElementById('dashboardContent').classList.remove('hidden');
+            
+            populateMemberFilter();
+            setupEventListeners();
+            updateDisplay();
+        }
+        
+        // --- All other functions are defined here ---
+        function setupEventListeners(){document.getElementById("memberFilter").addEventListener("change",updateDisplay),document.querySelectorAll(".modal").forEach(e=>{const t=e.querySelector(".modal-close");t&&t.addEventListener("click",()=>e.classList.add("visually-hidden")),e.addEventListener("click",t=>{t.target===e&&e.classList.add("visually-hidden")})}),document.getElementById("showReturnRankBtn").addEventListener("click",displayReturnRanking),document.getElementById("showScoreRankBtn").addEventListener("click",displayScoreRanking),document.getElementById("showEligibilityRankBtn").addEventListener("click",displayEligibilityRanking),document.getElementById("profileImage").addEventListener("click",()=>{const e=document.getElementById("imageModal"),t=document.getElementById("fullProfileImage");e&&t&&(t.src=document.getElementById("profileImage").src,e.classList.remove("visually-hidden"))}),document.querySelectorAll(".lang-btn").forEach(e=>{e.addEventListener("click",handleLanguageToggle)})}
+        function populateMemberFilter(){const e=document.getElementById("memberFilter");memberNames.forEach(t=>{const n=document.createElement("option");n.value=t,n.textContent=t,e.appendChild(n)})}
+        function updateDisplay(){const e=document.getElementById("memberFilter").value,t="all"===e;document.getElementById("growthChartSection").classList.toggle("hidden",!t),document.getElementById("profitLogSection").classList.toggle("hidden",!t),document.getElementById("memberSpecificStats").classList.toggle("hidden",t),document.getElementById("memberHistorySection").classList.toggle("hidden",t),t?(renderGrowthChart(),populateProfitLog()):populateMemberHistory(e),updateProfileCard(e)}
+        function updateProfileCard(e){const t=document.getElementById("profileImage"),n=document.getElementById("profileName");let a=0,l=0,i=0;if("all"===e)allData.forEach(e=>{a+=e.sipPayment+e.payment-e.loan,l+=e.loan}),i=allData.reduce((e,t)=>e+t.returnAmount,0),n.textContent="Community Overview",t.src=CONFIG.DEFAULT_PROFILE_PIC;else{const o=allData.filter(t=>t.name===e);a=o.reduce((e,t)=>e+t.sipPayment+t.payment-t.loan,0),l=o.reduce((e,t)=>e+t.loan,0),i=calculateTotalProfitForMember(e);const d=calculatePerformanceScore(e,new Date).totalScore,r=getLoanEligibility(e,d);document.getElementById("profilePerformanceScore").textContent=d.toFixed(2);const s=document.getElementById("profileLoanLimit");r.eligible?(s.textContent=`${r.multiplier.toFixed(2)}x`,s.classList.remove("negative")):(s.textContent=r.reason,s.classList.add("negative")),n.textContent=e;const c=[...o].reverse().find(e=>e.imageUrl);t.src=c?c.imageUrl:CONFIG.DEFAULT_PROFILE_PIC}document.getElementById("profileTotalCapital").textContent=`₹${a.toFixed(2)}`,document.getElementById("profileTotalLoan").textContent=`₹${l.toFixed(2)}`,document.getElementById("profileTotalProfit").textContent=`₹${i.toFixed(2)}`}
+        function calculatePerformanceScore(e,t){const n=allData.filter(e=>e.date<=t),a=n.filter(t=>t.name===e);if(0===a.length)return{totalScore:0,capitalScore:0,consistencyScore:0,creditScore:0};const l=180,i=new Date(t.getTime()-24*l*3600*1e3);let o=0,d=0;const r=a.filter(e=>e.date>=i);if(r.length>0){let e=i;r.forEach(t=>{const n=(t.date-e)/(36e5*24);o+=d*n,d+=t.sipPayment+t.payment-t.loan,e=t.date}),o+=d*((t-e)/(36e5*24))}const s=Math.max(0,o/l),c=Math.min(100,s/5e4*100),m={};a.filter(e=>e.sipPayment>0).forEach(e=>{const t=`${e.date.getFullYear()}-${e.date.getMonth()}`;m[t]||(m[t]=e.date.getDate()<=CONFIG.SIP_ON_TIME_LIMIT?10:5)});const u=Object.values(m).reduce((e,t)=>e+t,0),p=Math.max(1,Object.keys(m).length),g=(u/10*p)*100;let h=0;const f=a.filter(e=>e.loan>0);return f.forEach(e=>{const t=a.find(t=>t.payment>=e.loan&&t.date>e.date);t?(t.date-e.date)/(36e5*24)<=CONFIG.LOAN_TERM_TIER3?h+=20:(t.date-e.date)/(36e5*24)<=CONFIG.LOAN_TERM_LATE_FEE?h-=5:h-=30:h-=40}),{totalScore:c*CONFIG.CAPITAL_WEIGHT+g*CONFIG.CONSISTENCY_WEIGHT+(f.length>0?Math.max(0,h/(20*f.length)*100):70)*CONFIG.CREDIT_BEHAVIOR_WEIGHT,capitalScore:c,consistencyScore:g,creditScore:f.length>0?Math.max(0,h/(20*f.length)*100):70}}
+        function getLoanEligibility(e,t){const n=allData.filter(t=>t.name===e),a=n.reduce((e,t)=>e+t.loan,0),l=n.reduce((e,t)=>e+t.payment+t.sipPayment,0);if(a>l)return{eligible:!1,reason:"Outstanding Loan"};const i=n.find(e=>e.sipPayment>0);if(!i)return{eligible:!1,reason:"No SIP yet"};if((new Date-i.date)/(36e5*24)<CONFIG.MINIMUM_MEMBERSHIP_DAYS){const e=Math.ceil(CONFIG.MINIMUM_MEMBERSHIP_DAYS-(new Date-i.date)/(36e5*24));return{eligible:!1,reason:`${e} days left`}}const{LOAN_LIMIT_TIER1_SCORE:o,LOAN_LIMIT_TIER2_SCORE:d,LOAN_LIMIT_TIER3_SCORE:r,LOAN_LIMIT_TIER1_MAX:s,LOAN_LIMIT_TIER2_MAX:c,LOAN_LIMIT_TIER3_MAX:m,LOAN_LIMIT_TIER4_MAX:u}=CONFIG;let p=s;return t<o?p=s:t<d?p=s+(t-o)/(d-o)*(c-s):t<r?p=c+(t-d)/(r-d)*(m-c):p=m+(t-r)/(100-r)*(u-m),{eligible:!0,multiplier:Math.max(s,p)}}
+        function populateProfitLog(){const e=document.querySelector("#profitLogTable tbody");e.innerHTML="";const t=allData.filter(e=>e.returnAmount>0);if(0===t.length)return void(e.innerHTML='<tr class="no-data-row"><td colspan="5">No profit events found.</td></tr>');t.forEach(t=>{const n=calculateProfitDistribution(t);if(n&&n.profit>0){const a=document.createElement("tr");a.innerHTML=`<td>${formatDate(t.date)}</td><td>${t.name}</td><td>₹${n.relevantLoan.loan.toFixed(2)}</td><td class="profit-value">₹${n.profit.toFixed(2)}</td><td><button class="details-btn">View</button></td>`,a.querySelector(".details-btn").addEventListener("click",()=>showDistributionModal(n)),e.appendChild(a)}})}
+        function populateMemberHistory(e){const t=document.querySelector("#memberHistoryTable tbody");t.innerHTML="";const n=allData.filter(t=>t.name===e);let a=0;if(0===n.length)return void(t.innerHTML='<tr class="no-data-row"><td colspan="4">No transaction history found.</td></tr>');n.forEach(e=>{let n="",l=0,i="";e.sipPayment>0?(n="sip",l=e.sipPayment,a+=l,i="+"):e.loan>0?(n="loan",l=e.loan,a-=l,i="-"):e.payment>0?(n="payment",l=e.payment,a+=l,i="+"):n="";if(""!==n){const o=document.createElement("tr");o.innerHTML=`<td>${formatDate(e.date)}</td><td class="transaction-type ${n}">${n.toUpperCase()}</td><td>${i} ₹${l.toFixed(2)}</td><td>₹${a.toFixed(2)}</td>`,t.appendChild(o)}})}
+        function calculateTotalProfitForMember(e){return allData.reduce((t,n)=>{if(n.returnAmount>0){const a=calculateProfitDistribution(n)?.distribution.find(t=>t.name===e);a&&(t+=a.share)}return t},0)}
+        function calculateProfitDistribution(e){const t=e.returnAmount;if(t<=0)return null;const n=allData.filter(t=>t.name===e.name&&t.loan>0&&t.date<e.date);if(0===n.length)return null;const a=n[n.length-1],l=a.date,i={},o=new Set(allData.filter(e=>e.date<=l).map(e=>e.name));let d=0;o.forEach(e=>{const t=calculatePerformanceScore(e,l);t.totalScore>0&&(i[e]=t,d+=t.totalScore)});if(d<=0)return null;const r=[];for(const s in i){let n=(i[s].totalScore/d)*t;const o=allData.filter(t=>t.name===s&&t.loan>0&&t.date<=l).pop()?.date,c=o?(l-o)/(36e5*24):1/0;let m=1;c>CONFIG.INACTIVE_MEMBER_DAYS_LIMIT&&(n*=CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER,m=CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER),n>0&&r.push({name:s,share:n,snapshotScore:i[s].totalScore,totalSnapshotScore:d,multiplier:m})}return{profit:t,relevantLoan:a,distribution:r.sort((e,t)=>t.share-e.share)}}
+        function displayReturnRanking(){const e=document.getElementById("returnRankList");let t=memberNames.map(e=>({name:e,totalProfit:calculateTotalProfitForMember(e)})).filter(e=>e.totalProfit>0).sort((e,t)=>t.totalProfit-a.totalProfit);e.innerHTML="",0===t.length?e.innerHTML="<li>No members have earned a return yet.</li>":t.forEach((t,n)=>{const a=document.createElement("li");a.innerHTML=`<span class="rank">${n+1}.</span><span class="name">${t.name}</span><span class="share">+ ₹${t.totalProfit.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`,a.querySelector(".btn-details-small").addEventListener("click",()=>showCalculationDetails({type:"total_profit",memberName:t.name})),a.querySelector(".btn-ai-small").addEventListener("click",()=>{generateAndShowExplanation(()=>{let e="";return allData.filter(e=>e.returnAmount>0).forEach(n=>{const a=calculateProfitDistribution(n)?.distribution.find(e=>e.name===t.name);a&&(e+=`\n- ${n.name} ke loan (Date: ${formatDate(n.date)}) se mila profit: ₹${a.share.toFixed(2)}.`)})})}),e.appendChild(a)}),document.getElementById("returnRankModal").classList.remove("visually-hidden")}
+        function displayScoreRanking(){const e=document.querySelector("#scoreRankTable tbody");let t=memberNames.map(e=>({name:e,scores:calculatePerformanceScore(e,new Date)})).sort((e,t)=>t.scores.totalScore-a.scores.totalScore);e.innerHTML="",t.forEach((t,n)=>{const a=document.createElement("tr");a.innerHTML=`<td>${n+1}</td><td>${t.name}</td><td>${t.scores.totalScore.toFixed(2)}</td><td><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div></td>`,a.querySelector(".btn-details-small").addEventListener("click",()=>showCalculationDetails({type:"score",member:t})),a.querySelector(".btn-ai-small").addEventListener("click",()=>{const{name:e,scores:n}=t;generateAndShowExplanation(()=>`Tum ek financial advisor ho. Member '${e}' ka performance score ${n.totalScore.toFixed(2)} hai. Is score ko aasan Hindi me samjhao. Batao ki yeh score in teen cheezon se milkar bana hai: 1. Capital Score: ${n.capitalScore.toFixed(2)} (Weight: 40%), 2. Consistency Score: ${n.consistencyScore.toFixed(2)} (Weight: 30%), 3. Credit Score: ${n.creditScore.toFixed(2)} (Weight: 30%).\n\nAnt mein, 'Aapko Kya Karna Chahiye' naam ka ek section jodkar 2-3 line mein sabse zaroori kadam batao jisse ve apna score sudhar sakein.`)}),e.appendChild(a)}),document.getElementById("scoreRankModal").classList.remove("visually-hidden")}
+        function displayEligibilityRanking(){const e=document.querySelector("#eligibilityRankTable tbody");let t=memberNames.map(e=>{const t=allData.filter(t=>t.name===e).reduce((e,t)=>e+t.sipPayment+t.payment-t.loan,0),n=calculatePerformanceScore(e,new Date).totalScore,a=getLoanEligibility(e,n);return{name:e,capital:t,score:n,eligibility:a,maxLoan:a.eligible?t*a.multiplier:0}}).sort((e,t)=>t.maxLoan-a.maxLoan);e.innerHTML="",t.forEach(t=>{const n=document.createElement("tr");let a="";a=t.eligibility.eligible?`${t.eligibility.multiplier.toFixed(2)}x`:`<span class="negative">${t.eligibility.reason}</span>`,n.innerHTML=`<td>${t.name}</td><td>₹${t.capital.toFixed(2)}</td><td>${a}</td><td>₹${t.maxLoan.toFixed(2)}</td><td><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div></td>`,n.querySelector(".btn-details-small").addEventListener("click",()=>showCalculationDetails({type:"eligibility",member:t})),n.querySelector(".btn-ai-small").addEventListener("click",()=>{const{name:e,capital:n,score:a,eligibility:l,maxLoan:i}=t;generateAndShowExplanation(()=>l.eligible?`Tum ek financial advisor ho. Member '${e}' ki loan eligibility ko aasan Hindi me samjhao. Data: - Capital: ₹${n.toFixed(2)} - Performance Score: ${a.toFixed(2)} - Eligibility Multiplier: ${l.multiplier.toFixed(2)}x - Max Loan Amount: ₹${i.toFixed(2)} Samjhao ki unka multiplier unke score par depend karta hai.\n\nAnt mein, 'Salah' section mein batao ki score accha banaye rakhne se unhe hamesha fayda hoga.`:`Tum ek financial advisor ho. Member '${e}' abhi loan ke liye eligible kyun nahi hai, yeh aasan Hindi me samjhao. Karan: ${l.reason}. Is karan ka matlab samjhao.\n\nAnt mein, 'Salah' section mein batao ki is samasya ko kaise theek kiya ja sakta hai.`)}),e.appendChild(n)}),document.getElementById("eligibilityRankModal").classList.remove("visually-hidden")}
+        function showCalculationDetails(e){const t=document.getElementById("calculationDetailsTitle"),n=document.getElementById("calculationDetailsContent");let a="";if("score"===e.type){const{name:l,scores:i}=e.member;t.textContent=`Score Calculation for ${l}`,a=`<div class="calc-row"><span class="calc-label">Capital Score</span> <span class="calc-value">${i.capitalScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Consistency Score</span> <span class="calc-value">${i.consistencyScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Credit Behavior Score</span> <span class="calc-value">${i.creditScore.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Weighted Capital (40%)</span> <span class="calc-value">${(i.capitalScore*CONFIG.CAPITAL_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Consistency (30%)</span> <span class="calc-value">${(i.consistencyScore*CONFIG.CONSISTENCY_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Credit (30%)</span> <span class="calc-value">${(i.creditScore*CONFIG.CREDIT_BEHAVIOR_WEIGHT).toFixed(2)}</span></div><div class="calc-final">Total Score: ${i.totalScore.toFixed(2)}</div>`}else if("profit_event"===e.type){const{member:l,profitEvent:i}=e;t.textContent=`Profit Share for ${l.name}`;const o=(l.snapshotScore/l.totalSnapshotScore)*100,d=o/100*i.profit;a=`<div class="calc-row"><span class="calc-label">Loan From</span> <span class="calc-value">${i.relevantLoan.name}</span></div><div class="calc-row"><span class="calc-label">Total Profit from Loan</span> <span class="calc-value">₹${i.profit.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Your Score (at loan time)</span> <span class="calc-value">${l.snapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Total Community Score</span> <span class="calc-value">${l.totalSnapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Your Share (%)</span> <span class="calc-value">${o.toFixed(2)}%</span></div><div class="calc-formula">(Your Score / Total Score) * 100</div><hr><div class="calc-row"><span class="calc-label">Initial Share</span> <span class="calc-value">₹${d.toFixed(2)}</span></div>${1!==l.multiplier?`<div class="calc-row"><span class="calc-label">Inactive Policy (x${l.multiplier})</span> <span class="calc-value">- ₹${(d-l.share).toFixed(2)}</span></div>`:""}<div class="calc-final">Final Profit: ₹${l.share.toFixed(2)}</div>`}else if("total_profit"===e.type){t.textContent=`Total Profit for ${e.memberName}`;let l="";let i=0;allData.filter(e=>e.returnAmount>0).forEach(t=>{const n=calculateProfitDistribution(t)?.distribution.find(t=>t.name===e.memberName);n&&(i+=n.share,l+=`<div class="calc-row"><span class="calc-label">From ${t.name}'s loan (${formatDate(t.date)})</span> <span class="calc-value">+ ₹${n.share.toFixed(2)}</span></div>`)}),l||(l='<div class="calc-row"><span class="calc-label">No profit earned yet.</span></div>'),a=`${l}<div class="calc-final">Total Profit: ₹${i.toFixed(2)}</div>`}else if("eligibility"===e.type){const{name:l,score:i,eligibility:o}=e.member;t.textContent=`Eligibility for ${l}`,a=o.eligible?`<div class="calc-row"><span class="calc-label">Your Performance Score</span> <span class="calc-value">${i.toFixed(2)}</span></div><hr><p style="font-size:0.9em; text-align:center; color: var(--text-light);">Aapka multiplier aapke score ke aadhar par scale hota hai.</p><div class="calc-final">Your Multiplier: ${o.multiplier.toFixed(2)}x</div>`:`<div class="calc-final" style="color:var(--negative-color);">${o.reason}</div>`}n.innerHTML=a,document.getElementById("calculationDetailsModal").classList.remove("visually-hidden")}
+        function renderGrowthChart(){const e=document.getElementById("growthChart").getContext("2d"),t=calculateGrowthData();growthChartInstance&&growthChartInstance.destroy(),growthChartInstance=new Chart(e,{type:"line",data:{labels:t.labels,datasets:[{label:"Total Capital",data:t.capital,borderColor:"rgba(52, 152, 219, 1)",backgroundColor:"rgba(52, 152, 219, 0.1)",fill:!0,tension:.1},{label:"Total Loans",data:t.loans,borderColor:"rgba(231, 76, 60, 1)",backgroundColor:"rgba(231, 76, 60, 0.1)",fill:!0,tension:.1},{label:"Total Profit",data:t.profits,borderColor:"rgba(39, 174, 96, 1)",backgroundColor:"rgba(39, 174, 96, 0.1)",fill:!0,tension:.1}]},options:{responsive:!0,maintainAspectRatio:!1,scales:{y:{beginAtZero:!0,ticks:{callback:e=>`₹${e}`}}},plugins:{tooltip:{callbacks:{label:e=>`${e.dataset.label}: ₹${e.parsed.y.toFixed(2)}`}}}})}
+        function calculateGrowthData(){const e={};let t=0,n=0,a=0;return allData.forEach(l=>{t+=l.sipPayment+l.payment-l.loan,n+=l.loan,a+=l.returnAmount;const i=l.date.toLocaleString("en-GB",{month:"short",year:"numeric"});e[i]={capital:t,loans:n,profits:a,date:new Date(l.date.getFullYear(),l.date.getMonth(),1)}}),{labels:(t=Object.keys(e).sort((t,n)=>e[t].date-e[n].date),t),capital:t.map(t=>e[t].capital),loans:t.map(t=>e[t].loans),profits:t.map(t=>e[t].profits)};var t}
+        function showDistributionModal(e){const t=document.getElementById("detailsModal"),n=document.getElementById("distributionDetails");n.innerHTML="";const a=document.getElementById("distributionChart").getContext("2d");distributionChartInstance&&distributionChartInstance.destroy();const l=e.distribution;if(l&&0!==l.length){const i=l.map(e=>e.name),o=l.map(e=>e.share.toFixed(2));l.forEach((t,a)=>{const l=document.createElement("li");l.innerHTML=`<span class="rank">${a+1}.</span><span class="name">${t.name}</span><span class="share">+ ₹${t.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`,l.querySelector(".btn-details-small").addEventListener("click",()=>showCalculationDetails({type:"profit_event",member:t,profitEvent:e})),l.querySelector(".btn-ai-small").addEventListener("click",()=>{generateAndShowExplanation(()=>{let n=`Tum ek financial advisor ho. Member '${t.name}' ko is loan event se mile munafey (₹${t.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;if(t.multiplier<1){const e=t.share/t.multiplier;n+=`Sabse pehle, unka mool munafa ₹${e.toFixed(2)} tha, lekin usmein katoati hui hai.\n\n#### 'Inactive Policy' Kya Hai?\nSaral bhasha me samjhao ki yeh niyam un sadasyon par laagoo hota hai jinhonne pichhle 365 dinon mein koi bhi loan nahin liya hai. Batao ki 'kyunki aapne 365 din se koi loan nahi liya tha, isliye aapka munafa ${((1-t.multiplier)*100).toFixed(0)}% kam kar diya gaya hai'.\n\n`}const a=e.distribution.findIndex(e=>e.name===t.name),l=e.distribution[0],i=a>0?e.distribution[a-1]:null;if(0===a&&e.distribution.length>1)n+="Aap is event ke topper hain! Badhai ho! Aapka score (at the time of loan) sabse behtar tha.\n\n";else if(a>0){n+="#### Vistrit Tulna (Comparison)\nApne jawab mein neeche di gayi Markdown table ko anivarya roop se (compulsorily) shamil karo. Is table ko mat badalna.\n\n";let e=`| Vivaran | ${l.name} (Topper) |`;i&&i.name!==l.name&&(e+=` ${i.name} (Aapse Upar) |`),e+=` ${t.name} (Aap) |`;let o="| :--- | :--- |";i&&i.name!==l.name&&(o+=" :--- |"),o+=" :--- |";let d=`| **Rank** | #1 |`;i&&i.name!==l.name&&(d+=` #${a} |`),d+=` #${a+1} |`;let r=`| **Mila Munafa** | ₹${l.share.toFixed(2)} |`;i&&i.name!==l.name&&(r+=` ₹${i.share.toFixed(2)} |`),r+=` ₹${t.share.toFixed(2)} |`;let s=`| **Loan ke samay Score** | **${l.snapshotScore.toFixed(2)}** |`;i&&i.name!==l.name&&(s+=` **${i.snapshotScore.toFixed(2)}** |`),s+=` ${t.snapshotScore.toFixed(2)} |`,n+=`${e}\n${o}\n${d}\n${r}\n${s}\n\n#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai. Jiska score us samay zyada tha, usey munafey mein zyada hissa mila.\n\n`}return n+="#### Aage Ke Liye Salah\n",t.multiplier<1&&(n+="Bhavishya mein is katoati se bachne ke liye, aapko saal mein kam se kam ek baar loan lena zaroori hai. "),i?n+=`Agle rank par jaane ke liye aapko apna score **${i.snapshotScore.toFixed(2)}** se behtar karna hoga. Niyamit SIP aur samay par loan chukane se aapka score zaroor badhega.`:0===a?n+="Apna behtareen pradarshan banaye rakhein!":n+="Apna score behtar karke aap agle munafey mein aur bhi zyada hissa paa sakte hain.",n})}),n.appendChild(l)}),distributionChartInstance=new Chart(a,{type:"bar",data:{labels:i,datasets:[{label:"Profit Share (₹)",data:o,backgroundColor:"rgba(52, 152, 219, 0.7)",borderColor:"rgba(52, 152, 219, 1)",borderWidth:1}]},options:{responsive:!0,indexAxis:"y",scales:{x:{beginAtZero:!0,title:{display:!0,text:"Amount (₹)"}}},plugins:{legend:{display:!1}}}})}else n.innerHTML="<li>No beneficiaries found for this event.</li>";t.classList.remove("visually-hidden")}
+        function formatDate(e){return e instanceof Date&&!isNaN(e)?e.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"N/A"}
+        async function getGeminiExplanation(e){try{const t=await fetch("/api/getAiExplanation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({promptText:e})});if(!t.ok){const e=await t.json();throw new Error(e.details||"AI request failed.")}return(await t.json()).explanation}catch(e){throw console.error("Frontend AI Error:",e),e}}
+        async function generateAndShowExplanation(e){const t=document.getElementById("aiExplanationResult"),n=document.getElementById("languageToggleContainer");t.innerHTML='<div class="ai-loader"><div class="spinner"></div><span>AI aapke liye jankari taiyar kar raha hai...</span></div>',n.classList.add("hidden"),document.getElementById("aiExplainModal").classList.remove("visually-hidden");const a=e();try{const e=await getGeminiExplanation(a);t.innerHTML=marked.parse(e),t.dataset.originalText=e,n.classList.remove("hidden")}catch(e){t.innerHTML=`<p style="color: var(--negative-color);"><strong>Error:</strong> AI se jawab nahi mil saka. Kripya Vercel logs check karein.</p><p style="font-size:0.8em; color: var(--text-light);">${e.message}</p>`}}
+        async function handleLanguageToggle(e){const t=e.target.dataset.lang,n=document.getElementById("aiExplanationResult"),a=n.dataset.originalText;if(!a)return;const l="hi"===t?"Hindi":"English",i=`Translate the following text into ${l}. Provide only the translated text, without any additional formatting or introductory phrases:\n\n"${a}"`;n.innerHTML='<div class="ai-loader"><div class="spinner"></div></div>';try{const e=await getGeminiExplanation(i);n.innerHTML=marked.parse(e)}catch(e){n.innerHTML='<p style="color: var(--negative-color);"><strong>Error:</strong> Translation fail ho gaya.</p>'}}
+
+        // App ka logic yahan se shuru hota hai
+        fetchDataAndBuildUI();
+    }
+
+    // Page load hone par authentication check shuru karein
+    document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
 </script>
 </body>
 </html>
