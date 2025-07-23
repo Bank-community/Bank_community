@@ -70,6 +70,14 @@
         <option value="" disabled selected>Loading members...</option>
       </select>
 
+      <!-- NEW: Guarantor section, initially hidden -->
+      <div id="guarantorSection" style="display: none;">
+        <label for="guarantorSelect" class="block mb-1 font-bold text-gray-600">Guarantor Name:</label>
+        <select id="guarantorSelect" class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base bg-white focus:outline-none">
+          <option value="" disabled selected>Select Guarantor</option>
+        </select>
+      </div>
+
       <label for="amount" class="block mb-1 font-bold text-gray-600">Loan Amount (₹):</label>
       <input type="number" id="amount" placeholder="Enter loan amount" min="1" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base focus:outline-none">
 
@@ -92,7 +100,6 @@
   <div id="capture" class="bg-white p-[15mm] border border-gray-300 my-5 mx-auto flex flex-col relative">
     <div class="header text-center pb-4 mb-5 relative">
       <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
-      <!-- FIXED: Image source updated to use proxy -->
       <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
       <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
       <h2 class="text-lg text-gray-800">बैंक कम्युनिटी लोन</h2>
@@ -125,13 +132,11 @@
 
     <div class="footer-section mt-auto pt-6 flex justify-between items-end">
         <div class="stamp-section text-center">
-             <!-- FIXED: Image source updated to use proxy -->
              <img src="https://images.weserv.nl/?url=i.imgur.com/w9J5t2N.png" crossorigin="anonymous" class="stamp-img w-36 opacity-80" alt="Bank Stamp">
              <p class="m-0 text-xs text-gray-800">Bank Stamp</p>
         </div>
         <div class="signature-section text-center">
           <p class="m-0 text-xs text-gray-800">Authorized Signature</p>
-          <!-- FIXED: Image source updated to use proxy -->
           <img src="https://images.weserv.nl/?url=i.imgur.com/kkg2glD.png" crossorigin="anonymous" class="signature-img w-44 mt-1" alt="Signature">
           <p class="m-0 text-xs text-gray-800">Prime Members</p>
         </div>
@@ -145,6 +150,7 @@
   <script>
     let membersData = {};
 
+    // Form elements
     const nameSelect = document.getElementById('nameSelect');
     const amountInput = document.getElementById('amount');
     const rateSelect = document.getElementById('monthlyRate');
@@ -152,7 +158,12 @@
     const loanForm = document.getElementById('loanForm');
     const captureDiv = document.getElementById('capture');
     const downloadBtn = document.getElementById('downloadBtn');
+    
+    // NEW: Guarantor elements
+    const guarantorSection = document.getElementById('guarantorSection');
+    const guarantorSelect = document.getElementById('guarantorSelect');
 
+    // Display elements in the letter
     const currentDateEl = document.getElementById('currentDate');
     const displayNameEl = document.getElementById('displayName');
     const displayGuarantorEl = document.getElementById('displayGuarantor');
@@ -188,12 +199,17 @@
                 .map(([id, member]) => ({ id, name: member.fullName }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
+            // Populate both applicant and guarantor dropdowns
             nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
+            guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor Name</option>';
+            
             approvedMembers.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.id; 
                 option.textContent = member.name;
-                nameSelect.appendChild(option);
+                
+                nameSelect.appendChild(option.cloneNode(true)); // Add to applicants
+                guarantorSelect.appendChild(option.cloneNode(true)); // Add to guarantors
             });
 
         } catch (error) {
@@ -203,12 +219,22 @@
         }
     }
 
-    // NEW: Helper function to create a proxied URL for images to solve CORS issue
+    // NEW: Event listener to show/hide guarantor section
+    nameSelect.addEventListener('input', () => {
+        const selectedOptionText = nameSelect.options[nameSelect.selectedIndex].text;
+        if (selectedOptionText.toLowerCase().includes('bank')) {
+            guarantorSection.style.display = 'block';
+            guarantorSelect.required = true;
+        } else {
+            guarantorSection.style.display = 'none';
+            guarantorSelect.required = false;
+        }
+    });
+
     function createProxyUrl(url) {
         if (!url || typeof url !== 'string' || !url.startsWith('http')) {
             return 'https://placehold.co/100x120/EFEFEF/AAAAAA&text=No+Image';
         }
-        // Remove protocol (http://, https://) and pass to the proxy
         const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
         return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
     }
@@ -241,9 +267,21 @@
       const rateValue = rateSelect.value;
       const uploadedFile = imageUploadInput.files[0];
 
+      // Form validation
       if (isNaN(amount) || !rateValue) {
           alert('Please fill in all required fields.');
           return;
+      }
+      
+      // NEW: Guarantor validation
+      let guarantorName = member.guarantorName || 'N/A';
+      if (guarantorSection.style.display === 'block') {
+          const guarantorId = guarantorSelect.value;
+          if (!guarantorId) {
+              alert('Please select a guarantor for the bank.');
+              return;
+          }
+          guarantorName = membersData[guarantorId].fullName;
       }
 
       let interest = 0, months = 1, rateText = '';
@@ -261,9 +299,10 @@
       const repaymentDate = new Date(today);
       repaymentDate.setMonth(repaymentDate.getMonth() + months);
 
+      // Populate the letter
       currentDateEl.textContent = formatDate(today);
       displayNameEl.textContent = member.fullName;
-      displayGuarantorEl.textContent = member.guarantorName || 'N/A';
+      displayGuarantorEl.textContent = guarantorName; // Use the determined guarantor name
       displayMobileEl.textContent = member.mobileNumber || 'N/A';
       displayAmountEl.textContent = amount.toFixed(2);
       displayRateEl.textContent = rateText;
@@ -271,7 +310,6 @@
       repaymentDateEl.textContent = formatDate(repaymentDate);
       regNumberEl.textContent = generateRegistrationNumber();
       
-      // FIXED: Use proxy for applicant's photo
       apiApplicantPhotoEl.src = createProxyUrl(member.profilePicUrl);
 
       manualApplicantPhotoEl.src = "";
@@ -280,12 +318,11 @@
       if (uploadedFile) {
           const reader = new FileReader();
           reader.onload = function(event) {
-              manualApplicantPhotoEl.src = event.target.result; // Data URLs don't need proxy
+              manualApplicantPhotoEl.src = event.target.result;
               manualUploadSectionEl.style.display = 'block';
           }
           reader.readAsDataURL(uploadedFile);
       } else if (member.documentUrl) {
-          // FIXED: Use proxy for document URL
           manualApplicantPhotoEl.src = createProxyUrl(member.documentUrl);
           manualUploadSectionEl.style.display = 'block';
       }
