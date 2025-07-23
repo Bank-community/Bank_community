@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase SDKs for backend connection -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
@@ -320,7 +321,7 @@ body {
 
         <div id="loader">
             <div class="spinner"></div>
-            Loading member data...
+            Authenticating user...
         </div>
 
         <div id="outstanding-loans-container"></div>
@@ -330,247 +331,276 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    const ICONS = {
-        calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
-        money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
-        penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
-        clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
-        download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`
-    };
-
-    const state = {
-        allOutstandingLoans: [],
-        ui: {
-            loader: document.getElementById('loader'),
-            container: document.getElementById('outstanding-loans-container'),
-            totalCountEl: document.getElementById('total-outstanding-count'),
-            totalAmountEl: document.getElementById('total-outstanding-amount'),
-            searchInput: document.getElementById('search-input'),
-        },
-    };
-
-    async function initializeAndFetch() {
+    // ✅ NAYA LOGIC: Authentication check
+    async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
             
             firebase.initializeApp(config.firebase);
-            const db = firebase.database();
             
-            const membersRef = db.ref('members');
-            const snapshot = await membersRef.once('value');
-            if (!snapshot.exists()) throw new Error('No member data found.');
-            
-            const membersData = snapshot.val();
-            const allTransactions = [];
-            for (const memberId in membersData) {
-                const member = membersData[memberId];
-                if (member.transactions) {
-                    for (const txId in member.transactions) {
-                        allTransactions.push({
-                            ...member.transactions[txId],
-                            fullName: member.fullName,
-                            profilePicUrl: member.profilePicUrl
-                        });
-                    }
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    // User is logged in, run the main app logic.
+                    console.log("User authenticated, fetching loan data...");
+                    runAppLogic();
+                } else {
+                    // User is not logged in, redirect to login page.
+                    console.log("User not authenticated, redirecting to login...");
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
-            }
-            
-            const processedData = processRawData(allTransactions);
-            state.allOutstandingLoans = findOutstandingLoans(processedData);
-            displayAllData();
-            setupEventListeners();
+            });
 
         } catch (error) {
-            console.error("Data fetch failed:", error);
-            state.ui.container.innerHTML = `<p style="color: red; text-align: center; grid-column: 1 / -1;">Data could not be loaded. Please check your connection and API configuration.</p>`;
-        } finally {
-            state.ui.loader.classList.add('hidden');
+            console.error("Initialization Error:", error);
+            const loader = document.getElementById('loader');
+            loader.innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
         }
     }
 
-    function processRawData(rawData) {
-        return rawData
-            .map(row => ({
-                Name: String(row.fullName || 'Unknown').trim(),
-                Date: new Date(row.Date),
-                Loan: parseFloat(row.Loan || 0),
-                Payment: parseFloat(row['Loan Payment'] || 0),
-                ImageUrl: row.profilePicUrl || null
-            }))
-            .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
-            .sort((a, b) => a.Date - b.Date);
-    }
+    // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+    function runAppLogic() {
+        const ICONS = {
+            calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
+            money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
+            penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
+            clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
+            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`
+        };
 
-    function calculatePenalty(loanAmount, daysAgo) {
-        let percentage = 0;
-        if (daysAgo > 0 && daysAgo <= 30)       percentage = 1;
-        else if (daysAgo >= 31 && daysAgo <= 60) percentage = 3;
-        else if (daysAgo >= 61 && daysAgo <= 90) percentage = 5;
-        else if (daysAgo >= 91 && daysAgo <= 100) percentage = 5.5;
-        else if (daysAgo > 100)                  percentage = 6;
-        const amount = Math.round((loanAmount * percentage) / 100);
-        return { percentage, amount };
-    }
+        const state = {
+            allOutstandingLoans: [],
+            ui: {
+                loader: document.getElementById('loader'),
+                container: document.getElementById('outstanding-loans-container'),
+                totalCountEl: document.getElementById('total-outstanding-count'),
+                totalAmountEl: document.getElementById('total-outstanding-amount'),
+                searchInput: document.getElementById('search-input'),
+            },
+        };
 
-    function findOutstandingLoans(allData) {
-        const outstanding = [];
-        const members = [...new Set(allData.map(d => d.Name))];
+        async function fetchAndProcessData() {
+            try {
+                state.ui.loader.innerHTML = '<div class="spinner"></div>Loading member data...';
+                const db = firebase.database();
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
+                if (!snapshot.exists()) throw new Error('No member data found.');
+                
+                const membersData = snapshot.val();
+                const allTransactions = [];
+                for (const memberId in membersData) {
+                    const member = membersData[memberId];
+                    if (member.transactions) {
+                        for (const txId in member.transactions) {
+                            allTransactions.push({
+                                ...member.transactions[txId],
+                                fullName: member.fullName,
+                                profilePicUrl: member.profilePicUrl
+                            });
+                        }
+                    }
+                }
+                
+                const processedData = processRawData(allTransactions);
+                state.allOutstandingLoans = findOutstandingLoans(processedData);
+                displayAllData();
+                setupEventListeners();
 
-        members.forEach(name => {
-            const memberData = allData.filter(r => r.Name === name);
-            let currentBalance = 0;
-            let lastLoanDate = null;
+            } catch (error) {
+                console.error("Data fetch failed:", error);
+                state.ui.container.innerHTML = `<p style="color: red; text-align: center; grid-column: 1 / -1;">Data could not be loaded. Please check your connection and API configuration.</p>`;
+            } finally {
+                state.ui.loader.classList.add('hidden');
+            }
+        }
 
-            memberData.forEach(transaction => {
-                if (transaction.Loan > 0) {
-                    currentBalance += transaction.Loan;
-                    lastLoanDate = transaction.Date;
-                } else if (transaction.Payment > 0) {
-                    currentBalance -= transaction.Payment;
+        function processRawData(rawData) {
+            return rawData
+                .map(row => ({
+                    Name: String(row.fullName || 'Unknown').trim(),
+                    Date: new Date(row.Date),
+                    Loan: parseFloat(row.Loan || 0),
+                    Payment: parseFloat(row['Loan Payment'] || 0),
+                    ImageUrl: row.profilePicUrl || null
+                }))
+                .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
+                .sort((a, b) => a.Date - b.Date);
+        }
+
+        function calculatePenalty(loanAmount, daysAgo) {
+            let percentage = 0;
+            if (daysAgo > 0 && daysAgo <= 30)       percentage = 1;
+            else if (daysAgo >= 31 && daysAgo <= 60) percentage = 3;
+            else if (daysAgo >= 61 && daysAgo <= 90) percentage = 5;
+            else if (daysAgo >= 91 && daysAgo <= 100) percentage = 5.5;
+            else if (daysAgo > 100)                  percentage = 6;
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { percentage, amount };
+        }
+
+        function findOutstandingLoans(allData) {
+            const outstanding = [];
+            const members = [...new Set(allData.map(d => d.Name))];
+
+            members.forEach(name => {
+                const memberData = allData.filter(r => r.Name === name);
+                let currentBalance = 0;
+                let lastLoanDate = null;
+
+                memberData.forEach(transaction => {
+                    if (transaction.Loan > 0) {
+                        currentBalance += transaction.Loan;
+                        lastLoanDate = transaction.Date;
+                    } else if (transaction.Payment > 0) {
+                        currentBalance -= transaction.Payment;
+                    }
+                });
+                
+                currentBalance = Math.round(currentBalance);
+
+                if (currentBalance > 0) {
+                    const today = new Date();
+                    let daysPassed = 0;
+                    if (lastLoanDate) {
+                        const timeDiff = today.getTime() - lastLoanDate.getTime();
+                        daysPassed = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
+                    }
+                    
+                    const latestImage = memberData.find(r => r.ImageUrl)?.ImageUrl || null;
+                    const penaltyInfo = calculatePenalty(currentBalance, daysPassed);
+
+                    outstanding.push({
+                        name: name,
+                        loanAmount: currentBalance,
+                        daysAgo: daysPassed,
+                        imageUrl: latestImage,
+                        loanDate: lastLoanDate,
+                        penalty: penaltyInfo,
+                    });
                 }
             });
             
-            currentBalance = Math.round(currentBalance);
+            return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
+        }
 
-            if (currentBalance > 0) {
-                const today = new Date();
-                let daysPassed = 0;
-                if (lastLoanDate) {
-                     const timeDiff = today.getTime() - lastLoanDate.getTime();
-                     daysPassed = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
+        function displayAllData() {
+            displaySummary(state.allOutstandingLoans);
+            displayLoanCards(state.allOutstandingLoans);
+        }
+
+        function displaySummary(loans) {
+            const { totalCountEl, totalAmountEl } = state.ui;
+            const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
+            totalCountEl.textContent = loans.length;
+            totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
+        }
+
+        function displayLoanCards(loans) {
+            const { container } = state.ui;
+            container.innerHTML = '';
+
+            if (loans.length === 0) {
+                container.innerHTML = `<div class="message-box"><h2>All Clear!</h2><p>There are no outstanding loans.</p></div>`;
+                return;
+            }
+
+            loans.forEach(loan => {
+                const card = document.createElement('div');
+                const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${loan.loanAmount}`;
+                card.id = cardId;
+                card.className = 'loan-card';
+
+                const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
+                const profilePic = loan.imageUrl || defaultPic;
+                
+                const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+                
+                let bannerClass = 'green';
+                if (loan.daysAgo > 90) bannerClass = 'danger';
+                else if (loan.daysAgo > 60) bannerClass = 'warning';
+                
+                let penaltyHtml = '';
+                if (loan.penalty.amount > 0) {
+                    penaltyHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} Late Fee (${loan.penalty.percentage}%):</span><span class="detail-value penalty-value">₹${loan.penalty.amount.toLocaleString('en-IN')}</span></div>`;
                 }
                 
-                const latestImage = memberData.find(r => r.ImageUrl)?.ImageUrl || null;
-                const penaltyInfo = calculatePenalty(currentBalance, daysPassed);
+                let bannerText = `Payment ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} pending`;
 
-                outstanding.push({
-                    name: name,
-                    loanAmount: currentBalance,
-                    daysAgo: daysPassed,
-                    imageUrl: latestImage,
-                    loanDate: lastLoanDate,
-                    penalty: penaltyInfo,
-                });
-            }
-        });
-        
-        return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
-    }
-
-
-    function displayAllData() {
-        displaySummary(state.allOutstandingLoans);
-        displayLoanCards(state.allOutstandingLoans);
-    }
-
-    function displaySummary(loans) {
-        const { totalCountEl, totalAmountEl } = state.ui;
-        const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
-        totalCountEl.textContent = loans.length;
-        totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
-    }
-
-    function displayLoanCards(loans) {
-        const { container } = state.ui;
-        container.innerHTML = '';
-
-        if (loans.length === 0) {
-            container.innerHTML = `<div class="message-box"><h2>All Clear!</h2><p>There are no outstanding loans.</p></div>`;
-            return;
-        }
-
-        loans.forEach(loan => {
-            const card = document.createElement('div');
-            const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${loan.loanAmount}`;
-            card.id = cardId;
-            card.className = 'loan-card';
-
-            const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
-            const profilePic = loan.imageUrl || defaultPic;
-            
-            const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
-            
-            let bannerClass = 'green';
-            if (loan.daysAgo > 90) bannerClass = 'danger';
-            else if (loan.daysAgo > 60) bannerClass = 'warning';
-            
-            let penaltyHtml = '';
-            if (loan.penalty.amount > 0) {
-                penaltyHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} Late Fee (${loan.penalty.percentage}%):</span><span class="detail-value penalty-value">₹${loan.penalty.amount.toLocaleString('en-IN')}</span></div>`;
-            }
-            
-            let bannerText = `Payment ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} pending`;
-
-            card.innerHTML = `
-                <div class="card-main-content">
-                    <button class="download-btn" data-card-id="${cardId}" title="Download Card">
-                        ${ICONS.download}
-                    </button>
-                    <div class="card-top">
-                        <div class="profile-picture">
-                            <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                card.innerHTML = `
+                    <div class="card-main-content">
+                        <button class="download-btn" data-card-id="${cardId}" title="Download Card">
+                            ${ICONS.download}
+                        </button>
+                        <div class="card-top">
+                            <div class="profile-picture">
+                                <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                            </div>
+                            <div class="user-details">
+                                <h3>${loan.name}</h3>
+                                <div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div>
+                            </div>
                         </div>
-                        <div class="user-details">
-                            <h3>${loan.name}</h3>
-                            <div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div>
+                        <div class="card-middle">
+                            <div class="detail-row">
+                                <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
+                                <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                            ${penaltyHtml}
                         </div>
                     </div>
-                    <div class="card-middle">
-                        <div class="detail-row">
-                            <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
-                            <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
-                        </div>
-                        ${penaltyHtml}
+                    <div class="pending-banner ${bannerClass}">
+                        ${ICONS.clock}
+                        <span>${bannerText}</span>
                     </div>
-                </div>
-                <div class="pending-banner ${bannerClass}">
-                    ${ICONS.clock}
-                    <span>${bannerText}</span>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    }
-
-    function downloadCardAsImage(cardId) {
-        const cardElement = document.getElementById(cardId);
-        if (!cardElement) {
-            console.error("Card element not found for ID:", cardId);
-            return;
+                `;
+                container.appendChild(card);
+            });
         }
-        
-        html2canvas(cardElement, {
-          useCORS: true, 
-          scale: 2 
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `${cardId}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        });
-    }
 
-    function setupEventListeners() {
-        state.ui.searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase().trim();
-            const filteredLoans = state.allOutstandingLoans.filter(loan => 
-                loan.name.toLowerCase().includes(searchTerm)
-            );
-            displayLoanCards(filteredLoans);
-        });
-
-        state.ui.container.addEventListener('click', function(event) {
-            const downloadButton = event.target.closest('.download-btn');
-            if (downloadButton) {
-                const cardId = downloadButton.dataset.cardId;
-                downloadCardAsImage(cardId);
+        function downloadCardAsImage(cardId) {
+            const cardElement = document.getElementById(cardId);
+            if (!cardElement) {
+                console.error("Card element not found for ID:", cardId);
+                return;
             }
-        });
-    }
+            
+            html2canvas(cardElement, {
+            useCORS: true, 
+            scale: 2 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `${cardId}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
 
-    initializeAndFetch();
+        function setupEventListeners() {
+            state.ui.searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const filteredLoans = state.allOutstandingLoans.filter(loan => 
+                    loan.name.toLowerCase().includes(searchTerm)
+                );
+                displayLoanCards(filteredLoans);
+            });
+
+            state.ui.container.addEventListener('click', function(event) {
+                const downloadButton = event.target.closest('.download-btn');
+                if (downloadButton) {
+                    const cardId = downloadButton.dataset.cardId;
+                    downloadCardAsImage(cardId);
+                }
+            });
+        }
+
+        // Start fetching data
+        fetchAndProcessData();
+    }
+    
+    // ✅ App ko shuru karein
+    checkAuthAndInitialize();
 });
 </script>
 </body>
