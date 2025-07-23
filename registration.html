@@ -47,7 +47,6 @@
                 <p class="text-lg opacity-90 mt-1" data-lang-key="portal_subtitle">सदस्यता पोर्टल</p>
             </header>
             
-            <!-- Language Switcher -->
             <div class="p-4 bg-gray-50 flex justify-center gap-2 border-b">
                 <button id="langEnBtn" class="lang-btn px-4 py-1.5 text-sm font-semibold border border-gray-300 rounded-md hover:bg-indigo-100">English</button>
                 <button id="langHiBtn" class="lang-btn px-4 py-1.5 text-sm font-semibold border border-gray-300 rounded-md hover:bg-indigo-100 active">हिन्दी</button>
@@ -92,6 +91,7 @@
     <!-- Main Application Logic (Firebase Dependent) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // ✅ Auth import joda gaya
         import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         let IMGBB_API_KEY = null;
@@ -103,7 +103,6 @@
             search_member_title: { en: 'Search Member', hi: 'सदस्य खोजें' },
             search_placeholder: { en: 'Enter Membership ID (e.g., BCL-XXXXXX)', hi: 'सदस्यता ID डालें (जैसे BCL-XXXXXX)' },
             search_btn: { en: 'Search', hi: 'खोजें' },
-            // MODIFICATION: Changed headline text
             add_member_title: { en: 'Registration Form', hi: 'पंजीकरण फ़ॉर्म' },
             personal_details_title: { en: 'Personal Details', hi: 'व्यक्तिगत विवरण' },
             full_name_label: { en: 'Full Name', hi: 'पूरा नाम' },
@@ -190,10 +189,9 @@
         window.previewImage = function(event, previewId) { const f=event.target.files[0];if(f){const r=new FileReader,p=document.getElementById(previewId);r.onload=e=>{p.style.backgroundImage=`url(${e.target.result})`,p.textContent=""},r.readAsDataURL(f)} }
         async function uploadImage(file) { if(!file || !IMGBB_API_KEY) return null; const f=new FormData;f.append("image",file);try{const r=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,{method:"POST",body:f}),s=await r.json();if(s.success)return s.data.url;throw new Error(s.error.message||"Image upload failed.")}catch(e){return console.error("Image Upload Error:",e),showToast(`Image upload failed: ${e.message}`,!0),null} }
 
-        async function startApp() {
+        // ✅ NAYA LOGIC: Authentication check
+        async function checkAuthAndInitialize() {
             try {
-                // This part assumes you have a backend endpoint at '/api/config' to provide Firebase and ImgBB keys.
-                // For local testing, you might need to replace this with hardcoded config values.
                 const response = await fetch('/api/config');
                 if (!response.ok) throw new Error(`Configuration fetch failed: ${response.statusText}`);
                 const config = await response.json();
@@ -202,10 +200,21 @@
                 const firebaseConfig = config.firebase;
 
                 const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
                 const db = getDatabase(app);
-                
-                attachDbHandlers(db);
-                showToast(translations.toast.connectionSuccess[currentLanguage], false);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // User is logged in, attach all event handlers.
+                        console.log("User authenticated, attaching handlers...");
+                        attachDbHandlers(db);
+                        showToast(translations.toast.connectionSuccess[currentLanguage], false);
+                    } else {
+                        // User is not logged in, redirect to login page.
+                        console.log("User not authenticated, redirecting...");
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
+                });
 
             } catch (error) {
                 console.error("Application Initialization Failed:", error);
@@ -222,8 +231,6 @@
             document.getElementById('closeImageModalBtn').addEventListener('click', () => document.getElementById('imageModal').classList.add('hidden'));
             document.getElementById('editBtn').addEventListener('click', () => document.getElementById('reviewModal').classList.add('hidden'));
 
-            // MODIFICATION: Fixed image re-selection issue.
-            // Now, clicking the preview area will always trigger the file input.
             ['profilePicPreview', 'signaturePreview', 'documentPreview'].forEach(id => { 
                 document.getElementById(id).addEventListener('click', () => { 
                     document.getElementById(id.replace('Preview', '')).click(); 
@@ -329,11 +336,12 @@
                 } catch (error) { showToast(`${translations.toast.genericError[currentLanguage]} ${error.message}`, true); } finally { btn.disabled = false; btnText.classList.remove('hidden'); btnSpinner.classList.add('hidden'); }
             });
 
-            // Set initial language
             setLanguage('hi');
         }
 
-        startApp();
+        // ✅ App ko shuru karein
+        checkAuthAndInitialize();
     </script>
 </body>
 </html>
+
