@@ -366,7 +366,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-        } catch (error) {
+        } catch (error)
+ {
             console.error("Initialization Error:", error);
             const loader = document.getElementById('loader');
             loader.innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
@@ -443,35 +444,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 .sort((a, b) => a.Date - b.Date);
         }
 
-        // ✅ SCENARIO 1: Standard Penalty (5% at 90 days)
-        // Yeh function unke liye hai jo 30 din ke andar payment shuru nahi karte.
+        // SCENARIO 1: Standard Penalty (Late Payers)
         function calculateStandardPenalty(loanAmount, daysAgo) {
             let percentage = 0;
             if (daysAgo > 0 && daysAgo <= 30)       percentage = 1;
             else if (daysAgo >= 31 && daysAgo <= 60) percentage = 3;
-            else if (daysAgo >= 61 && daysAgo <= 90) percentage = 5; // Yahan 90 din par 5% lagta hai
-            else if (daysAgo >= 91 && daysAgo <= 100) percentage = 5.5;
-            else if (daysAgo > 100)                  percentage = 6;
+            else if (daysAgo >= 61 && daysAgo <= 90) percentage = 5;
+            else if (daysAgo > 90)                   percentage = 6;
             const amount = Math.round((loanAmount * percentage) / 100);
             return { type: 'penalty', percentage, amount };
         }
 
-        // ✅ SCENARIO 2: Smart Slab Interest (Total 4.5% over 3 months)
-        // Yeh function unke liye hai jo monthly payment karte hain.
+        // ✅ SCENARIO 2: NAYA SMART SLAB LOGIC (Monthly Payers)
+        // Yeh function aapke naye niyam ke anusaar hai.
         function calculateSmartSlabInterest(loanAmount, daysAgo) {
             let percentage = 0;
             let slabName = "";
             
-            // Progressive interest rates jo total 4.5% bante hain
-            if (daysAgo > 60) { // 61-90 din
-                percentage = 2; 
+            // Naye progressive interest rates on outstanding balance
+            if (daysAgo > 60) { // 61-90 din -> Teesra Mahina
+                percentage = 4.5; 
                 slabName = "Month 3";
-            } else if (daysAgo > 30) { // 31-60 din
-                percentage = 1.5; 
+            } else if (daysAgo > 30) { // 31-60 din -> Doosra Mahina
+                percentage = 2.5; 
                 slabName = "Month 2";
-            } else if (daysAgo > 0) { // 1-30 din
+            } else if (daysAgo > 0) { // 1-30 din -> Pehla Mahina
                 percentage = 1; 
                 slabName = "Month 1";
+            }
+
+            // Agar 90 din se zyada ho jaye to kya karna hai? Abhi ke liye hum Month 3 ka rate hi rakhenge.
+            if (daysAgo > 90) {
+                 percentage = 4.5;
+                 slabName = "Month 3+";
             }
 
             const amount = Math.round((loanAmount * percentage) / 100);
@@ -501,7 +506,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (currentBalance > 0 && lastLoanDate) {
                     const today = new Date();
-                    const timeDiff = today.getTime() - lastLoanDate.getTime();
+                    
+                    // ✅ UPDATE: Ab hum 'daysPassed' ko aakhri payment ya aakhri loan, jo bhi baad mein hua ho, se calculate karenge.
+                    // Isse interest hamesha sahi outstanding period par lagega.
+                    const lastPaymentDate = memberData
+                        .filter(tx => tx.Payment > 0)
+                        .map(tx => tx.Date)
+                        .sort((a, b) => b - a)[0]; // Sabse aakhri payment
+
+                    const calculationStartDate = lastPaymentDate && lastPaymentDate > lastLoanDate ? lastPaymentDate : lastLoanDate;
+                    const timeDiff = today.getTime() - calculationStartDate.getTime();
                     const daysPassed = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
                     
                     const latestImage = memberData.find(r => r.ImageUrl)?.ImageUrl || null;
@@ -510,28 +524,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     let isSmartSlabApplicable = false;
                     let interestInfo;
 
-                    // Aakhri loan ke baad pehla payment dhundhein
                     const lastLoanTimestamp = lastLoanDate.getTime();
                     const firstPaymentAfterLoan = memberData
                         .filter(tx => tx.Payment > 0 && tx.Date.getTime() > lastLoanTimestamp)
                         .sort((a, b) => a.Date - b.Date)[0]; 
 
                     if (firstPaymentAfterLoan) {
-                        const firstPaymentDate = firstPaymentAfterLoan.Date;
-                        const daysBetweenLoanAndFirstPayment = (firstPaymentDate.getTime() - lastLoanTimestamp) / (1000 * 3600 * 24);
-
-                        // Agar pehla payment 30 din ke andar kiya gaya hai, to Smart Slab laagoo hoga
+                        const daysBetweenLoanAndFirstPayment = (firstPaymentAfterLoan.Date.getTime() - lastLoanTimestamp) / (1000 * 3600 * 24);
                         if (daysBetweenLoanAndFirstPayment <= 30) {
                             isSmartSlabApplicable = true;
                         }
                     }
 
-                    // Sahi calculation function chunein
                     if (isSmartSlabApplicable) {
-                        // Monthly payer ke liye 4.5% wala system
                         interestInfo = calculateSmartSlabInterest(currentBalance, daysPassed);
                     } else {
-                        // Late payer ke liye 5% wala system
                         interestInfo = calculateStandardPenalty(currentBalance, daysPassed);
                     }
                     // --- Smart logic yahan khatm hota hai ---
@@ -539,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     outstanding.push({
                         name: name,
                         loanAmount: currentBalance,
-                        daysAgo: daysPassed,
+                        daysAgo: daysPassed, // Yeh ab aakhri activity se hai
                         imageUrl: latestImage,
                         loanDate: lastLoanDate,
                         interest: interestInfo,
@@ -584,8 +591,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                 
                 let bannerClass = 'green';
-                if (loan.daysAgo > 90) bannerClass = 'danger';
-                else if (loan.daysAgo > 60) bannerClass = 'warning';
+                if (loan.daysAgo > 30) bannerClass = 'danger'; // Ab 30 din se zyada pending hone par banner red hoga
+                else if (loan.daysAgo > 15) bannerClass = 'warning';
                 
                 let interestHtml = '';
                 if (loan.interest.amount > 0) {
