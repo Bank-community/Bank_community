@@ -5,80 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>लॉगिन - बैंक कम्युनिटी लोन</title>
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        
-        async function initializeAppWithConfig() {
-            try {
-                const response = await fetch('/api/config');
-                if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल।');
-                
-                const config = await response.json();
-                
-                const app = initializeApp(config.firebase);
-                const auth = getAuth(app);
-                
-                setupLoginListener(auth);
-
-            } catch (error) {
-                console.error("Initialization failed:", error);
-                const errorMessageElement = document.getElementById('errorMessage');
-                errorMessageElement.textContent = error.message;
-                errorMessageElement.style.display = 'block';
-            }
-        }
-
-        function setupLoginListener(auth) {
-            const loginForm = document.getElementById('loginForm');
-            const errorMessageElement = document.getElementById('errorMessage');
-            const loginBtn = document.getElementById('loginBtn');
-            const loginBtnText = document.getElementById('loginBtnText');
-            const loader = document.getElementById('loader');
-
-            // --- SMART REDIRECT LOGIC ---
-            // Step 1: Check if a redirect URL was passed
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect');
-
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                errorMessageElement.style.display = 'none';
-                loginBtn.disabled = true;
-                loginBtnText.style.display = 'none';
-                loader.style.display = 'inline-block';
-
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                const adminUid = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
-
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-
-                    if (user.uid === adminUid) {
-                        sessionStorage.setItem('isAdminLoggedIn', 'true');
-                        // Step 2: If a redirect URL exists, go there. Otherwise, go to admin.html
-                        window.location.href = redirectUrl || '/admin.html'; 
-                    } else {
-                        // Regular members will always go to index.html
-                        window.location.href = '/index.html'; 
-                    }
-
-                } catch (error) {
-                    errorMessageElement.textContent = 'गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।';
-                    errorMessageElement.style.display = 'block';
-                    console.error("Login Error:", error);
-                } finally {
-                    loginBtn.disabled = false;
-                    loginBtnText.style.display = 'inline';
-                    loader.style.display = 'none';
-                }
-            });
-        }
-        
-        initializeAppWithConfig();
-    </script>
+    <!-- Yahan login.js file ko module ke roop mein jodein -->
+    <script type="module" src="/login.js" defer></script>
 
     <style>
         body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
