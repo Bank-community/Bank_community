@@ -37,7 +37,7 @@
                 </button>
             </header>
             <div id="community-letters-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <p class="text-center text-gray-500 col-span-full py-10">Loading letters...</p>
+                <p class="text-center text-gray-500 col-span-full py-10">Authenticating...</p>
             </div>
         </section>
 
@@ -50,7 +50,7 @@
                 </button>
             </header>
             <div id="custom-cards-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <p class="text-center text-gray-500 col-span-full py-10">Loading cards...</p>
+                <p class="text-center text-gray-500 col-span-full py-10">Authenticating...</p>
             </div>
         </section>
     </main>
@@ -70,17 +70,17 @@
     </div>
 
     <script type="module">
-        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
-            window.location.href = `login.html?redirect=${window.location.pathname}`;
-        }
-
+        // ✅ Firebase v9 Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getDatabase, ref, onValue, set, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         let db, IMGBB_API_KEY;
         let adminSettings = {};
+        const ADMIN_UID = 'hWsZo6gONzOOccP7y4GCT4oV93A2'; // Aapka Admin UID
 
-        async function startApp() {
+        // ✅ NAYA LOGIC: Authentication check
+        async function checkAuthAndInitialize() {
             try {
                 const response = await fetch('/api/config');
                 if (!response.ok) throw new Error('Config fetch failed');
@@ -88,14 +88,32 @@
                 
                 IMGBB_API_KEY = config.imgbb.apiKey;
                 const app = initializeApp(config.firebase);
+                const auth = getAuth(app);
                 db = getDatabase(app);
 
-                attachEventHandlers();
-                fetchAdminSettings();
+                onAuthStateChanged(auth, (user) => {
+                    // Check if a user is logged in AND if they are the admin
+                    if (user && user.uid === ADMIN_UID) {
+                        console.log("Admin authenticated. Initializing app...");
+                        sessionStorage.setItem('isAdminLoggedIn', 'true'); // Optional: for compatibility if needed elsewhere
+                        runAppLogic();
+                    } else {
+                        // If not logged in or not an admin, redirect to login
+                        console.log("User not authenticated as admin. Redirecting...");
+                        sessionStorage.removeItem('isAdminLoggedIn');
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
+                });
             } catch (error) {
                 console.error("App Init Failed:", error);
                 document.body.innerHTML = `<div class="text-center p-8"><h1>Initialization Error</h1><p>${error.message}</p></div>`;
             }
+        }
+
+        // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+        function runAppLogic() {
+            attachEventHandlers();
+            fetchAdminSettings();
         }
 
         function fetchAdminSettings() {
@@ -171,43 +189,14 @@
                             <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Custom Card</h3>
                         </div>
                         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div>
-                                <label for="card-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                <input type="text" id="card-title" class="form-input w-full p-2 rounded-lg" value="${cardData.title || ''}" required>
-                            </div>
-                            <div>
-                                <label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                                <div class="mt-1 flex items-center gap-4">
-                                    <img id="image-preview" src="${cardData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-cover rounded-md bg-gray-200">
-                                    <input type="file" id="card-img" class="hidden" accept="image/*">
-                                    <input type="hidden" id="existing-image-url" value="${cardData.imageUrl || ''}">
-                                    <button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Change</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
-                                <input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required>
-                            </div>
-                            <div>
-                                <label for="card-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
-                                <input type="url" id="card-btn-url" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonLink || ''}" required>
-                            </div>
-                            <div>
-                                <label for="card-btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
-                                <input type="color" id="card-btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${cardData.buttonColor || '#4f46e5'}">
-                            </div>
+                            <div><label for="card-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label><input type="text" id="card-title" class="form-input w-full p-2 rounded-lg" value="${cardData.title || ''}" required></div>
+                            <div><label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label><input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Image</label><div class="mt-1 flex items-center gap-4"><img id="image-preview" src="${cardData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-cover rounded-md bg-gray-200"><input type="file" id="card-img" class="hidden" accept="image/*"><input type="hidden" id="existing-image-url" value="${cardData.imageUrl || ''}"><button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Change</button></div></div>
+                            <div><label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label><input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required></div>
+                            <div><label for="card-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label><input type="url" id="card-btn-url" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonLink || ''}" required></div>
+                            <div><label for="card-btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label><input type="color" id="card-btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${cardData.buttonColor || '#4f46e5'}"></div>
                         </div>
-                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
-                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                            <button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md">
-                                <span id="save-btn-text">Save Card</span>
-                                <div id="save-loader" class="loader ml-2"></div>
-                            </button>
-                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3"><button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md"><span id="save-btn-text">Save Card</span><div id="save-loader" class="loader ml-2"></div></button></div>
                     </form>
                 </div>
             `;
@@ -223,31 +212,12 @@
             modal.innerHTML = `
                 <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
                     <form id="community-letter-form" data-key="${isEditing ? key : ''}">
-                        <div class="p-4 border-b">
-                            <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Community Letter</h3>
-                        </div>
+                        <div class="p-4 border-b"><h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Community Letter</h3></div>
                         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div>
-                                <label for="letter-alt-text" class="block text-sm font-medium text-gray-700 mb-1">Image Description (Alt Text)</label>
-                                <input type="text" id="letter-alt-text" class="form-input w-full p-2 rounded-lg" value="${letterData.altText || ''}" placeholder="e.g., Joining Letter">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                                <div class="mt-1 flex items-center gap-4">
-                                    <img id="image-preview" src="${letterData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-contain bg-gray-200 rounded-md">
-                                    <input type="file" id="card-img" class="hidden" accept="image/*" required>
-                                    <input type="hidden" id="existing-image-url" value="${letterData.imageUrl || ''}">
-                                    <button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Choose Image</button>
-                                </div>
-                            </div>
+                            <div><label for="letter-alt-text" class="block text-sm font-medium text-gray-700 mb-1">Image Description (Alt Text)</label><input type="text" id="letter-alt-text" class="form-input w-full p-2 rounded-lg" value="${letterData.altText || ''}" placeholder="e.g., Joining Letter"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Image</label><div class="mt-1 flex items-center gap-4"><img id="image-preview" src="${letterData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-contain bg-gray-200 rounded-md"><input type="file" id="card-img" class="hidden" accept="image/*" ${!isEditing ? 'required' : ''}><input type="hidden" id="existing-image-url" value="${letterData.imageUrl || ''}"><button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Choose Image</button></div></div>
                         </div>
-                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
-                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                            <button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md">
-                                <span id="save-btn-text">Save Letter</span>
-                                <div id="save-loader" class="loader ml-2"></div>
-                            </button>
-                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3"><button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md"><span id="save-btn-text">Save Letter</span><div id="save-loader" class="loader ml-2"></div></button></div>
                     </form>
                 </div>
             `;
@@ -256,22 +226,18 @@
         }
 
         function attachModalImageUploadListeners() {
-            document.getElementById('upload-btn').addEventListener('click', () => {
-                document.getElementById('card-img').click();
-            });
+            document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('card-img').click());
             document.getElementById('card-img').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = (event) => {
-                        document.getElementById('image-preview').src = event.target.result;
-                    };
+                    reader.onload = (event) => document.getElementById('image-preview').src = event.target.result;
                     reader.readAsDataURL(file);
                 }
             });
         }
 
-        function openModal(modal) { modal.classList.remove('hidden', 'opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }
+        function openModal(modal) { modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }, 10); }
         function closeModal(modal) { if(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); } }
         function showConfirmation(title, message) { return new Promise(resolve => { const modal = document.getElementById('confirmModal'); modal.querySelector('#confirmModalTitle').textContent = title; modal.querySelector('#confirmModalMessage').textContent = message; openModal(modal); const okBtn = modal.querySelector('#confirmOkBtn'); const cancelBtn = modal.querySelector('#confirmCancelBtn'); const cleanup = () => { closeModal(modal); okBtn.onclick = null; cancelBtn.onclick = null; }; okBtn.onclick = () => { cleanup(); resolve(true); }; cancelBtn.onclick = () => { cleanup(); resolve(false); }; }); }
 
@@ -301,9 +267,7 @@
                         try {
                             await remove(ref(db, `admin/custom_cards/${key}`));
                             alert('Card deleted successfully.');
-                        } catch (err) {
-                            alert('Error deleting card: ' + err.message);
-                        }
+                        } catch (err) { alert('Error deleting card: ' + err.message); }
                     }
                 }
                 const editLetterBtn = e.target.closest('.edit-letter-btn');
@@ -318,15 +282,11 @@
                         try {
                             await remove(ref(db, `admin/community_letters/${key}`));
                             alert('Letter deleted successfully.');
-                        } catch (err) {
-                            alert('Error deleting letter: ' + err.message);
-                        }
+                        } catch (err) { alert('Error deleting letter: ' + err.message); }
                     }
                 }
                 const closeBtn = e.target.closest('.close-modal-btn');
-                if (closeBtn) {
-                    closeModal(closeBtn.closest('.modal-overlay'));
-                }
+                if (closeBtn) closeModal(closeBtn.closest('.modal-overlay'));
             });
 
             document.body.addEventListener('submit', async (e) => {
@@ -343,50 +303,29 @@
                     loader.style.display = 'inline-block';
 
                     try {
-                        let key = form.dataset.key; // Get existing key
+                        let key = form.dataset.key;
                         const file = form.querySelector('#card-img').files[0];
                         let imageUrl = form.querySelector('#existing-image-url').value;
 
-                        if (file) {
-                            imageUrl = await uploadImage(file);
-                        }
+                        if (file) { imageUrl = await uploadImage(file); }
+                        if (!imageUrl) { throw new Error('Please select an image to upload.'); }
 
-                        if (!imageUrl && !isLetterForm) { // Image is required for custom cards
-                            throw new Error('Please select an image to upload.');
-                        }
-
-                        let dataToSave;
-                        let dbPath;
-                        let modalToClose;
-                        let successMessage;
+                        let dataToSave, dbPath, modalToClose, successMessage;
 
                         if (isLetterForm) {
-                            dataToSave = {
-                                imageUrl: imageUrl,
-                                altText: form.querySelector('#letter-alt-text').value,
-                            };
+                            dataToSave = { imageUrl, altText: form.querySelector('#letter-alt-text').value };
                             dbPath = 'admin/community_letters';
                             modalToClose = document.getElementById('communityLetterModal');
                             successMessage = `Letter ${key ? 'updated' : 'added'} successfully!`;
                         } else {
-                            dataToSave = {
-                                title: form.querySelector('#card-title').value,
-                                description: form.querySelector('#card-desc').value,
-                                imageUrl: imageUrl,
-                                buttonText: form.querySelector('#card-btn-text').value,
-                                buttonLink: form.querySelector('#card-btn-url').value,
-                                buttonColor: form.querySelector('#card-btn-color').value,
-                            };
+                            dataToSave = { title: form.querySelector('#card-title').value, description: form.querySelector('#card-desc').value, imageUrl, buttonText: form.querySelector('#card-btn-text').value, buttonLink: form.querySelector('#card-btn-url').value, buttonColor: form.querySelector('#card-btn-color').value };
                             dbPath = 'admin/custom_cards';
                             modalToClose = document.getElementById('customCardModal');
                             successMessage = `Custom card ${key ? 'updated' : 'added'} successfully!`;
                         }
                         
-                        // --- BUG FIX LOGIC ---
-                        if (!key) { // If it's a new item, generate a key
-                            key = push(ref(db, dbPath)).key;
-                        }
-                        const dbRef = ref(db, `${dbPath}/${key}`); // Construct the final, correct path
+                        if (!key) { key = push(ref(db, dbPath)).key; }
+                        const dbRef = ref(db, `${dbPath}/${key}`);
                         await set(dbRef, dataToSave);
                         
                         alert(successMessage);
@@ -403,7 +342,8 @@
             });
         }
 
-        startApp();
+        // ✅ App ko shuru karein
+        checkAuthAndInitialize();
     </script>
 </body>
 </html>
