@@ -239,16 +239,22 @@
             // --- Response Rendering ---
             function handleBotResponse(text) {
                 try {
-                    const jsonResponse = JSON.parse(text);
-                    if (jsonResponse.type === 'sip_comparison_chart') {
-                        typeMessage(jsonResponse.summary, "bot").then(() => {
-                            renderSipComparisonChart(jsonResponse.data);
-                        });
+                    // Clean the response to extract only the JSON part
+                    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+                    if (jsonMatch && jsonMatch[1]) {
+                        const jsonResponse = JSON.parse(jsonMatch[1]);
+                        if (jsonResponse.type === 'sip_comparison_chart') {
+                            typeMessage(jsonResponse.summary, "bot").then(() => {
+                                renderSipComparisonChart(jsonResponse.data);
+                            });
+                        } else {
+                            typeMessage(text, "bot"); // Fallback for other JSON types
+                        }
                     } else {
-                        typeMessage(text, "bot");
+                         typeMessage(text, "bot"); // Not a JSON, so just type it out
                     }
                 } catch (e) {
-                    typeMessage(text, "bot");
+                    typeMessage(text, "bot"); // Parsing failed, treat as plain text
                 }
             }
             
@@ -388,7 +394,6 @@
 
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             
-            // ✅ UPDATED: Ranks FAQs by relevance
             function findMatchingFaqs(query, limit) {
                 if (!cachedFaqs) return [];
                 const lowerQuery = String(query).toLowerCase().trim();
@@ -436,7 +441,6 @@
                 return topContributor;
             }
 
-            // Make key functions globally accessible for inline HTML onclicks
             window.chatbot = {
                 activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); },
                 deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); },
