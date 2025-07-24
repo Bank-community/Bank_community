@@ -45,12 +45,16 @@
         #lock-mode-banner { animation: fadeIn 0.5s ease; }
         .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
 
-        .auto-link-btn {
-            display: inline-block; margin-top: 10px; padding: 10px 18px;
-            background-color: #3b82f6; color: white; font-weight: 600;
-            text-decoration: none; border-radius: 8px; transition: all 0.2s ease;
+        /* ✅ UPDATED: Simple clickable link style */
+        .clickable-link {
+            color: #2563eb;
+            font-weight: 600;
+            text-decoration: underline;
+            word-break: break-all;
         }
-        .auto-link-btn:hover { background-color: #2563eb; transform: scale(1.05); }
+        .clickable-link:hover {
+            color: #1d4ed8;
+        }
         .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; }
     </style>
 </head>
@@ -121,7 +125,7 @@
             let isBotInitialized = false;
             let cachedMemberIndex = null;
             let cachedFaqs = null;
-            let allMembersFullData = null; // Cache for chart data
+            let allMembersFullData = null;
             let lockMode = { active: false, member: null };
 
             const chatBox = document.getElementById('chat');
@@ -138,10 +142,7 @@
                 await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
                 const typing = appendRichMessage("...", "bot typing");
                 try {
-                    const [memberSnapshot, faqsSnapshot] = await Promise.all([
-                        membersRef.once('value'),
-                        faqsRef.once('value')
-                    ]);
+                    const [memberSnapshot, faqsSnapshot] = await Promise.all([ membersRef.once('value'), faqsRef.once('value') ]);
                     
                     cachedMemberIndex = [];
                     if (memberSnapshot.exists()) {
@@ -181,38 +182,31 @@
 
             async function processGeneralQuery(query) {
                 const matchingMembers = findMatchingMembers(query);
-                const matchingFaqs = findMatchingFaqs(query, 5); // Get top 5 ranked FAQs
+                const matchingFaqs = findMatchingFaqs(query, 5);
                 if (matchingMembers.length === 1 && !query.match(/list|sabhi|all/i)) {
                     await displayMemberDetails(matchingMembers[0].id);
                 } else if (matchingMembers.length > 1) {
                     await typeMessage("मुझे इस नाम से मिलते-जुलते कई सदस्य मिले। आप किसके बारे में जानना चाहते हैं?", "bot");
                     matchingMembers.forEach(m => appendMemberClarification(m));
                 } else if (matchingFaqs.length > 0) {
-                    for (const faq of matchingFaqs) {
-                        await typeMessage(faq.answer, "bot");
-                    }
+                    await typeMessage(matchingFaqs[0].answer, "bot"); // Only show the top matched answer
                 } else {
                     await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
                 }
             }
 
+            // ✅ UPDATED: Stricter logic for Lock Mode
             async function processLockedQuery(query, member) {
                 const memberData = allMembersFullData[member.id];
                 if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
                 
-                const matchingFaqs = findMatchingFaqs(query, 1);
-                if (matchingFaqs.length > 0) {
-                    await typeMessage(matchingFaqs[0].answer, "bot");
-                    return;
-                }
-                
                 const summaryData = aggregateMemberData(memberData);
                 const today = new Date().toISOString().split('T')[0];
-                
-                // Pre-calculate data for the prompt
                 const topSipData = findTopSipContributor(new Date());
 
-                const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query and the provided JSON data for a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
+                const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query about a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
+
+                **CRITICAL RULE:** You are in "Lock Mode". You MUST ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question (like "what are the loan rules?" or "who is the bank owner?"), you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
 
                 **User's Query:** "${query}"
                 
@@ -224,7 +218,7 @@
                 **Additional Context (Today's Date is ${today}):**
                 - The top SIP contributor this month is ${topSipData.name} with ₹${topSipData.amount}.
 
-                **VERY IMPORTANT - Special Instructions:**
+                **SPECIAL INSTRUCTIONS:**
                 1.  **Chart Generation:** If the user's query is about their own SIP for the current month (e.g., "mera is mahine ka sip", "sip status", "sip kitna hai"), you MUST respond ONLY with the following JSON object. Do not add any other text.
                     \`\`\`json
                     {
@@ -236,7 +230,7 @@
                       "summary": "AI-generated summary text in Hindi goes here. For example: Is mahine aapka SIP ₹${summaryData.sipStatus.amount} hai. Sabse zyada SIP ${topSipData.name} ne ₹${topSipData.amount} jama kiya hai."
                     }
                     \`\`\`
-                2.  **For all other queries:** Provide a conversational, helpful answer in simple Hindi based on the provided data. Analyze the query's intent (e.g., 'outstanding loan' means 'netLoanOutstanding'). Use raw data for specifics like 'mobile number' or 'DOB'.`;
+                2.  **For all other member-specific queries:** Provide a conversational, helpful answer in simple Hindi based on the provided data. Analyze the query's intent (e.g., 'outstanding loan' means 'netLoanOutstanding'). Use raw data for specifics like 'mobile number' or 'DOB'.`;
                 
                 const responseText = await callGemini(prompt);
                 handleBotResponse(responseText);
@@ -254,23 +248,20 @@
                         typeMessage(text, "bot");
                     }
                 } catch (e) {
-                    // Not a JSON, so just type it out
                     typeMessage(text, "bot");
                 }
             }
             
-            // ✅ UPDATED: Only processes full URLs
+            // ✅ UPDATED: Only processes full URLs into clickable links
             function processLinks(content) {
-                const urlRegex = /(https?:\/\/[^\s"'.<>()]+)/g;
-                return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="auto-link-btn"><i class="fas fa-external-link-alt mr-2"></i>Click Here</a>`);
+                const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
+                return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
             }
 
-            // ✅ NEW: For rich content like cards and typing indicators that shouldn't be processed for links
             function appendRichMessage(content, type) {
                 const messageEl = document.createElement('div');
                 messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
                 const bubbleEl = document.createElement('div');
-                const isBot = type.startsWith('bot');
                 bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'bg-user-message-bg text-gray-800 rounded-br-none' : 'bg-bot-message-bg rounded-bl-none'}`;
                 
                 if (type === 'bot typing') {
@@ -348,8 +339,8 @@
                         datasets: [{
                             label: 'Current Month SIP (₹)',
                             data: [data.currentUser.sip, data.topUser.sip],
-                            backgroundColor: ['rgba(220, 220, 98, 0.6)', 'rgba(75, 192, 192, 0.6)'],
-                            borderColor: ['rgba(220, 220, 98, 1)', 'rgba(75, 192, 192, 1)'],
+                            backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+                            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
                             borderWidth: 1
                         }]
                     },
@@ -366,7 +357,7 @@
                 suggestionsBox.innerHTML = '';
                 if (!query || query.length < 2 || lockMode.active) return;
                 const memberSuggestions = findMatchingMembers(query).slice(0, 2);
-                const faqSuggestions = findMatchingFaqs(query, 4); // Get more FAQ suggestions
+                const faqSuggestions = findMatchingFaqs(query, 4);
                 
                 const allSuggestions = [...memberSuggestions, ...faqSuggestions];
                 if (allSuggestions.length === 0) return;
@@ -391,16 +382,13 @@
                 const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2));
                 const textWords = new Set(text.toLowerCase().split(/\s+/));
                 let score = 0;
-                for (const word of queryWords) {
-                    if (textWords.has(word)) {
-                        score++;
-                    }
-                }
+                for (const word of queryWords) { if (textWords.has(word)) score++; }
                 return score;
             }
 
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             
+            // ✅ UPDATED: Ranks FAQs by relevance
             function findMatchingFaqs(query, limit) {
                 if (!cachedFaqs) return [];
                 const lowerQuery = String(query).toLowerCase().trim();
@@ -448,20 +436,12 @@
                 return topContributor;
             }
 
+            // Make key functions globally accessible for inline HTML onclicks
             window.chatbot = {
-                activateLockMode: function(member) {
-                    lockMode = { active: true, member: member };
-                    lockedMemberNameEl.textContent = `Focused on ${member.name}`;
-                    lockBanner.classList.remove('hidden');
-                    appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot");
-                },
-                deactivateLockMode: function() {
-                    appendRichMessage(`🔓 Lock Mode deactivated.`, "bot");
-                    lockMode = { active: false, member: null };
-                    lockBanner.classList.add('hidden');
-                },
-                openImageModal: function(imageUrl) { if (!imageUrl || imageUrl.includes('placehold.co')) return; modalImageContent.src = imageUrl; imageModal.classList.remove('hidden'); imageModal.classList.add('flex'); },
-                closeImageModal: function() { imageModal.classList.add('hidden'); imageModal.classList.remove('flex'); },
+                activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); },
+                deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); },
+                openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; modalImageContent.src = imageUrl; imageModal.classList.remove('hidden'); imageModal.classList.add('flex'); },
+                closeImageModal: () => { imageModal.classList.add('hidden'); imageModal.classList.remove('flex'); },
                 displayMemberDetails: displayMemberDetails
             };
             
