@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Lock-Mode Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #2E7D32, #4CAF50);
+            --secondary-color: #f0f4f8;
+            --user-message-bg: #DCF8C6;
+            --bot-message-bg: #ffffff;
+            --text-dark: #1C1C1E;
+            --text-light: #6C757D;
+            --border-color: #e5e7eb;
+            --shadow-light: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--secondary-color); }
+        .chat-container { animation: fadeIn 0.5s ease-out; }
+        .message { animation: fadeIn 0.3s ease-out; }
+        
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .suggestion-pill { transition: all 0.2s ease-in-out; }
+        .suggestion-pill:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+        #lock-mode-banner { animation: fadeIn 0.5s ease; }
+        .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="chat-container flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-2xl">
+        <header class="flex items-center justify-center p-4 bg-gray-800 text-white shadow-lg z-10">
+            <h1 class="text-xl font-bold tracking-wider">Ultimate Bank Commity Bot</h1>
+        </header>
+
+        <div id="lock-mode-banner" class="hidden flex items-center justify-between p-3 bg-yellow-100 border-b-2 border-yellow-300">
+            <div class="flex items-center">
+                <i class="fas fa-lock text-yellow-600 text-xl mr-3 lock-icon-pulse"></i>
+                <div>
+                    <p class="font-bold text-yellow-800">Lock Mode Active</p>
+                    <p id="locked-member-name" class="text-sm text-yellow-700"></p>
+                </div>
+            </div>
+            <button id="unlock-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-full text-sm">Unlock</button>
+        </div>
+
+        <div id="chat" class="chat-messages flex-1 p-6 overflow-y-auto bg-secondary-color"></div>
+
+        <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
+            <div id="suggestions" class="mb-2 flex flex-wrap gap-2"></div>
+            <div class="relative">
+                <input type="text" id="input" class="w-full pl-4 pr-12 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Yahan apna sawaal likhein...">
+                <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden items-center justify-center" onclick="closeImageModal()">
+        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="closeImageModal()">&times;</span>
+        <img id="modalImageContent" class="max-w-[90%] max-h-[90%] rounded-lg">
+    </div>
+
+    <script>
+        // ✅ NAYA LOGIC: Authentication check
+        async function checkAuthAndInitialize() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Configuration failed to load.');
+                const config = await response.json();
+                
+                // Firebase ko Vercel se mile config se initialize karein
+                firebase.initializeApp(config.firebase);
+                
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        // User logged in hai, ab chatbot ko shuru karein
+                        console.log("User authenticated, initializing chatbot...");
+                        runChatbotLogic();
+                    } else {
+                        // User logged in nahi hai, use login page par bhej dein
+                        console.log("User not authenticated, redirecting to login...");
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Initialization Error:", error);
+                const chatBox = document.getElementById('chat');
+                chatBox.innerHTML = `<div class="p-4 text-red-600 text-center">Application failed to initialize: ${error.message}</div>`;
+            }
+        }
+
+        // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+        function runChatbotLogic() {
+            const database = firebase.database();
+            const faqsRef = database.ref('admin/faqs');
+            const membersRef = database.ref('members');
+
+            let isBotInitialized = false;
+            let cachedMemberIndex = null;
+            let cachedFaqs = null;
+            let lockMode = { active: false, member: null };
+
+            const chatBox = document.getElementById('chat');
+            const inputBox = document.getElementById('input');
+            const sendBtn = document.getElementById('send-btn');
+            const suggestionsBox = document.getElementById('suggestions');
+            const lockBanner = document.getElementById('lock-mode-banner');
+            const lockedMemberNameEl = document.getElementById('locked-member-name');
+            const unlockBtn = document.getElementById('unlock-btn');
+            const imageModal = document.getElementById('imageModal');
+            const modalImageContent = document.getElementById('modalImageContent');
+
+            async function initializeBot() {
+                appendMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
+                const typing = appendMessage("...", "bot typing");
+                try {
+                    const [memberSnapshot, faqsSnapshot] = await Promise.all([
+                        membersRef.orderByChild('fullName').once('value'),
+                        faqsRef.once('value')
+                    ]);
+                    cachedMemberIndex = [];
+                    if (memberSnapshot.exists()) {
+                        memberSnapshot.forEach(snap => { if(snap.val().fullName) { cachedMemberIndex.push({ id: snap.key, name: snap.val().fullName }); } });
+                    }
+                    cachedFaqs = [];
+                    if (faqsSnapshot.exists()) {
+                        const faqsData = faqsSnapshot.val();
+                        for(const key in faqsData) { if(faqsData[key].questions && faqsData[key].answer) { cachedFaqs.push(faqsData[key]); } }
+                    }
+                    typing.remove();
+                    appendMessage("आप किसी सदस्य का नाम टाइप कर सकते हैं या कोई नियम पूछ सकते हैं।", "bot");
+                    isBotInitialized = true;
+                } catch (error) { console.error("Initialization failed:", error); typing.innerHTML = "त्रुटि: डेटाबेस से कनेक्ट नहीं हो सका।"; }
+            }
+
+            async function handleSend() {
+                if (!isBotInitialized) { appendMessage("बॉट अभी शुरू हो रहा है, कृपया प्रतीक्षा करें...", "bot"); return; }
+                const query = inputBox.value.trim();
+                if (!query) return;
+                appendMessage(query, "user");
+                inputBox.value = '';
+                suggestionsBox.innerHTML = '';
+                const typing = appendMessage("...", "bot typing");
+                if (lockMode.active) { await processLockedQuery(query, lockMode.member); } 
+                else { await processGeneralQuery(query); }
+                typing.remove();
+            }
+
+            async function processGeneralQuery(query) {
+                const matchingMembers = findMatchingMembers(query);
+                const matchingFaqs = findMatchingFaqs(query);
+                if (matchingMembers.length === 1 && !query.match(/list|sabhi|all/i)) {
+                    await displayMemberDetails(matchingMembers[0].id);
+                } else if (matchingMembers.length > 1) {
+                    appendMessage("मुझे इस नाम से मिलते-जुलते कई सदस्य मिले। आप किसके बारे में जानना चाहते हैं?", "bot");
+                    matchingMembers.forEach(m => appendMemberClarification(m));
+                } else if (matchingFaqs.length > 0) {
+                    matchingFaqs.forEach(faq => appendMessage(faq.answer, "bot"));
+                } else {
+                    appendMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
+                }
+            }
+
+            async function processLockedQuery(query, member) {
+                const memberDataSnapshot = await membersRef.child(member.id).once('value');
+                if (!memberDataSnapshot.exists()) {
+                    appendMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot");
+                    return;
+                }
+                const memberData = memberDataSnapshot.val();
+                
+                const matchingFaqs = findMatchingFaqs(query);
+                if (matchingFaqs.length > 0) {
+                    matchingFaqs.forEach(faq => appendMessage(faq.answer, "bot"));
+                    return;
+                }
+                
+                const summaryData = aggregateMemberData(memberData);
+                const today = new Date().toISOString().split('T')[0];
+                
+                const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query and the provided JSON data for a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
+
+                **VERY IMPORTANT RULES:**
+                1.  **ALWAYS** respond in friendly, simple Hindi.
+                2.  **ALWAYS** format monetary values using the Rupee symbol (₹) and numerals (e.g., ₹5000), NEVER in words.
+                3.  Analyze the user's query's true intent. "Total loan" means 'totalLoan', but "kitna loan hai" or "outstanding loan" means 'netLoanOutstanding'. For specific details, always prefer the raw transaction data.
+                4.  Use the provided 'today's date' (${today}) for any time-based calculations (e.g., age from DOB, how many days ago a transaction happened).
+                5.  For empty string values ("") or missing fields, consider them as 0 or not available.
+                6.  If asked about personal details like 'address', 'mobile number', 'DOB', 'joining date', 'guarantor', 'Aadhaar', use the 'fullRawData' object.
+
+                **User's Query:** "${query}"
+                **You have two sources of data for ${member.name}:**
+                **1. Calculated Summary Data:**
+                \`\`\`json
+                ${JSON.stringify(summaryData, null, 2)}
+                \`\`\`
+                **2. Full Raw Database Data:**
+                \`\`\`json
+                ${JSON.stringify(memberData, null, 2)}
+                \`\`\`
+                **Analysis and Response Instructions:**
+                - To answer questions about totals (कुल जमा, कुल लोन), use the 'Calculated Summary Data'.
+                - To answer specific, detailed questions (इस तारीख को क्या हुआ?, पेनल्टी कितनी थी?, मोबाइल नंबर क्या है?, जन्मदिन कब है?), use the 'Full Raw Database Data'.
+                - For 'जन्मदिन' or 'age', use the 'dob' field from raw data and calculate the age if needed.
+                - Provide only the direct and helpful answer. Do not repeat the data. Be conversational.`;
+                
+                const response = await callGemini(prompt);
+                appendMessage(response, "bot");
+            }
+
+            function appendMessage(content, type) {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
+                const bubbleEl = document.createElement('div');
+                bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'bg-user-message-bg text-gray-800 rounded-br-none' : 'bg-bot-message-bg rounded-bl-none'}`;
+                if (type === 'bot typing') {
+                    bubbleEl.innerHTML = `<div class="flex items-center space-x-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div></div>`;
+                } else {
+                    bubbleEl.innerHTML = content.replace(/\n/g, '<br>');
+                }
+                messageEl.appendChild(bubbleEl);
+                chatBox.appendChild(messageEl);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                return bubbleEl;
+            }
+
+            function appendMemberClarification(member) {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'message bg-white p-3 rounded-lg shadow-md flex items-center justify-between';
+                messageEl.innerHTML = `<p class="font-semibold">${member.name}</p>`;
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'flex items-center space-x-2';
+                const viewBtn = document.createElement('button');
+                viewBtn.innerHTML = `<i class="fas fa-eye"></i>`;
+                viewBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110';
+                viewBtn.onclick = () => displayMemberDetails(member.id);
+                const lockBtn = document.createElement('button');
+                lockBtn.innerHTML = `<i class="fas fa-lock"></i>`;
+                lockBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110';
+                lockBtn.onclick = () => activateLockMode(member);
+                btnGroup.append(viewBtn, lockBtn);
+                messageEl.appendChild(btnGroup);
+                chatBox.appendChild(messageEl);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            async function displayMemberDetails(memberId) {
+                const typing = appendMessage("...", "bot typing");
+                const memberData = (await membersRef.child(memberId).once('value')).val();
+                typing.remove();
+                if (!memberData) { appendMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
+                const data = aggregateMemberData(memberData);
+                const profileImageUrl = data.profilePicUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${data.name.charAt(0)}`;
+                const signatureImageUrl = data.signatureUrl || `https://placehold.co/150x75/E2E8F0/4A5568?text=No+Sign`;
+                const sipStatusClass = data.sipStatus.class;
+                const html = `
+                    <div class="p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+                        <div class="flex items-center justify-between pb-4 border-b">
+                            <div class="flex items-center">
+                                <img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-green-500 cursor-pointer" onclick="openImageModal('${profileImageUrl}')">
+                                <div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${data.joinDate}</p></div>
+                            </div>
+                            <button onclick="activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-green-600 transition-transform hover:scale-125" title="Lock on this member"><i class="fas fa-lock text-2xl"></i></button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-center py-4">
+                            <div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div>
+                            <div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div>
+                        </div>
+                        <div class="flex items-center justify-between pt-4 border-t">
+                            <div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${sipStatusClass}">${data.sipStatus.text}</p></div>
+                            <img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="openImageModal('${signatureImageUrl}')" alt="Signature">
+                        </div>
+                    </div>`;
+                const msgEl = document.createElement('div');
+                msgEl.innerHTML = html;
+                chatBox.appendChild(msgEl);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            function showSuggestions(query) {
+                suggestionsBox.innerHTML = '';
+                if (!query || query.length < 1 || lockMode.active) return;
+                const memberSuggestions = findMatchingMembers(query).slice(0, 3);
+                const faqSuggestions = findMatchingFaqs(query).slice(0, 2);
+                if (memberSuggestions.length === 0 && faqSuggestions.length === 0) return;
+                memberSuggestions.forEach(m => {
+                    const pill = document.createElement('button');
+                    pill.className = 'suggestion-pill bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm';
+                    pill.innerHTML = `<i class="fas fa-user mr-2"></i>${m.name}`;
+                    pill.onclick = () => { inputBox.value = m.name; handleSend(); };
+                    suggestionsBox.appendChild(pill);
+                });
+                faqSuggestions.forEach(f => {
+                    const pill = document.createElement('button');
+                    pill.className = 'suggestion-pill bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm';
+                    pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${f.questions[0]}`;
+                    pill.onclick = () => { inputBox.value = f.questions[0]; handleSend(); };
+                    suggestionsBox.appendChild(pill);
+                });
+            }
+
+            function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
+            function findMatchingFaqs(query) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.filter(faq => faq.questions.some(q => q.toLowerCase().includes(lowerQuery))); }
+            
+            function aggregateMemberData(data) {
+                let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0;
+                const transactions = data.transactions ? Object.values(data.transactions) : [];
+                transactions.forEach(tx => {
+                    totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0;
+                });
+                const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance;
+                const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw;
+                return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus: getSipStatus(transactions) };
+            }
+
+            function getSipStatus(transactions) {
+                const now = new Date(); const currentMonth = now.getMonth(); const currentYear = now.getFullYear();
+                const paidThisMonth = transactions.some(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; });
+                if (paidThisMonth) return { text: 'Paid', class: 'text-green-600' };
+                if (now.getDate() > 10) return { text: 'Pending', class: 'text-red-600' };
+                return { text: 'Due', class: 'text-yellow-600' };
+            }
+            window.activateLockMode = function(member) {
+                lockMode = { active: true, member: member };
+                lockedMemberNameEl.textContent = `Focused on ${member.name}`;
+                lockBanner.classList.remove('hidden');
+                appendMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot");
+            }
+            function deactivateLockMode() {
+                appendMessage(`🔓 Lock Mode deactivated.`, "bot");
+                lockMode = { active: false, member: null };
+                lockBanner.classList.add('hidden');
+            }
+            
+            // ✅ UPDATED GEMINI CALL
+            async function callGemini(prompt) {
+                try {
+                    const response = await fetch('/api/getAiExplanation', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ promptText: prompt })
+                    });
+                    if (!response.ok) {
+                        const error = await response.json();
+                        console.error("AI Backend Error:", error);
+                        return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`;
+                    }
+                    const data = await response.json();
+                    return data.explanation;
+                } catch (e) {
+                    console.error("Error calling AI backend:", e);
+                    return "AI backend से कनेक्ट नहीं हो पा रहा है।";
+                }
+            }
+            
+            window.openImageModal = function(imageUrl) {
+                if (!imageUrl || imageUrl.includes('placehold.co')) return;
+                modalImageContent.src = imageUrl;
+                imageModal.classList.remove('hidden');
+                imageModal.classList.add('flex');
+            }
+            window.closeImageModal = function() {
+                imageModal.classList.add('hidden');
+                imageModal.classList.remove('flex');
+            }
+
+            sendBtn.addEventListener('click', handleSend);
+            inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(); });
+            inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
+            unlockBtn.addEventListener('click', deactivateLockMode);
+
+            // Start the bot
+            initializeBot();
+        }
+
+        // ✅ App ko shuru karein
+        checkAuthAndInitialize();
+    </script>
+</body>
+</html>
+
