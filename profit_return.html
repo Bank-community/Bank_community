@@ -633,8 +633,10 @@ function calculateTotalProfitForMember(memberName) {
 }
 
 function calculateProfitDistribution(paymentRecord) {
-    const profit = paymentRecord.returnAmount;
+    // --- UPDATED CODE: Only 90% of the return amount is considered for profit distribution ---
+    const profit = paymentRecord.returnAmount * 0.90; 
     if (profit <= 0) return null;
+
     const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date);
     if (userLoansBeforePayment.length === 0) return null; 
     const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1];
