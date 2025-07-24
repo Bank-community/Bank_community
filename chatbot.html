@@ -14,14 +14,9 @@
     
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #2E7D32, #4CAF50);
             --secondary-color: #f0f4f8;
             --user-message-bg: #DCF8C6;
             --bot-message-bg: #ffffff;
-            --text-dark: #1C1C1E;
-            --text-light: #6C757D;
-            --border-color: #e5e7eb;
-            --shadow-light: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
             --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -34,7 +29,6 @@
         .chat-messages::-webkit-scrollbar { width: 6px; }
         .chat-messages::-webkit-scrollbar-track { background: transparent; }
         .chat-messages::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-        .chat-messages::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         
         .suggestion-pill { transition: all 0.2s ease-in-out; }
         .suggestion-pill:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -42,21 +36,18 @@
         #lock-mode-banner { animation: fadeIn 0.5s ease; }
         .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
 
-        /* Style for auto-generated link buttons */
         .auto-link-button {
             display: inline-block;
-            background-color: #3b82f6; /* blue-500 */
+            background-color: #3b82f6;
             color: white;
             padding: 8px 16px;
-            border-radius: 9999px; /* rounded-full */
+            border-radius: 9999px;
             text-decoration: none;
-            font-weight: 600; /* font-semibold */
+            font-weight: 600;
             margin-top: 8px;
             transition: background-color 0.2s ease;
         }
-        .auto-link-button:hover {
-            background-color: #2563eb; /* blue-600 */
-        }
+        .auto-link-button:hover { background-color: #2563eb; }
     </style>
 </head>
 <body class="antialiased">
@@ -96,44 +87,26 @@
     </div>
 
     <script>
+        // ✅ RESTORED: This function is now back to its original, production-ready state.
         async function checkAuthAndInitialize() {
             try {
-                // This part assumes a backend endpoint '/api/config' exists to provide Firebase config.
-                // For local testing, you can replace this with your actual Firebase config object.
-                // const response = await fetch('/api/config');
-                // if (!response.ok) throw new Error('Configuration failed to load.');
-                // const config = await response.json();
-                // firebase.initializeApp(config.firebase);
-
-                // --- START: Replace with your Firebase Config for local testing ---
-                const firebaseConfig = {
-                    // Paste your Firebase config object here
-                    // apiKey: "...",
-                    // authDomain: "...",
-                    // databaseURL: "...",
-                    // projectId: "...",
-                    // storageBucket: "...",
-                    // messagingSenderId: "...",
-                    // appId: "..."
-                };
-                if (!firebaseConfig.apiKey) {
-                    const chatBox = document.getElementById('chat');
-                    chatBox.innerHTML = `<div class="p-4 text-red-600 text-center">Application not configured. Please add your Firebase config in the script.</div>`;
-                    return;
-                }
-                firebase.initializeApp(firebaseConfig);
-                // --- END: Firebase Config ---
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Configuration failed to load from backend.');
+                const config = await response.json();
+                
+                // Firebase ko Vercel se mile config se initialize karein
+                firebase.initializeApp(config.firebase);
                 
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
+                        // User logged in hai, ab chatbot ko shuru karein
                         console.log("User authenticated, initializing chatbot...");
                         runChatbotLogic();
                     } else {
-                        // In a real app, you might sign in anonymously or redirect.
-                        // For this example, we'll sign in anonymously to allow usage.
-                        firebase.auth().signInAnonymously().catch(error => {
-                            console.error("Anonymous sign-in failed:", error);
-                        });
+                        // User logged in nahi hai, use login page par bhej dein
+                        console.log("User not authenticated, redirecting to login...");
+                        // This ensures unauthenticated users are sent to the login page
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
                 });
 
@@ -220,7 +193,7 @@
             async function processLockedQuery(query, member) {
                 const memberDataSnapshot = await membersRef.child(member.id).once('value');
                 if (!memberDataSnapshot.exists()) {
-                    appendMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot");
+                    await appendMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot", true);
                     return;
                 }
                 const memberData = memberDataSnapshot.val();
@@ -236,15 +209,37 @@
                 const summaryData = aggregateMemberData(memberData);
                 const today = new Date().toISOString().split('T')[0];
                 
-                const prompt = `You are a genius financial analyst AI for a community bank... [Your existing prompt remains unchanged] ...Be conversational.`;
+                const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query and the provided JSON data for a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
+
+                **VERY IMPORTANT RULES:**
+                1.  **ALWAYS** respond in friendly, simple Hindi.
+                2.  **ALWAYS** format monetary values using the Rupee symbol (₹) and numerals (e.g., ₹5000), NEVER in words.
+                3.  Analyze the user's query's true intent. "Total loan" means 'totalLoan', but "kitna loan hai" or "outstanding loan" means 'netLoanOutstanding'. For specific details, always prefer the raw transaction data.
+                4.  Use the provided 'today's date' (${today}) for any time-based calculations (e.g., age from DOB, how many days ago a transaction happened).
+                5.  For empty string values ("") or missing fields, consider them as 0 or not available.
+                6.  If asked about personal details like 'address', 'mobile number', 'DOB', 'joining date', 'guarantor', 'Aadhaar', use the 'fullRawData' object.
+
+                **User's Query:** "${query}"
+                **You have two sources of data for ${member.name}:**
+                **1. Calculated Summary Data:**
+                \`\`\`json
+                ${JSON.stringify(summaryData, null, 2)}
+                \`\`\`
+                **2. Full Raw Database Data:**
+                \`\`\`json
+                ${JSON.stringify(memberData, null, 2)}
+                \`\`\`
+                **Analysis and Response Instructions:**
+                - To answer questions about totals (कुल जमा, कुल लोन), use the 'Calculated Summary Data'.
+                - To answer specific, detailed questions (इस तारीख को क्या हुआ?, पेनल्टी कितनी थी?, मोबाइल नंबर क्या है?, जन्मदिन कब है?), use the 'Full Raw Database Data'.
+                - For 'जन्मदिन' or 'age', use the 'dob' field from raw data and calculate the age if needed.
+                - Provide only the direct and helpful answer. Do not repeat the data. Be conversational.`;
                 
                 const response = await callGemini(prompt);
                 await appendMessage(response, "bot", true);
             }
             
-            // ✅ UPDATED: Handles auto-linking and typing animation
             function formatMessageContent(content) {
-                // Regex to find URLs and local .html files
                 const linkRegex = /(https?:\/\/[^\s<]+)|(\b[a-zA-Z0-9_.-]+\.html\b)/g;
                 return content.replace(linkRegex, (match, url, localFile) => {
                     const link = url || localFile;
@@ -253,11 +248,10 @@
                 }).replace(/\n/g, '<br>');
             }
 
-            // ✅ NEW: Typing animation function
             function typeText(element, text) {
                 return new Promise(resolve => {
                     let i = 0;
-                    element.innerHTML = ""; // Clear the element first
+                    element.innerHTML = "";
                     const interval = setInterval(() => {
                         if (i < text.length) {
                             element.innerHTML += text.charAt(i);
@@ -265,11 +259,10 @@
                             chatBox.scrollTop = chatBox.scrollHeight;
                         } else {
                             clearInterval(interval);
-                            // After typing, format the final content for links
                             element.innerHTML = formatMessageContent(element.innerHTML);
                             resolve();
                         }
-                    }, 20); // Adjust typing speed (milliseconds)
+                    }, 20);
                 });
             }
 
@@ -289,6 +282,7 @@
                     await typeText(bubbleEl, content);
                 }
                 else {
+                    // For user messages and non-animated bot messages
                     bubbleEl.innerHTML = formatMessageContent(content);
                 }
                 
@@ -320,7 +314,7 @@
                 const typing = appendMessage("...", "bot typing");
                 const memberData = (await membersRef.child(memberId).once('value')).val();
                 typing.remove();
-                if (!memberData) { appendMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
+                if (!memberData) { await appendMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot", true); return; }
                 const data = aggregateMemberData(memberData);
                 const profileImageUrl = data.profilePicUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${data.name.charAt(0)}`;
                 const signatureImageUrl = data.signatureUrl || `https://placehold.co/150x75/E2E8F0/4A5568?text=No+Sign`;
@@ -404,18 +398,21 @@
                 lockBanner.classList.add('hidden');
             }
             
+            // ✅ RESTORED: This function now calls your secure backend API on Vercel.
             async function callGemini(prompt) {
-                // This function remains the same, assuming it calls a backend endpoint.
-                // For local testing, you can mock a response.
                 try {
-                    // const response = await fetch('/api/getAiExplanation', { ... });
-                    // const data = await response.json();
-                    // return data.explanation;
-                    
-                    // Mock response for local testing:
-                    await new Promise(res => setTimeout(res, 1500)); // Simulate network delay
-                    return "Yeh AI se aaya ek sample jawab hai. Aapke sawaal ke anusaar, member ka data analyze kiya ja raha hai.";
-
+                    const response = await fetch('/api/getAiExplanation', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ promptText: prompt })
+                    });
+                    if (!response.ok) {
+                        const error = await response.json();
+                        console.error("AI Backend Error:", error);
+                        return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`;
+                    }
+                    const data = await response.json();
+                    return data.explanation;
                 } catch (e) {
                     console.error("Error calling AI backend:", e);
                     return "AI backend से कनेक्ट नहीं हो पा रहा है।";
