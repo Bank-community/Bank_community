@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate FAQ & Rules Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .suggestion-pill { cursor: pointer; transition: all 0.2s ease-in-out; }
+        .suggestion-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Ultimate FAQ & Rules Manager</h1>
+            <p class="text-gray-600 mt-2">चैटबॉट के ज्ञान को यहाँ से मैनेज करें।</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column: Form -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-3">नया नियम/FAQ जोड़ें</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-700">कैटेगरी (Category)</label>
+                        <input type="text" id="category" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="जैसे: लोन नियम, SIP Rules">
+                    </div>
+                    <div>
+                        <label for="main-question" class="block text-sm font-medium text-gray-700">मुख्य प्रश्न (Main Question)</label>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <textarea id="main-question" rows="2" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="जैसे: लोन पर ब्याज कितना लगता है?"></textarea>
+                            <button id="generate-variations-btn" title="Generate AI Variations" class="bg-blue-500 hover:bg-blue-600 text-white font-bold p-3 rounded-md"><i class="fas fa-magic"></i><span class="loader hidden"></span></button>
+                        </div>
+                    </div>
+                    <div id="variations-container">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">मिलते-जुलते प्रश्न (AI Generated)</label>
+                        <div id="variations-list" class="space-y-2"></div>
+                    </div>
+                    <div>
+                        <label for="answer" class="block text-sm font-medium text-gray-700">उत्तर (Answer)</label>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <textarea id="answer" rows="3" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="एक छोटा और सीधा जवाब लिखें।"></textarea>
+                            <button id="enhance-answer-btn" title="Enhance with AI" class="bg-green-500 hover:bg-green-600 text-white font-bold p-3 rounded-md"><i class="fas fa-rocket"></i><span class="loader hidden"></span></button>
+                        </div>
+                    </div>
+                    <div id="answer-suggestions-container" class="space-y-2"></div>
+                    <div class="text-right"><button id="submit-faq-btn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg"><i class="fas fa-save mr-2"></i>सबमिट करें<span class="loader hidden ml-2"></span></button></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Existing FAQs -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <h2 class="text-2xl font-semibold text-gray-700">मौजूदा नियम</h2>
+                    <button id="refresh-faqs-btn" title="Refresh List" class="text-gray-500 hover:text-blue-600"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div class="mb-4">
+                    <input type="text" id="search-faqs" class="w-full p-2 border border-gray-300 rounded-md" placeholder="कोई नियम खोजें...">
+                </div>
+                <div id="existing-faqs-container" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    <p id="loading-faqs" class="text-gray-500">Authenticating...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4">नियम एडिट करें</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="edit-category" class="block text-sm font-medium text-gray-700">कैटेगरी</label>
+                    <input type="text" id="edit-category" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="edit-questions" class="block text-sm font-medium text-gray-700">प्रश्न (हर लाइन में एक)</label>
+                    <textarea id="edit-questions" rows="5" class="mt-1 w-full p-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+                <div>
+                    <label for="edit-answer" class="block text-sm font-medium text-gray-700">उत्तर</label>
+                    <textarea id="edit-answer" rows="4" class="mt-1 w-full p-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-edit-btn" class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">कैंसिल</button>
+                <button id="save-edit-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">सेव करें</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ NAYA LOGIC: Authentication check
+        async function checkAuthAndInitialize() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Configuration failed to load.');
+                const config = await response.json();
+                
+                firebase.initializeApp(config.firebase);
+                
+                firebase.auth().onAuthStateChanged(user => {
+                    const ADMIN_UID = 'hWsZo6gONzOOccP7y4GCT4oV93A2'; // Aapka Admin UID
+                    if (user && user.uid === ADMIN_UID) {
+                        // User is logged in and is the admin, run the app.
+                        console.log("Admin authenticated. Initializing FAQ Manager...");
+                        runAppLogic();
+                    } else {
+                        // User is not logged in or not an admin, redirect.
+                        console.log("User not authenticated as admin. Redirecting...");
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Initialization Error:", error);
+                document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Initialization Error</h1><p>${error.message}</p></div>`;
+            }
+        }
+
+        // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
+        function runAppLogic() {
+            const database = firebase.database();
+            const faqsRef = database.ref('admin/faqs');
+
+            const categoryInput = document.getElementById('category');
+            const mainQuestionInput = document.getElementById('main-question');
+            const answerInput = document.getElementById('answer');
+            const variationsList = document.getElementById('variations-list');
+            const answerSuggestionsContainer = document.getElementById('answer-suggestions-container');
+            const generateVariationsBtn = document.getElementById('generate-variations-btn');
+            const enhanceAnswerBtn = document.getElementById('enhance-answer-btn');
+            const submitFaqBtn = document.getElementById('submit-faq-btn');
+            const existingFaqsContainer = document.getElementById('existing-faqs-container');
+            const loadingFaqs = document.getElementById('loading-faqs');
+            const refreshFaqsBtn = document.getElementById('refresh-faqs-btn');
+            const searchFaqsInput = document.getElementById('search-faqs');
+            const editModal = document.getElementById('edit-modal');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const saveEditBtn = document.getElementById('save-edit-btn');
+            let currentEditKey = null;
+
+            // ✅ UPDATED GEMINI CALL to use the backend
+            async function callGemini(prompt) {
+                try {
+                    const response = await fetch('/api/getAiExplanation', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ promptText: prompt })
+                    });
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.details || 'Unknown AI error');
+                    }
+                    const data = await response.json();
+                    return data.explanation;
+                } catch (error) {
+                    console.error("AI Backend Error:", error);
+                    alert("AI से कनेक्ट करने में समस्या आ रही है: " + error.message);
+                    return null;
+                }
+            }
+
+            async function handleEnhanceAnswer() {
+                const originalAnswer = answerInput.value.trim();
+                if (!originalAnswer) { alert("कृपया पहले एक उत्तर लिखें।"); return; }
+                toggleButtonLoader(enhanceAnswerBtn, true);
+                const prompt = `You are an AI assistant for a small community bank. Your task is to enhance a given answer.
+                - Keep the answer short, simple, and clear.
+                - Add only a few words (5-10 words max) to make it more professional and complete.
+                - **The language of the enhanced answer MUST BE the same as the original (Hindi or English).**
+                - Provide 3 slightly different enhanced versions.
+                - Return the result as a JavaScript array of strings, like ["suggestion 1", "suggestion 2", "suggestion 3"].
+                Original Answer: "${originalAnswer}"
+                JavaScript Array:`;
+                const response = await callGemini(prompt);
+                answerSuggestionsContainer.innerHTML = '';
+                if (response) {
+                    try {
+                        const arrayString = response.match(/\[.*\]/s)[0];
+                        const suggestions = JSON.parse(arrayString);
+                        const title = document.createElement('label');
+                        title.className = "block text-sm font-medium text-gray-700 mb-2";
+                        title.textContent = "AI द्वारा सुझाए गए जवाब (एक चुनें):";
+                        answerSuggestionsContainer.appendChild(title);
+                        suggestions.forEach(suggestion => {
+                            const pill = document.createElement('div');
+                            pill.className = 'suggestion-pill p-3 bg-gray-200 text-gray-800 rounded-lg text-sm';
+                            pill.textContent = suggestion;
+                            pill.onclick = () => {
+                                answerInput.value = suggestion;
+                                answerSuggestionsContainer.innerHTML = '';
+                            };
+                            answerSuggestionsContainer.appendChild(pill);
+                        });
+                    } catch (e) { alert("AI से मिले जवाबों को समझने में विफल रहा।"); }
+                }
+                toggleButtonLoader(enhanceAnswerBtn, false);
+            }
+
+            async function handleGenerateVariations() {
+                const mainQuestion = mainQuestionInput.value.trim();
+                if (!mainQuestion) { alert("कृपया पहले मुख्य प्रश्न लिखें।"); return; }
+                toggleButtonLoader(generateVariationsBtn, true);
+                const prompt = `A user asked this question: "${mainQuestion}". Generate 4 other ways a user might ask the exact same thing. Provide the answer as a JavaScript array of strings, like ["question 1", ...].\n\nArray:`;
+                let response = await callGemini(prompt);
+                variationsList.innerHTML = '';
+                addVariationInput(mainQuestion); // Add the main question itself
+                if (response) {
+                    try {
+                        const arrayString = response.match(/\[.*\]/s)[0];
+                        const variations = JSON.parse(arrayString);
+                        variations.forEach(q => addVariationInput(q));
+                    } catch (e) { alert("AI से मिले वेरिएशन को समझने में विफल रहा।"); }
+                }
+                toggleButtonLoader(generateVariationsBtn, false);
+            }
+
+            function addVariationInput(value = '') {
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `<input type="text" value="${value}" class="w-full p-2 border border-gray-300 rounded-md shadow-sm variation-input"><button type="button" class="remove-variation-btn text-red-500 hover:text-red-700 font-bold text-xl">&times;</button>`;
+                variationsList.appendChild(div);
+            }
+
+            async function handleSubmit() {
+                const newFaq = buildFaqObjectFromForm();
+                if (!newFaq) return;
+                toggleButtonLoader(submitFaqBtn, true);
+                try {
+                    await faqsRef.push(newFaq);
+                    alert("नया FAQ सफलतापूर्वक जोड़ा गया!");
+                    clearForm();
+                } catch (error) { alert("Firebase में डेटा सबमिट करने में त्रुटि हुई।"); } finally {
+                    toggleButtonLoader(submitFaqBtn, false);
+                }
+            }
+
+            function fetchAndDisplayFAQs() {
+                loadingFaqs.style.display = 'block';
+                loadingFaqs.textContent = "नियम लोड हो रहे हैं...";
+                faqsRef.once('value', (snapshot) => {
+                    existingFaqsContainer.innerHTML = '';
+                    if (snapshot.exists()) {
+                        const faqs = snapshot.val();
+                        loadingFaqs.style.display = 'none';
+                        const sortedKeys = Object.keys(faqs).sort((a, b) => (faqs[b].createdAt || '').localeCompare(faqs[a].createdAt || ''));
+                        sortedKeys.forEach(key => {
+                            const faq = faqs[key];
+                            const faqElement = document.createElement('div');
+                            faqElement.className = 'faq-item p-4 border rounded-md bg-gray-50';
+                            faqElement.dataset.searchText = `${faq.answer} ${faq.questions.join(' ')} ${faq.category || ''}`.toLowerCase();
+                            let questionsHtml = '<ul class="list-disc list-inside text-gray-600 text-sm mt-2">';
+                            faq.questions.forEach(q => { questionsHtml += `<li class="truncate">${q}</li>`; });
+                            questionsHtml += '</ul>';
+                            faqElement.innerHTML = `
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        ${faq.category ? `<span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">${faq.category}</span>` : ''}
+                                        <p class="font-semibold text-gray-800 mt-2">${faq.answer}</p>
+                                        ${questionsHtml}
+                                    </div>
+                                    <div class="flex space-x-2 flex-shrink-0">
+                                        <button data-key="${key}" class="edit-faq-btn text-gray-400 hover:text-blue-600"><i class="fas fa-edit"></i></button>
+                                        <button data-key="${key}" class="delete-faq-btn text-gray-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>`;
+                            existingFaqsContainer.appendChild(faqElement);
+                        });
+                    } else { loadingFaqs.textContent = "कोई नियम नहीं मिला।"; }
+                }, (error) => { loadingFaqs.textContent = "नियम लोड करने में त्रुटि हुई।"; });
+            }
+            
+            function handleFilterFAQs() {
+                const searchTerm = searchFaqsInput.value.toLowerCase();
+                const items = existingFaqsContainer.querySelectorAll('.faq-item');
+                items.forEach(item => {
+                    item.style.display = item.dataset.searchText.includes(searchTerm) ? '' : 'none';
+                });
+            }
+
+            function openEditModal(key) {
+                currentEditKey = key;
+                faqsRef.child(key).once('value', (snapshot) => {
+                    const faq = snapshot.val();
+                    document.getElementById('edit-category').value = faq.category || '';
+                    document.getElementById('edit-questions').value = faq.questions.join('\n');
+                    document.getElementById('edit-answer').value = faq.answer;
+                    editModal.classList.add('active');
+                });
+            }
+
+            function closeEditModal() {
+                editModal.classList.remove('active');
+                currentEditKey = null;
+            }
+
+            async function handleSaveEdit() {
+                if (!currentEditKey) return;
+                const updatedFaq = {
+                    category: document.getElementById('edit-category').value.trim(),
+                    questions: document.getElementById('edit-questions').value.split('\n').map(q => q.trim()).filter(Boolean),
+                    answer: document.getElementById('edit-answer').value.trim(),
+                    updatedAt: new Date().toISOString()
+                };
+                if (updatedFaq.questions.length === 0 || !updatedFaq.answer) {
+                    alert("प्रश्न और उत्तर खाली नहीं हो सकते।");
+                    return;
+                }
+                await faqsRef.child(currentEditKey).update(updatedFaq);
+                closeEditModal();
+                fetchAndDisplayFAQs();
+            }
+
+            function buildFaqObjectFromForm() {
+                const mainQuestion = mainQuestionInput.value.trim();
+                const answer = answerInput.value.trim();
+                if (!mainQuestion || !answer) { alert("मुख्य प्रश्न और उत्तर दोनों आवश्यक हैं।"); return null; }
+                const variationInputs = document.querySelectorAll('.variation-input');
+                const questions = [...new Set([mainQuestion, ...Array.from(variationInputs).map(input => input.value.trim()).filter(Boolean)])];
+                return {
+                    category: categoryInput.value.trim(),
+                    questions: questions,
+                    answer: answer,
+                    createdAt: new Date().toISOString()
+                };
+            }
+
+            function clearForm() {
+                categoryInput.value = '';
+                mainQuestionInput.value = '';
+                answerInput.value = '';
+                variationsList.innerHTML = '';
+                answerSuggestionsContainer.innerHTML = '';
+            }
+            
+            function toggleButtonLoader(button, showLoader) {
+                const icon = button.querySelector('i');
+                const loader = button.querySelector('.loader');
+                button.disabled = showLoader;
+                if (icon) icon.style.display = showLoader ? 'none' : 'inline-block';
+                if (loader) loader.style.display = showLoader ? 'inline-block' : 'none';
+            }
+
+            generateVariationsBtn.addEventListener('click', handleGenerateVariations);
+            enhanceAnswerBtn.addEventListener('click', handleEnhanceAnswer);
+            submitFaqBtn.addEventListener('click', handleSubmit);
+            refreshFaqsBtn.addEventListener('click', fetchAndDisplayFAQs);
+            searchFaqsInput.addEventListener('input', handleFilterFAQs);
+            cancelEditBtn.addEventListener('click', closeEditModal);
+            saveEditBtn.addEventListener('click', handleSaveEdit);
+            variationsList.addEventListener('click', (e) => { if (e.target.classList.contains('remove-variation-btn')) e.target.parentElement.remove(); });
+            existingFaqsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const key = btn.dataset.key;
+                if (btn.classList.contains('delete-faq-btn')) handleDeleteFAQ(key);
+                if (btn.classList.contains('edit-faq-btn')) openEditModal(key);
+            });
+            async function handleDeleteFAQ(key) { if (confirm("क्या आप वाकई इस नियम को हटाना चाहते हैं?")) await faqsRef.child(key).remove(); }
+            
+            fetchAndDisplayFAQs();
+        }
+
+        // ✅ App ko shuru karein
+        checkAuthAndInitialize();
+    </script>
+</body>
+</html>
+
