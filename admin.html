@@ -93,14 +93,22 @@
 
         <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto">
-            <header class="flex justify-between items-center mb-6">
-                <h1 id="view-title" class="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
-                <div class="flex items-center gap-4">
-                    <button id="dashboard-entry-btn" class="hidden md:flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition">
-                        <i class="ph-plus-circle text-xl"></i>
-                        <span class="font-semibold">New Entry</span>
-                    </button>
-                    <button id="mobileMenuBtn" class="md:hidden text-gray-600 focus:outline-none"><i class="ph-list text-3xl"></i></button>
+            <header class="mb-6">
+                <div class="flex justify-between items-center">
+                    <h1 id="view-title" class="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
+                    <div class="flex items-center gap-4">
+                        <button id="home-btn" class="hidden text-gray-600 hover:text-indigo-600 focus:outline-none" title="Go to Dashboard">
+                            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 21.5H15C16.1046 21.5 17 20.6046 17 19.5V14.5C17 13.9477 16.5523 13.5 16 13.5H8C7.44772 13.5 7 13.9477 7 14.5V19.5C7 20.6046 7.89543 21.5 9 21.5Z" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 10.5L11.4142 2.08579C11.7893 1.71071 12.4224 1.71071 12.7975 2.08579L21 10.5" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button id="dashboard-entry-btn" class="hidden md:flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition">
+                            <i class="ph-plus-circle text-xl"></i>
+                            <span class="font-semibold">New Entry</span>
+                        </button>
+                        <button id="mobileMenuBtn" class="md:hidden text-gray-600 focus:outline-none"><i class="ph-list text-3xl"></i></button>
+                    </div>
+                </div>
+                <div id="dashboard-header-stats" class="hidden mt-4">
+                    <!-- Stats cards will be rendered here by JS on dashboard view -->
                 </div>
             </header>
             
@@ -237,7 +245,7 @@
             
             const activeViewId = document.querySelector('.view.active')?.id.replace('-view', '');
             if (activeViewId) {
-                navigateToView(activeViewId, true);
+                navigateToView(activeViewId, { forceRender: true });
             }
         }
         
@@ -245,6 +253,8 @@
 
         function renderDashboard() {
             const container = document.getElementById('dashboard-view');
+            const headerStatsContainer = document.getElementById('dashboard-header-stats');
+
             const today = new Date();
             const todayString = today.toISOString().split('T')[0];
             const todaysTransactions = allTransactions.filter(t => t.Date && new Date(t.Date).toISOString().split('T')[0] === todayString);
@@ -287,27 +297,31 @@
             const pendingCount = Object.values(allMembersData).filter(m => m.status === 'Pending').length;
             const approvedCount = Object.values(allMembersData).filter(m => m.status === 'Approved').length;
 
-            container.innerHTML = `
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            // Render stats in the header
+            headerStatsContainer.innerHTML = `
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <button class="dashboard-stat-card p-4 flex items-center" data-action="view-todays-sip">
                         <div class="icon-bg bg-green-100"><i class="ph-money text-2xl text-green-600"></i></div>
-                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Today's SIP</p><p class="text-2xl font-bold text-green-600">₹${todaysSip.toLocaleString('en-IN')}</p></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600 text-sm">Today's SIP</p><p class="text-xl font-bold text-green-600">₹${todaysSip.toLocaleString('en-IN')}</p></div>
                     </button>
                     <button class="dashboard-stat-card p-4 flex items-center" data-action="view-todays-loan">
                         <div class="icon-bg bg-red-100"><i class="ph-chart-line-down text-2xl text-red-600"></i></div>
-                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Today's Loan</p><p class="text-2xl font-bold text-red-600">₹${todaysLoan.toLocaleString('en-IN')}</p></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600 text-sm">Today's Loan</p><p class="text-xl font-bold text-red-600">₹${todaysLoan.toLocaleString('en-IN')}</p></div>
                     </button>
                     <button class="dashboard-stat-card p-4 flex items-center" data-action="view-approvals">
                         <div class="icon-bg bg-yellow-100"><i class="ph-clock text-2xl text-yellow-600"></i></div>
-                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Pending</p><p class="text-2xl font-bold text-yellow-600">${pendingCount}</p></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600 text-sm">Pending</p><p class="text-xl font-bold text-yellow-600">${pendingCount}</p></div>
                     </button>
                     <button class="dashboard-stat-card p-4 flex items-center" data-action="view-all-members">
                         <div class="icon-bg bg-indigo-100"><i class="ph-users-three text-2xl text-indigo-600"></i></div>
-                        <div class="ml-4 text-left"><p class="font-medium text-gray-600">Members</p><p class="text-2xl font-bold text-indigo-600">${approvedCount}</p></div>
+                        <div class="ml-4 text-left"><p class="font-medium text-gray-600 text-sm">Members</p><p class="text-xl font-bold text-indigo-600">${approvedCount}</p></div>
                     </button>
                 </div>
+            `;
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            // Render rest of the dashboard content in the main view area
+            container.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 live-feed-display rounded-xl shadow-md p-4 h-64 flex flex-col">
                         <h3 class="text-lg font-semibold text-white mb-3">Live Activity Today</h3>
                         <div id="live-feed-container" class="flex-grow overflow-y-auto space-y-2 pr-2">
@@ -1118,6 +1132,7 @@
             document.getElementById('closeMobileMenuBtn').addEventListener('click', () => sidebar.classList.remove('open'));
             document.querySelectorAll('.sidebar-item[data-view]').forEach(item => item.addEventListener('click', (e) => { e.preventDefault(); if (!item.hasAttribute('target')) navigateToView(item.dataset.view); }));
             document.getElementById('dashboard-entry-btn').addEventListener('click', () => navigateToView('data-entry'));
+            document.getElementById('home-btn').addEventListener('click', () => navigateToView('dashboard'));
             document.getElementById('logoutBtn').addEventListener('click', async () => { await signOut(auth); sessionStorage.removeItem('isAdminLoggedIn'); window.location.href = 'login.html'; });
             document.querySelectorAll('.modal-overlay').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal); }));
             document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal(document.getElementById('confirmModal')));
@@ -1140,9 +1155,24 @@
                 initialExplorerFilters = options.filters;
             }
 
+            const homeBtn = document.getElementById('home-btn');
+            const dashboardStatsContainer = document.getElementById('dashboard-header-stats');
+            const dashboardEntryBtn = document.getElementById('dashboard-entry-btn');
+
+            // Handle header elements visibility
+            if (viewId === 'dashboard') {
+                homeBtn.classList.add('hidden');
+                dashboardStatsContainer.classList.remove('hidden');
+                dashboardEntryBtn.style.display = 'flex';
+            } else {
+                homeBtn.classList.remove('hidden');
+                dashboardStatsContainer.classList.add('hidden');
+                dashboardStatsContainer.innerHTML = ''; // Clean up stats when leaving dashboard
+                dashboardEntryBtn.style.display = 'none';
+            }
+
             const viewTitle = viewId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             document.getElementById('view-title').textContent = viewTitle;
-            document.getElementById('dashboard-entry-btn').style.display = (viewId === 'dashboard') ? 'flex' : 'none';
 
             document.querySelectorAll('.sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.view === viewId));
             document.querySelectorAll('.view').forEach(view => {
