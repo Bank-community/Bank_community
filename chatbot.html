@@ -45,17 +45,15 @@
         #lock-mode-banner { animation: fadeIn 0.5s ease; }
         .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
 
-        /* ✅ UPDATED: Simple clickable link style */
-        .clickable-link {
-            color: #2563eb;
-            font-weight: 600;
-            text-decoration: underline;
-            word-break: break-all;
-        }
-        .clickable-link:hover {
-            color: #1d4ed8;
-        }
-        .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; }
+        .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
+        .clickable-link:hover { color: #1d4ed8; }
+        .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 300px; margin-left: auto; margin-right: auto; }
+        
+        /* Capital Kings Card Styles */
+        .capital-king-card { border-left: 4px solid; }
+        .gold { border-color: #ffd700; }
+        .silver { border-color: #c0c0c0; }
+        .bronze { border-color: #cd7f32; }
     </style>
 </head>
 <body class="antialiased">
@@ -135,8 +133,6 @@
             const lockBanner = document.getElementById('lock-mode-banner');
             const lockedMemberNameEl = document.getElementById('locked-member-name');
             const unlockBtn = document.getElementById('unlock-btn');
-            const imageModal = document.getElementById('imageModal');
-            const modalImageContent = document.getElementById('modalImageContent');
 
             async function initializeBot() {
                 await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
@@ -183,26 +179,31 @@
             async function processGeneralQuery(query) {
                 const matchingMembers = findMatchingMembers(query);
                 const matchingFaqs = findMatchingFaqs(query, 5);
+                
+                if (query.match(/capital king|capital hold|sabse zyada capital/i)) {
+                    await displayCapitalKings();
+                    return;
+                }
+
                 if (matchingMembers.length === 1 && !query.match(/list|sabhi|all/i)) {
                     await displayMemberDetails(matchingMembers[0].id);
                 } else if (matchingMembers.length > 1) {
                     await typeMessage("मुझे इस नाम से मिलते-जुलते कई सदस्य मिले। आप किसके बारे में जानना चाहते हैं?", "bot");
                     matchingMembers.forEach(m => appendMemberClarification(m));
                 } else if (matchingFaqs.length > 0) {
-                    await typeMessage(matchingFaqs[0].answer, "bot"); // Only show the top matched answer
+                    await typeMessage(matchingFaqs[0].answer, "bot");
                 } else {
                     await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
                 }
             }
 
-            // ✅ UPDATED: Stricter logic for Lock Mode
             async function processLockedQuery(query, member) {
                 const memberData = allMembersFullData[member.id];
                 if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
                 
                 const summaryData = aggregateMemberData(memberData);
                 const today = new Date().toISOString().split('T')[0];
-                const topSipData = findTopSipContributor(new Date());
+                const topData = findTopContributors(new Date());
 
                 const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query about a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
 
@@ -216,21 +217,16 @@
                 \`\`\`
 
                 **Additional Context (Today's Date is ${today}):**
-                - The top SIP contributor this month is ${topSipData.name} with ₹${topSipData.amount}.
+                - Top SIP contributor (this month): ${topData.sip.name} (₹${topData.sip.amount})
+                - Top Loan Taker (all time): ${topData.loan.name} (₹${topData.loan.amount})
+                - Top Return Payer (all time): ${topData.return.name} (₹${topData.return.amount})
 
                 **SPECIAL INSTRUCTIONS:**
-                1.  **Chart Generation:** If the user's query is about their own SIP for the current month (e.g., "mera is mahine ka sip", "sip status", "sip kitna hai"), you MUST respond ONLY with the following JSON object. Do not add any other text.
-                    \`\`\`json
-                    {
-                      "type": "sip_comparison_chart",
-                      "data": {
-                        "currentUser": { "name": "${member.name}", "sip": ${summaryData.sipStatus.amount} },
-                        "topUser": { "name": "${topSipData.name}", "sip": ${topSipData.amount} }
-                      },
-                      "summary": "AI-generated summary text in Hindi goes here. For example: Is mahine aapka SIP ₹${summaryData.sipStatus.amount} hai. Sabse zyada SIP ${topSipData.name} ne ₹${topSipData.amount} jama kiya hai."
-                    }
-                    \`\`\`
-                2.  **For all other member-specific queries:** Provide a conversational, helpful answer in simple Hindi based on the provided data. Analyze the query's intent (e.g., 'outstanding loan' means 'netLoanOutstanding'). Use raw data for specifics like 'mobile number' or 'DOB'.`;
+                1.  **Chart Generation:** If the user's query is about their own SIP, Loan, or Return amount, you MUST respond ONLY with the following JSON object. Do not add any other text.
+                    - For SIP: \`{"type": "comparison_chart", "chartType": "sip", "data": {"currentUser": {"name": "${member.name}", "value": ${summaryData.sipStatus.amount}}, "topUser": {"name": "${topData.sip.name}", "value": ${topData.sip.amount}}}, "summary": "AI summary in Hindi..."}\`
+                    - For Loan: \`{"type": "comparison_chart", "chartType": "loan", "data": {"currentUser": {"name": "${member.name}", "value": ${summaryData.totalLoan}}, "topUser": {"name": "${topData.loan.name}", "value": ${topData.loan.amount}}}, "summary": "AI summary in Hindi..."}\`
+                    - For Return: \`{"type": "comparison_chart", "chartType": "return", "data": {"currentUser": {"name": "${member.name}", "value": ${summaryData.totalReturn}}, "topUser": {"name": "${topData.return.name}", "value": ${topData.return.amount}}}, "summary": "AI summary in Hindi..."}\`
+                2.  **For all other member-specific queries:** Provide a conversational, helpful answer in simple Hindi based on the provided data.`;
                 
                 const responseText = await callGemini(prompt);
                 handleBotResponse(responseText);
@@ -239,26 +235,24 @@
             // --- Response Rendering ---
             function handleBotResponse(text) {
                 try {
-                    // Clean the response to extract only the JSON part
                     const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
                     if (jsonMatch && jsonMatch[1]) {
                         const jsonResponse = JSON.parse(jsonMatch[1]);
-                        if (jsonResponse.type === 'sip_comparison_chart') {
+                        if (jsonResponse.type === 'comparison_chart') {
                             typeMessage(jsonResponse.summary, "bot").then(() => {
-                                renderSipComparisonChart(jsonResponse.data);
+                                renderComparisonChart(jsonResponse.data, jsonResponse.chartType);
                             });
                         } else {
-                            typeMessage(text, "bot"); // Fallback for other JSON types
+                            typeMessage(text, "bot");
                         }
                     } else {
-                         typeMessage(text, "bot"); // Not a JSON, so just type it out
+                         typeMessage(text, "bot");
                     }
                 } catch (e) {
-                    typeMessage(text, "bot"); // Parsing failed, treat as plain text
+                    typeMessage(text, "bot");
                 }
             }
             
-            // ✅ UPDATED: Only processes full URLs into clickable links
             function processLinks(content) {
                 const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
                 return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
@@ -332,29 +326,57 @@
                 appendRichMessage(cardHtml, "bot");
             }
 
-            function renderSipComparisonChart(data) {
+            // ✅ NEW: Renders Donut charts for comparison
+            function renderComparisonChart(data, type) {
                 const chartId = `chart-${Date.now()}`;
                 const chartHtml = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
                 appendRichMessage(chartHtml, 'bot');
                 
+                const titles = { sip: 'SIP Comparison', loan: 'Total Loan Comparison', return: 'Total Return Comparison' };
+                const colors = { sip: ['#36A2EB', '#4BC0C0'], loan: ['#FF6384', '#FF9F40'], return: ['#9966FF', '#FFCD56'] };
+
                 const ctx = document.getElementById(chartId).getContext('2d');
                 new Chart(ctx, {
-                    type: 'bar',
+                    type: 'doughnut',
                     data: {
                         labels: [data.currentUser.name, data.topUser.name],
                         datasets: [{
-                            label: 'Current Month SIP (₹)',
-                            data: [data.currentUser.sip, data.topUser.sip],
-                            backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
-                            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
-                            borderWidth: 1
+                            data: [data.currentUser.value, data.topUser.value],
+                            backgroundColor: colors[type],
                         }]
                     },
                     options: {
-                        indexAxis: 'y',
-                        scales: { x: { beginAtZero: true } },
-                        plugins: { legend: { display: false }, title: { display: true, text: 'SIP Comparison (This Month)' } }
+                        responsive: true,
+                        plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] } }
                     }
+                });
+            }
+
+            // ✅ NEW: Displays the top 3 capital holders
+            async function displayCapitalKings() {
+                await typeMessage("पेश हैं हमारे Capital Kings - वो सदस्य जिन्होंने सबसे लंबे समय तक सबसे ज़्यादा पूँजी (capital) hold की है:", "bot");
+                const capitalData = calculateCapitalScores();
+                const top3 = capitalData.sort((a, b) => b.score - a.score).slice(0, 3);
+                
+                const rankIcons = ['🥇', '🥈', '🥉'];
+                const rankColors = ['gold', 'silver', 'bronze'];
+
+                top3.forEach((member, index) => {
+                    const cardHtml = `
+                        <div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index]}">
+                            <div class="flex items-center">
+                                <span class="text-3xl mr-4">${rankIcons[index]}</span>
+                                <div>
+                                    <h3 class="font-bold text-lg">${member.name}</h3>
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        <p><strong>Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</p>
+                                        <p><strong>Holding:</strong> ${member.holdingDays} days</p>
+                                        <p><strong>Score:</strong> ${member.score.toFixed(0)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    appendRichMessage(cardHtml, 'bot');
                 });
             }
 
@@ -371,11 +393,11 @@
                 allSuggestions.forEach(s => {
                     const pill = document.createElement('button');
                     pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm';
-                    if (s.id) { // It's a member
+                    if (s.id) {
                         pill.classList.add('bg-gray-200', 'text-gray-700');
                         pill.innerHTML = `<i class="fas fa-user mr-2"></i>${s.name}`;
                         pill.onclick = () => { inputBox.value = s.name; handleSend(); };
-                    } else { // It's an FAQ
+                    } else {
                         pill.classList.add('bg-blue-100', 'text-blue-700');
                         pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${s.questions[0]}`;
                         pill.onclick = () => { inputBox.value = s.questions[0]; handleSend(); };
@@ -395,19 +417,8 @@
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             
             function findMatchingFaqs(query, limit) {
-                if (!cachedFaqs) return [];
-                const lowerQuery = String(query).toLowerCase().trim();
-                if (lowerQuery.length < 2) return [];
-                
-                return cachedFaqs
-                    .map(faq => {
-                        const allQuestionsText = faq.questions.join(' ');
-                        const score = getWordMatchScore(lowerQuery, allQuestionsText);
-                        return { ...faq, score };
-                    })
-                    .filter(faq => faq.score > 0)
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, limit);
+                if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return [];
+                return cachedFaqs.map(faq => ({ ...faq, score: getWordMatchScore(lowerQuery, faq.questions.join(' ')) })).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
             }
             
             function aggregateMemberData(data) {
@@ -426,26 +437,46 @@
                 if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 };
                 return { text: 'Due', class: 'text-yellow-600', amount: 0 };
             }
-
-            function findTopSipContributor(date) {
-                let topContributor = { name: 'N/A', amount: 0 };
-                if (!allMembersFullData) return topContributor;
+            
+            // ✅ UPDATED: Finds top contributors for multiple categories
+            function findTopContributors(date) {
+                let topSip = { name: 'N/A', amount: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 };
+                if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn };
                 for (const memberId in allMembersFullData) {
                     const member = allMembersFullData[memberId];
-                    const transactions = member.transactions ? Object.values(member.transactions) : [];
-                    const sipStatus = getSipStatus(transactions, date);
-                    if (sipStatus.amount > topContributor.amount) {
-                        topContributor = { name: member.fullName, amount: sipStatus.amount };
+                    const summary = aggregateMemberData(member);
+                    if (summary.sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: summary.sipStatus.amount };
+                    if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan };
+                    if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn };
+                }
+                return { sip: topSip, loan: topLoan, return: topReturn };
+            }
+            
+            // ✅ NEW: Calculates capital holding scores for all members
+            function calculateCapitalScores() {
+                const results = [];
+                const today = new Date();
+                for (const memberId in allMembersFullData) {
+                    const member = allMembersFullData[memberId];
+                    if (!member.joiningDate) continue;
+                    const joinDate = new Date(member.joiningDate);
+                    const holdingDays = Math.floor((today - joinDate) / (1000 * 3600 * 24));
+                    const summary = aggregateMemberData(member);
+                    const capital = summary.netBalance;
+                    if (capital > 0 && holdingDays > 30) {
+                        // Simple score: capital multiplied by a fraction of holding days
+                        const score = capital * (holdingDays / 100);
+                        results.push({ name: member.fullName, capital, holdingDays, score });
                     }
                 }
-                return topContributor;
+                return results;
             }
 
             window.chatbot = {
                 activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); },
                 deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); },
-                openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; modalImageContent.src = imageUrl; imageModal.classList.remove('hidden'); imageModal.classList.add('flex'); },
-                closeImageModal: () => { imageModal.classList.add('hidden'); imageModal.classList.remove('flex'); },
+                openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; document.getElementById('modalImageContent').src = imageUrl; document.getElementById('imageModal').classList.remove('hidden'); document.getElementById('imageModal').classList.add('flex'); },
+                closeImageModal: () => { document.getElementById('imageModal').classList.add('hidden'); document.getElementById('imageModal').classList.remove('flex'); },
                 displayMemberDetails: displayMemberDetails
             };
             
