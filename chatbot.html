@@ -24,7 +24,6 @@
             --text-dark: #1C1C1E;
             --text-light: #6C757D;
             --border-color: #e5e7eb;
-            /* UPDATED: Highlight color changed to a dark shade for better readability */
             --highlight-color: #111827; 
             --shadow-light: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
             --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -58,7 +57,6 @@
         .modal { display: none; } .modal.active { display: flex; }
         .modal-content { animation: fadeIn 0.3s; }
 
-        /* NEW: Styles for post-answer suggestion buttons */
         .post-answer-suggestion {
             background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;
             padding: 8px 12px; margin: 4px; border-radius: 16px; font-size: 0.9em;
@@ -114,7 +112,6 @@
         </div>
     </div>
 
-    <!-- NEW: Capital King Detail Modal -->
     <div id="capitalDetailModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
         <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -128,32 +125,30 @@
 
     <script>
         // --- Authentication & Initialization ---
+        // CORRECTED: This function now strictly follows the project architecture.
         async function checkAuthAndInitialize() {
             try {
-                // Simulating config fetch for local testing
-                const config = {
-                    firebase: {
-                        apiKey: "YOUR_API_KEY",
-                        authDomain: "YOUR_AUTH_DOMAIN",
-                        databaseURL: "YOUR_DATABASE_URL",
-                        projectId: "YOUR_PROJECT_ID",
-                        storageBucket: "YOUR_STORAGE_BUCKET",
-                        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                        appId: "YOUR_APP_ID"
-                    }
-                };
+                // Step 1: Securely fetch Firebase config from the Vercel API endpoint.
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Configuration failed to load.');
+                const config = await response.json();
                 
+                // Initialize Firebase with the fetched config.
                 firebase.initializeApp(config.firebase);
                 
-                // For local testing, using anonymous sign-in. In production, this would be onAuthStateChanged.
-                firebase.auth().signInAnonymously().then(() => {
-                    runChatbotLogic();
-                }).catch((error) => {
-                    console.error("Anonymous sign-in failed:", error);
-                     document.getElementById('chat').innerHTML = `<div class="p-4 text-red-600 text-center">Authentication failed.</div>`;
+                // Step 2: Set up the authentication state listener.
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        // If user is logged in, run the main chatbot logic.
+                        runChatbotLogic();
+                    } else {
+                        // If user is not logged in, redirect to the login page.
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
                 });
 
             } catch (error) {
+                // Display an error message if initialization fails.
                 document.getElementById('chat').innerHTML = `<div class="p-4 text-red-600 text-center">Application failed to initialize: ${error.message}</div>`;
             }
         }
@@ -167,7 +162,7 @@
             let cachedMemberIndex = null;
             let cachedFaqs = null;
             let allMembersFullData = null;
-            let capitalKingsData = null; // NEW: Cache for sorted capital kings
+            let capitalKingsData = null; 
             let lockMode = { active: false, member: null };
 
             const chatBox = document.getElementById('chat');
@@ -182,9 +177,8 @@
                 await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
                 const typing = appendRichMessage("...", "bot typing");
                 try {
-                    // Using mock data for local testing
-                    const memberSnapshot = { exists: () => true, val: () => mockMembers };
-                    const faqsSnapshot = { exists: () => true, val: () => mockFaqs };
+                    // Fetch data from Firebase database.
+                    const [memberSnapshot, faqsSnapshot] = await Promise.all([ membersRef.once('value'), faqsRef.once('value') ]);
                     
                     cachedMemberIndex = [];
                     if (memberSnapshot.exists()) {
@@ -243,7 +237,6 @@
                 } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
                     await typeMessage(topFaq.answer, "bot");
-                    // UPDATED: Show relevant suggestions after an answer
                     showPostAnswerSuggestions(topFaq);
                 } else {
                     await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
@@ -261,7 +254,6 @@
 
                 const lowerQuery = query.toLowerCase();
                 
-                // UPDATED: More specific query handling for Lock Mode
                 if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
                     const responseText = `${member.name} का कुल SIP योगदान अब तक ₹${summaryData.totalSIP.toLocaleString('en-IN')} है।`;
                     await typeMessage(responseText, "bot");
@@ -280,7 +272,6 @@
                         textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount.toLocaleString('en-IN')} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     } else if (chartType === 'loan') {
                         chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
-                        // UPDATED: Add outstanding loan details to the text response
                         textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
                         if(summaryData.netLoanOutstanding > 0) {
                             textResponse += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
@@ -295,7 +286,6 @@
                     return;
                 }
 
-                // Fallback to Gemini for other queries
                 const prompt = `You are a financial analyst AI for a community bank. You are in "Lock Mode" for a member named ${member.name}.
                 **CRITICAL RULE:** ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question, you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
                 **User's Query:** "${query}"
@@ -308,7 +298,6 @@
             
             // --- Response Rendering ---
             function formatBotAnswer(content) {
-                // UPDATED: Using var(--highlight-color) for consistency
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 content = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
@@ -361,7 +350,7 @@
                             clearInterval(interval);
                             bubbleEl.innerHTML = finalHtml;
                             chatBox.scrollTop = chatBox.scrollHeight;
-                            resolve(bubbleEl); // Resolve with the bubble element
+                            resolve(bubbleEl);
                         }
                     }, 25);
                 });
@@ -441,12 +430,10 @@
             }
 
             async function displayCapitalKings(showAll = false) {
-                // UPDATED: Use cached data if available, otherwise calculate
                 if (!capitalKingsData) {
                     capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score);
                 }
                 
-                // FIX: Ensure all items are shown when showAll is true
                 const itemsToShow = showAll ? capitalKingsData : capitalKingsData.slice(0, 3);
                 
                 if (!showAll) {
@@ -460,7 +447,6 @@
                 if(listContainer) listContainer.innerHTML = '';
 
                 itemsToShow.forEach((member, index) => {
-                    // UPDATED: onclick now calls the new modal function with the member's index
                     const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || ''}" onclick="window.chatbot.openCapitalDetailModal(${index})">
                         <div class="flex items-center">
                             <span class="text-3xl mr-4">${rankIcons[index] || `#${index + 1}`}</span>
@@ -511,7 +497,6 @@
                 });
             }
             
-            // UPDATED: Suggestions are now more dynamic
             function showSuggestions(query) {
                 suggestionsBox.innerHTML = '';
                 if (!query || query.length < 2 || lockMode.active) {
@@ -535,7 +520,6 @@
                 });
             }
             
-            // UPDATED: Post-answer suggestions are now clickable buttons in the chat
             function showPostAnswerSuggestions(answeredFaq) {
                 let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3);
                 if (relatedFaqs.length === 0) return;
@@ -614,7 +598,6 @@
                 },
                 closeCapitalModal: () => document.getElementById('capitalKingsModal').classList.remove('active'),
                 
-                // NEW: Function to open the detailed capital analysis modal
                 openCapitalDetailModal: (index) => {
                     if (!capitalKingsData) return;
                     const member = capitalKingsData[index];
@@ -622,7 +605,7 @@
                     const nextMember = index < capitalKingsData.length - 1 ? capitalKingsData[index + 1] : null;
 
                     const contentEl = document.getElementById('capital-detail-content');
-                    contentEl.innerHTML = ''; // Clear previous content
+                    contentEl.innerHTML = '';
 
                     let html = `<div class="text-center mb-6">
                         <h3 class="text-3xl font-bold">${member.name}</h3>
@@ -676,52 +659,37 @@
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'),
             };
             
+            // CORRECTED: This function now calls the secure Vercel endpoint.
             async function callGemini(prompt) {
-                // This is a mock function for local testing. In production, it would call the /api/getAiExplanation endpoint.
-                console.log("Calling Gemini with prompt:", prompt);
-                await new Promise(r => setTimeout(r, 500)); // Simulate network delay
-                if (prompt.includes("general question")) {
-                    return `मैं अभी लॉक मोड में हूँ और सिर्फ ${lockMode.member.name} से जुड़े सवालों का जवाब दे सकता हूँ।`;
+                try {
+                    const response = await fetch('/api/getAiExplanation', { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json" }, 
+                        body: JSON.stringify({ promptText: prompt }) 
+                    });
+                    if (!response.ok) { 
+                        const error = await response.json(); 
+                        console.error("AI Backend Error:", error); 
+                        return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`; 
+                    }
+                    const data = await response.json();
+                    return data.explanation;
+                } catch (e) { 
+                    console.error("Error calling AI backend:", e); 
+                    return "AI backend से कनेक्ट नहीं हो पा रहा है।"; 
                 }
-                return "यह एक AI जनित उत्तर है।";
             }
 
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
-            // UPDATED: Input event now triggers the improved suggestion logic
             inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
             unlockBtn.addEventListener('click', window.chatbot.deactivateLockMode);
             
             initializeBot();
         }
 
-        // --- Mock Data for Local Testing ---
-        const mockFaqs = {
-            faq1: { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है। इसके लिए कोई बाहरी गारंटी की आवश्यकता नहीं होती है।" },
-            faq2: { questions: ["SIP कब जमा करना होता है?", "SIP ki date kya hai"], answer: "सभी सदस्यों को हर महीने की 10 तारीख तक अपना SIP जमा करना होता है।" },
-            faq3: { questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है। आप 'Capital Kings' टाइप करके पूरी रैंकिंग देख सकते हैं।" },
-            faq4: { questions: ["पेनल्टी कब लगती है?"], answer: "यदि आप समय पर SIP या लोन की किस्त नहीं चुकाते हैं तो पेनल्टी लगाई जाती है।" }
-        };
-        const mockMembers = {
-            'member1': { fullName: 'Amit Kumar', joiningDate: '2023-01-15', transactions: { t1: { Date: '2024-06-05', 'SIP Payment': 5000 }, t2: { Date: '2024-07-05', 'SIP Payment': 5000 }, t3: { Date: '2024-05-20', Loan: 20000 }, t4: { Date: '2024-06-25', 'Loan Payment': 2000 } } },
-            'member2': { fullName: 'Sunita Sharma', joiningDate: '2023-02-20', transactions: { t1: { Date: '2024-07-08', 'SIP Payment': 7000 }, t2: { Date: '2024-07-01', 'Return amount': 1500 } } },
-            'member3': { fullName: 'Rajesh Verma', joiningDate: '2022-11-10', transactions: { t1: { Date: '2024-07-02', 'SIP Payment': 5000 }, t2: { Date: '2024-01-10', Loan: 50000 }, t3: { Date: '2024-07-09', 'Loan Payment': 5000 } } },
-            'member4': { fullName: 'Priya Singh', joiningDate: '2023-05-01', transactions: { t1: { Date: '2024-07-09', 'SIP Payment': 6000 } } },
-            'member5': { fullName: 'Vikram Rathore', joiningDate: '2022-09-01', transactions: { t1: { Date: '2024-07-05', 'SIP Payment': 10000 } } },
-            'member6': { fullName: 'Anjali Mehta', joiningDate: '2023-08-12', transactions: { t1: { Date: '2024-07-03', 'SIP Payment': 5500 } } },
-            'member7': { fullName: 'Sandeep Patel', joiningDate: '2023-03-18', transactions: { t1: { Date: '2024-07-06', 'SIP Payment': 5000 }, t2: { Date: '2024-04-15', Loan: 15000 } } },
-            'member8': { fullName: 'Kavita Devi', joiningDate: '2022-12-25', transactions: { t1: { Date: '2024-07-07', 'SIP Payment': 8000 } } },
-            'member9': { fullName: 'Manoj Tiwari', joiningDate: '2023-10-05', transactions: { t1: { Date: '2024-07-01', 'SIP Payment': 5000 } } },
-            'member10': { fullName: 'Geeta Chauhan', joiningDate: '2023-06-22', transactions: { t1: { Date: '2024-07-04', 'SIP Payment': 6500 } } },
-            'member11': { fullName: 'Ravi Shankar', joiningDate: '2022-10-30', transactions: { t1: { Date: '2024-07-08', 'SIP Payment': 9000 } } },
-            'member12': { fullName: 'Pooja Mishra', joiningDate: '2023-01-28', transactions: { t1: { Date: '2024-07-09', 'SIP Payment': 5000 } } },
-            'member13': { fullName: 'Arjun Yadav', joiningDate: '2023-04-11', transactions: { t1: { Date: '2024-07-02', 'SIP Payment': 7500 } } },
-            'member14': { fullName: 'Deepika Reddy', joiningDate: '2023-09-19', transactions: { t1: { Date: '2024-07-05', 'SIP Payment': 5200 } } }
-        };
-
-        // For local testing, I'm calling the logic directly. In production, this would be tied to Firebase Auth.
-        // checkAuthAndInitialize();
-        runChatbotLogic(); // Direct call for demonstration
+        // --- Start the application ---
+        checkAuthAndInitialize();
     </script>
 </body>
 </html>
