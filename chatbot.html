@@ -7,12 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
     
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- Chart.js for Data Visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -24,6 +22,7 @@
             --text-dark: #1C1C1E;
             --text-light: #6C757D;
             --border-color: #e5e7eb;
+            --highlight-color: #2563eb;
             --shadow-light: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
             --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
@@ -45,7 +44,7 @@
         #lock-mode-banner { animation: fadeIn 0.5s ease; }
         .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
 
-        .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
+        .clickable-link { color: var(--highlight-color); font-weight: 600; text-decoration: underline; word-break: break-all; }
         .clickable-link:hover { color: #1d4ed8; }
         .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
         
@@ -66,6 +65,9 @@
         .quick-action-item:hover { background-color: #f3f4f6; }
         .quick-action-item i { color: var(--text-light); width: 20px; text-align: center; margin-right: 12px; }
         .chart-notification { text-align: center; font-size: 0.8em; color: var(--text-light); margin-top: 8px; }
+        .faq-variations { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); }
+        .faq-variations-title { font-size: 0.85em; font-weight: 600; color: var(--text-light); margin-bottom: 8px; }
+        .faq-variation-item { font-size: 0.9em; padding: 6px 10px; background-color: #f3f4f6; border-radius: 6px; margin-bottom: 6px; }
     </style>
 </head>
 <body class="antialiased">
@@ -177,9 +179,11 @@
                     typing.remove();
                     await typeMessage("आप किसी सदस्य का नाम टाइप कर सकते हैं या कोई नियम पूछ सकते हैं।", "bot");
                     isBotInitialized = true;
+                    showDefaultSuggestions();
+
                 } catch (error) { console.error("Initialization failed:", error); typing.innerHTML = "त्रुटि: डेटाबेस से कनेक्ट नहीं हो सका।"; }
             }
-
+            
             // --- Core Message Handling ---
             async function handleSend(simulatedQuery = null) {
                 if (!isBotInitialized) { await typeMessage("बॉट अभी शुरू हो रहा है, कृपया प्रतीक्षा करें...", "bot"); return; }
@@ -197,7 +201,7 @@
 
             async function processGeneralQuery(query) {
                 const matchingMembers = findMatchingMembers(query);
-                const matchingFaqs = findMatchingFaqs(query, 5);
+                const matchingFaqs = findMatchingFaqs(query, 1); // Get only the top match
                 
                 if (query.match(/capital king|capital hold|sabse zyada capital/i)) {
                     await displayCapitalKings();
@@ -210,7 +214,27 @@
                     await typeMessage("मुझे इस नाम से मिलते-जुलते कई सदस्य मिले। आप किसके बारे में जानना चाहते हैं?", "bot");
                     matchingMembers.forEach(m => appendMemberClarification(m));
                 } else if (matchingFaqs.length > 0) {
-                    await typeMessage(matchingFaqs[0].answer, "bot");
+                    const topFaq = matchingFaqs[0];
+                    await typeMessage(topFaq.answer, "bot");
+                    // Show question variations after the answer
+                    if (topFaq.questions && topFaq.questions.length > 1) {
+                        const variationsHtml = `
+                            <div class="faq-variations">
+                                <p class="faq-variations-title">Isse jude anya sawaal:</p>
+                                ${topFaq.questions.map(q => `<div class="faq-variation-item">${q}</div>`).join('')}
+                            </div>`;
+                        appendRichMessage(variationsHtml, 'bot');
+                    } else {
+                        // Fallback suggestions if no variations exist
+                        const fallbackFaqs = findMatchingFaqs("नियम", 3).filter(f => f.answer !== topFaq.answer);
+                        if (fallbackFaqs.length > 0) {
+                            await typeMessage("Iske alawa, aap yeh bhi poochh sakte hain:", "bot");
+                            fallbackFaqs.forEach(f => {
+                                const pill = createSuggestionPill(f.questions[0], 'faq');
+                                suggestionsBox.appendChild(pill);
+                            });
+                        }
+                    }
                 } else {
                     await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
                 }
@@ -224,7 +248,6 @@
                 const topData = findTopContributors(new Date());
                 const allTimeTotals = calculateAllTimeTotals();
 
-                // ✅ UPDATED: Client-side logic to decide if a chart should be shown
                 const lowerQuery = query.toLowerCase();
                 let chartType = null;
                 if (lowerQuery.includes('sip')) chartType = 'sip';
@@ -232,8 +255,7 @@
                 else if (lowerQuery.includes('return')) chartType = 'return';
 
                 if (chartType) {
-                    let chartData;
-                    let textResponse;
+                    let chartData; let textResponse;
                     if (chartType === 'sip') {
                         chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
                         textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
@@ -249,9 +271,8 @@
                     return;
                 }
 
-                // If not a chart query, ask the AI
                 const prompt = `You are a financial analyst AI for a community bank. You are in "Lock Mode" for a member named ${member.name}.
-                **CRITICAL RULE:** ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question (like "loan rules?"), you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
+                **CRITICAL RULE:** ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question, you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
                 **User's Query:** "${query}"
                 **Data for ${member.name}:** \`\`\`json ${JSON.stringify({ summary: summaryData, raw: memberData }, null, 2)} \`\`\`
                 Provide a conversational, helpful answer in simple Hindi.`;
@@ -261,6 +282,18 @@
             }
             
             // --- Response Rendering ---
+            // ✅ UPDATED: Formats numbers and keywords
+            function formatBotAnswer(content) {
+                // Highlight keywords
+                const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced'];
+                const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
+                content = content.replace(keywordRegex, '<strong style="color: var(--highlight-color);">$1</strong>');
+                
+                // Bold numbers
+                content = content.replace(/(\d+%?)/g, '<strong>$1</strong>');
+                return content;
+            }
+
             function processLinks(content) {
                 const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
                 return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
@@ -285,7 +318,9 @@
 
             function typeMessage(text, type) {
                 return new Promise(resolve => {
-                    const finalHtml = processLinks(text.replace(/\n/g, '<br>'));
+                    const formattedText = formatBotAnswer(text);
+                    const finalHtml = processLinks(formattedText.replace(/\n/g, '<br>'));
+                    
                     const messageEl = document.createElement('div');
                     messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
                     const bubbleEl = document.createElement('div');
@@ -297,7 +332,7 @@
                     bubbleEl.innerHTML = "▋";
                     const interval = setInterval(() => {
                         if (i < text.length) {
-                            bubbleEl.innerHTML = text.substring(0, i + 1).replace(/\n/g, '<br>') + "▋";
+                            bubbleEl.innerHTML = formatBotAnswer(text.substring(0, i + 1)).replace(/\n/g, '<br>') + "▋";
                             chatBox.scrollTop = chatBox.scrollHeight;
                             i++;
                         } else {
@@ -365,7 +400,7 @@
                 }
                 
                 const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
-                if (othersValue > 0) {
+                if (othersValue > 0.01) { // Only add 'Others' if it's a meaningful value
                     chartLabels.push('Other Members');
                     chartDataPoints.push(othersValue);
                 }
@@ -415,6 +450,25 @@
             }
 
             // --- Utility & Helper Functions ---
+            function createSuggestionPill(text, type) {
+                const pill = document.createElement('button');
+                pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm';
+                if (type === 'member') {
+                    pill.classList.add('bg-gray-200', 'text-gray-700');
+                    pill.innerHTML = `<i class="fas fa-user mr-2"></i>${text}`;
+                } else { // faq
+                    pill.classList.add('bg-blue-100', 'text-blue-700');
+                    pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${text}`;
+                }
+                pill.onclick = () => { inputBox.value = text; handleSend(); };
+                return pill;
+            }
+
+            function showDefaultSuggestions() {
+                const defaultSugg = createSuggestionPill('बैंक कम्युनिटी लोन क्या है?', 'faq');
+                suggestionsBox.appendChild(defaultSugg);
+            }
+            
             function showSuggestions(query) {
                 suggestionsBox.innerHTML = '';
                 if (!query || query.length < 2 || lockMode.active) return;
@@ -425,17 +479,9 @@
                 if (allSuggestions.length === 0) return;
 
                 allSuggestions.forEach(s => {
-                    const pill = document.createElement('button');
-                    pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm';
-                    if (s.id) {
-                        pill.classList.add('bg-gray-200', 'text-gray-700');
-                        pill.innerHTML = `<i class="fas fa-user mr-2"></i>${s.name}`;
-                        pill.onclick = () => { inputBox.value = s.name; handleSend(); };
-                    } else {
-                        pill.classList.add('bg-blue-100', 'text-blue-700');
-                        pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${s.questions[0]}`;
-                        pill.onclick = () => { inputBox.value = s.questions[0]; handleSend(); };
-                    }
+                    const text = s.id ? s.name : s.questions[0];
+                    const type = s.id ? 'member' : 'faq';
+                    const pill = createSuggestionPill(text, type);
                     suggestionsBox.appendChild(pill);
                 });
             }
