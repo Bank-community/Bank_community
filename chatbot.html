@@ -195,15 +195,15 @@
             }
             
             // --- Core Message Handling ---
+            // UPDATED: handleSend now correctly processes clicks from suggestion buttons.
             async function handleSend(simulatedQuery = null) {
                 if (!isBotInitialized) { await typeMessage("बॉट अभी शुरू हो रहा है, कृपया प्रतीक्षा करें...", "bot"); return; }
+                
                 const query = simulatedQuery || inputBox.value.trim();
                 if (!query) return;
                 
-                // If the query is coming from a suggestion button, display it as a user message first.
-                if (simulatedQuery) {
-                    appendRichMessage(query, "user");
-                }
+                // Always display the query as a user message.
+                appendRichMessage(query, "user");
                 
                 inputBox.value = '';
                 suggestionsBox.innerHTML = '';
@@ -236,81 +236,76 @@
                 }
             }
 
-            // --- UPDATED: processLockedQuery with re-implemented charts ---
+            // --- UPDATED: The "Genius" Lock Mode Processor ---
             async function processLockedQuery(query, member) {
                 const memberData = allMembersFullData[member.id];
                 if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
                 
                 const summaryData = aggregateMemberData(memberData);
                 const lowerQuery = query.toLowerCase();
-                const topData = findTopContributors(new Date());
-                const allTimeTotals = calculateAllTimeTotals();
 
-                // --- Smart Hybrid System (Level 1 Logic) with Charts ---
-                // Rule 1: Handle "SIP" queries.
-                if (lowerQuery.includes('sip')) {
-                    let responseText;
-                    if (lowerQuery.includes('total') || lowerQuery.includes('kul') || lowerQuery.includes('ab tak')) {
-                         responseText = `${member.name} का कुल SIP योगदान अब तक ₹${summaryData.totalSIP.toLocaleString('en-IN')} है।`;
-                    } else {
-                         responseText = `इस महीने ${member.name} का SIP स्टेटस: ${summaryData.sipStatus.text} (₹${summaryData.sipStatus.amount.toLocaleString('en-IN')})`;
-                    }
+                // --- Level 1: Handle simple, common queries with charts ---
+                const isSimpleSipQuery = lowerQuery.includes('sip') && (lowerQuery.includes('status') || lowerQuery.includes('is mahine'));
+                const isSimpleLoanQuery = lowerQuery.includes('loan') && (lowerQuery.includes('status') || lowerQuery.includes('outstanding') || lowerQuery.includes('bakaaya'));
+                const isSimpleReturnQuery = lowerQuery.includes('return') && (lowerQuery.includes('status') || lowerQuery.includes('total return'));
+
+                if (isSimpleSipQuery) {
+                    const responseText = `इस महीने ${member.name} का SIP स्टेटस: ${summaryData.sipStatus.text} (₹${summaryData.sipStatus.amount.toLocaleString('en-IN')})`;
                     await typeMessage(responseText, "bot");
-                    // Show comparison chart for current month's SIP
+                    const topData = findTopContributors(new Date());
                     const chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
                     renderComparisonChart(chartData, 'sip');
                     return;
                 }
 
-                // Rule 2: Handle "Loan" queries.
-                if (lowerQuery.includes('loan') || lowerQuery.includes('karz')) {
+                if (isSimpleLoanQuery) {
                     let responseText = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
-                    if (summaryData.netLoanOutstanding > 0) {
-                        responseText += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
-                    } else {
-                        responseText += ` अभी आपका कोई भी लोन बकाया नहीं है।`;
-                    }
+                    responseText += (summaryData.netLoanOutstanding > 0) ? ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।` : ` अभी आपका कोई भी लोन बकाया नहीं है।`;
                     await typeMessage(responseText, "bot");
-                    // Show comparison chart for total loan
+                    const allTimeTotals = calculateAllTimeTotals();
+                    const topData = findTopContributors(new Date());
                     const chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
                     renderComparisonChart(chartData, 'loan');
                     return;
                 }
                 
-                // Rule 3: Handle "Return" queries.
-                 if (lowerQuery.includes('return')) {
+                if (isSimpleReturnQuery) {
                     let responseText = `${member.name} को अब तक कुल ₹${summaryData.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है।`;
                     await typeMessage(responseText, "bot");
-                    // Show comparison chart for total return
+                    const allTimeTotals = calculateAllTimeTotals();
+                    const topData = findTopContributors(new Date());
                     const chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
                     renderComparisonChart(chartData, 'return');
                     return;
                 }
 
-                // --- Enhanced AI Prompt (Level 2 Logic) ---
-                const prompt = `You are an expert financial analyst for a community bank. Your answers must be precise, complete, and in simple Hindi. You are in 'Lock Mode' for member ${member.name}.
+                // --- Level 2: Handle complex, conversational queries with Genius AI ---
+                const transactions = memberData.transactions ? Object.values(memberData.transactions) : [];
+                const prompt = `You are a genius-level financial analyst AI. Your primary skill is to analyze a user's raw transaction history and answer any complex, conversational question about it with 100% accuracy. You must be helpful and respond in simple Hindi. You are in 'Lock Mode' for member ${member.name}.
 
-                **Data Glossary (VERY IMPORTANT - Use this to understand user intent):**
-                * \`summaryData.totalSIP\`: Yeh sadasya ka AB TAK KA KUL (all-time total) SIP hai.
-                * \`summaryData.sipStatus.amount\`: Yeh SIRF IS MAHINE (current month) ka SIP hai.
-                * \`summaryData.totalLoan\`: Yeh AB TAK KA KUL liya gaya loan hai.
-                * \`summaryData.netLoanOutstanding\`: Yeh kul loan mein se chukane ke baad bachi hui BAKAAYA RAASHI hai.
-                * \`summaryData.netBalance\`: Yeh sadasya ka vartamaan NET BALANCE hai.
-                * \`summaryData.totalReturn\`: Yeh ab tak mila KUL return hai.
+                **Your Task:** Analyze the provided JSON \`transactions\` array. Each object is a financial event. Answer the user's query based on this data.
 
-                **Rules:**
-                1.  **Be Precise:** If the user asks an ambiguous query like "mera sip", use the glossary to ask for clarification. Example: "Aap kul SIP (total) ke baare mein janna chahte hain ya is mahine ke SIP ke baare mein?"
-                2.  **Be Complete:** When discussing "loan", ALWAYS mention the \`netLoanOutstanding\` if it's more than 0.
-                3.  **Stay Focused:** Do not answer questions that cannot be answered with the provided data. Politely state that you are in lock mode for ${member.name}.
+                **Analysis Logic You MUST Follow:**
+                * To find the 'highest' or 'sabse jyada' of anything (e.g., SIP), iterate through all transactions, find the maximum value for that field, and state the amount and its 'Date'.
+                * To find the 'first' or 'pehla' of anything, sort transactions by 'Date' ascending and pick the first relevant one.
+                * To find the 'recent' or 'aakhiri' of anything, sort transactions by 'Date' descending and pick the first relevant one.
+                * To calculate 'days since', find the relevant transaction and calculate the days between its 'Date' and today's date (${new Date().toISOString().split('T')[0]}).
+                * Always format dates as DD-MM-YYYY.
+                * If the user's query is about something not in the data, politely say that the information is not available.
 
-                **Provided Data for ${member.name}:**
+                **Example Thought Process:**
+                * User asks: "Mera sabse jyada SIP kab aur kitna tha?"
+                * Your thought: "I need to look at all transactions. Find the one with the highest 'SIP Payment' value. I see one for 5000 on 2024-05-10. I will state this."
+                * Your Answer: "Aapka sabse zyada SIP payment ₹5,000 ka tha, jo aapne 10-05-2024 ko kiya tha."
+
+                **MEMBER'S ENTIRE TRANSACTION HISTORY:**
                 \`\`\`json
-                ${JSON.stringify({ summary: summaryData }, null, 2)}
+                ${JSON.stringify(transactions, null, 2)}
                 \`\`\`
 
-                **User's Current Query:** "${query}"
+                **User's Current Complex Query:** "${query}"
                 
-                Now, provide a helpful and accurate response based on all the rules and data.`;
+                Now, provide a helpful, accurate, and detailed text-based response. Do not mention that you are an AI.`;
                 
                 const responseText = await callGemini(prompt);
                 await typeMessage(responseText, "bot");
@@ -401,7 +396,6 @@
                 appendRichMessage(cardHtml, "bot");
             }
             
-            // --- Re-implemented renderComparisonChart ---
             function renderComparisonChart(data, type) {
                 const chartId = `chart-${Date.now()}`;
                 const chartContainer = document.createElement('div');
@@ -541,7 +535,7 @@
                 });
             }
             
-            // --- FIXED: showPostAnswerSuggestions to correctly handle clicks ---
+            // --- FIXED: showPostAnswerSuggestions now correctly calls handleSend ---
             function showPostAnswerSuggestions(answeredFaq) {
                 let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3);
                 if (relatedFaqs.length === 0) return;
@@ -557,10 +551,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'post-answer-suggestion';
                     btn.textContent = faq.questions[0];
-                    // This onclick handler now correctly calls handleSend with the question text
-                    btn.onclick = () => {
-                        handleSend(faq.questions[0]);
-                    };
+                    btn.onclick = () => handleSend(faq.questions[0]); // This now works correctly.
                     buttonContainer.appendChild(btn);
                 });
                 container.appendChild(buttonContainer);
