@@ -233,16 +233,18 @@
 
                 if (chartType) {
                     let chartData;
+                    let textResponse;
                     if (chartType === 'sip') {
                         chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
-                        await typeMessage(`इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`, "bot");
+                        textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     } else if (chartType === 'loan') {
                         chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
-                        await typeMessage(`${member.name} ने अब तक कुल ₹${summaryData.totalLoan} का लोन लिया है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`, "bot");
+                        textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan} का लोन लिया है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     } else if (chartType === 'return') {
                         chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
-                        await typeMessage(`${member.name} को अब तक कुल ₹${summaryData.totalReturn} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`, "bot");
+                        textResponse = `${member.name} को अब तक कुल ₹${summaryData.totalReturn} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     }
+                    await typeMessage(textResponse, "bot");
                     renderComparisonChart(chartData, chartType);
                     return;
                 }
