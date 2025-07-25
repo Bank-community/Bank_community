@@ -230,17 +230,7 @@
                 } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
                     await typeMessage(topFaq.answer, "bot");
-                    
-                    if (topFaq.questions && topFaq.questions.length > 1) {
-                        const variationsHtml = `<div class="faq-variations"><p class="faq-variations-title">Isse jude anya sawaal:</p>${topFaq.questions.map(q => `<div class="faq-variation-item">${q}</div>`).join('')}</div>`;
-                        appendRichMessage(variationsHtml, 'bot');
-                    } else {
-                        const fallbackFaqs = findMatchingFaqs("नियम", 3).filter(f => f.answer !== topFaq.answer);
-                        if (fallbackFaqs.length > 0) {
-                            await typeMessage("Iske alawa, aap yeh bhi poochh sakte hain:", "bot");
-                            fallbackFaqs.forEach(f => { suggestionsBox.appendChild(createSuggestionPill(f.questions[0], 'faq')); });
-                        }
-                    }
+                    showPostAnswerSuggestions(topFaq);
                 } else {
                     await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
                 }
@@ -267,7 +257,11 @@
                         textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     } else if (chartType === 'loan') {
                         chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
-                        textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan} का लोन लिया है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
+                        textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan} का लोन लिया है।`;
+                        if(summaryData.netLoanOutstanding > 0) {
+                            textResponse += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding} बकाया है।`;
+                        }
+                        textResponse += ' इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।';
                     } else if (chartType === 'return') {
                         chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
                         textResponse = `${member.name} को अब तक कुल ₹${summaryData.totalReturn} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
@@ -447,6 +441,9 @@
 
                 const rankIcons = ['🥇', '🥈', '🥉'];
                 const rankColors = ['gold', 'silver', 'bronze'];
+                
+                const listContainer = showAll ? document.getElementById('capital-kings-list') : null;
+                if(listContainer) listContainer.innerHTML = '';
 
                 itemsToShow.forEach((member, index) => {
                     const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || ''}" onclick="window.chatbot.showCapitalDetails('${member.name}')">
@@ -462,7 +459,11 @@
                             </div>
                         </div>
                     </div>`;
-                    appendRichMessage(cardHtml, 'bot');
+                    if(showAll) {
+                        listContainer.innerHTML += cardHtml;
+                    } else {
+                        appendRichMessage(cardHtml, 'bot');
+                    }
                 });
                 
                 if (!showAll && capitalData.length > 3) {
@@ -508,6 +509,16 @@
                 });
             }
             
+            function showPostAnswerSuggestions(answeredFaq) {
+                suggestionsBox.innerHTML = '';
+                let suggestions = findMatchingFaqs("नियम", 3).filter(f => f.answer !== answeredFaq.answer);
+                suggestions.unshift({ questions: ['बैंक कम्युनिटी लोन क्या है?'] }); // Add default question
+                suggestions.slice(0, 4).forEach(f => {
+                    const pill = createSuggestionPill(f.questions[0], 'faq');
+                    suggestionsBox.appendChild(pill);
+                });
+            }
+            
             function getWordMatchScore(query, text) { const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2)); const textWords = new Set(text.toLowerCase().split(/\s+/)); let score = 0; for (const word of queryWords) { if (textWords.has(word)) score++; } return score; }
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => ({ ...faq, score: getWordMatchScore(lowerQuery, faq.questions.join(' ')) })).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
@@ -516,38 +527,27 @@
             function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0, total: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; let totalSipThisMonth = 0; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); const sipStatus = getSipStatus(member.transactions ? Object.values(member.transactions) : [], date); totalSipThisMonth += sipStatus.amount; if (sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } topSip.total = totalSipThisMonth; return { sip: topSip, loan: topLoan, return: topReturn }; }
             function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
             
-            // ✅ UPDATED: Professional Capital Score Calculation
             function calculateCapitalScores() {
-                const results = [];
-                const today = new Date();
+                const results = []; const today = new Date();
                 for (const memberId in allMembersFullData) {
                     const member = allMembersFullData[memberId];
                     if (!member.transactions || !member.joiningDate) continue;
-
                     const transactions = Object.values(member.transactions).sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                    let capitalDays = 0;
-                    let currentCapital = 0;
-                    let lastDate = new Date(member.joiningDate);
-
+                    let capitalDays = 0; let currentCapital = 0; let lastDate = new Date(member.joiningDate);
                     transactions.forEach(tx => {
                         const txDate = new Date(tx.Date);
                         const daysDifference = (txDate - lastDate) / (1000 * 3600 * 24);
-                        if (daysDifference > 0) {
-                            capitalDays += currentCapital * daysDifference;
-                        }
+                        if (daysDifference > 0) { capitalDays += currentCapital * daysDifference; }
                         const sip = parseFloat(tx['SIP Payment']) || 0;
                         const payment = parseFloat(tx['Loan Payment']) || 0;
                         const loan = parseFloat(tx.Loan) || 0;
                         currentCapital += sip + payment - loan;
                         lastDate = txDate;
                     });
-                    
                     const daysSinceLastTx = (today - lastDate) / (1000 * 3600 * 24);
                     capitalDays += currentCapital * daysSinceLastTx;
-
                     const holdingDays = Math.floor((today - new Date(member.joiningDate)) / (1000 * 3600 * 24));
                     const finalCapital = aggregateMemberData(member).netBalance;
-                    
                     if (finalCapital > 0 && holdingDays > 0) {
                         results.push({ name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays });
                     }
@@ -576,10 +576,17 @@
             window.chatbot = {
                 activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); createQuickActionsButton(); renderQuickActionsPanel('main'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); },
                 deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); if(quickActionsBtn) quickActionsBtn.remove(); quickActionsPanel.classList.add('hidden'); },
-                openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; document.getElementById('modalImageContent').src = imageUrl; document.getElementById('imageModal').classList.remove('hidden'); document.getElementById('imageModal').classList.add('flex'); },
-                closeImageModal: () => { document.getElementById('imageModal').classList.add('hidden'); document.getElementById('imageModal').classList.remove('flex'); },
+                openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; document.getElementById('modalImageContent').src = imageUrl; document.getElementById('imageModal').classList.add('active'); },
+                closeImageModal: () => { document.getElementById('imageModal').classList.remove('active'); },
                 displayMemberDetails: displayMemberDetails,
-                displayCapitalKings: displayCapitalKings,
+                displayCapitalKings: (showAll) => {
+                    if (showAll) {
+                        document.getElementById('capitalKingsModal').classList.add('active');
+                        displayCapitalKings(true);
+                    } else {
+                        displayCapitalKings(false);
+                    }
+                },
                 showCapitalDetails: (name) => { handleSend(`tell me about ${name}'s capital score`); },
                 closeCapitalModal: () => { document.getElementById('capitalKingsModal').classList.remove('active'); }
             };
