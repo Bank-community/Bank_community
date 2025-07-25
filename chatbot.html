@@ -226,13 +226,11 @@
                     await typeMessage(topFaq.answer, "bot");
                     showPostAnswerSuggestions(topFaq);
                 } else {
-                    // This is the guardrail for general mode.
                     await typeMessage(`माफ़ कीजिए, मैं केवल बैंक कम्युनिटी से जुड़े सवालों का जवाब दे सकता हूँ।`, "bot");
                     showDefaultSuggestions();
                 }
             }
 
-            // --- UPDATED: The Final, Disciplined Lock Mode Processor ---
             async function processLockedQuery(query, member) {
                 if (!preAnalyzedCache) {
                     await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
@@ -242,7 +240,6 @@
                 const lowerQuery = query.toLowerCase();
                 let responseText = null;
 
-                // --- Level 1: Handle the three specific queries that require graphs ---
                 if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
                     responseText = `${member.name} जी, आपके कुल SIP का योग ₹${preAnalyzedCache.summary.totalSIP.toLocaleString('en-IN')} है।`;
                     await typeMessage(responseText, "bot");
@@ -278,7 +275,6 @@
                     return;
                 }
 
-                // --- Level 2: Check the Pre-Analyzed Cache for other complex queries (no graphs) ---
                 if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
                     const data = preAnalyzedCache.highestSip;
                     responseText = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
@@ -298,7 +294,6 @@
                     return;
                 }
 
-                // --- Level 3: Fallback to Genius AI with Strict Guardrails ---
                 const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
                 const prompt = `**ABSOLUTE PRIMARY DIRECTIVE: Your ONLY purpose is to answer questions about the financial data of a bank community member named ${member.name}.**
 
@@ -817,7 +812,8 @@
             
             async function callGemini(prompt) {
                 try {
-                    const response = await fetch('/api/getAiExplanation', { 
+                    // UPDATED: The endpoint now points to our new, robust API handler.
+                    const response = await fetch('/api/chatbotAI', { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
                         body: JSON.stringify({ promptText: prompt }) 
@@ -825,7 +821,7 @@
                     if (!response.ok) { 
                         const error = await response.json(); 
                         console.error("AI Backend Error:", error); 
-                        return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`; 
+                        return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Quota samapt ho gaya hai'})`; 
                     }
                     const data = await response.json();
                     return data.explanation;
