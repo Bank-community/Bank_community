@@ -125,30 +125,20 @@
 
     <script>
         // --- Authentication & Initialization ---
-        // CORRECTED: This function now strictly follows the project architecture.
         async function checkAuthAndInitialize() {
             try {
-                // Step 1: Securely fetch Firebase config from the Vercel API endpoint.
                 const response = await fetch('/api/config');
                 if (!response.ok) throw new Error('Configuration failed to load.');
                 const config = await response.json();
-                
-                // Initialize Firebase with the fetched config.
                 firebase.initializeApp(config.firebase);
-                
-                // Step 2: Set up the authentication state listener.
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        // If user is logged in, run the main chatbot logic.
                         runChatbotLogic();
                     } else {
-                        // If user is not logged in, redirect to the login page.
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
                 });
-
             } catch (error) {
-                // Display an error message if initialization fails.
                 document.getElementById('chat').innerHTML = `<div class="p-4 text-red-600 text-center">Application failed to initialize: ${error.message}</div>`;
             }
         }
@@ -177,7 +167,6 @@
                 await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
                 const typing = appendRichMessage("...", "bot typing");
                 try {
-                    // Fetch data from Firebase database.
                     const [memberSnapshot, faqsSnapshot] = await Promise.all([ membersRef.once('value'), faqsRef.once('value') ]);
                     
                     cachedMemberIndex = [];
@@ -244,53 +233,66 @@
                 }
             }
 
+            // --- UPDATED: processLockedQuery with Hybrid Logic and Enhanced Prompt ---
             async function processLockedQuery(query, member) {
                 const memberData = allMembersFullData[member.id];
                 if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
                 
                 const summaryData = aggregateMemberData(memberData);
-                const topData = findTopContributors(new Date());
-                const allTimeTotals = calculateAllTimeTotals();
-
                 const lowerQuery = query.toLowerCase();
-                
-                if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
+
+                // --- Smart Hybrid System (Level 1 Logic) ---
+                // Rule 1: Handle specific "Total SIP" queries directly.
+                if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip') || lowerQuery.includes('ab tak ka sip')) {
                     const responseText = `${member.name} का कुल SIP योगदान अब तक ₹${summaryData.totalSIP.toLocaleString('en-IN')} है।`;
                     await typeMessage(responseText, "bot");
-                    return;
+                    return; // End execution here
                 }
 
-                let chartType = null;
-                if (lowerQuery.includes('sip')) chartType = 'sip';
-                else if (lowerQuery.includes('loan')) chartType = 'loan';
-                else if (lowerQuery.includes('return')) chartType = 'return';
+                // Rule 2: Handle specific "Current Month SIP" queries directly.
+                if (lowerQuery.includes('is mahine ka sip') || lowerQuery.includes('current month sip')) {
+                    const responseText = `इस महीने ${member.name} का SIP स्टेटस: ${summaryData.sipStatus.text} (₹${summaryData.sipStatus.amount.toLocaleString('en-IN')})`;
+                    await typeMessage(responseText, "bot");
+                    return; // End execution here
+                }
 
-                if (chartType) {
-                    let chartData; let textResponse;
-                    if (chartType === 'sip') {
-                        chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
-                        textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount.toLocaleString('en-IN')} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
-                    } else if (chartType === 'loan') {
-                        chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
-                        textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
-                        if(summaryData.netLoanOutstanding > 0) {
-                            textResponse += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
-                        }
-                        textResponse += ' इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।';
-                    } else if (chartType === 'return') {
-                        chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
-                        textResponse = `${member.name} को अब तक कुल ₹${summaryData.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
+                // Rule 3: Handle "Loan" queries with outstanding balance check.
+                if (lowerQuery.includes('loan') || lowerQuery.includes('karz')) {
+                    let responseText = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
+                    if (summaryData.netLoanOutstanding > 0) {
+                        responseText += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
+                    } else {
+                        responseText += ` अभी आपका कोई भी लोन बकाया नहीं है।`;
                     }
-                    await typeMessage(textResponse, "bot");
-                    renderComparisonChart(chartData, chartType);
-                    return;
+                    await typeMessage(responseText, "bot");
+                    return; // End execution here
                 }
 
-                const prompt = `You are a financial analyst AI for a community bank. You are in "Lock Mode" for a member named ${member.name}.
-                **CRITICAL RULE:** ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question, you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
-                **User's Query:** "${query}"
-                **Data for ${member.name}:** \`\`\`json ${JSON.stringify({ summary: summaryData, raw: memberData }, null, 2)} \`\`\`
-                Provide a conversational, helpful answer in simple Hindi.`;
+                // --- Enhanced AI Prompt (Level 2 Logic) ---
+                // If the query is not caught by the hybrid system, send it to AI with detailed context.
+                const prompt = `You are an expert financial analyst for a community bank. Your answers must be precise, complete, and in simple Hindi. You are in 'Lock Mode' for member ${member.name}.
+
+                **Data Glossary (VERY IMPORTANT - Use this to understand user intent):**
+                * \`summaryData.totalSIP\`: Yeh sadasya ka AB TAK KA KUL (all-time total) SIP hai.
+                * \`summaryData.sipStatus.amount\`: Yeh SIRF IS MAHINE (current month) ka SIP hai.
+                * \`summaryData.totalLoan\`: Yeh AB TAK KA KUL liya gaya loan hai.
+                * \`summaryData.netLoanOutstanding\`: Yeh kul loan mein se chukane ke baad bachi hui BAKAAYA RAASHI hai.
+                * \`summaryData.netBalance\`: Yeh sadasya ka vartamaan NET BALANCE hai.
+                * \`summaryData.totalReturn\`: Yeh ab tak mila KUL return hai.
+
+                **Rules:**
+                1.  **Be Precise:** If the user asks an ambiguous query like "mera sip", use the glossary to ask for clarification. Example: "Aap kul SIP (total) ke baare mein janna chahte hain ya is mahine ke SIP ke baare mein?"
+                2.  **Be Complete:** When discussing "loan", ALWAYS mention the \`netLoanOutstanding\` if it's more than 0.
+                3.  **Stay Focused:** Do not answer questions that cannot be answered with the provided data. Politely state that you are in lock mode for ${member.name}.
+
+                **Provided Data for ${member.name}:**
+                \`\`\`json
+                ${JSON.stringify({ summary: summaryData }, null, 2)}
+                \`\`\`
+
+                **User's Current Query:** "${query}"
+                
+                Now, provide a helpful and accurate response based on all the rules and data.`;
                 
                 const responseText = await callGemini(prompt);
                 await typeMessage(responseText, "bot");
@@ -380,55 +382,7 @@
                 const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-green-500 cursor-pointer" onclick="window.chatbot.openImageModal('${profileImageUrl}')"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${data.joinDate}</p></div></div><button onclick="window.chatbot.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-green-600 transition-transform hover:scale-125" title="Lock on this member"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.chatbot.openImageModal('${signatureImageUrl}')" alt="Signature"></div></div>`;
                 appendRichMessage(cardHtml, "bot");
             }
-
-            function renderComparisonChart(data, type) {
-                const chartId = `chart-${Date.now()}`;
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`;
-                
-                if (type === 'return') {
-                    const notification = document.createElement('p');
-                    notification.className = 'text-center text-xs text-gray-500 mt-2';
-                    notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.';
-                    chartContainer.appendChild(notification);
-                }
-                
-                appendRichMessage(chartContainer.outerHTML, 'bot');
-                
-                const titles = { sip: 'SIP Comparison (This Month)', loan: 'Total Loan Comparison', return: 'Total Return Comparison' };
-                const colors = { sip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], loan: ['#FF6384', '#FF9F40', '#E5E7EB'], return: ['#9966FF', '#FFCD56', '#E5E7EB'] };
-                
-                const { totalValue, currentUser, topUser } = data;
-                const chartLabels = [];
-                const chartDataPoints = [];
-
-                chartLabels.push(currentUser.name);
-                chartDataPoints.push(currentUser.value);
-
-                if (topUser.name !== currentUser.name) {
-                    chartLabels.push(topUser.name);
-                    chartDataPoints.push(topUser.value);
-                }
-                
-                const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
-                if (othersValue > 0.01) {
-                    chartLabels.push('Other Members');
-                    chartDataPoints.push(othersValue);
-                }
-
-                const chartConfig = {
-                    type: 'doughnut',
-                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] },
-                    options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' }
-                };
-                
-                setTimeout(() => {
-                    const ctx = document.getElementById(chartId)?.getContext('2d');
-                    if (ctx) new Chart(ctx, chartConfig);
-                }, 100);
-            }
-
+            
             async function displayCapitalKings(showAll = false) {
                 if (!capitalKingsData) {
                     capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score);
@@ -547,8 +501,6 @@
             function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => ({ ...faq, score: getWordMatchScore(lowerQuery, faq.questions.join(' ')) })).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
             function aggregateMemberData(data) { let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0; const transactions = data.transactions ? Object.values(data.transactions) : []; transactions.forEach(tx => { totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0; }); const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance; const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw; const sipStatus = getSipStatus(transactions, new Date()); return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus }; }
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
-            function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0, total: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; let totalSipThisMonth = 0; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); totalSipThisMonth += summary.sipStatus.amount; if (summary.sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: summary.sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } topSip.total = totalSipThisMonth; return { sip: topSip, loan: topLoan, return: topReturn }; }
-            function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
             
             function calculateCapitalScores() {
                 const results = []; const today = new Date();
@@ -556,6 +508,10 @@
                 for (const memberId in allMembersFullData) {
                     const member = allMembersFullData[memberId];
                     if (!member.transactions || !member.joiningDate) continue;
+                    const finalCapital = aggregateMemberData(member).netBalance;
+                    // Only include members with positive capital in the ranking
+                    if (finalCapital <= 0) continue;
+
                     const transactions = Object.values(member.transactions).sort((a, b) => new Date(a.Date) - new Date(b.Date));
                     let capitalDays = 0; let currentCapital = 0; let lastDate = new Date(member.joiningDate);
                     transactions.forEach(tx => {
@@ -572,8 +528,8 @@
                     const daysSinceLastTx = (today - lastDate) / (1000 * 3600 * 24);
                     capitalDays += currentCapital * daysSinceLastTx;
                     const holdingDays = Math.floor((today - new Date(member.joiningDate)) / (1000 * 3600 * 24));
-                    const finalCapital = aggregateMemberData(member).netBalance;
-                    if (finalCapital > 0 && holdingDays > 0) {
+                    
+                    if (holdingDays > 0) {
                         results.push({ id: memberId, name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays });
                     }
                 }
@@ -659,7 +615,6 @@
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'),
             };
             
-            // CORRECTED: This function now calls the secure Vercel endpoint.
             async function callGemini(prompt) {
                 try {
                     const response = await fetch('/api/getAiExplanation', { 
