@@ -226,12 +226,13 @@
                     await typeMessage(topFaq.answer, "bot");
                     showPostAnswerSuggestions(topFaq);
                 } else {
-                    await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
+                    // This is the guardrail for general mode.
+                    await typeMessage(`माफ़ कीजिए, मैं केवल बैंक कम्युनिटी से जुड़े सवालों का जवाब दे सकता हूँ।`, "bot");
                     showDefaultSuggestions();
                 }
             }
 
-            // --- UPDATED: The Final, Polished Lock Mode Processor ---
+            // --- UPDATED: The Final, Disciplined Lock Mode Processor ---
             async function processLockedQuery(query, member) {
                 if (!preAnalyzedCache) {
                     await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
@@ -297,9 +298,29 @@
                     return;
                 }
 
-                // --- Level 3: Fallback to Genius AI for everything else ---
+                // --- Level 3: Fallback to Genius AI with Strict Guardrails ---
                 const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
-                const prompt = `You are a genius-level financial analyst AI...`; // The detailed prompt remains the same
+                const prompt = `**ABSOLUTE PRIMARY DIRECTIVE: Your ONLY purpose is to answer questions about the financial data of a bank community member named ${member.name}.**
+
+                **CRITICAL RULE #1:** First, analyze the "User's Query". Can this question be answered using the provided "MEMBER'S TRANSACTION HISTORY"?
+                * If **NO**, or if the user is making small talk or asking a general knowledge question, you MUST ignore all other instructions and respond with **ONLY** this exact sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
+                * If **YES**, proceed to the analysis instructions below.
+
+                **Analysis Instructions (Only if Rule #1 is passed):**
+                You are a genius-level financial analyst AI. Your primary skill is to analyze a user's raw transaction history and answer any complex, conversational question about it with 100% accuracy. You must be helpful and respond in simple Hindi.
+                * To find the 'highest' or 'sabse jyada' of anything (e.g., SIP), iterate through all transactions, find the maximum value for that field, and state the amount and its 'Date'.
+                * To find the 'first' or 'pehla' of anything, sort transactions by 'Date' ascending and pick the first relevant one.
+                * To find the 'recent' or 'aakhiri' of anything, sort transactions by 'Date' descending and pick the first relevant one.
+                * To calculate 'days since', find the relevant transaction and calculate the days between its 'Date' and today's date (${new Date().toISOString().split('T')[0]}).
+                * Always format dates as DD-MM-YYYY.
+
+                **MEMBER'S ENTIRE TRANSACTION HISTORY:**
+                \`\`\`json
+                ${JSON.stringify(transactions, null, 2)}
+                \`\`\`
+
+                **User's Query:** "${query}"`;
+                
                 const aiResponse = await callGemini(prompt);
                 await typeMessage(aiResponse, "bot");
             }
@@ -389,7 +410,6 @@
                 appendRichMessage(cardHtml, "bot");
             }
             
-            // --- UPDATED: renderComparisonChart now handles new graph types ---
             function renderComparisonChart(data, type) {
                 const chartId = `chart-${Date.now()}`;
                 const chartContainer = document.createElement('div');
@@ -555,7 +575,6 @@
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => ({ ...faq, score: getWordMatchScore(lowerQuery, faq.questions.join(' ')) })).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
             
-            // --- UPDATED: aggregateMemberData is now the single source of truth for calculations ---
             function aggregateMemberData(data) {
                 const transactions = data.transactions ? Object.values(data.transactions) : [];
                 let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0;
@@ -588,7 +607,7 @@
 
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
             
-            function findTopContributors(date) {
+            function findTopContributors() {
                 let totalSipUser = { name: 'N/A', value: 0 }, totalLoanUser = { name: 'N/A', value: 0 }, totalReturnUser = { name: 'N/A', value: 0 };
                 if (!allMembersFullData) return { totalSipUser, totalLoanUser, totalReturnUser };
                 
