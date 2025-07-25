@@ -47,12 +47,11 @@
 
         .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
         .clickable-link:hover { color: #1d4ed8; }
-        .chart-container { position: relative; padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 300px; margin-left: auto; margin-right: auto; }
+        .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
         
         .capital-king-card { border-left: 4px solid; }
         .gold { border-color: #ffd700; } .silver { border-color: #c0c0c0; } .bronze { border-color: #cd7f32; }
 
-        /* Quick Actions Panel Styles */
         #quick-actions-panel {
             position: absolute; top: 100%; right: 0;
             background-color: white; border-radius: 0 0 0.5rem 0.5rem;
@@ -66,6 +65,7 @@
         }
         .quick-action-item:hover { background-color: #f3f4f6; }
         .quick-action-item i { color: var(--text-light); width: 20px; text-align: center; margin-right: 12px; }
+        .chart-notification { text-align: center; font-size: 0.8em; color: var(--text-light); margin-top: 8px; }
     </style>
 </head>
 <body class="antialiased">
@@ -73,7 +73,6 @@
     <div class="chat-container flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-2xl">
         <header class="relative flex items-center justify-center p-4 bg-gray-800 text-white shadow-lg z-10">
             <h1 class="text-xl font-bold tracking-wider">Ultimate Bank Commity Bot</h1>
-            <!-- Quick Actions button will be placed here by JS -->
         </header>
 
         <div id="lock-mode-banner" class="hidden flex items-center justify-between p-3 bg-yellow-100 border-b-2 border-yellow-300">
@@ -89,7 +88,6 @@
 
         <div id="chat" class="chat-messages flex-1 p-6 overflow-y-auto bg-secondary-color"></div>
 
-        <!-- Quick Actions Panel -->
         <div id="quick-actions-panel" class="hidden"></div>
 
         <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
@@ -151,7 +149,7 @@
             const unlockBtn = document.getElementById('unlock-btn');
             const header = document.querySelector('header');
             const quickActionsPanel = document.getElementById('quick-actions-panel');
-            let quickActionsBtn = null; // Will be created dynamically
+            let quickActionsBtn = null;
 
             async function initializeBot() {
                 await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
@@ -225,6 +223,7 @@
                 const summaryData = aggregateMemberData(memberData);
                 const today = new Date().toISOString().split('T')[0];
                 const topData = findTopContributors(new Date());
+                const allTimeTotals = calculateAllTimeTotals();
 
                 const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query about a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
 
@@ -241,12 +240,15 @@
                 - Top SIP contributor (this month): ${topData.sip.name} (₹${topData.sip.amount})
                 - Top Loan Taker (all time): ${topData.loan.name} (₹${topData.loan.amount})
                 - Top Return Payer (all time): ${topData.return.name} (₹${topData.return.amount})
+                - All-Time Community Total SIP: ₹${allTimeTotals.sip}
+                - All-Time Community Total Loan: ₹${allTimeTotals.loan}
+                - All-Time Community Total Return: ₹${allTimeTotals.return}
 
                 **SPECIAL INSTRUCTIONS:**
                 1.  **Chart Generation:** If the user's query is about their own SIP, Loan, or Return amount, you MUST respond ONLY with the following JSON object. Do not add any other text.
-                    - For SIP: \`{"type": "comparison_chart", "chartType": "sip", "data": {"currentUser": {"name": "${member.name}", "value": ${summaryData.sipStatus.amount}}, "topUser": {"name": "${topData.sip.name}", "value": ${topData.sip.amount}}}, "summary": "AI summary in Hindi..."}\`
-                    - For Loan: \`{"type": "comparison_chart", "chartType": "loan", "data": {"currentUser": {"name": "${member.name}", "value": ${summaryData.totalLoan}}, "topUser": {"name": "${topData.loan.name}", "value": ${topData.loan.amount}}}, "summary": "AI summary in Hindi..."}\`
-                    - For Return: \`{"type": "comparison_chart", "chartType": "return", "data": {"currentUser": {"name": "${member.name}", "value": ${summaryData.totalReturn}}, "topUser": {"name": "${topData.return.name}", "value": ${topData.return.amount}}}, "summary": "AI summary in Hindi..."}\`
+                    - For SIP (this month): \`{"type": "3way_comparison_chart", "chartType": "sip", "data": {"totalValue": ${topData.sip.total}, "currentUser": {"name": "${member.name}", "value": ${summaryData.sipStatus.amount}}, "topUser": {"name": "${topData.sip.name}", "value": ${topData.sip.amount}}}, "summary": "AI summary in Hindi..."}\`
+                    - For Loan (all time): \`{"type": "3way_comparison_chart", "chartType": "loan", "data": {"totalValue": ${allTimeTotals.loan}, "currentUser": {"name": "${member.name}", "value": ${summaryData.totalLoan}}, "topUser": {"name": "${topData.loan.name}", "value": ${topData.loan.amount}}}, "summary": "AI summary in Hindi..."}\`
+                    - For Return (all time): \`{"type": "3way_comparison_chart", "chartType": "return", "data": {"totalValue": ${allTimeTotals.return}, "currentUser": {"name": "${member.name}", "value": ${summaryData.totalReturn}}, "topUser": {"name": "${topData.return.name}", "value": ${topData.return.amount}}}, "summary": "AI summary in Hindi..."}\`
                 2.  **For all other member-specific queries:** Provide a conversational, helpful answer in simple Hindi based on the provided data.`;
                 
                 const responseText = await callGemini(prompt);
@@ -259,7 +261,7 @@
                     const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
                     if (jsonMatch && jsonMatch[1]) {
                         const jsonResponse = JSON.parse(jsonMatch[1]);
-                        if (jsonResponse.type === 'comparison_chart') {
+                        if (jsonResponse.type === '3way_comparison_chart') {
                             typeMessage(jsonResponse.summary, "bot").then(() => {
                                 renderComparisonChart(jsonResponse.data, jsonResponse.chartType);
                             });
@@ -347,74 +349,74 @@
                 appendRichMessage(cardHtml, "bot");
             }
 
-            // ✅ UPDATED: Renders Donut charts with a custom plugin for labels
             function renderComparisonChart(data, type) {
                 const chartId = `chart-${Date.now()}`;
-                const chartHtml = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
-                appendRichMessage(chartHtml, 'bot');
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+                chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`;
                 
-                const titles = { sip: 'SIP Comparison', loan: 'Total Loan Comparison', return: 'Total Return Comparison' };
-                const colors = { sip: ['#36A2EB', '#4BC0C0'], loan: ['#FF6384', '#FF9F40'], return: ['#9966FF', '#FFCD56'] };
-
-                const chartData = {
-                    labels: [data.currentUser.name, data.topUser.name],
-                    datasets: [{
-                        data: [data.currentUser.value, data.topUser.value],
-                        backgroundColor: colors[type],
-                    }]
-                };
-
-                const centerTextPlugin = {
-                    id: 'centerText',
-                    afterDraw: (chart) => {
-                        const ctx = chart.ctx;
-                        const {top, bottom, left, right, width, height} = chart.chartArea;
-                        ctx.save();
-                        ctx.font = 'bold 16px Poppins';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        
-                        const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                        if (total === 0) return;
-
-                        chart.data.datasets[0].data.forEach((value, index) => {
-                            const meta = chart.getDatasetMeta(0);
-                            const arc = meta.data[index];
-                            if (!arc) return;
-                            
-                            const percentage = ((value / total) * 100).toFixed(1) + '%';
-                            const amount = `₹${value.toLocaleString('en-IN')}`;
-                            
-                            const angle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
-                            const radius = arc.outerRadius * 0.7; // Position inside the arc
-                            const x = arc.x + Math.cos(angle) * radius;
-                            const y = arc.y + Math.sin(angle) * radius;
-                            
-                            ctx.fillStyle = '#fff';
-                            ctx.fillText(percentage, x, y - 8);
-                            ctx.font = '500 12px Poppins';
-                            ctx.fillText(amount, x, y + 10);
-                            ctx.font = 'bold 16px Poppins'; // Reset for next iteration
-                        });
-                        ctx.restore();
-                    }
-                };
+                if (type === 'return') {
+                    const notification = document.createElement('p');
+                    notification.className = 'chart-notification';
+                    notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.';
+                    chartContainer.appendChild(notification);
+                }
                 
-                const ctx = document.getElementById(chartId).getContext('2d');
-                new Chart(ctx, {
+                appendRichMessage(chartContainer.outerHTML, 'bot');
+                
+                const titles = { sip: 'SIP Comparison (This Month)', loan: 'Total Loan Comparison', return: 'Total Return Comparison' };
+                const colors = { sip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], loan: ['#FF6384', '#FF9F40', '#E5E7EB'], return: ['#9966FF', '#FFCD56', '#E5E7EB'] };
+                
+                const { totalValue, currentUser, topUser } = data;
+                const chartLabels = [];
+                const chartDataPoints = [];
+
+                chartLabels.push(currentUser.name);
+                chartDataPoints.push(currentUser.value);
+
+                if (topUser.name !== currentUser.name) {
+                    chartLabels.push(topUser.name);
+                    chartDataPoints.push(topUser.value);
+                }
+                
+                const othersValue = totalValue - chartDataPoints.reduce((a,b) => a+b, 0);
+                if (othersValue > 0) {
+                    chartLabels.push('Other Members');
+                    chartDataPoints.push(othersValue);
+                }
+
+                const chartConfig = {
                     type: 'doughnut',
-                    data: chartData,
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{ data: chartDataPoints, backgroundColor: colors[type] }]
+                    },
                     options: {
                         responsive: true,
                         plugins: { 
                             legend: { position: 'top' }, 
                             title: { display: true, text: titles[type] },
-                            tooltip: { enabled: false }
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw;
+                                        const total = context.chart.getDatasetMeta(0).total;
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                        return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`;
+                                    }
+                                }
+                            }
                         },
                         cutout: '60%'
-                    },
-                    plugins: [centerTextPlugin]
-                });
+                    }
+                };
+                
+                // Use a timeout to ensure the canvas element is in the DOM
+                setTimeout(() => {
+                    const ctx = document.getElementById(chartId)?.getContext('2d');
+                    if (ctx) new Chart(ctx, chartConfig);
+                }, 100);
             }
 
             async function displayCapitalKings() {
@@ -462,67 +464,25 @@
             function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => ({ ...faq, score: getWordMatchScore(lowerQuery, faq.questions.join(' ')) })).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
             function aggregateMemberData(data) { let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0; const transactions = data.transactions ? Object.values(data.transactions) : []; transactions.forEach(tx => { totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0; }); const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance; const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw; return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus: getSipStatus(transactions, new Date()) }; }
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
-            function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); if (summary.sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: summary.sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } return { sip: topSip, loan: topLoan, return: topReturn }; }
+            function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0, total: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; let totalSipThisMonth = 0; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); const sipStatus = getSipStatus(member.transactions ? Object.values(member.transactions) : [], date); totalSipThisMonth += sipStatus.amount; if (sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } topSip.total = totalSipThisMonth; return { sip: topSip, loan: topLoan, return: topReturn }; }
+            function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
             function calculateCapitalScores() { const results = []; const today = new Date(); for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; if (!member.joiningDate) continue; const joinDate = new Date(member.joiningDate); const holdingDays = Math.floor((today - joinDate) / (1000 * 3600 * 24)); const summary = aggregateMemberData(member); const capital = summary.netBalance; if (capital > 0 && holdingDays > 30) { const score = capital * (holdingDays / 100); results.push({ name: member.fullName, capital, holdingDays, score }); } } return results; }
 
             // --- Quick Actions Panel Logic ---
-            function createQuickActionsButton() {
-                if (quickActionsBtn) quickActionsBtn.remove();
-                quickActionsBtn = document.createElement('button');
-                quickActionsBtn.id = 'quick-actions-btn';
-                quickActionsBtn.className = 'absolute left-4 top-1/2 -translate-y-1/2 text-white text-xl hover:opacity-80';
-                quickActionsBtn.innerHTML = '<i class="fas fa-bolt"></i>';
-                quickActionsBtn.onclick = () => { quickActionsPanel.classList.toggle('hidden'); };
-                header.appendChild(quickActionsBtn);
-            }
+            function createQuickActionsButton() { if (quickActionsBtn) quickActionsBtn.remove(); quickActionsBtn = document.createElement('button'); quickActionsBtn.id = 'quick-actions-btn'; quickActionsBtn.className = 'absolute left-4 top-1/2 -translate-y-1/2 text-white text-xl hover:opacity-80'; quickActionsBtn.innerHTML = '<i class="fas fa-bolt"></i>'; quickActionsBtn.onclick = () => { quickActionsPanel.classList.toggle('hidden'); }; header.appendChild(quickActionsBtn); }
             function renderQuickActionsPanel(level = 'main', category = '') {
                 quickActionsPanel.innerHTML = '';
                 const actions = {
-                    main: [
-                        { icon: 'fa-piggy-bank', text: 'SIP Amount', action: () => renderQuickActionsPanel('sub', 'sip') },
-                        { icon: 'fa-hand-holding-dollar', text: 'Loan Amount', action: () => renderQuickActionsPanel('sub', 'loan') },
-                        { icon: 'fa-undo', text: 'Return Amount', action: () => renderQuickActionsPanel('sub', 'return') },
-                        { icon: 'fa-crown', text: 'Capital Holding', action: () => { handleSend("mera capital score dikhao"); quickActionsPanel.classList.add('hidden'); } }
-                    ],
+                    main: [ { icon: 'fa-piggy-bank', text: 'SIP Amount', action: () => renderQuickActionsPanel('sub', 'sip') }, { icon: 'fa-hand-holding-dollar', text: 'Loan Amount', action: () => renderQuickActionsPanel('sub', 'loan') }, { icon: 'fa-undo', text: 'Return Amount', action: () => renderQuickActionsPanel('sub', 'return') }, { icon: 'fa-crown', text: 'Capital Holding', query: "mera capital score dikhao" } ],
                     sub: {
-                        sip: [
-                            { icon: 'fa-calendar-day', text: 'Monthly SIP', query: 'mera is mahine ka sip dikhao' },
-                            { icon: 'fa-calendar-alt', text: 'Total SIP', query: 'mera total sip kitna hai' }
-                        ],
-                        loan: [
-                            { icon: 'fa-file-invoice-dollar', text: 'Outstanding Loan', query: 'mera outstanding loan kitna hai' },
-                            { icon: 'fa-landmark', text: 'Total Loan Taken', query: 'mera total loan kitna hai' }
-                        ],
-                        return: [
-                            { icon: 'fa-gift', text: 'Total Return Received', query: 'mera total return kitna hai' }
-                        ]
+                        sip: [ { icon: 'fa-calendar-day', text: 'Monthly SIP', query: 'mera is mahine ka sip dikhao' }, { icon: 'fa-calendar-alt', text: 'Total SIP', query: 'mera total sip kitna hai' } ],
+                        loan: [ { icon: 'fa-file-invoice-dollar', text: 'Outstanding Loan', query: 'mera outstanding loan kitna hai' }, { icon: 'fa-landmark', text: 'Total Loan Taken', query: 'mera total loan kitna hai' } ],
+                        return: [ { icon: 'fa-gift', text: 'Total Return Received', query: 'mera total return kitna hai' } ]
                     }
                 };
-                
                 let itemsToShow = (level === 'main') ? actions.main : actions.sub[category];
-                
-                if (level === 'sub') {
-                    const backButton = document.createElement('div');
-                    backButton.className = 'quick-action-item border-b';
-                    backButton.innerHTML = `<i class="fas fa-arrow-left"></i> Back`;
-                    backButton.onclick = () => renderQuickActionsPanel('main');
-                    quickActionsPanel.appendChild(backButton);
-                }
-
-                itemsToShow.forEach(item => {
-                    const itemEl = document.createElement('div');
-                    itemEl.className = 'quick-action-item';
-                    itemEl.innerHTML = `<i class="fas ${item.icon}"></i> ${item.text}`;
-                    if (item.action) {
-                        itemEl.onclick = item.action;
-                    } else {
-                        itemEl.onclick = () => {
-                            handleSend(item.query);
-                            quickActionsPanel.classList.add('hidden');
-                        };
-                    }
-                    quickActionsPanel.appendChild(itemEl);
-                });
+                if (level === 'sub') { const backButton = document.createElement('div'); backButton.className = 'quick-action-item border-b'; backButton.innerHTML = `<i class="fas fa-arrow-left"></i> Back`; backButton.onclick = () => renderQuickActionsPanel('main'); quickActionsPanel.appendChild(backButton); }
+                itemsToShow.forEach(item => { const itemEl = document.createElement('div'); itemEl.className = 'quick-action-item'; itemEl.innerHTML = `<i class="fas ${item.icon}"></i> ${item.text}`; if (item.action) { itemEl.onclick = item.action; } else { itemEl.onclick = () => { handleSend(item.query); quickActionsPanel.classList.add('hidden'); }; } quickActionsPanel.appendChild(itemEl); });
             }
 
             // --- Global Functions & Event Listeners ---
@@ -537,10 +497,10 @@
             async function callGemini(prompt) {
                 try {
                     const response = await fetch('/api/getAiExplanation', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ promptText: prompt }) });
-                    if (!response.ok) { const error = await response.json(); console.error("AI Backend Error:", error); return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`; }
+                    if (!response.ok) { const error = await response.json(); console.error("AI Backend Error:", error); return `Kripya 10 second hold Karen, system jaankari prapt kar raha hai...`; }
                     const data = await response.json();
                     return data.explanation;
-                } catch (e) { console.error("Error calling AI backend:", e); return "AI backend से कनेक्ट नहीं हो पा रहा है।"; }
+                } catch (e) { console.error("Error calling AI backend:", e); return "Kripya 10 second hold Karen, system jaankari prapt kar raha hai..."; }
             }
 
             sendBtn.addEventListener('click', () => handleSend(null));
