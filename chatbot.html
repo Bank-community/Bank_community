@@ -221,61 +221,44 @@
                 if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
                 
                 const summaryData = aggregateMemberData(memberData);
-                const today = new Date().toISOString().split('T')[0];
                 const topData = findTopContributors(new Date());
                 const allTimeTotals = calculateAllTimeTotals();
 
-                const prompt = `You are a genius financial analyst AI for a community bank. Your task is to analyze the user's query about a specific person named ${member.name} and provide a precise, accurate, and helpful answer in simple Hindi.
+                // ✅ UPDATED: Client-side logic to decide if a chart should be shown
+                const lowerQuery = query.toLowerCase();
+                let chartType = null;
+                if (lowerQuery.includes('sip')) chartType = 'sip';
+                else if (lowerQuery.includes('loan')) chartType = 'loan';
+                else if (lowerQuery.includes('return')) chartType = 'return';
 
-                **CRITICAL RULE:** You are in "Lock Mode". You MUST ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question (like "what are the loan rules?"), you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
+                if (chartType) {
+                    let chartData;
+                    if (chartType === 'sip') {
+                        chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
+                        await typeMessage(`इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`, "bot");
+                    } else if (chartType === 'loan') {
+                        chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
+                        await typeMessage(`${member.name} ने अब तक कुल ₹${summaryData.totalLoan} का लोन लिया है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`, "bot");
+                    } else if (chartType === 'return') {
+                        chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
+                        await typeMessage(`${member.name} को अब तक कुल ₹${summaryData.totalReturn} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`, "bot");
+                    }
+                    renderComparisonChart(chartData, chartType);
+                    return;
+                }
 
+                // If not a chart query, ask the AI
+                const prompt = `You are a financial analyst AI for a community bank. You are in "Lock Mode" for a member named ${member.name}.
+                **CRITICAL RULE:** ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question (like "loan rules?"), you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
                 **User's Query:** "${query}"
-                
-                **Data for ${member.name}:**
-                \`\`\`json
-                ${JSON.stringify({ summary: summaryData, raw: memberData }, null, 2)}
-                \`\`\`
-
-                **Additional Context (Today's Date is ${today}):**
-                - Top SIP contributor (this month): ${topData.sip.name} (₹${topData.sip.amount})
-                - Top Loan Taker (all time): ${topData.loan.name} (₹${topData.loan.amount})
-                - Top Return Payer (all time): ${topData.return.name} (₹${topData.return.amount})
-                - All-Time Community Total SIP: ₹${allTimeTotals.sip}
-                - All-Time Community Total Loan: ₹${allTimeTotals.loan}
-                - All-Time Community Total Return: ₹${allTimeTotals.return}
-
-                **SPECIAL INSTRUCTIONS:**
-                1.  **Chart Generation:** If the user's query is about their own SIP, Loan, or Return amount, you MUST respond ONLY with the following JSON object. Do not add any other text.
-                    - For SIP (this month): \`{"type": "3way_comparison_chart", "chartType": "sip", "data": {"totalValue": ${topData.sip.total}, "currentUser": {"name": "${member.name}", "value": ${summaryData.sipStatus.amount}}, "topUser": {"name": "${topData.sip.name}", "value": ${topData.sip.amount}}}, "summary": "AI summary in Hindi..."}\`
-                    - For Loan (all time): \`{"type": "3way_comparison_chart", "chartType": "loan", "data": {"totalValue": ${allTimeTotals.loan}, "currentUser": {"name": "${member.name}", "value": ${summaryData.totalLoan}}, "topUser": {"name": "${topData.loan.name}", "value": ${topData.loan.amount}}}, "summary": "AI summary in Hindi..."}\`
-                    - For Return (all time): \`{"type": "3way_comparison_chart", "chartType": "return", "data": {"totalValue": ${allTimeTotals.return}, "currentUser": {"name": "${member.name}", "value": ${summaryData.totalReturn}}, "topUser": {"name": "${topData.return.name}", "value": ${topData.return.amount}}}, "summary": "AI summary in Hindi..."}\`
-                2.  **For all other member-specific queries:** Provide a conversational, helpful answer in simple Hindi based on the provided data.`;
+                **Data for ${member.name}:** \`\`\`json ${JSON.stringify({ summary: summaryData, raw: memberData }, null, 2)} \`\`\`
+                Provide a conversational, helpful answer in simple Hindi.`;
                 
                 const responseText = await callGemini(prompt);
-                handleBotResponse(responseText);
+                await typeMessage(responseText, "bot");
             }
             
             // --- Response Rendering ---
-            function handleBotResponse(text) {
-                try {
-                    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-                    if (jsonMatch && jsonMatch[1]) {
-                        const jsonResponse = JSON.parse(jsonMatch[1]);
-                        if (jsonResponse.type === '3way_comparison_chart') {
-                            typeMessage(jsonResponse.summary, "bot").then(() => {
-                                renderComparisonChart(jsonResponse.data, jsonResponse.chartType);
-                            });
-                        } else {
-                            typeMessage(text, "bot");
-                        }
-                    } else {
-                         typeMessage(text, "bot");
-                    }
-                } catch (e) {
-                    typeMessage(text, "bot");
-                }
-            }
-            
             function processLinks(content) {
                 const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
                 return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
@@ -379,7 +362,7 @@
                     chartDataPoints.push(topUser.value);
                 }
                 
-                const othersValue = totalValue - chartDataPoints.reduce((a,b) => a+b, 0);
+                const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
                 if (othersValue > 0) {
                     chartLabels.push('Other Members');
                     chartDataPoints.push(othersValue);
@@ -387,10 +370,7 @@
 
                 const chartConfig = {
                     type: 'doughnut',
-                    data: {
-                        labels: chartLabels,
-                        datasets: [{ data: chartDataPoints, backgroundColor: colors[type] }]
-                    },
+                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type] }] },
                     options: {
                         responsive: true,
                         plugins: { 
@@ -412,7 +392,6 @@
                     }
                 };
                 
-                // Use a timeout to ensure the canvas element is in the DOM
                 setTimeout(() => {
                     const ctx = document.getElementById(chartId)?.getContext('2d');
                     if (ctx) new Chart(ctx, chartConfig);
@@ -497,10 +476,10 @@
             async function callGemini(prompt) {
                 try {
                     const response = await fetch('/api/getAiExplanation', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ promptText: prompt }) });
-                    if (!response.ok) { const error = await response.json(); console.error("AI Backend Error:", error); return `Kripya 10 second hold Karen, system jaankari prapt kar raha hai...`; }
+                    if (!response.ok) { const error = await response.json(); console.error("AI Backend Error:", error); return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`; }
                     const data = await response.json();
                     return data.explanation;
-                } catch (e) { console.error("Error calling AI backend:", e); return "Kripya 10 second hold Karen, system jaankari prapt kar raha hai..."; }
+                } catch (e) { console.error("Error calling AI backend:", e); return "AI backend से कनेक्ट नहीं हो पा रहा है।"; }
             }
 
             sendBtn.addEventListener('click', () => handleSend(null));
