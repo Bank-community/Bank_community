@@ -7,10 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
     
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
+    <!-- Chart.js for Data Visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -48,7 +50,7 @@
         .clickable-link:hover { color: #1d4ed8; }
         .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
         
-        .capital-king-card { border-left: 4px solid; }
+        .capital-king-card { border-left: 4px solid; cursor: pointer; }
         .gold { border-color: #ffd700; } .silver { border-color: #c0c0c0; } .bronze { border-color: #cd7f32; }
 
         #quick-actions-panel {
@@ -68,6 +70,7 @@
         .faq-variations { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); }
         .faq-variations-title { font-size: 0.85em; font-weight: 600; color: var(--text-light); margin-bottom: 8px; }
         .faq-variation-item { font-size: 0.9em; padding: 6px 10px; background-color: #f3f4f6; border-radius: 6px; margin-bottom: 6px; }
+        .modal { display: none; } .modal.active { display: flex; }
     </style>
 </head>
 <body class="antialiased">
@@ -103,10 +106,21 @@
         </div>
     </div>
 
+    <!-- Modals -->
     <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden items-center justify-center" onclick="closeImageModal()">
         <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="closeImageModal()">&times;</span>
         <img id="modalImageContent" class="max-w-[90%] max-h-[90%] rounded-lg">
     </div>
+    <div id="capitalKingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Capital Kings Ranking</h2>
+                <button onclick="window.chatbot.closeCapitalModal()" class="text-gray-500 text-2xl">&times;</button>
+            </div>
+            <div id="capital-kings-list" class="space-y-3 overflow-y-auto"></div>
+        </div>
+    </div>
+
 
     <script>
         // --- Authentication & Initialization ---
@@ -201,7 +215,7 @@
 
             async function processGeneralQuery(query) {
                 const matchingMembers = findMatchingMembers(query);
-                const matchingFaqs = findMatchingFaqs(query, 1); // Get only the top match
+                const matchingFaqs = findMatchingFaqs(query, 1);
                 
                 if (query.match(/capital king|capital hold|sabse zyada capital/i)) {
                     await displayCapitalKings();
@@ -216,23 +230,15 @@
                 } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
                     await typeMessage(topFaq.answer, "bot");
-                    // Show question variations after the answer
+                    
                     if (topFaq.questions && topFaq.questions.length > 1) {
-                        const variationsHtml = `
-                            <div class="faq-variations">
-                                <p class="faq-variations-title">Isse jude anya sawaal:</p>
-                                ${topFaq.questions.map(q => `<div class="faq-variation-item">${q}</div>`).join('')}
-                            </div>`;
+                        const variationsHtml = `<div class="faq-variations"><p class="faq-variations-title">Isse jude anya sawaal:</p>${topFaq.questions.map(q => `<div class="faq-variation-item">${q}</div>`).join('')}</div>`;
                         appendRichMessage(variationsHtml, 'bot');
                     } else {
-                        // Fallback suggestions if no variations exist
                         const fallbackFaqs = findMatchingFaqs("नियम", 3).filter(f => f.answer !== topFaq.answer);
                         if (fallbackFaqs.length > 0) {
                             await typeMessage("Iske alawa, aap yeh bhi poochh sakte hain:", "bot");
-                            fallbackFaqs.forEach(f => {
-                                const pill = createSuggestionPill(f.questions[0], 'faq');
-                                suggestionsBox.appendChild(pill);
-                            });
+                            fallbackFaqs.forEach(f => { suggestionsBox.appendChild(createSuggestionPill(f.questions[0], 'faq')); });
                         }
                     }
                 } else {
@@ -282,15 +288,11 @@
             }
             
             // --- Response Rendering ---
-            // ✅ UPDATED: Formats numbers and keywords
             function formatBotAnswer(content) {
-                // Highlight keywords
-                const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced'];
+                const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 content = content.replace(keywordRegex, '<strong style="color: var(--highlight-color);">$1</strong>');
-                
-                // Bold numbers
-                content = content.replace(/(\d+%?)/g, '<strong>$1</strong>');
+                content = content.replace(/(\d+[,.]?\d*%?)/g, '<strong>$1</strong>');
                 return content;
             }
 
@@ -400,7 +402,7 @@
                 }
                 
                 const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
-                if (othersValue > 0.01) { // Only add 'Others' if it's a meaningful value
+                if (othersValue > 0.01) {
                     chartLabels.push('Other Members');
                     chartDataPoints.push(othersValue);
                 }
@@ -435,18 +437,38 @@
                 }, 100);
             }
 
-            async function displayCapitalKings() {
-                await typeMessage("पेश हैं हमारे Capital Kings - वो सदस्य जिन्होंने सबसे लंबे समय तक सबसे ज़्यादा पूँजी (capital) hold की है:", "bot");
-                const capitalData = calculateCapitalScores();
-                const top3 = capitalData.sort((a, b) => b.score - a.score).slice(0, 3);
+            async function displayCapitalKings(showAll = false) {
+                const capitalData = calculateCapitalScores().sort((a, b) => b.score - a.score);
+                const itemsToShow = showAll ? capitalData : capitalData.slice(0, 3);
                 
+                if (!showAll) {
+                    await typeMessage("पेश हैं हमारे Capital Kings - वो सदस्य जिन्होंने सबसे लंबे समय तक सबसे ज़्यादा पूँजी (capital) hold की है:", "bot");
+                }
+
                 const rankIcons = ['🥇', '🥈', '🥉'];
                 const rankColors = ['gold', 'silver', 'bronze'];
 
-                top3.forEach((member, index) => {
-                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index]}"><div class="flex items-center"><span class="text-3xl mr-4">${rankIcons[index]}</span><div><h3 class="font-bold text-lg">${member.name}</h3><div class="text-sm text-gray-600 mt-1"><p><strong>Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</p><p><strong>Holding:</strong> ${member.holdingDays} days</p><p><strong>Score:</strong> ${member.score.toFixed(0)}</p></div></div></div></div>`;
+                itemsToShow.forEach((member, index) => {
+                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || ''}" onclick="window.chatbot.showCapitalDetails('${member.name}')">
+                        <div class="flex items-center">
+                            <span class="text-3xl mr-4">${rankIcons[index] || `#${index + 1}`}</span>
+                            <div>
+                                <h3 class="font-bold text-lg">${member.name}</h3>
+                                <div class="text-sm text-gray-600 mt-1">
+                                    <p><strong>Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</p>
+                                    <p><strong>Holding:</strong> ${member.holdingDays} days</p>
+                                    <p><strong>Score:</strong> ${member.score.toFixed(0)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
                     appendRichMessage(cardHtml, 'bot');
                 });
+                
+                if (!showAll && capitalData.length > 3) {
+                    const viewMoreBtn = `<button onclick="window.chatbot.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View More</button>`;
+                    appendRichMessage(viewMoreBtn, 'bot');
+                }
             }
 
             // --- Utility & Helper Functions ---
@@ -493,7 +515,45 @@
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
             function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0, total: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; let totalSipThisMonth = 0; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); const sipStatus = getSipStatus(member.transactions ? Object.values(member.transactions) : [], date); totalSipThisMonth += sipStatus.amount; if (sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } topSip.total = totalSipThisMonth; return { sip: topSip, loan: topLoan, return: topReturn }; }
             function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
-            function calculateCapitalScores() { const results = []; const today = new Date(); for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; if (!member.joiningDate) continue; const joinDate = new Date(member.joiningDate); const holdingDays = Math.floor((today - joinDate) / (1000 * 3600 * 24)); const summary = aggregateMemberData(member); const capital = summary.netBalance; if (capital > 0 && holdingDays > 30) { const score = capital * (holdingDays / 100); results.push({ name: member.fullName, capital, holdingDays, score }); } } return results; }
+            
+            // ✅ UPDATED: Professional Capital Score Calculation
+            function calculateCapitalScores() {
+                const results = [];
+                const today = new Date();
+                for (const memberId in allMembersFullData) {
+                    const member = allMembersFullData[memberId];
+                    if (!member.transactions || !member.joiningDate) continue;
+
+                    const transactions = Object.values(member.transactions).sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                    let capitalDays = 0;
+                    let currentCapital = 0;
+                    let lastDate = new Date(member.joiningDate);
+
+                    transactions.forEach(tx => {
+                        const txDate = new Date(tx.Date);
+                        const daysDifference = (txDate - lastDate) / (1000 * 3600 * 24);
+                        if (daysDifference > 0) {
+                            capitalDays += currentCapital * daysDifference;
+                        }
+                        const sip = parseFloat(tx['SIP Payment']) || 0;
+                        const payment = parseFloat(tx['Loan Payment']) || 0;
+                        const loan = parseFloat(tx.Loan) || 0;
+                        currentCapital += sip + payment - loan;
+                        lastDate = txDate;
+                    });
+                    
+                    const daysSinceLastTx = (today - lastDate) / (1000 * 3600 * 24);
+                    capitalDays += currentCapital * daysSinceLastTx;
+
+                    const holdingDays = Math.floor((today - new Date(member.joiningDate)) / (1000 * 3600 * 24));
+                    const finalCapital = aggregateMemberData(member).netBalance;
+                    
+                    if (finalCapital > 0 && holdingDays > 0) {
+                        results.push({ name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays });
+                    }
+                }
+                return results;
+            }
 
             // --- Quick Actions Panel Logic ---
             function createQuickActionsButton() { if (quickActionsBtn) quickActionsBtn.remove(); quickActionsBtn = document.createElement('button'); quickActionsBtn.id = 'quick-actions-btn'; quickActionsBtn.className = 'absolute left-4 top-1/2 -translate-y-1/2 text-white text-xl hover:opacity-80'; quickActionsBtn.innerHTML = '<i class="fas fa-bolt"></i>'; quickActionsBtn.onclick = () => { quickActionsPanel.classList.toggle('hidden'); }; header.appendChild(quickActionsBtn); }
@@ -518,7 +578,10 @@
                 deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); if(quickActionsBtn) quickActionsBtn.remove(); quickActionsPanel.classList.add('hidden'); },
                 openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; document.getElementById('modalImageContent').src = imageUrl; document.getElementById('imageModal').classList.remove('hidden'); document.getElementById('imageModal').classList.add('flex'); },
                 closeImageModal: () => { document.getElementById('imageModal').classList.add('hidden'); document.getElementById('imageModal').classList.remove('flex'); },
-                displayMemberDetails: displayMemberDetails
+                displayMemberDetails: displayMemberDetails,
+                displayCapitalKings: displayCapitalKings,
+                showCapitalDetails: (name) => { handleSend(`tell me about ${name}'s capital score`); },
+                closeCapitalModal: () => { document.getElementById('capitalKingsModal').classList.remove('active'); }
             };
             
             async function callGemini(prompt) {
