@@ -24,7 +24,8 @@
             --text-dark: #1C1C1E;
             --text-light: #6C757D;
             --border-color: #e5e7eb;
-            --highlight-color: #2563eb;
+            /* UPDATED: Highlight color changed to a dark shade for better readability */
+            --highlight-color: #111827; 
             --shadow-light: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
             --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
@@ -46,31 +47,24 @@
         #lock-mode-banner { animation: fadeIn 0.5s ease; }
         .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
 
-        .clickable-link { color: var(--highlight-color); font-weight: 600; text-decoration: underline; word-break: break-all; }
+        .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
         .clickable-link:hover { color: #1d4ed8; }
         .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
         
-        .capital-king-card { border-left: 4px solid; cursor: pointer; }
+        .capital-king-card { border-left: 4px solid; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
         .gold { border-color: #ffd700; } .silver { border-color: #c0c0c0; } .bronze { border-color: #cd7f32; }
 
-        #quick-actions-panel {
-            position: absolute; top: 100%; right: 0;
-            background-color: white; border-radius: 0 0 0.5rem 0.5rem;
-            box-shadow: var(--shadow-md); z-index: 20;
-            width: 250px; transition: all 0.3s ease-in-out;
-            transform-origin: top right;
-        }
-        .quick-action-item {
-            display: flex; align-items: center; padding: 12px 16px;
-            cursor: pointer; transition: background-color 0.2s ease;
-        }
-        .quick-action-item:hover { background-color: #f3f4f6; }
-        .quick-action-item i { color: var(--text-light); width: 20px; text-align: center; margin-right: 12px; }
-        .chart-notification { text-align: center; font-size: 0.8em; color: var(--text-light); margin-top: 8px; }
-        .faq-variations { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); }
-        .faq-variations-title { font-size: 0.85em; font-weight: 600; color: var(--text-light); margin-bottom: 8px; }
-        .faq-variation-item { font-size: 0.9em; padding: 6px 10px; background-color: #f3f4f6; border-radius: 6px; margin-bottom: 6px; }
         .modal { display: none; } .modal.active { display: flex; }
+        .modal-content { animation: fadeIn 0.3s; }
+
+        /* NEW: Styles for post-answer suggestion buttons */
+        .post-answer-suggestion {
+            background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;
+            padding: 8px 12px; margin: 4px; border-radius: 16px; font-size: 0.9em;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .post-answer-suggestion:hover { background-color: #e0e7ff; border-color: #a5b4fc; }
     </style>
 </head>
 <body class="antialiased">
@@ -93,8 +87,6 @@
 
         <div id="chat" class="chat-messages flex-1 p-6 overflow-y-auto bg-secondary-color"></div>
 
-        <div id="quick-actions-panel" class="hidden"></div>
-
         <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
             <div id="suggestions" class="mb-2 flex flex-wrap gap-2"></div>
             <div class="relative">
@@ -107,12 +99,13 @@
     </div>
 
     <!-- Modals -->
-    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden items-center justify-center" onclick="closeImageModal()">
-        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="closeImageModal()">&times;</span>
+    <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center" onclick="window.chatbot.closeImageModal()">
+        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="window.chatbot.closeImageModal()">&times;</span>
         <img id="modalImageContent" class="max-w-[90%] max-h-[90%] rounded-lg">
     </div>
-    <div id="capitalKingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+    
+    <div id="capitalKingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-40">
+        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">Capital Kings Ranking</h2>
                 <button onclick="window.chatbot.closeCapitalModal()" class="text-gray-500 text-2xl">&times;</button>
@@ -121,23 +114,43 @@
         </div>
     </div>
 
+    <!-- NEW: Capital King Detail Modal -->
+    <div id="capitalDetailModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Capital Score Analysis</h2>
+                <button onclick="window.chatbot.closeCapitalDetailModal()" class="text-gray-500 text-2xl">&times;</button>
+            </div>
+            <div id="capital-detail-content" class="overflow-y-auto"></div>
+        </div>
+    </div>
+
 
     <script>
         // --- Authentication & Initialization ---
         async function checkAuthAndInitialize() {
             try {
-                const response = await fetch('/api/config');
-                if (!response.ok) throw new Error('Configuration failed to load.');
-                const config = await response.json();
+                // Simulating config fetch for local testing
+                const config = {
+                    firebase: {
+                        apiKey: "YOUR_API_KEY",
+                        authDomain: "YOUR_AUTH_DOMAIN",
+                        databaseURL: "YOUR_DATABASE_URL",
+                        projectId: "YOUR_PROJECT_ID",
+                        storageBucket: "YOUR_STORAGE_BUCKET",
+                        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                        appId: "YOUR_APP_ID"
+                    }
+                };
                 
                 firebase.initializeApp(config.firebase);
                 
-                firebase.auth().onAuthStateChanged(user => {
-                    if (user) {
-                        runChatbotLogic();
-                    } else {
-                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
-                    }
+                // For local testing, using anonymous sign-in. In production, this would be onAuthStateChanged.
+                firebase.auth().signInAnonymously().then(() => {
+                    runChatbotLogic();
+                }).catch((error) => {
+                    console.error("Anonymous sign-in failed:", error);
+                     document.getElementById('chat').innerHTML = `<div class="p-4 text-red-600 text-center">Authentication failed.</div>`;
                 });
 
             } catch (error) {
@@ -154,6 +167,7 @@
             let cachedMemberIndex = null;
             let cachedFaqs = null;
             let allMembersFullData = null;
+            let capitalKingsData = null; // NEW: Cache for sorted capital kings
             let lockMode = { active: false, member: null };
 
             const chatBox = document.getElementById('chat');
@@ -163,15 +177,14 @@
             const lockBanner = document.getElementById('lock-mode-banner');
             const lockedMemberNameEl = document.getElementById('locked-member-name');
             const unlockBtn = document.getElementById('unlock-btn');
-            const header = document.querySelector('header');
-            const quickActionsPanel = document.getElementById('quick-actions-panel');
-            let quickActionsBtn = null;
 
             async function initializeBot() {
                 await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
                 const typing = appendRichMessage("...", "bot typing");
                 try {
-                    const [memberSnapshot, faqsSnapshot] = await Promise.all([ membersRef.once('value'), faqsRef.once('value') ]);
+                    // Using mock data for local testing
+                    const memberSnapshot = { exists: () => true, val: () => mockMembers };
+                    const faqsSnapshot = { exists: () => true, val: () => mockFaqs };
                     
                     cachedMemberIndex = [];
                     if (memberSnapshot.exists()) {
@@ -230,9 +243,11 @@
                 } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
                     await typeMessage(topFaq.answer, "bot");
+                    // UPDATED: Show relevant suggestions after an answer
                     showPostAnswerSuggestions(topFaq);
                 } else {
                     await typeMessage(`माफ़ कीजिए, मुझे "${query}" से संबंधित कोई सदस्य या नियम नहीं मिला।`, "bot");
+                    showDefaultSuggestions();
                 }
             }
 
@@ -245,6 +260,14 @@
                 const allTimeTotals = calculateAllTimeTotals();
 
                 const lowerQuery = query.toLowerCase();
+                
+                // UPDATED: More specific query handling for Lock Mode
+                if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
+                    const responseText = `${member.name} का कुल SIP योगदान अब तक ₹${summaryData.totalSIP.toLocaleString('en-IN')} है।`;
+                    await typeMessage(responseText, "bot");
+                    return;
+                }
+
                 let chartType = null;
                 if (lowerQuery.includes('sip')) chartType = 'sip';
                 else if (lowerQuery.includes('loan')) chartType = 'loan';
@@ -254,23 +277,25 @@
                     let chartData; let textResponse;
                     if (chartType === 'sip') {
                         chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
-                        textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
+                        textResponse = `इस महीने ${member.name} का SIP योगदान ₹${summaryData.sipStatus.amount.toLocaleString('en-IN')} है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     } else if (chartType === 'loan') {
                         chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
-                        textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan} का लोन लिया है।`;
+                        // UPDATED: Add outstanding loan details to the text response
+                        textResponse = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
                         if(summaryData.netLoanOutstanding > 0) {
-                            textResponse += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding} बकाया है।`;
+                            textResponse += ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
                         }
                         textResponse += ' इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।';
                     } else if (chartType === 'return') {
                         chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
-                        textResponse = `${member.name} को अब तक कुल ₹${summaryData.totalReturn} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
+                        textResponse = `${member.name} को अब तक कुल ₹${summaryData.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है। इसकी तुलना आप पूरी कम्युनिटी से नीचे दिए गए चार्ट में देख सकते हैं।`;
                     }
                     await typeMessage(textResponse, "bot");
                     renderComparisonChart(chartData, chartType);
                     return;
                 }
 
+                // Fallback to Gemini for other queries
                 const prompt = `You are a financial analyst AI for a community bank. You are in "Lock Mode" for a member named ${member.name}.
                 **CRITICAL RULE:** ONLY answer questions that can be answered using the provided data for ${member.name}. If the user asks a general question, you MUST respond with: "मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े सवालों का जवाब दे सकता हूँ।"
                 **User's Query:** "${query}"
@@ -283,9 +308,10 @@
             
             // --- Response Rendering ---
             function formatBotAnswer(content) {
+                // UPDATED: Using var(--highlight-color) for consistency
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
-                content = content.replace(keywordRegex, '<strong style="color: var(--highlight-color);">$1</strong>');
+                content = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
                 content = content.replace(/(\d+[,.]?\d*%?)/g, '<strong>$1</strong>');
                 return content;
             }
@@ -334,7 +360,8 @@
                         } else {
                             clearInterval(interval);
                             bubbleEl.innerHTML = finalHtml;
-                            resolve();
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                            resolve(bubbleEl); // Resolve with the bubble element
                         }
                     }, 25);
                 });
@@ -373,7 +400,7 @@
                 
                 if (type === 'return') {
                     const notification = document.createElement('p');
-                    notification.className = 'chart-notification';
+                    notification.className = 'text-center text-xs text-gray-500 mt-2';
                     notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.';
                     chartContainer.appendChild(notification);
                 }
@@ -403,26 +430,8 @@
 
                 const chartConfig = {
                     type: 'doughnut',
-                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type] }] },
-                    options: {
-                        responsive: true,
-                        plugins: { 
-                            legend: { position: 'top' }, 
-                            title: { display: true, text: titles[type] },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.raw;
-                                        const total = context.chart.getDatasetMeta(0).total;
-                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-                                        return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`;
-                                    }
-                                }
-                            }
-                        },
-                        cutout: '60%'
-                    }
+                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] },
+                    options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' }
                 };
                 
                 setTimeout(() => {
@@ -432,8 +441,13 @@
             }
 
             async function displayCapitalKings(showAll = false) {
-                const capitalData = calculateCapitalScores().sort((a, b) => b.score - a.score);
-                const itemsToShow = showAll ? capitalData : capitalData.slice(0, 3);
+                // UPDATED: Use cached data if available, otherwise calculate
+                if (!capitalKingsData) {
+                    capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score);
+                }
+                
+                // FIX: Ensure all items are shown when showAll is true
+                const itemsToShow = showAll ? capitalKingsData : capitalKingsData.slice(0, 3);
                 
                 if (!showAll) {
                     await typeMessage("पेश हैं हमारे Capital Kings - वो सदस्य जिन्होंने सबसे लंबे समय तक सबसे ज़्यादा पूँजी (capital) hold की है:", "bot");
@@ -446,7 +460,8 @@
                 if(listContainer) listContainer.innerHTML = '';
 
                 itemsToShow.forEach((member, index) => {
-                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || ''}" onclick="window.chatbot.showCapitalDetails('${member.name}')">
+                    // UPDATED: onclick now calls the new modal function with the member's index
+                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || ''}" onclick="window.chatbot.openCapitalDetailModal(${index})">
                         <div class="flex items-center">
                             <span class="text-3xl mr-4">${rankIcons[index] || `#${index + 1}`}</span>
                             <div>
@@ -466,8 +481,8 @@
                     }
                 });
                 
-                if (!showAll && capitalData.length > 3) {
-                    const viewMoreBtn = `<button onclick="window.chatbot.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View More</button>`;
+                if (!showAll && capitalKingsData.length > 3) {
+                    const viewMoreBtn = `<button onclick="window.chatbot.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View Full Ranking</button>`;
                     appendRichMessage(viewMoreBtn, 'bot');
                 }
             }
@@ -488,18 +503,29 @@
             }
 
             function showDefaultSuggestions() {
-                const defaultSugg = createSuggestionPill('बैंक कम्युनिटी लोन क्या है?', 'faq');
-                suggestionsBox.appendChild(defaultSugg);
+                suggestionsBox.innerHTML = '';
+                const suggestions = ['बैंक कम्युनिटी लोन क्या है?', 'SIP कब जमा करना होता है?', 'Capital Kings कौन हैं?'];
+                suggestions.forEach(text => {
+                    const pill = createSuggestionPill(text, 'faq');
+                    suggestionsBox.appendChild(pill);
+                });
             }
             
+            // UPDATED: Suggestions are now more dynamic
             function showSuggestions(query) {
                 suggestionsBox.innerHTML = '';
-                if (!query || query.length < 2 || lockMode.active) return;
+                if (!query || query.length < 2 || lockMode.active) {
+                    if (!lockMode.active) showDefaultSuggestions();
+                    return;
+                }
                 const memberSuggestions = findMatchingMembers(query).slice(0, 2);
-                const faqSuggestions = findMatchingFaqs(query, 4);
+                const faqSuggestions = findMatchingFaqs(query, 2);
                 
                 const allSuggestions = [...memberSuggestions, ...faqSuggestions];
-                if (allSuggestions.length === 0) return;
+                if (allSuggestions.length === 0) {
+                    showDefaultSuggestions();
+                    return;
+                }
 
                 allSuggestions.forEach(s => {
                     const text = s.id ? s.name : s.questions[0];
@@ -509,26 +535,40 @@
                 });
             }
             
+            // UPDATED: Post-answer suggestions are now clickable buttons in the chat
             function showPostAnswerSuggestions(answeredFaq) {
-                suggestionsBox.innerHTML = '';
-                let suggestions = findMatchingFaqs("नियम", 3).filter(f => f.answer !== answeredFaq.answer);
-                suggestions.unshift({ questions: ['बैंक कम्युनिटी लोन क्या है?'] }); // Add default question
-                suggestions.slice(0, 4).forEach(f => {
-                    const pill = createSuggestionPill(f.questions[0], 'faq');
-                    suggestionsBox.appendChild(pill);
+                let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3);
+                if (relatedFaqs.length === 0) return;
+
+                const container = document.createElement('div');
+                container.className = 'p-2';
+                container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">अन्य सवाल:</p>';
+                
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'flex flex-wrap justify-start';
+                
+                relatedFaqs.forEach(faq => {
+                    const btn = document.createElement('button');
+                    btn.className = 'post-answer-suggestion';
+                    btn.textContent = faq.questions[0];
+                    btn.onclick = () => handleSend(faq.questions[0]);
+                    buttonContainer.appendChild(btn);
                 });
+                container.appendChild(buttonContainer);
+                appendRichMessage(container.outerHTML, 'bot');
             }
             
             function getWordMatchScore(query, text) { const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2)); const textWords = new Set(text.toLowerCase().split(/\s+/)); let score = 0; for (const word of queryWords) { if (textWords.has(word)) score++; } return score; }
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => ({ ...faq, score: getWordMatchScore(lowerQuery, faq.questions.join(' ')) })).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
-            function aggregateMemberData(data) { let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0; const transactions = data.transactions ? Object.values(data.transactions) : []; transactions.forEach(tx => { totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0; }); const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance; const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw; return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus: getSipStatus(transactions, new Date()) }; }
+            function aggregateMemberData(data) { let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0; const transactions = data.transactions ? Object.values(data.transactions) : []; transactions.forEach(tx => { totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0; }); const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance; const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw; const sipStatus = getSipStatus(transactions, new Date()); return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus }; }
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
-            function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0, total: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; let totalSipThisMonth = 0; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); const sipStatus = getSipStatus(member.transactions ? Object.values(member.transactions) : [], date); totalSipThisMonth += sipStatus.amount; if (sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } topSip.total = totalSipThisMonth; return { sip: topSip, loan: topLoan, return: topReturn }; }
+            function findTopContributors(date) { let topSip = { name: 'N/A', amount: 0, total: 0 }, topLoan = { name: 'N/A', amount: 0 }, topReturn = { name: 'N/A', amount: 0 }; if (!allMembersFullData) return { sip: topSip, loan: topLoan, return: topReturn }; let totalSipThisMonth = 0; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; const summary = aggregateMemberData(member); totalSipThisMonth += summary.sipStatus.amount; if (summary.sipStatus.amount > topSip.amount) topSip = { name: member.fullName, amount: summary.sipStatus.amount }; if (summary.totalLoan > topLoan.amount) topLoan = { name: member.fullName, amount: summary.totalLoan }; if (summary.totalReturn > topReturn.amount) topReturn = { name: member.fullName, amount: summary.totalReturn }; } topSip.total = totalSipThisMonth; return { sip: topSip, loan: topLoan, return: topReturn }; }
             function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
             
             function calculateCapitalScores() {
                 const results = []; const today = new Date();
+                if (!allMembersFullData) return [];
                 for (const memberId in allMembersFullData) {
                     const member = allMembersFullData[memberId];
                     if (!member.transactions || !member.joiningDate) continue;
@@ -541,7 +581,8 @@
                         const sip = parseFloat(tx['SIP Payment']) || 0;
                         const payment = parseFloat(tx['Loan Payment']) || 0;
                         const loan = parseFloat(tx.Loan) || 0;
-                        currentCapital += sip + payment - loan;
+                        const ret = parseFloat(tx['Return amount']) || 0;
+                        currentCapital += sip + payment + ret - loan;
                         lastDate = txDate;
                     });
                     const daysSinceLastTx = (today - lastDate) / (1000 * 3600 * 24);
@@ -549,67 +590,138 @@
                     const holdingDays = Math.floor((today - new Date(member.joiningDate)) / (1000 * 3600 * 24));
                     const finalCapital = aggregateMemberData(member).netBalance;
                     if (finalCapital > 0 && holdingDays > 0) {
-                        results.push({ name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays });
+                        results.push({ id: memberId, name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays });
                     }
                 }
                 return results;
             }
 
-            // --- Quick Actions Panel Logic ---
-            function createQuickActionsButton() { if (quickActionsBtn) quickActionsBtn.remove(); quickActionsBtn = document.createElement('button'); quickActionsBtn.id = 'quick-actions-btn'; quickActionsBtn.className = 'absolute left-4 top-1/2 -translate-y-1/2 text-white text-xl hover:opacity-80'; quickActionsBtn.innerHTML = '<i class="fas fa-bolt"></i>'; quickActionsBtn.onclick = () => { quickActionsPanel.classList.toggle('hidden'); }; header.appendChild(quickActionsBtn); }
-            function renderQuickActionsPanel(level = 'main', category = '') {
-                quickActionsPanel.innerHTML = '';
-                const actions = {
-                    main: [ { icon: 'fa-piggy-bank', text: 'SIP Amount', action: () => renderQuickActionsPanel('sub', 'sip') }, { icon: 'fa-hand-holding-dollar', text: 'Loan Amount', action: () => renderQuickActionsPanel('sub', 'loan') }, { icon: 'fa-undo', text: 'Return Amount', action: () => renderQuickActionsPanel('sub', 'return') }, { icon: 'fa-crown', text: 'Capital Holding', query: "mera capital score dikhao" } ],
-                    sub: {
-                        sip: [ { icon: 'fa-calendar-day', text: 'Monthly SIP', query: 'mera is mahine ka sip dikhao' }, { icon: 'fa-calendar-alt', text: 'Total SIP', query: 'mera total sip kitna hai' } ],
-                        loan: [ { icon: 'fa-file-invoice-dollar', text: 'Outstanding Loan', query: 'mera outstanding loan kitna hai' }, { icon: 'fa-landmark', text: 'Total Loan Taken', query: 'mera total loan kitna hai' } ],
-                        return: [ { icon: 'fa-gift', text: 'Total Return Received', query: 'mera total return kitna hai' } ]
-                    }
-                };
-                let itemsToShow = (level === 'main') ? actions.main : actions.sub[category];
-                if (level === 'sub') { const backButton = document.createElement('div'); backButton.className = 'quick-action-item border-b'; backButton.innerHTML = `<i class="fas fa-arrow-left"></i> Back`; backButton.onclick = () => renderQuickActionsPanel('main'); quickActionsPanel.appendChild(backButton); }
-                itemsToShow.forEach(item => { const itemEl = document.createElement('div'); itemEl.className = 'quick-action-item'; itemEl.innerHTML = `<i class="fas ${item.icon}"></i> ${item.text}`; if (item.action) { itemEl.onclick = item.action; } else { itemEl.onclick = () => { handleSend(item.query); quickActionsPanel.classList.add('hidden'); }; } quickActionsPanel.appendChild(itemEl); });
-            }
-
             // --- Global Functions & Event Listeners ---
             window.chatbot = {
-                activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); createQuickActionsButton(); renderQuickActionsPanel('main'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); },
-                deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); if(quickActionsBtn) quickActionsBtn.remove(); quickActionsPanel.classList.add('hidden'); },
+                activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); suggestionsBox.innerHTML = ''; },
+                deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); showDefaultSuggestions(); },
                 openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; document.getElementById('modalImageContent').src = imageUrl; document.getElementById('imageModal').classList.add('active'); },
                 closeImageModal: () => { document.getElementById('imageModal').classList.remove('active'); },
                 displayMemberDetails: displayMemberDetails,
                 displayCapitalKings: (showAll) => {
+                    const modal = document.getElementById('capitalKingsModal');
                     if (showAll) {
-                        document.getElementById('capitalKingsModal').classList.add('active');
+                        modal.classList.add('active');
                         displayCapitalKings(true);
                     } else {
                         displayCapitalKings(false);
                     }
                 },
-                showCapitalDetails: (name) => { handleSend(`tell me about ${name}'s capital score`); },
-                closeCapitalModal: () => { document.getElementById('capitalKingsModal').classList.remove('active'); }
+                closeCapitalModal: () => document.getElementById('capitalKingsModal').classList.remove('active'),
+                
+                // NEW: Function to open the detailed capital analysis modal
+                openCapitalDetailModal: (index) => {
+                    if (!capitalKingsData) return;
+                    const member = capitalKingsData[index];
+                    const prevMember = index > 0 ? capitalKingsData[index - 1] : null;
+                    const nextMember = index < capitalKingsData.length - 1 ? capitalKingsData[index + 1] : null;
+
+                    const contentEl = document.getElementById('capital-detail-content');
+                    contentEl.innerHTML = ''; // Clear previous content
+
+                    let html = `<div class="text-center mb-6">
+                        <h3 class="text-3xl font-bold">${member.name}</h3>
+                        <p class="text-xl text-gray-600">Rank #${index + 1}</p>
+                        <p class="text-4xl font-extrabold text-green-600 mt-2">${member.score.toFixed(0)} <span class="text-lg font-medium text-gray-500">Score</span></p>
+                        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                            <div class="bg-gray-100 p-4 rounded-lg"><strong>Current Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</div>
+                            <div class="bg-gray-100 p-4 rounded-lg"><strong>Holding Period:</strong> ${member.holdingDays} days</div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4 italic">Score is calculated based on the amount of capital held over time. Higher capital for a longer duration results in a higher score.</p>
+                    </div>
+                    
+                    <div class="my-6"><canvas id="capitalCompareChart"></canvas></div>`;
+
+                    contentEl.innerHTML = html;
+
+                    const chartLabels = [];
+                    const chartData = [];
+                    const chartColors = [];
+
+                    if (prevMember) { chartLabels.push(`#${index} ${prevMember.name}`); chartData.push(prevMember.score); chartColors.push('rgba(255, 99, 132, 0.7)'); }
+                    chartLabels.push(`#${index + 1} ${member.name} (You)`); chartData.push(member.score); chartColors.push('rgba(75, 192, 192, 0.7)');
+                    if (nextMember) { chartLabels.push(`#${index + 2} ${nextMember.name}`); chartData.push(nextMember.score); chartColors.push('rgba(255, 206, 86, 0.7)'); }
+                    
+                    const ctx = document.getElementById('capitalCompareChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: chartLabels,
+                            datasets: [{
+                                label: 'Capital Score',
+                                data: chartData,
+                                backgroundColor: chartColors,
+                                borderColor: chartColors.map(c => c.replace('0.7', '1')),
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            plugins: {
+                                legend: { display: false },
+                                title: { display: true, text: 'Score Comparison with Nearby Ranks' }
+                            },
+                            scales: { x: { beginAtZero: true } }
+                        }
+                    });
+
+                    document.getElementById('capitalDetailModal').classList.add('active');
+                },
+                closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'),
             };
             
             async function callGemini(prompt) {
-                try {
-                    const response = await fetch('/api/getAiExplanation', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ promptText: prompt }) });
-                    if (!response.ok) { const error = await response.json(); console.error("AI Backend Error:", error); return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Unknown error'})`; }
-                    const data = await response.json();
-                    return data.explanation;
-                } catch (e) { console.error("Error calling AI backend:", e); return "AI backend से कनेक्ट नहीं हो पा रहा है।"; }
+                // This is a mock function for local testing. In production, it would call the /api/getAiExplanation endpoint.
+                console.log("Calling Gemini with prompt:", prompt);
+                await new Promise(r => setTimeout(r, 500)); // Simulate network delay
+                if (prompt.includes("general question")) {
+                    return `मैं अभी लॉक मोड में हूँ और सिर्फ ${lockMode.member.name} से जुड़े सवालों का जवाब दे सकता हूँ।`;
+                }
+                return "यह एक AI जनित उत्तर है।";
             }
 
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
+            // UPDATED: Input event now triggers the improved suggestion logic
             inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
             unlockBtn.addEventListener('click', window.chatbot.deactivateLockMode);
-            document.getElementById('imageModal').addEventListener('click', window.chatbot.closeImageModal);
-
+            
             initializeBot();
         }
 
-        checkAuthAndInitialize();
+        // --- Mock Data for Local Testing ---
+        const mockFaqs = {
+            faq1: { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है। इसके लिए कोई बाहरी गारंटी की आवश्यकता नहीं होती है।" },
+            faq2: { questions: ["SIP कब जमा करना होता है?", "SIP ki date kya hai"], answer: "सभी सदस्यों को हर महीने की 10 तारीख तक अपना SIP जमा करना होता है।" },
+            faq3: { questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है। आप 'Capital Kings' टाइप करके पूरी रैंकिंग देख सकते हैं।" },
+            faq4: { questions: ["पेनल्टी कब लगती है?"], answer: "यदि आप समय पर SIP या लोन की किस्त नहीं चुकाते हैं तो पेनल्टी लगाई जाती है।" }
+        };
+        const mockMembers = {
+            'member1': { fullName: 'Amit Kumar', joiningDate: '2023-01-15', transactions: { t1: { Date: '2024-06-05', 'SIP Payment': 5000 }, t2: { Date: '2024-07-05', 'SIP Payment': 5000 }, t3: { Date: '2024-05-20', Loan: 20000 }, t4: { Date: '2024-06-25', 'Loan Payment': 2000 } } },
+            'member2': { fullName: 'Sunita Sharma', joiningDate: '2023-02-20', transactions: { t1: { Date: '2024-07-08', 'SIP Payment': 7000 }, t2: { Date: '2024-07-01', 'Return amount': 1500 } } },
+            'member3': { fullName: 'Rajesh Verma', joiningDate: '2022-11-10', transactions: { t1: { Date: '2024-07-02', 'SIP Payment': 5000 }, t2: { Date: '2024-01-10', Loan: 50000 }, t3: { Date: '2024-07-09', 'Loan Payment': 5000 } } },
+            'member4': { fullName: 'Priya Singh', joiningDate: '2023-05-01', transactions: { t1: { Date: '2024-07-09', 'SIP Payment': 6000 } } },
+            'member5': { fullName: 'Vikram Rathore', joiningDate: '2022-09-01', transactions: { t1: { Date: '2024-07-05', 'SIP Payment': 10000 } } },
+            'member6': { fullName: 'Anjali Mehta', joiningDate: '2023-08-12', transactions: { t1: { Date: '2024-07-03', 'SIP Payment': 5500 } } },
+            'member7': { fullName: 'Sandeep Patel', joiningDate: '2023-03-18', transactions: { t1: { Date: '2024-07-06', 'SIP Payment': 5000 }, t2: { Date: '2024-04-15', Loan: 15000 } } },
+            'member8': { fullName: 'Kavita Devi', joiningDate: '2022-12-25', transactions: { t1: { Date: '2024-07-07', 'SIP Payment': 8000 } } },
+            'member9': { fullName: 'Manoj Tiwari', joiningDate: '2023-10-05', transactions: { t1: { Date: '2024-07-01', 'SIP Payment': 5000 } } },
+            'member10': { fullName: 'Geeta Chauhan', joiningDate: '2023-06-22', transactions: { t1: { Date: '2024-07-04', 'SIP Payment': 6500 } } },
+            'member11': { fullName: 'Ravi Shankar', joiningDate: '2022-10-30', transactions: { t1: { Date: '2024-07-08', 'SIP Payment': 9000 } } },
+            'member12': { fullName: 'Pooja Mishra', joiningDate: '2023-01-28', transactions: { t1: { Date: '2024-07-09', 'SIP Payment': 5000 } } },
+            'member13': { fullName: 'Arjun Yadav', joiningDate: '2023-04-11', transactions: { t1: { Date: '2024-07-02', 'SIP Payment': 7500 } } },
+            'member14': { fullName: 'Deepika Reddy', joiningDate: '2023-09-19', transactions: { t1: { Date: '2024-07-05', 'SIP Payment': 5200 } } }
+        };
+
+        // For local testing, I'm calling the logic directly. In production, this would be tied to Firebase Auth.
+        // checkAuthAndInitialize();
+        runChatbotLogic(); // Direct call for demonstration
     </script>
 </body>
 </html>
