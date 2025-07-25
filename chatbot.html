@@ -154,6 +154,8 @@
             let allMembersFullData = null;
             let capitalKingsData = null; 
             let lockMode = { active: false, member: null };
+            // NEW: The Pre-Analysis Cache
+            let preAnalyzedCache = null;
 
             const chatBox = document.getElementById('chat');
             const inputBox = document.getElementById('input');
@@ -195,19 +197,13 @@
             }
             
             // --- Core Message Handling ---
-            // UPDATED: handleSend now correctly processes clicks from suggestion buttons.
             async function handleSend(simulatedQuery = null) {
                 if (!isBotInitialized) { await typeMessage("बॉट अभी शुरू हो रहा है, कृपया प्रतीक्षा करें...", "bot"); return; }
-                
                 const query = simulatedQuery || inputBox.value.trim();
                 if (!query) return;
-                
-                // Always display the query as a user message.
                 appendRichMessage(query, "user");
-                
                 inputBox.value = '';
                 suggestionsBox.innerHTML = '';
-                
                 if (lockMode.active) { await processLockedQuery(query, lockMode.member); } 
                 else { await processGeneralQuery(query); }
             }
@@ -236,51 +232,58 @@
                 }
             }
 
-            // --- UPDATED: The "Genius" Lock Mode Processor ---
+            // --- UPDATED: The "Cache-First" Lock Mode Processor ---
             async function processLockedQuery(query, member) {
-                const memberData = allMembersFullData[member.id];
-                if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
+                if (!preAnalyzedCache) {
+                    await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
+                    return;
+                }
                 
-                const summaryData = aggregateMemberData(memberData);
                 const lowerQuery = query.toLowerCase();
+                let responseText = null;
 
-                // --- Level 1: Handle simple, common queries with charts ---
+                // --- Level 1: Check the Pre-Analyzed Cache for instant answers ---
+                if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
+                    const data = preAnalyzedCache.highestSip;
+                    responseText = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) {
+                    const data = preAnalyzedCache.firstSip;
+                    responseText = data ? `आपका पहला SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) {
+                    const data = preAnalyzedCache.recentLoanPayment;
+                    responseText = data ? `आपका हाल ही का लोन पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके लोन पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) {
+                    const data = preAnalyzedCache.firstLoan;
+                    responseText = data ? `आपने अपना पहला लोन (${data.daysAgo} दिन पहले) ${data.date} को ₹${data.amount.toLocaleString('en-IN')} का लिया था।` : "आपके लोन लेने का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) {
+                    const data = preAnalyzedCache.totalReturnBreakdown;
+                    if (data && data.total > 0) {
+                        responseText = `आपको प्राप्त कुल रिटर्न अमाउंट ₹${data.total.toLocaleString('en-IN')} है। यह रिटर्न ${data.breakdown.length} अलग-अलग तारीखों पर मिला है: ${data.breakdown.map(item => `${item.date} (₹${item.amount})`).join(', ')}।`;
+                    } else {
+                        responseText = "आपको अभी तक कोई रिटर्न नहीं मिला है।";
+                    }
+                }
+
+                // If an answer is found in the cache, display it and stop.
+                if (responseText) {
+                    await typeMessage(responseText, "bot");
+                    return;
+                }
+
+                // --- Level 2: Handle simple, common queries with charts ---
                 const isSimpleSipQuery = lowerQuery.includes('sip') && (lowerQuery.includes('status') || lowerQuery.includes('is mahine'));
-                const isSimpleLoanQuery = lowerQuery.includes('loan') && (lowerQuery.includes('status') || lowerQuery.includes('outstanding') || lowerQuery.includes('bakaaya'));
-                const isSimpleReturnQuery = lowerQuery.includes('return') && (lowerQuery.includes('status') || lowerQuery.includes('total return'));
-
                 if (isSimpleSipQuery) {
-                    const responseText = `इस महीने ${member.name} का SIP स्टेटस: ${summaryData.sipStatus.text} (₹${summaryData.sipStatus.amount.toLocaleString('en-IN')})`;
+                    const summaryData = preAnalyzedCache.summary;
+                    responseText = `इस महीने ${member.name} का SIP स्टेटस: ${summaryData.sipStatus.text} (₹${summaryData.sipStatus.amount.toLocaleString('en-IN')})`;
                     await typeMessage(responseText, "bot");
                     const topData = findTopContributors(new Date());
                     const chartData = { totalValue: topData.sip.total, currentUser: { name: member.name, value: summaryData.sipStatus.amount }, topUser: { name: topData.sip.name, value: topData.sip.amount } };
                     renderComparisonChart(chartData, 'sip');
                     return;
                 }
-
-                if (isSimpleLoanQuery) {
-                    let responseText = `${member.name} ने अब तक कुल ₹${summaryData.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
-                    responseText += (summaryData.netLoanOutstanding > 0) ? ` जिसमें से अभी ₹${summaryData.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।` : ` अभी आपका कोई भी लोन बकाया नहीं है।`;
-                    await typeMessage(responseText, "bot");
-                    const allTimeTotals = calculateAllTimeTotals();
-                    const topData = findTopContributors(new Date());
-                    const chartData = { totalValue: allTimeTotals.loan, currentUser: { name: member.name, value: summaryData.totalLoan }, topUser: { name: topData.loan.name, value: topData.loan.amount } };
-                    renderComparisonChart(chartData, 'loan');
-                    return;
-                }
                 
-                if (isSimpleReturnQuery) {
-                    let responseText = `${member.name} को अब तक कुल ₹${summaryData.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है।`;
-                    await typeMessage(responseText, "bot");
-                    const allTimeTotals = calculateAllTimeTotals();
-                    const topData = findTopContributors(new Date());
-                    const chartData = { totalValue: allTimeTotals.return, currentUser: { name: member.name, value: summaryData.totalReturn }, topUser: { name: topData.return.name, value: topData.return.amount } };
-                    renderComparisonChart(chartData, 'return');
-                    return;
-                }
-
-                // --- Level 2: Handle complex, conversational queries with Genius AI ---
-                const transactions = memberData.transactions ? Object.values(memberData.transactions) : [];
+                // --- Level 3: Fallback to Genius AI for everything else ---
+                const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
                 const prompt = `You are a genius-level financial analyst AI. Your primary skill is to analyze a user's raw transaction history and answer any complex, conversational question about it with 100% accuracy. You must be helpful and respond in simple Hindi. You are in 'Lock Mode' for member ${member.name}.
 
                 **Your Task:** Analyze the provided JSON \`transactions\` array. Each object is a financial event. Answer the user's query based on this data.
@@ -293,11 +296,6 @@
                 * Always format dates as DD-MM-YYYY.
                 * If the user's query is about something not in the data, politely say that the information is not available.
 
-                **Example Thought Process:**
-                * User asks: "Mera sabse jyada SIP kab aur kitna tha?"
-                * Your thought: "I need to look at all transactions. Find the one with the highest 'SIP Payment' value. I see one for 5000 on 2024-05-10. I will state this."
-                * Your Answer: "Aapka sabse zyada SIP payment ₹5,000 ka tha, jo aapne 10-05-2024 ko kiya tha."
-
                 **MEMBER'S ENTIRE TRANSACTION HISTORY:**
                 \`\`\`json
                 ${JSON.stringify(transactions, null, 2)}
@@ -307,8 +305,8 @@
                 
                 Now, provide a helpful, accurate, and detailed text-based response. Do not mention that you are an AI.`;
                 
-                const responseText = await callGemini(prompt);
-                await typeMessage(responseText, "bot");
+                const aiResponse = await callGemini(prompt);
+                await typeMessage(aiResponse, "bot");
             }
             
             // --- Response Rendering ---
@@ -535,7 +533,6 @@
                 });
             }
             
-            // --- FIXED: showPostAnswerSuggestions now correctly calls handleSend ---
             function showPostAnswerSuggestions(answeredFaq) {
                 let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3);
                 if (relatedFaqs.length === 0) return;
@@ -551,7 +548,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'post-answer-suggestion';
                     btn.textContent = faq.questions[0];
-                    btn.onclick = () => handleSend(faq.questions[0]); // This now works correctly.
+                    btn.onclick = () => handleSend(faq.questions[0]);
                     buttonContainer.appendChild(btn);
                 });
                 container.appendChild(buttonContainer);
@@ -599,10 +596,93 @@
                 return results;
             }
 
+            // --- NEW: Pre-Analysis Function ---
+            function preAnalyzeMemberData(memberId) {
+                const memberData = allMembersFullData[memberId];
+                if (!memberData || !memberData.transactions) return null;
+
+                const transactions = Object.values(memberData.transactions)
+                    .filter(tx => tx.Date)
+                    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+                if (transactions.length === 0) return { summary: aggregateMemberData(memberData) };
+
+                const today = new Date();
+                const formatDate = (dateStr) => {
+                    const d = new Date(dateStr);
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    return `${day}-${month}-${year}`;
+                };
+                const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24)));
+
+                // Analysis logic
+                const sipPayments = transactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
+                const loanPayments = transactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
+                const loansTaken = transactions.filter(t => (parseFloat(t.Loan) || 0) > 0);
+                const returnsReceived = transactions.filter(t => (parseFloat(t['Return amount']) || 0) > 0);
+
+                let highestSip = null;
+                if (sipPayments.length > 0) {
+                    const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]);
+                    highestSip = { amount: parseFloat(topSip['SIP Payment']), date: formatDate(topSip.Date) };
+                }
+
+                let firstSip = null;
+                if (sipPayments.length > 0) {
+                    firstSip = { amount: parseFloat(sipPayments[0]['SIP Payment']), date: formatDate(sipPayments[0].Date) };
+                }
+                
+                let recentLoanPayment = null;
+                if (loanPayments.length > 0) {
+                    const lastLoanPayment = loanPayments[loanPayments.length - 1];
+                    recentLoanPayment = { amount: parseFloat(lastLoanPayment['Loan Payment']), date: formatDate(lastLoanPayment.Date) };
+                }
+                
+                let firstLoan = null;
+                if (loansTaken.length > 0) {
+                    const firstLoanTx = loansTaken[0];
+                    firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) };
+                }
+
+                let totalReturnBreakdown = null;
+                if (returnsReceived.length > 0) {
+                    totalReturnBreakdown = {
+                        total: returnsReceived.reduce((sum, t) => sum + (parseFloat(t['Return amount']) || 0), 0),
+                        breakdown: returnsReceived.map(t => ({ amount: parseFloat(t['Return amount']), date: formatDate(t.Date) }))
+                    };
+                }
+
+                return {
+                    summary: aggregateMemberData(memberData),
+                    highestSip,
+                    firstSip,
+                    recentLoanPayment,
+                    firstLoan,
+                    totalReturnBreakdown
+                };
+            }
+
+
             // --- Global Functions & Event Listeners ---
             window.chatbot = {
-                activateLockMode: (member) => { lockMode = { active: true, member }; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap sirf inke baare mein sawaal pooch sakte hain.`, "bot"); suggestionsBox.innerHTML = ''; },
-                deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; lockBanner.classList.add('hidden'); showDefaultSuggestions(); },
+                activateLockMode: (member) => { 
+                    lockMode = { active: true, member }; 
+                    // Run pre-analysis as soon as lock mode is activated
+                    preAnalyzedCache = preAnalyzeMemberData(member.id);
+                    lockedMemberNameEl.textContent = `Focused on ${member.name}`; 
+                    lockBanner.classList.remove('hidden'); 
+                    appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Data pre-analyzed for faster responses.`, "bot"); 
+                    suggestionsBox.innerHTML = ''; 
+                },
+                deactivateLockMode: () => { 
+                    appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); 
+                    lockMode = { active: false, member: null }; 
+                    preAnalyzedCache = null; // Clear the cache
+                    lockBanner.classList.add('hidden'); 
+                    showDefaultSuggestions(); 
+                },
                 openImageModal: (imageUrl) => { if (!imageUrl || imageUrl.includes('placehold.co')) return; document.getElementById('modalImageContent').src = imageUrl; document.getElementById('imageModal').classList.add('active'); },
                 closeImageModal: () => { document.getElementById('imageModal').classList.remove('active'); },
                 displayMemberDetails: displayMemberDetails,
