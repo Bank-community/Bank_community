@@ -810,24 +810,31 @@
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'),
             };
             
+            // --- UPDATED: callGemini with enhanced error handling ---
             async function callGemini(prompt) {
                 try {
-                    // UPDATED: The endpoint now points to our new, robust API handler.
                     const response = await fetch('/api/chatbotAI', { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
                         body: JSON.stringify({ promptText: prompt }) 
                     });
+                    
                     if (!response.ok) { 
-                        const error = await response.json(); 
-                        console.error("AI Backend Error:", error); 
-                        return `AI से जवाब नहीं मिल पा रहा है। (${error.details || 'Quota samapt ho gaya hai'})`; 
+                        const errorData = await response.json().catch(() => null);
+                        const statusText = response.statusText;
+                        const statusCode = response.status;
+                        
+                        console.error("AI Backend Error:", statusCode, statusText, errorData); 
+                        
+                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode} ${statusText})`; 
                     }
+
                     const data = await response.json();
                     return data.explanation;
+
                 } catch (e) { 
-                    console.error("Error calling AI backend:", e); 
-                    return "AI backend से कनेक्ट नहीं हो पा रहा है।"; 
+                    console.error("Network error calling AI backend:", e); 
+                    return "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein."; 
                 }
             }
 
