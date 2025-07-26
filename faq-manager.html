@@ -17,8 +17,12 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .suggestion-pill { cursor: pointer; transition: all 0.2s ease-in-out; }
         .suggestion-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .modal { display: none; }
-        .modal.active { display: flex; }
+        .modal { display: none; } .modal.active { display: flex; }
+        /* NEW Styles for Tabs */
+        .tab-button { transition: all 0.2s; }
+        .tab-button.active { border-color: #4f46e5; color: #4f46e5; background-color: #eef2ff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -33,11 +37,8 @@
             <!-- Left Column: Form -->
             <div class="bg-white p-6 rounded-lg shadow-lg">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-3">नया नियम/FAQ जोड़ें</h2>
-                <div class="space-y-6">
-                    <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700">कैटेगरी (Category)</label>
-                        <input type="text" id="category" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="जैसे: लोन नियम, SIP Rules">
-                    </div>
+                <div id="faq-form" class="space-y-6">
+                    <!-- Main Question -->
                     <div>
                         <label for="main-question" class="block text-sm font-medium text-gray-700">मुख्य प्रश्न (Main Question)</label>
                         <div class="flex items-center space-x-2 mt-1">
@@ -45,16 +46,15 @@
                             <button id="generate-variations-btn" title="Generate AI Variations" class="bg-blue-500 hover:bg-blue-600 text-white font-bold p-3 rounded-md"><i class="fas fa-magic"></i><span class="loader hidden"></span></button>
                         </div>
                     </div>
+                    <!-- Variations -->
                     <div id="variations-container">
-                        <!-- UPDATED: Added a button to manually add more questions -->
                         <div class="flex justify-between items-center mb-2">
                             <label class="block text-sm font-medium text-gray-700">मिलते-जुलते प्रश्न</label>
-                            <button id="add-variation-btn" class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-3 rounded-lg">
-                                <i class="fas fa-plus mr-1"></i> Add Question
-                            </button>
+                            <button id="add-variation-btn" class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-3 rounded-lg"><i class="fas fa-plus mr-1"></i> Add Question</button>
                         </div>
                         <div id="variations-list" class="space-y-2"></div>
                     </div>
+                    <!-- Answer -->
                     <div>
                         <label for="answer" class="block text-sm font-medium text-gray-700">उत्तर (Answer)</label>
                         <div class="flex items-center space-x-2 mt-1">
@@ -63,43 +63,87 @@
                         </div>
                     </div>
                     <div id="answer-suggestions-container" class="space-y-2"></div>
+                    
+                    <!-- NEW: Advanced Options Section -->
+                    <div class="border-t pt-4">
+                        <h3 class="font-semibold text-lg text-gray-600 mb-3">Advanced Options (Optional)</h3>
+                        <div class="space-y-4">
+                            <!-- Keywords -->
+                            <div>
+                                <label for="keywords" class="block text-sm font-medium text-gray-700">Keywords (Comma separated)</label>
+                                <input type="text" id="keywords" class="mt-1 w-full p-2 border border-gray-300 rounded-md" placeholder="जैसे: byaj, interest, charge, loan">
+                            </div>
+                            <!-- Image Upload -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Image Upload</label>
+                                <div class="mt-1 flex items-center space-x-4">
+                                    <input type="file" id="image-upload" class="hidden" accept="image/*">
+                                    <button type="button" onclick="document.getElementById('image-upload').click()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg">Choose Image</button>
+                                    <div id="image-preview-container" class="hidden items-center space-x-2">
+                                        <img id="image-preview" src="" class="h-12 w-12 object-cover rounded">
+                                        <button id="remove-image-btn" class="text-red-500 text-xl">&times;</button>
+                                    </div>
+                                    <span id="upload-status" class="text-sm text-gray-500"></span>
+                                </div>
+                                <input type="hidden" id="image-url">
+                            </div>
+                            <!-- Action Button -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="action-button-text" class="block text-sm font-medium text-gray-700">Button Text</label>
+                                    <input type="text" id="action-button-text" class="mt-1 w-full p-2 border border-gray-300 rounded-md" placeholder="e.g., View Ranking">
+                                </div>
+                                <div>
+                                    <label for="action-button-link" class="block text-sm font-medium text-gray-700">Button Link/Action</label>
+                                    <input type="text" id="action-button-link" class="mt-1 w-full p-2 border border-gray-300 rounded-md" placeholder="e.g., https://... or show_capital_kings">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="text-right"><button id="submit-faq-btn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg"><i class="fas fa-save mr-2"></i>सबमिट करें<span class="loader hidden ml-2"></span></button></div>
                 </div>
             </div>
 
-            <!-- Right Column: Existing FAQs -->
+            <!-- Right Column: Existing FAQs & NEW Insights Tab -->
             <div class="bg-white p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-center mb-4 border-b pb-3">
-                    <h2 class="text-2xl font-semibold text-gray-700">मौजूदा नियम</h2>
-                    <button id="refresh-faqs-btn" title="Refresh List" class="text-gray-500 hover:text-blue-600"><i class="fas fa-sync-alt"></i></button>
+                <!-- NEW: Tab Buttons -->
+                <div class="flex border-b mb-4">
+                    <button id="tab-rules" class="tab-button py-2 px-4 border-b-2 font-semibold active">मौजूदा नियम</button>
+                    <button id="tab-insights" class="tab-button py-2 px-4 border-b-2 font-semibold">User Insights</button>
                 </div>
-                <div class="mb-4">
-                    <input type="text" id="search-faqs" class="w-full p-2 border border-gray-300 rounded-md" placeholder="कोई नियम खोजें...">
+
+                <!-- Tab 1: Existing Rules -->
+                <div id="content-rules" class="tab-content active">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-700">All Rules</h2>
+                        <button id="refresh-faqs-btn" title="Refresh List" class="text-gray-500 hover:text-blue-600"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="mb-4">
+                        <input type="text" id="search-faqs" class="w-full p-2 border border-gray-300 rounded-md" placeholder="कोई नियम खोजें...">
+                    </div>
+                    <div id="existing-faqs-container" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                        <p id="loading-faqs" class="text-gray-500">Authenticating...</p>
+                    </div>
                 </div>
-                <div id="existing-faqs-container" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                    <p id="loading-faqs" class="text-gray-500">Authenticating...</p>
+
+                <!-- Tab 2: User Insights -->
+                <div id="content-insights" class="tab-content">
+                     <h2 class="text-2xl font-semibold text-gray-700 mb-4">Top Unanswered Questions</h2>
+                     <div id="insights-container" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        <p id="loading-insights" class="text-gray-500">Loading insights...</p>
+                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Edit Modal (Will be updated in script) -->
     <div id="edit-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-2xl font-bold mb-4">नियम एडिट करें</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="edit-category" class="block text-sm font-medium text-gray-700">कैटेगरी</label>
-                    <input type="text" id="edit-category" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
-                </div>
-                <div>
-                    <label for="edit-questions" class="block text-sm font-medium text-gray-700">प्रश्न (हर लाइन में एक)</label>
-                    <textarea id="edit-questions" rows="5" class="mt-1 w-full p-2 border border-gray-300 rounded-md"></textarea>
-                </div>
-                <div>
-                    <label for="edit-answer" class="block text-sm font-medium text-gray-700">उत्तर</label>
-                    <textarea id="edit-answer" rows="4" class="mt-1 w-full p-2 border border-gray-300 rounded-md"></textarea>
-                </div>
+            <div id="edit-form-container" class="space-y-4">
+                <!-- Edit form will be dynamically inserted here -->
             </div>
             <div class="mt-6 flex justify-end space-x-3">
                 <button id="cancel-edit-btn" class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">कैंसिल</button>
@@ -109,296 +153,7 @@
     </div>
 
     <script>
-        async function checkAuthAndInitialize() {
-            try {
-                const response = await fetch('/api/config');
-                if (!response.ok) throw new Error('Configuration failed to load.');
-                const config = await response.json();
-                
-                firebase.initializeApp(config.firebase);
-                
-                firebase.auth().onAuthStateChanged(user => {
-                    const ADMIN_UID = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
-                    if (user && user.uid === ADMIN_UID) {
-                        console.log("Admin authenticated. Initializing FAQ Manager...");
-                        runAppLogic();
-                    } else {
-                        console.log("User not authenticated as admin. Redirecting...");
-                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
-                    }
-                });
-
-            } catch (error) {
-                console.error("Initialization Error:", error);
-                document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Initialization Error</h1><p>${error.message}</p></div>`;
-            }
-        }
-
-        function runAppLogic() {
-            const database = firebase.database();
-            const faqsRef = database.ref('admin/faqs');
-
-            const categoryInput = document.getElementById('category');
-            const mainQuestionInput = document.getElementById('main-question');
-            const answerInput = document.getElementById('answer');
-            const variationsList = document.getElementById('variations-list');
-            const answerSuggestionsContainer = document.getElementById('answer-suggestions-container');
-            const generateVariationsBtn = document.getElementById('generate-variations-btn');
-            const enhanceAnswerBtn = document.getElementById('enhance-answer-btn');
-            const submitFaqBtn = document.getElementById('submit-faq-btn');
-            const existingFaqsContainer = document.getElementById('existing-faqs-container');
-            const loadingFaqs = document.getElementById('loading-faqs');
-            const refreshFaqsBtn = document.getElementById('refresh-faqs-btn');
-            const searchFaqsInput = document.getElementById('search-faqs');
-            const editModal = document.getElementById('edit-modal');
-            const cancelEditBtn = document.getElementById('cancel-edit-btn');
-            const saveEditBtn = document.getElementById('save-edit-btn');
-            const addVariationBtn = document.getElementById('add-variation-btn'); // New button
-            let currentEditKey = null;
-
-            async function callGemini(prompt) {
-                try {
-                    const response = await fetch('/api/getAiExplanation', {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ promptText: prompt })
-                    });
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.details || 'Unknown AI error');
-                    }
-                    const data = await response.json();
-                    return data.explanation;
-                } catch (error) {
-                    console.error("AI Backend Error:", error);
-                    alert("AI से कनेक्ट करने में समस्या आ रही है: " + error.message);
-                    return null;
-                }
-            }
-
-            async function handleEnhanceAnswer() {
-                const originalAnswer = answerInput.value.trim();
-                if (!originalAnswer) { alert("कृपया पहले एक उत्तर लिखें।"); return; }
-                toggleButtonLoader(enhanceAnswerBtn, true);
-                const prompt = `You are an AI assistant for a small community bank in India. Your task is to enhance a given answer.
-                - Keep the answer short, simple, and clear.
-                - Add only a few words (5-10 words max) to make it more professional and complete.
-                - **The language of the enhanced answer MUST BE Hinglish (Hindi written in English alphabet).** For example, if the original is "Loan mil jayega", an enhanced version could be "Aapko loan aasani se mil jayega."
-                - Provide 3 slightly different enhanced versions.
-                - Return the result as a JavaScript array of strings, like ["suggestion 1", "suggestion 2", "suggestion 3"].
-                Original Answer: "${originalAnswer}"
-                JavaScript Array:`;
-                const response = await callGemini(prompt);
-                answerSuggestionsContainer.innerHTML = '';
-                if (response) {
-                    try {
-                        const arrayString = response.match(/\[.*\]/s)[0];
-                        const suggestions = JSON.parse(arrayString);
-                        const title = document.createElement('label');
-                        title.className = "block text-sm font-medium text-gray-700 mb-2";
-                        title.textContent = "AI द्वारा सुझाए गए जवाब (एक चुनें):";
-                        answerSuggestionsContainer.appendChild(title);
-                        suggestions.forEach(suggestion => {
-                            const pill = document.createElement('div');
-                            pill.className = 'suggestion-pill p-3 bg-gray-200 text-gray-800 rounded-lg text-sm';
-                            pill.textContent = suggestion;
-                            pill.onclick = () => {
-                                answerInput.value = suggestion;
-                                answerSuggestionsContainer.innerHTML = '';
-                            };
-                            answerSuggestionsContainer.appendChild(pill);
-                        });
-                    } catch (e) { alert("AI से मिले जवाबों को समझने में विफल रहा।"); }
-                }
-                toggleButtonLoader(enhanceAnswerBtn, false);
-            }
-
-            // --- UPDATED: handleGenerateVariations with the new Hinglish prompt ---
-            async function handleGenerateVariations() {
-                const mainQuestion = mainQuestionInput.value.trim();
-                if (!mainQuestion) { alert("कृपया पहले मुख्य प्रश्न लिखें।"); return; }
-                toggleButtonLoader(generateVariationsBtn, true);
-                
-                // This is the new, much more specific prompt for Hinglish questions.
-                const prompt = `You are an AI assistant for a bank in India. A user asked this question: "${mainQuestion}". 
-                Your task is to generate 4 other ways a user might ask the exact same thing.
-                **CRITICAL RULE: The generated questions MUST be in Hindi, but written using the English alphabet (this is called Hinglish).**
-                For example, if the question is "लोन पर ब्याज कितना है?", valid variations are "Loan par byaj kitna lagta hai?" or "Interest rate kya hai loan ka?".
-                Do NOT provide English translations like "What is the interest on the loan?".
-                Return the result as a clean JavaScript array of strings, like ["variation 1", "variation 2", "variation 3", "variation 4"].
-
-                JavaScript Array:`;
-
-                let response = await callGemini(prompt);
-                variationsList.innerHTML = '';
-                addVariationInput(mainQuestion); // Add the main question itself first
-                if (response) {
-                    try {
-                        const arrayString = response.match(/\[.*\]/s)[0];
-                        const variations = JSON.parse(arrayString);
-                        variations.forEach(q => addVariationInput(q));
-                    } catch (e) { 
-                        console.error("Failed to parse AI variations:", e, "Response was:", response);
-                        alert("AI से मिले वेरिएशन को समझने में विफल रहा।"); 
-                    }
-                }
-                toggleButtonLoader(generateVariationsBtn, false);
-            }
-
-            function addVariationInput(value = '') {
-                const div = document.createElement('div');
-                div.className = 'flex items-center space-x-2';
-                div.innerHTML = `<input type="text" value="${value}" class="w-full p-2 border border-gray-300 rounded-md shadow-sm variation-input"><button type="button" class="remove-variation-btn text-red-500 hover:text-red-700 font-bold text-xl">&times;</button>`;
-                variationsList.appendChild(div);
-            }
-
-            async function handleSubmit() {
-                const newFaq = buildFaqObjectFromForm();
-                if (!newFaq) return;
-                toggleButtonLoader(submitFaqBtn, true);
-                try {
-                    await faqsRef.push(newFaq);
-                    alert("नया FAQ सफलतापूर्वक जोड़ा गया!");
-                    clearForm();
-                    fetchAndDisplayFAQs(); // Refresh the list after adding
-                } catch (error) { alert("Firebase में डेटा सबमिट करने में त्रुटि हुई।"); } finally {
-                    toggleButtonLoader(submitFaqBtn, false);
-                }
-            }
-
-            function fetchAndDisplayFAQs() {
-                loadingFaqs.style.display = 'block';
-                loadingFaqs.textContent = "नियम लोड हो रहे हैं...";
-                faqsRef.once('value', (snapshot) => {
-                    existingFaqsContainer.innerHTML = '';
-                    if (snapshot.exists()) {
-                        const faqs = snapshot.val();
-                        loadingFaqs.style.display = 'none';
-                        const sortedKeys = Object.keys(faqs).sort((a, b) => (faqs[b].createdAt || '').localeCompare(faqs[a].createdAt || ''));
-                        sortedKeys.forEach(key => {
-                            const faq = faqs[key];
-                            const faqElement = document.createElement('div');
-                            faqElement.className = 'faq-item p-4 border rounded-md bg-gray-50';
-                            faqElement.dataset.searchText = `${faq.answer} ${faq.questions.join(' ')} ${faq.category || ''}`.toLowerCase();
-                            let questionsHtml = '<ul class="list-disc list-inside text-gray-600 text-sm mt-2">';
-                            faq.questions.forEach(q => { questionsHtml += `<li class="truncate">${q}</li>`; });
-                            questionsHtml += '</ul>';
-                            faqElement.innerHTML = `
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        ${faq.category ? `<span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">${faq.category}</span>` : ''}
-                                        <p class="font-semibold text-gray-800 mt-2">${faq.answer}</p>
-                                        ${questionsHtml}
-                                    </div>
-                                    <div class="flex space-x-2 flex-shrink-0">
-                                        <button data-key="${key}" class="edit-faq-btn text-gray-400 hover:text-blue-600"><i class="fas fa-edit"></i></button>
-                                        <button data-key="${key}" class="delete-faq-btn text-gray-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </div>`;
-                            existingFaqsContainer.appendChild(faqElement);
-                        });
-                    } else { loadingFaqs.textContent = "कोई नियम नहीं मिला।"; }
-                }, (error) => { loadingFaqs.textContent = "नियम लोड करने में त्रुटि हुई।"; });
-            }
-            
-            function handleFilterFAQs() {
-                const searchTerm = searchFaqsInput.value.toLowerCase();
-                const items = existingFaqsContainer.querySelectorAll('.faq-item');
-                items.forEach(item => {
-                    item.style.display = item.dataset.searchText.includes(searchTerm) ? '' : 'none';
-                });
-            }
-
-            function openEditModal(key) {
-                currentEditKey = key;
-                faqsRef.child(key).once('value', (snapshot) => {
-                    const faq = snapshot.val();
-                    document.getElementById('edit-category').value = faq.category || '';
-                    document.getElementById('edit-questions').value = faq.questions.join('\n');
-                    document.getElementById('edit-answer').value = faq.answer;
-                    editModal.classList.add('active');
-                });
-            }
-
-            function closeEditModal() {
-                editModal.classList.remove('active');
-                currentEditKey = null;
-            }
-
-            async function handleSaveEdit() {
-                if (!currentEditKey) return;
-                const updatedFaq = {
-                    category: document.getElementById('edit-category').value.trim(),
-                    questions: document.getElementById('edit-questions').value.split('\n').map(q => q.trim()).filter(Boolean),
-                    answer: document.getElementById('edit-answer').value.trim(),
-                    updatedAt: new Date().toISOString()
-                };
-                if (updatedFaq.questions.length === 0 || !updatedFaq.answer) {
-                    alert("प्रश्न और उत्तर खाली नहीं हो सकते।");
-                    return;
-                }
-                await faqsRef.child(currentEditKey).update(updatedFaq);
-                closeEditModal();
-                fetchAndDisplayFAQs();
-            }
-
-            function buildFaqObjectFromForm() {
-                const mainQuestion = mainQuestionInput.value.trim();
-                const answer = answerInput.value.trim();
-                if (!mainQuestion || !answer) { alert("मुख्य प्रश्न और उत्तर दोनों आवश्यक हैं।"); return null; }
-                const variationInputs = document.querySelectorAll('.variation-input');
-                const questions = [...new Set([mainQuestion, ...Array.from(variationInputs).map(input => input.value.trim()).filter(Boolean)])];
-                return {
-                    category: categoryInput.value.trim(),
-                    questions: questions,
-                    answer: answer,
-                    createdAt: new Date().toISOString()
-                };
-            }
-
-            function clearForm() {
-                categoryInput.value = '';
-                mainQuestionInput.value = '';
-                answerInput.value = '';
-                variationsList.innerHTML = '';
-                answerSuggestionsContainer.innerHTML = '';
-            }
-            
-            function toggleButtonLoader(button, showLoader) {
-                const icon = button.querySelector('i');
-                const loader = button.querySelector('.loader');
-                button.disabled = showLoader;
-                if (icon) icon.style.display = showLoader ? 'none' : 'inline-block';
-                if (loader) loader.style.display = showLoader ? 'inline-block' : 'none';
-            }
-
-            generateVariationsBtn.addEventListener('click', handleGenerateVariations);
-            enhanceAnswerBtn.addEventListener('click', handleEnhanceAnswer);
-            submitFaqBtn.addEventListener('click', handleSubmit);
-            refreshFaqsBtn.addEventListener('click', fetchAndDisplayFAQs);
-            searchFaqsInput.addEventListener('input', handleFilterFAQs);
-            cancelEditBtn.addEventListener('click', closeEditModal);
-            saveEditBtn.addEventListener('click', handleSaveEdit);
-            addVariationBtn.addEventListener('click', () => addVariationInput('')); // Event listener for the new button
-            variationsList.addEventListener('click', (e) => { if (e.target.classList.contains('remove-variation-btn')) e.target.parentElement.remove(); });
-            existingFaqsContainer.addEventListener('click', (e) => {
-                const btn = e.target.closest('button');
-                if (!btn) return;
-                const key = btn.dataset.key;
-                if (btn.classList.contains('delete-faq-btn')) handleDeleteFAQ(key);
-                if (btn.classList.contains('edit-faq-btn')) openEditModal(key);
-            });
-            async function handleDeleteFAQ(key) { 
-                if (confirm("क्या आप वाकई इस नियम को हटाना चाहते हैं?")) {
-                    await faqsRef.child(key).remove();
-                    fetchAndDisplayFAQs(); // Refresh list after deleting
-                }
-            }
-            
-            fetchAndDisplayFAQs();
-        }
-
-        checkAuthAndInitialize();
+        // ... (checkAuthAndInitialize and other functions will be here) ...
     </script>
 </body>
 </html>
