@@ -154,8 +154,7 @@
             let allMembersFullData = null;
             let capitalKingsData = null; 
             let lockMode = { active: false, member: null };
-            let preAnalyzedCache = null;
-
+            
             const chatBox = document.getElementById('chat');
             const inputBox = document.getElementById('input');
             const sendBtn = document.getElementById('send-btn');
@@ -237,58 +236,31 @@
                     showDefaultSuggestions();
                 }
             }
-
+            
             async function processLockedQuery(query, member) {
-                const lowerQuery = query.toLowerCase();
-
-                // ** NEW: Calculation-first approach **
-                const calculationHandled = await handleCalculationQuery(lowerQuery, member);
-                if (calculationHandled) {
-                    return; // Exit if the query was a calculation and handled
-                }
-
-                // Fallback to pre-analyzed cache for simple questions
-                if (!preAnalyzedCache) {
-                    await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
-                    return;
-                }
-                
-                let responseText = null;
-                if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
-                    const data = preAnalyzedCache.highestSip;
-                    responseText = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) {
-                    const data = preAnalyzedCache.firstSip;
-                    responseText = data ? `आपका पहला SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) {
-                    const data = preAnalyzedCache.recentLoanPayment;
-                    responseText = data ? `आपका हाल ही का लोन पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके लोन पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) {
-                    const data = preAnalyzedCache.firstLoan;
-                    responseText = data ? `आपने अपना पहला लोन (${data.daysAgo} दिन पहले) ${data.date} को ₹${data.amount.toLocaleString('en-IN')} का लिया था।` : "आपके लोन लेने का कोई रिकॉर्ड नहीं मिला।";
-                }
-
-                if (responseText) {
-                    await typeMessage(responseText, "bot");
-                    return;
-                }
-
-                // Fallback to Gemini for complex conversational queries
+                const typing = appendRichMessage("...", "bot typing");
                 const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
-                const prompt = `**ABSOLUTE PRIMARY DIRECTIVE: Your ONLY purpose is to answer questions about the financial data of a bank community member named ${member.name}.**
+                
+                const prompt = `**PRIMARY DIRECTIVE: You are a helpful financial assistant for a bank community member named ${member.name}. Your job is to answer their questions based on their transaction history in simple Hindi.**
 
-                **CRITICAL RULE #1:** First, analyze the "User's Query". Can this question be answered using the provided "MEMBER'S TRANSACTION HISTORY"?
-                * If **NO**, or if the user is making small talk or asking a general knowledge question, you MUST ignore all other instructions and respond with **ONLY** this exact sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
-                * If **YES**, proceed to the analysis instructions below.
+                **CRITICAL RULE #1: CALCULATIONS**
+                * If the user asks for any kind of calculation (sum, total, addition, 'yog', 'kul', etc.), you MUST NOT calculate the result yourself.
+                * Instead, you MUST first list the relevant numbers and then use the special tag \`[CALCULATE: number1 + number2 + ...]\`.
+                * **Example 1:** User asks "total SIP". You find all SIPs are 300, 500, 800. Your response MUST be: "Aapke kul SIP ka yog hai: 300 + 500 + 800 = [CALCULATE: 300+500+800]".
+                * **Example 2:** User asks "first 2 loan payments". You find they are 1000 and 1200. Your response MUST be: "Pehle 2 loan payments hain: 1000 + 1200 = [CALCULATE: 1000+1200]".
 
-                **Analysis Instructions (Only if Rule #1 is passed):**
-                You are a genius-level financial analyst AI. Your primary skill is to analyze a user's raw transaction history and answer any complex, conversational question about it with 100% accuracy. You must be helpful and respond in simple Hindi.
-                * To find the 'highest' or 'sabse jyada' of anything (e.g., SIP), iterate through all transactions, find the maximum value for that field, and state the amount and its 'Date'.
-                * To find the 'first' or 'pehla' of anything, sort transactions by 'Date' ascending and pick the first relevant one.
-                * To find the 'recent' or 'aakhiri' of anything, sort transactions by 'Date' descending and pick the first relevant one.
-                * To calculate 'days since', find the relevant transaction and calculate the days between its 'Date' and today's date (${new Date().toISOString().split('T')[0]}).
+                **CRITICAL RULE #2: SCOPE**
+                * If the user's query is unrelated to their financial data (e.g., "what is the capital of France?", "hello"), you MUST respond with ONLY this exact sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
+
+                **CRITICAL RULE #3: NUMBERS**
+                * You MUST keep all numbers as digits. DO NOT write numbers as words (e.g., write "5", not "पांच"; write "2024", not "दो हजार चौबीस"). This is essential for the system to work.
+
+                **Analysis Instructions:**
+                * Analyze the user's query to understand their intent (e.g., are they asking for the 'first 5', 'last 3', or 'total' of something?).
+                * Extract the relevant data points from the transaction history.
+                * Format your response clearly in Hindi, showing the breakdown of data.
                 * Always format dates as DD-MM-YYYY.
-                * **DO NOT perform mathematical calculations like sum, total, average etc. Your job is to describe the data, not calculate it.**
+                * Today's date is ${new Date().toISOString().split('T')[0]}.
 
                 **MEMBER'S ENTIRE TRANSACTION HISTORY:**
                 \`\`\`json
@@ -297,108 +269,21 @@
 
                 **User's Query:** "${query}"`;
                 
-                const aiResponse = await callGemini(prompt);
+                let aiResponse = await callGemini(prompt);
+
+                const calcRegex = /\[CALCULATE:\s*([^\]]+)\]/g;
+                const matches = aiResponse.match(calcRegex);
+
+                if (matches) {
+                    matches.forEach(match => {
+                        const expression = match.replace('[CALCULATE:', '').replace(']', '').trim();
+                        const result = safeCalculator(expression);
+                        aiResponse = aiResponse.replace(match, `<strong>₹${result.toLocaleString('en-IN')}</strong>`);
+                    });
+                }
+                
+                typing.remove();
                 await typeMessage(aiResponse, "bot");
-            }
-
-            // ** NEW: Function to handle calculation-specific queries **
-            async function handleCalculationQuery(query, member) {
-                const memberData = allMembersFullData[member.id];
-                if (!memberData || !memberData.transactions) return false;
-
-                const transactions = Object.values(memberData.transactions)
-                    .filter(tx => tx.Date)
-                    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-                let targetTransactions = [];
-                let fieldToSum = '';
-                let title = '';
-                let notFoundMessage = "इस प्रकार का कोई लेन-देन नहीं मिला।";
-                
-                // Regex to find numbers like "first 5", "last 10" etc.
-                const countMatch = query.match(/(?:first|last|pehla|aakhiri)\s*(\d+)/);
-                const count = countMatch ? parseInt(countMatch[1], 10) : null;
-                const isLast = query.includes('last') || query.includes('aakhiri');
-
-                if (query.includes('sip')) {
-                    fieldToSum = 'SIP Payment';
-                    title = 'SIP भुगतान';
-                    targetTransactions = transactions.filter(t => (parseFloat(t[fieldToSum]) || 0) > 0);
-                } else if (query.includes('loan payment')) {
-                    fieldToSum = 'Loan Payment';
-                    title = 'लोन भुगतान';
-                    targetTransactions = transactions.filter(t => (parseFloat(t[fieldToSum]) || 0) > 0);
-                } else if (query.includes('loan') && !query.includes('payment')) {
-                    fieldToSum = 'Loan';
-                    title = 'लिया गया लोन';
-                    targetTransactions = transactions.filter(t => (parseFloat(t[fieldToSum]) || 0) > 0);
-                } else if (query.includes('return')) {
-                    fieldToSum = 'Return amount';
-                    title = 'रिटर्न राशि';
-                    targetTransactions = transactions.filter(t => (parseFloat(t[fieldToSum]) || 0) > 0);
-                } else {
-                    return false; // Not a calculation query we handle
-                }
-
-                if (targetTransactions.length === 0) {
-                    await typeMessage(notFoundMessage, "bot");
-                    return true;
-                }
-
-                let finalTransactions = targetTransactions;
-                if (count) {
-                    if (isLast) {
-                        finalTransactions = targetTransactions.slice(-count);
-                    } else {
-                        finalTransactions = targetTransactions.slice(0, count);
-                    }
-                }
-
-                if (finalTransactions.length === 0) {
-                    await typeMessage(`आपके अनुरोध के अनुसार ${title} नहीं मिले।`, "bot");
-                    return true;
-                }
-
-                const breakdown = [];
-                const numbersToSum = [];
-                const formatDate = (dateStr) => {
-                    const d = new Date(dateStr);
-                    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-                };
-
-                finalTransactions.forEach(tx => {
-                    const amount = parseFloat(tx[fieldToSum]);
-                    breakdown.push(`<li>${formatDate(tx.Date)}: <strong>₹${amount.toLocaleString('en-IN')}</strong></li>`);
-                    numbersToSum.push(amount);
-                });
-
-                const expression = numbersToSum.join(' + ');
-                const total = safeCalculator(expression);
-
-                let response = `<p>${member.name} जी, आपके अनुरोधित ${title} का विवरण इस प्रकार है:</p>
-                                <ul class="list-disc pl-5 my-2">${breakdown.join('')}</ul>
-                                <hr class="my-2">
-                                <p><strong>कुल योग:</strong> ${expression} = <strong>₹${total.toLocaleString('en-IN')}</strong></p>`;
-
-                await typeMessage(response, "bot");
-                
-                // Optional: Render a chart if it's a total calculation
-                if (!count) { // Only show chart for totals, not for "first 5" etc.
-                    const topData = findTopContributors();
-                    let chartData;
-                    if (fieldToSum === 'SIP Payment') {
-                        chartData = { totalValue: calculateAllTimeTotals().sip, currentUser: { name: member.name, value: total }, topUser: topData.totalSipUser };
-                        renderComparisonChart(chartData, 'totalSip');
-                    } else if (fieldToSum === 'Loan') {
-                        chartData = { totalValue: calculateAllTimeTotals().loan, currentUser: { name: member.name, value: total }, topUser: topData.totalLoanUser };
-                        renderComparisonChart(chartData, 'totalLoan');
-                    } else if (fieldToSum === 'Return amount') {
-                        chartData = { totalValue: calculateAllTimeTotals().return, currentUser: { name: member.name, value: total }, topUser: topData.totalReturnUser };
-                        renderComparisonChart(chartData, 'totalReturn');
-                    }
-                }
-                
-                return true; // Indicate that the query was handled
             }
             
             // --- Response Rendering ---
@@ -406,8 +291,6 @@
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 content = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
-                // Let's avoid bolding all numbers to prevent messing with the new calculation format.
-                // content = content.replace(/(\d+[,.]?\d*%?)/g, '<strong>$1</strong>');
                 return content;
             }
 
@@ -445,14 +328,6 @@
                     messageEl.appendChild(bubbleEl);
                     chatBox.appendChild(messageEl);
                     
-                    // For complex HTML, don't use typing effect
-                    if (text.includes('<') && text.includes('>')) {
-                         bubbleEl.innerHTML = finalHtml;
-                         chatBox.scrollTop = chatBox.scrollHeight;
-                         resolve(bubbleEl);
-                         return;
-                    }
-
                     let i = 0;
                     bubbleEl.innerHTML = "▋";
                     const interval = setInterval(() => {
@@ -589,15 +464,13 @@
 
             // --- Utility & Helper Functions ---
             
-            // ** NEW: Safe Calculator Function **
             function safeCalculator(expression) {
                 try {
-                    // Use the Function constructor for safer evaluation than direct eval()
-                    // It doesn't have access to the local scope.
-                    return new Function('return ' + String(expression))();
+                    const sanitizedExpression = String(expression).replace(/[^-()\d/*+.]/g, '');
+                    return new Function('return ' + sanitizedExpression)();
                 } catch (error) {
                     console.error("Calculator Error:", error);
-                    return 0; // Return 0 in case of an error
+                    return 0;
                 }
             }
 
@@ -754,78 +627,10 @@
                 return results;
             }
 
-            function preAnalyzeMemberData(memberId) {
-                const memberData = allMembersFullData[memberId];
-                if (!memberData || !memberData.transactions) return null;
-
-                const transactions = Object.values(memberData.transactions)
-                    .filter(tx => tx.Date)
-                    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-                if (transactions.length === 0) return { summary: aggregateMemberData(memberData) };
-
-                const today = new Date();
-                const formatDate = (dateStr) => {
-                    const d = new Date(dateStr);
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const year = d.getFullYear();
-                    return `${day}-${month}-${year}`;
-                };
-                const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24)));
-
-                const sipPayments = transactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
-                const loanPayments = transactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
-                const loansTaken = transactions.filter(t => (parseFloat(t.Loan) || 0) > 0);
-                const returnsReceived = transactions.filter(t => (parseFloat(t['Return amount']) || 0) > 0);
-
-                let highestSip = null;
-                if (sipPayments.length > 0) {
-                    const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]);
-                    highestSip = { amount: parseFloat(topSip['SIP Payment']), date: formatDate(topSip.Date) };
-                }
-
-                let firstSip = null;
-                if (sipPayments.length > 0) {
-                    firstSip = { amount: parseFloat(sipPayments[0]['SIP Payment']), date: formatDate(sipPayments[0].Date) };
-                }
-                
-                let recentLoanPayment = null;
-                if (loanPayments.length > 0) {
-                    const lastLoanPayment = loanPayments[loanPayments.length - 1];
-                    recentLoanPayment = { amount: parseFloat(lastLoanPayment['Loan Payment']), date: formatDate(lastLoanPayment.Date) };
-                }
-                
-                let firstLoan = null;
-                if (loansTaken.length > 0) {
-                    const firstLoanTx = loansTaken[0];
-                    firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) };
-                }
-
-                let totalReturnBreakdown = null;
-                if (returnsReceived.length > 0) {
-                    totalReturnBreakdown = {
-                        total: returnsReceived.reduce((sum, t) => sum + (parseFloat(t['Return amount']) || 0), 0),
-                        breakdown: returnsReceived.map(t => ({ amount: parseFloat(t['Return amount']), date: formatDate(t.Date) }))
-                    };
-                }
-
-                return {
-                    summary: aggregateMemberData(memberData),
-                    highestSip,
-                    firstSip,
-                    recentLoanPayment,
-                    firstLoan,
-                    totalReturnBreakdown
-                };
-            }
-
-
             // --- Global Functions & Event Listeners ---
             window.chatbot = {
                 activateLockMode: (member) => { 
                     lockMode = { active: true, member }; 
-                    preAnalyzedCache = preAnalyzeMemberData(member.id);
                     lockedMemberNameEl.textContent = `Focused on ${member.name}`; 
                     lockBanner.classList.remove('hidden'); 
                     appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude sawaal puch sakte hain.`, "bot"); 
@@ -834,7 +639,6 @@
                 deactivateLockMode: () => { 
                     appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); 
                     lockMode = { active: false, member: null }; 
-                    preAnalyzedCache = null;
                     lockBanner.classList.add('hidden'); 
                     showDefaultSuggestions(); 
                 },
@@ -915,7 +719,6 @@
             
             async function callGemini(prompt) {
                 try {
-                    // UPDATED: Pointing to the single, robust API endpoint
                     const response = await fetch('/api/getAiExplanation', { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
