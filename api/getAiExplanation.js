@@ -1,70 +1,91 @@
-// api/getAiExplanation.js
-// This is a simplified and more robust version to ensure stability.
-// It uses the primary API key and provides clearer error messages.
+// File: /api/getAiExplanation.js
+// Yeh aapke Vercel project ke liye updated serverless function hai.
 
-export default async function handler(request, response) {
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Method Not Allowed' });
+// Yahan Vercel Environment Variables se aapki saari API keys aa jayengi.
+const API_KEYS = [
+  process.env.GEMINI_API_KEY_1,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+].filter(key => key); // Yeh kisi bhi undefined key ko hata dega.
+
+let currentKeyIndex = 0;
+
+// Yeh function har baar agli key deta hai.
+function getNextApiKey() {
+  if (API_KEYS.length === 0) {
+    throw new Error("Vercel environment variables mein koi bhi Gemini API key nahi mili.");
+  }
+  // Abhi wali key lo
+  const key = API_K[currentKeyIndex];
+  // Agli request ke liye index badha do
+  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  return key;
+}
+
+export default async function handler(req, res) {
+  // Kisi bhi origin se request allow karo (CORS)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // CORS ke liye preflight request handle karo
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    // Step 1: Securely get the PRIMARY API Key from Vercel Environment Variables.
-    const geminiApiKey = process.env.GEMINI_API_KEY_1;
-    
-    if (!geminiApiKey) {
-      // This error will show if the key is not set in Vercel.
-      throw new Error('GEMINI_API_KEY_1 Vercel mein set nahi hai.');
-    }
-
-    // Step 2: Get the prompt from the frontend.
-    const { promptText } = request.body;
+    const { promptText } = req.body;
     if (!promptText) {
-      return response.status(400).json({ error: 'Prompt text is required.' });
+      return res.status(400).json({ error: 'promptText zaroori hai' });
     }
 
-    // Step 3: Prepare the API call to Gemini.
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+    // Agli available API key lo
+    const apiKey = getNextApiKey();
+    
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+
     const payload = {
       contents: [{
-        parts: [{ text: promptText }]
-      }]
+        parts: [{
+          text: promptText,
+        }],
+      }],
+       "generationConfig": {
+        "temperature": 0.7,
+        "topK": 1,
+        "topP": 1,
+        "maxOutputTokens": 2048,
+      },
     };
 
-    // Step 4: Call the Gemini API.
-    const geminiResponse = await fetch(API_URL, {
+    const apiResponse = await fetch(GEMINI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
 
-    // Step 5: Handle potential errors from the Gemini API itself.
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.json();
-      console.error("Gemini API Error:", errorData);
-      const errorMessage = errorData.error?.message || 'Unknown API error';
-      // This will send a specific error like "API key not valid" to the frontend.
-      throw new Error(`Gemini API request failed: ${errorMessage}`);
+    if (!apiResponse.ok) {
+      const errorBody = await apiResponse.text();
+      console.error('Gemini API Error:', errorBody);
+      throw new Error(`Gemini API ne status ${apiResponse.status} ke saath jawab diya`);
     }
 
-    const data = await geminiResponse.json();
+    const data = await apiResponse.json();
+    
+    // Response se text nikalo
+    const explanation = data.candidates[0]?.content?.parts[0]?.text || 'Jawab mein koi text nahi mila.';
 
-    // Step 6: Extract and send the successful response.
-    if (data.candidates && data.candidates[0]?.content.parts[0]?.text) {
-      const explanation = data.candidates[0].content.parts[0].text;
-      return response.status(200).json({ explanation });
-    } else {
-      // Handle cases where the response might be blocked for safety reasons.
-      const reason = data.promptFeedback?.blockReason || data.candidates?.[0]?.finishReason || 'Unknown';
-      throw new Error(`AI se koi valid response nahi mila. Karan: ${reason}`);
-    }
+    res.status(200).json({ explanation });
 
   } catch (error) {
-    // This is the final catch-all for any server-side error.
-    console.error('AI Backend Error:', error);
-    response.status(500).json({ 
-        error: 'Server par AI request fail ho gayi.', 
-        details: error.message // This will show the specific error reason.
-    });
+    console.error('getAiExplanation function mein error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
   }
 }
 
