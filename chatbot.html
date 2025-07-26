@@ -126,29 +126,21 @@
         // --- Step 1: Authentication & Initialization ---
         async function checkAuthAndInitialize() {
             try {
-                // Fetch Firebase config securely from the Vercel serverless function
                 const response = await fetch('/api/config');
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`Configuration failed to load: ${errorText}`);
                 }
                 const config = await response.json();
-                
-                // Initialize Firebase with the fetched config
                 firebase.initializeApp(config.firebase);
-
-                // Listen for authentication state changes
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        // If user is logged in, run the main chatbot application
                         runChatbotLogic();
                     } else {
-                        // If user is not logged in, redirect to the login page
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
                 });
             } catch (error) {
-                // Display an error message if initialization fails
                 document.getElementById('chat').innerHTML = `<div class="p-4 text-red-600 text-center">Application failed to initialize: ${error.message}</div>`;
             }
         }
@@ -197,7 +189,6 @@
                         const faqsData = faqsSnapshot.val();
                         for(const key in faqsData) { if(faqsData[key].questions && faqsData[key].answer) { cachedFaqs.push(faqsData[key]); } }
                     } else {
-                        // Mock FAQs if none are found in the database
                         const mockFaqs = [
                             { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है।" },
                             { questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
@@ -256,8 +247,8 @@
                     return;
                 }
                 
-                // **NEW**: First, try to answer using the internal calculator
-                const analyticalAnswer = analyzeAndAnswerWithCalculator(query, preAnalyzedCache, member.name);
+                // **NEW SUPER CALCULATOR**: First, try to answer using the internal calculator
+                const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
 
                 if (analyticalAnswer) {
                     await typeMessage(analyticalAnswer.text, "bot");
@@ -474,14 +465,69 @@
 
             // --- Utility & Helper Functions ---
             
-            // **NEW**: The smart calculator and analytical engine
-            function analyzeAndAnswerWithCalculator(query, cache, memberName) {
+            // **NEW**: The Super Calculator Engine
+            function superCalculator(query, cache, memberName) {
                 const lowerQuery = query.toLowerCase();
-                const s = cache.summary; // shortcut to summary data
+                const s = cache.summary;
+                const tx = cache.transactions;
                 let text = null;
                 let chartData = null;
 
-                // Keyword patterns for direct calculations
+                const formatDate = (dateStr) => {
+                    const d = new Date(dateStr);
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    return `${day}-${month}-${year}`;
+                };
+
+                // Pattern for "first/last N items" e.g., "first 6 sip", "last 3 loan"
+                const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment)/);
+                if (rangeMatch) {
+                    const direction = rangeMatch[1];
+                    const count = parseInt(rangeMatch[2], 10);
+                    const type = rangeMatch[3];
+
+                    let relevantTxs = [];
+                    let field = '';
+                    let typeName = '';
+
+                    if (type === 'sip') {
+                        relevantTxs = tx.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
+                        field = 'SIP Payment';
+                        typeName = 'SIP भुगतान';
+                    } else if (type === 'loan') {
+                        relevantTxs = tx.filter(t => (parseFloat(t.Loan) || 0) > 0);
+                        field = 'Loan';
+                        typeName = 'लोन';
+                    } else if (type === 'return') {
+                        relevantTxs = tx.filter(t => (parseFloat(t['Return amount']) || 0) > 0);
+                        field = 'Return amount';
+                        typeName = 'रिटर्न';
+                    } else if (type === 'payment') {
+                         relevantTxs = tx.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
+                        field = 'Loan Payment';
+                        typeName = 'लोन भुगतान';
+                    }
+
+                    if (relevantTxs.length > 0) {
+                        const sortedTxs = [...relevantTxs].sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                        const selectedTxs = direction.startsWith('first') || direction.startsWith('pehla')
+                            ? sortedTxs.slice(0, count)
+                            : sortedTxs.slice(-count);
+
+                        if (selectedTxs.length > 0) {
+                            const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0);
+                            let responseLines = selectedTxs.map(t => `* ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`);
+                            text = `${direction === 'first' || direction === 'pehla' ? 'पहले' : 'आखिरी'} ${selectedTxs.length} ${typeName} का कुल योग ₹${total.toLocaleString('en-IN')} है। विवरण इस प्रकार है:\n${responseLines.join('\n')}`;
+                            return { text, chartData: null };
+                        }
+                    }
+                    text = `आपके कोई ${typeName} नहीं मिले।`;
+                    return { text, chartData: null };
+                }
+
+                // General summary queries
                 if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
                     text = `${memberName} जी, आपके कुल SIP का योग ₹${s.totalSIP.toLocaleString('en-IN')} है।`;
                     const topData = findTopContributors();
@@ -686,13 +732,13 @@
 
             function preAnalyzeMemberData(memberId) {
                 const memberData = allMembersFullData[memberId];
-                if (!memberData || !memberData.transactions) return null;
+                if (!memberData) return null;
 
-                const transactions = Object.values(memberData.transactions)
-                    .filter(tx => tx.Date)
-                    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-                if (transactions.length === 0) return { summary: aggregateMemberData(memberData) };
+                const transactions = memberData.transactions ? Object.values(memberData.transactions).filter(tx => tx.Date) : [];
+                
+                if (transactions.length === 0) {
+                    return { summary: aggregateMemberData(memberData), transactions: [] };
+                }
 
                 const today = new Date();
                 const formatDate = (dateStr) => {
@@ -704,9 +750,11 @@
                 };
                 const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24)));
 
-                const sipPayments = transactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
-                const loanPayments = transactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
-                const loansTaken = transactions.filter(t => (parseFloat(t.Loan) || 0) > 0);
+                const sortedTransactions = [...transactions].sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+                const sipPayments = sortedTransactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
+                const loanPayments = sortedTransactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
+                const loansTaken = sortedTransactions.filter(t => (parseFloat(t.Loan) || 0) > 0);
                 
                 let highestSip = null;
                 if (sipPayments.length > 0) {
@@ -733,6 +781,7 @@
 
                 return {
                     summary: aggregateMemberData(memberData),
+                    transactions: sortedTransactions, // Store all sorted transactions for the calculator
                     highestSip, firstSip, recentLoanPayment, firstLoan
                 };
             }
@@ -832,7 +881,6 @@
             
             async function callGemini(prompt) {
                 try {
-                    // Use the secure Vercel endpoint to call the Gemini API
                     const response = await fetch('/api/getAiExplanation', { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
