@@ -185,6 +185,13 @@
                     if (faqsSnapshot.exists()) {
                         const faqsData = faqsSnapshot.val();
                         for(const key in faqsData) { if(faqsData[key].questions && faqsData[key].answer) { cachedFaqs.push(faqsData[key]); } }
+                    } else {
+                        const mockFaqs = [
+                            { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है।" },
+                            { questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
+                            { questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है।" }
+                        ];
+                        cachedFaqs = mockFaqs;
                     }
 
                     typing.remove();
@@ -243,7 +250,7 @@
                 if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
                     responseText = `${member.name} जी, आपके कुल SIP का योग ₹${preAnalyzedCache.summary.totalSIP.toLocaleString('en-IN')} है।`;
                     await typeMessage(responseText, "bot");
-                    const topData = findTopContributors(new Date());
+                    const topData = findTopContributors();
                     const chartData = { totalValue: calculateAllTimeTotals().sip, currentUser: { name: member.name, value: preAnalyzedCache.summary.totalSIP }, topUser: topData.totalSipUser };
                     renderComparisonChart(chartData, 'totalSip');
                     return;
@@ -255,7 +262,7 @@
                         responseText += ` जिसमें से अभी ₹${preAnalyzedCache.summary.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
                     }
                     await typeMessage(responseText, "bot");
-                    const topData = findTopContributors(new Date());
+                    const topData = findTopContributors();
                     const chartData = { totalValue: calculateAllTimeTotals().loan, currentUser: { name: member.name, value: preAnalyzedCache.summary.totalLoan }, topUser: topData.totalLoanUser };
                     renderComparisonChart(chartData, 'totalLoan');
                     return;
@@ -263,13 +270,11 @@
                 
                 if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) {
                     const data = preAnalyzedCache.totalReturnBreakdown;
-                    if (data && data.total > 0) {
-                        responseText = `आपको प्राप्त कुल रिटर्न अमाउंट ₹${data.total.toLocaleString('en-IN')} है। यह रिटर्न ${data.breakdown.length} अलग-अलग तारीखों पर मिला है: ${data.breakdown.map(item => `${item.date} (₹${item.amount})`).join(', ')}।`;
-                    } else {
-                        responseText = "आपको अभी तक कोई रिटर्न नहीं मिला है।";
-                    }
+                    responseText = (data && data.total > 0)
+                        ? `आपको प्राप्त कुल रिटर्न अमाउंट ₹${data.total.toLocaleString('en-IN')} है। यह रिटर्न ${data.breakdown.length} अलग-अलग तारीखों पर मिला है: ${data.breakdown.map(item => `${item.date} (₹${item.amount})`).join(', ')}।`
+                        : "आपको अभी तक कोई रिटर्न नहीं मिला है।";
                     await typeMessage(responseText, "bot");
-                    const topData = findTopContributors(new Date());
+                    const topData = findTopContributors();
                     const chartData = { totalValue: calculateAllTimeTotals().return, currentUser: { name: member.name, value: preAnalyzedCache.summary.totalReturn }, topUser: topData.totalReturnUser };
                     renderComparisonChart(chartData, 'totalReturn');
                     return;
@@ -514,7 +519,7 @@
 
             function showDefaultSuggestions() {
                 suggestionsBox.innerHTML = '';
-                const suggestions = ['बैंक कम्युनिटी लोन क्या है?', 'SIP कब जमा करना होता है?', 'Capital Kings कौन हैं?'];
+                const suggestions = ['बैंक कम्युनिटी लोन क्या है?', 'SIP kab jama karna hota hai?', 'Capital Kings कौन हैं?'];
                 suggestions.forEach(text => {
                     const pill = createSuggestionPill(text, 'faq');
                     suggestionsBox.appendChild(pill);
@@ -810,10 +815,10 @@
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'),
             };
             
-            // --- UPDATED: callGemini with enhanced error handling ---
             async function callGemini(prompt) {
                 try {
-                    const response = await fetch('/api/chatbotAI', { 
+                    // UPDATED: Pointing to the single, robust API endpoint
+                    const response = await fetch('/api/getAiExplanation', { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
                         body: JSON.stringify({ promptText: prompt }) 
@@ -826,7 +831,7 @@
                         
                         console.error("AI Backend Error:", statusCode, statusText, errorData); 
                         
-                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode} ${statusText})`; 
+                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
                     }
 
                     const data = await response.json();
