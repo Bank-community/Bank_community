@@ -240,7 +240,7 @@
             async function processLockedQuery(query, member) {
                 const typing = appendRichMessage("...", "bot typing");
                 
-                const prompt = `**PRIMARY DIRECTIVE: You are a Natural Language Understanding AI. Your ONLY job is to analyze the user's query and the available data fields, then return a JSON object describing the user's intent. DO NOT answer the user directly.**
+                const prompt = `**PRIMARY DIRECTIVE: You are a Natural Language Understanding AI. Your ONLY job is to analyze the user's query and the available data fields, then return a JSON object describing the user's intent. DO NOT answer the user directly. ALWAYS return ONLY the JSON object.**
 
                 **Available Data Fields:**
                 * "SIP Payment"
@@ -278,9 +278,17 @@
 
                 **User's Query:** "${query}"`;
                 
+                let aiResponseText = '';
                 try {
-                    const aiResponse = await callGemini(prompt);
-                    const intent = JSON.parse(aiResponse);
+                    aiResponseText = await callGemini(prompt);
+                    
+                    // ** ROBUST JSON EXTRACTION **
+                    const jsonMatch = aiResponseText.match(/{[\s\S]*}/);
+                    if (!jsonMatch) {
+                        throw new Error("AI response did not contain valid JSON.");
+                    }
+                    const jsonString = jsonMatch[0];
+                    const intent = JSON.parse(jsonString);
                     
                     typing.remove();
                     
@@ -331,7 +339,6 @@
                         
                         await typeMessage(responseText, 'bot');
 
-                        // Re-integrated Graph System for 'all' filter
                         if (filter.type === 'all') {
                             const topData = findTopContributors();
                             let chartData;
@@ -355,7 +362,7 @@
                     }
 
                 } catch (e) {
-                    console.error("Error processing locked query:", e);
+                    console.error("Error processing locked query:", e, "| AI Response was:", aiResponseText);
                     typing.remove();
                     await typeMessage("Kuch takneeki samasya aa gayi hai. Kripya fir se koshish karein.", 'bot');
                 }
@@ -807,17 +814,15 @@
                         
                         console.error("AI Backend Error:", statusCode, statusText, errorData); 
                         
-                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
+                        return `{"action": "error", "error_message": "AI se jawaab nahi mil pa raha hai. (Error: ${statusCode})"}`; 
                     }
 
                     const data = await response.json();
-                    // Clean the response to ensure it's valid JSON
-                    let cleanedResponse = data.explanation.replace(/```json/g, '').replace(/```/g, '').trim();
-                    return cleanedResponse;
+                    return data.explanation;
 
                 } catch (e) { 
                     console.error("Network error calling AI backend:", e); 
-                    return JSON.stringify({ action: 'error', error_message: "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein." }); 
+                    return `{"action": "error", "error_message": "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein."}`; 
                 }
             }
 
