@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
     
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs - Version 8 for compatibility with existing DB structure -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -52,7 +52,6 @@
         
         .capital-king-card { border-left: 4px solid; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        .gold { border-color: #ffd700; } .silver { border-color: #c0c0c0; } .bronze { border-color: #cd7f32; }
 
         .modal { display: none; } .modal.active { display: flex; }
         .modal-content { animation: fadeIn 0.3s; }
@@ -124,25 +123,37 @@
 
 
     <script>
-        // --- Authentication & Initialization ---
+        // --- Step 1: Authentication & Initialization ---
         async function checkAuthAndInitialize() {
             try {
+                // Fetch Firebase config securely from the Vercel serverless function
                 const response = await fetch('/api/config');
-                if (!response.ok) throw new Error('Configuration failed to load.');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Configuration failed to load: ${errorText}`);
+                }
                 const config = await response.json();
+                
+                // Initialize Firebase with the fetched config
                 firebase.initializeApp(config.firebase);
+
+                // Listen for authentication state changes
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
+                        // If user is logged in, run the main chatbot application
                         runChatbotLogic();
                     } else {
+                        // If user is not logged in, redirect to the login page
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
                 });
             } catch (error) {
+                // Display an error message if initialization fails
                 document.getElementById('chat').innerHTML = `<div class="p-4 text-red-600 text-center">Application failed to initialize: ${error.message}</div>`;
             }
         }
 
+        // --- Step 2: Main Application Logic ---
         function runChatbotLogic() {
             const database = firebase.database();
             const faqsRef = database.ref('admin/faqs');
@@ -186,6 +197,7 @@
                         const faqsData = faqsSnapshot.val();
                         for(const key in faqsData) { if(faqsData[key].questions && faqsData[key].answer) { cachedFaqs.push(faqsData[key]); } }
                     } else {
+                        // Mock FAQs if none are found in the database
                         const mockFaqs = [
                             { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है।" },
                             { questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
@@ -244,61 +256,19 @@
                     return;
                 }
                 
-                const lowerQuery = query.toLowerCase();
-                let responseText = null;
+                // **NEW**: First, try to answer using the internal calculator
+                const analyticalAnswer = analyzeAndAnswerWithCalculator(query, preAnalyzedCache, member.name);
 
-                if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
-                    responseText = `${member.name} जी, आपके कुल SIP का योग ₹${preAnalyzedCache.summary.totalSIP.toLocaleString('en-IN')} है।`;
-                    await typeMessage(responseText, "bot");
-                    const topData = findTopContributors();
-                    const chartData = { totalValue: calculateAllTimeTotals().sip, currentUser: { name: member.name, value: preAnalyzedCache.summary.totalSIP }, topUser: topData.totalSipUser };
-                    renderComparisonChart(chartData, 'totalSip');
-                    return;
-                }
-
-                if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) {
-                    responseText = `${member.name} जी, आपने अब तक कुल ₹${preAnalyzedCache.summary.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
-                    if (preAnalyzedCache.summary.netLoanOutstanding > 0) {
-                        responseText += ` जिसमें से अभी ₹${preAnalyzedCache.summary.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`;
+                if (analyticalAnswer) {
+                    await typeMessage(analyticalAnswer.text, "bot");
+                    // If a chart is suggested by the calculator, render it
+                    if (analyticalAnswer.chartData) {
+                        renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
                     }
-                    await typeMessage(responseText, "bot");
-                    const topData = findTopContributors();
-                    const chartData = { totalValue: calculateAllTimeTotals().loan, currentUser: { name: member.name, value: preAnalyzedCache.summary.totalLoan }, topUser: topData.totalLoanUser };
-                    renderComparisonChart(chartData, 'totalLoan');
-                    return;
-                }
-                
-                if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) {
-                    const data = preAnalyzedCache.totalReturnBreakdown;
-                    responseText = (data && data.total > 0)
-                        ? `आपको प्राप्त कुल रिटर्न अमाउंट ₹${data.total.toLocaleString('en-IN')} है। यह रिटर्न ${data.breakdown.length} अलग-अलग तारीखों पर मिला है: ${data.breakdown.map(item => `${item.date} (₹${item.amount})`).join(', ')}।`
-                        : "आपको अभी तक कोई रिटर्न नहीं मिला है।";
-                    await typeMessage(responseText, "bot");
-                    const topData = findTopContributors();
-                    const chartData = { totalValue: calculateAllTimeTotals().return, currentUser: { name: member.name, value: preAnalyzedCache.summary.totalReturn }, topUser: topData.totalReturnUser };
-                    renderComparisonChart(chartData, 'totalReturn');
                     return;
                 }
 
-                if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
-                    const data = preAnalyzedCache.highestSip;
-                    responseText = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) {
-                    const data = preAnalyzedCache.firstSip;
-                    responseText = data ? `आपका पहला SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) {
-                    const data = preAnalyzedCache.recentLoanPayment;
-                    responseText = data ? `आपका हाल ही का लोन पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके लोन पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) {
-                    const data = preAnalyzedCache.firstLoan;
-                    responseText = data ? `आपने अपना पहला लोन (${data.daysAgo} दिन पहले) ${data.date} को ₹${data.amount.toLocaleString('en-IN')} का लिया था।` : "आपके लोन लेने का कोई रिकॉर्ड नहीं मिला।";
-                }
-
-                if (responseText) {
-                    await typeMessage(responseText, "bot");
-                    return;
-                }
-
+                // **FALLBACK**: If calculator can't answer, use Gemini for complex queries
                 const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
                 const prompt = `**ABSOLUTE PRIMARY DIRECTIVE: Your ONLY purpose is to answer questions about the financial data of a bank community member named ${member.name}.**
 
@@ -503,6 +473,62 @@
             }
 
             // --- Utility & Helper Functions ---
+            
+            // **NEW**: The smart calculator and analytical engine
+            function analyzeAndAnswerWithCalculator(query, cache, memberName) {
+                const lowerQuery = query.toLowerCase();
+                const s = cache.summary; // shortcut to summary data
+                let text = null;
+                let chartData = null;
+
+                // Keyword patterns for direct calculations
+                if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
+                    text = `${memberName} जी, आपके कुल SIP का योग ₹${s.totalSIP.toLocaleString('en-IN')} है।`;
+                    const topData = findTopContributors();
+                    chartData = { type: 'totalSip', data: { totalValue: calculateAllTimeTotals().sip, currentUser: { name: memberName, value: s.totalSIP }, topUser: topData.totalSipUser } };
+                } else if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) {
+                    text = `${memberName} जी, आपने अब तक कुल ₹${s.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
+                    if (s.netLoanOutstanding > 0) { text += ` जिसमें से अभी ₹${s.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`; }
+                    const topData = findTopContributors();
+                    chartData = { type: 'totalLoan', data: { totalValue: calculateAllTimeTotals().loan, currentUser: { name: memberName, value: s.totalLoan }, topUser: topData.totalLoanUser } };
+                } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) {
+                    text = `${memberName} जी, आपको अब तक कुल ₹${s.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है।`;
+                    const topData = findTopContributors();
+                    chartData = { type: 'totalReturn', data: { totalValue: calculateAllTimeTotals().return, currentUser: { name: memberName, value: s.totalReturn }, topUser: topData.totalReturnUser } };
+                } else if (lowerQuery.includes('outstanding') || lowerQuery.includes('bakaya')) {
+                    text = s.netLoanOutstanding > 0 ? `${memberName} जी, आपका कुल बकाया लोन ₹${s.netLoanOutstanding.toLocaleString('en-IN')} है।` : `${memberName} जी, आपका कोई लोन बकाया नहीं है।`;
+                } else if (lowerQuery.includes('net balance') || lowerQuery.includes('kul balance')) {
+                    text = `${memberName} जी, आपका नेट बैलेंस (कुल जमा - कुल निकासी) ₹${s.netBalance.toLocaleString('en-IN')} है।`;
+                } else if (lowerQuery.includes('total deposit') || lowerQuery.includes('kul jama')) {
+                    text = `${memberName} जी, आपकी कुल जमा राशि (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} है।`;
+                } else if (lowerQuery.includes('total withdrawal') || lowerQuery.includes('kul nikasi')) {
+                    text = `${memberName} जी, आपकी कुल निकासी (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} है।`;
+                } else if (lowerQuery.match(/loan.*?sip.*?antar|difference/)) {
+                    const diff = Math.abs(s.totalSIP - s.totalLoan);
+                    text = `आपके कुल SIP (₹${s.totalSIP.toLocaleString('en-IN')}) और कुल लोन (₹${s.totalLoan.toLocaleString('en-IN')}) के बीच का अंतर ₹${diff.toLocaleString('en-IN')} है।`;
+                } else if (lowerQuery.match(/jama.*?nikasi.*?antar|difference/)) {
+                    const diff = Math.abs(s.totalDeposits - s.totalWithdrawals);
+                    text = `आपकी कुल जमा (₹${s.totalDeposits.toLocaleString('en-IN')}) और कुल निकासी (₹${s.totalWithdrawals.toLocaleString('en-IN')}) के बीच का अंतर ₹${diff.toLocaleString('en-IN')} है।`;
+                } else if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
+                    const data = cache.highestSip;
+                    text = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) {
+                    const data = cache.firstSip;
+                    text = data ? `आपका पहला SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) {
+                    const data = cache.recentLoanPayment;
+                    text = data ? `आपका हाल ही का लोन पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके लोन पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) {
+                    const data = cache.firstLoan;
+                    text = data ? `आपने अपना पहला लोन (${data.daysAgo} दिन पहले) ${data.date} को ₹${data.amount.toLocaleString('en-IN')} का लिया था।` : "आपके लोन लेने का कोई रिकॉर्ड नहीं मिला।";
+                }
+
+                if (text) {
+                    return { text, chartData }; // Return the calculated answer
+                }
+                return null; // Return null if no direct calculation was found
+            }
+
             function createSuggestionPill(text, type) {
                 const pill = document.createElement('button');
                 pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm';
@@ -599,6 +625,7 @@
                     signatureUrl: data.signatureUrl, 
                     joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), 
                     totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, 
+                    totalDeposits, totalWithdrawals,
                     netBalance: totalDeposits - totalWithdrawals, 
                     netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), 
                     sipStatus 
@@ -613,6 +640,7 @@
                 
                 for (const memberId in allMembersFullData) {
                     const member = allMembersFullData[memberId];
+                    if(!member.fullName) continue;
                     const summary = aggregateMemberData(member);
                     if (summary.totalSIP > totalSipUser.value) totalSipUser = { name: member.fullName, value: summary.totalSIP };
                     if (summary.totalLoan > totalLoanUser.value) totalLoanUser = { name: member.fullName, value: summary.totalLoan };
@@ -628,7 +656,7 @@
                 if (!allMembersFullData) return [];
                 for (const memberId in allMembersFullData) {
                     const member = allMembersFullData[memberId];
-                    if (!member.transactions || !member.joiningDate) continue;
+                    if (!member.transactions || !member.joiningDate || !member.fullName) continue;
                     const finalCapital = aggregateMemberData(member).netBalance;
                     if (finalCapital <= 0) continue;
 
@@ -679,8 +707,7 @@
                 const sipPayments = transactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
                 const loanPayments = transactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
                 const loansTaken = transactions.filter(t => (parseFloat(t.Loan) || 0) > 0);
-                const returnsReceived = transactions.filter(t => (parseFloat(t['Return amount']) || 0) > 0);
-
+                
                 let highestSip = null;
                 if (sipPayments.length > 0) {
                     const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]);
@@ -704,21 +731,9 @@
                     firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) };
                 }
 
-                let totalReturnBreakdown = null;
-                if (returnsReceived.length > 0) {
-                    totalReturnBreakdown = {
-                        total: returnsReceived.reduce((sum, t) => sum + (parseFloat(t['Return amount']) || 0), 0),
-                        breakdown: returnsReceived.map(t => ({ amount: parseFloat(t['Return amount']), date: formatDate(t.Date) }))
-                    };
-                }
-
                 return {
                     summary: aggregateMemberData(memberData),
-                    highestSip,
-                    firstSip,
-                    recentLoanPayment,
-                    firstLoan,
-                    totalReturnBreakdown
+                    highestSip, firstSip, recentLoanPayment, firstLoan
                 };
             }
 
@@ -817,7 +832,7 @@
             
             async function callGemini(prompt) {
                 try {
-                    // UPDATED: Pointing to the single, robust API endpoint
+                    // Use the secure Vercel endpoint to call the Gemini API
                     const response = await fetch('/api/getAiExplanation', { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
@@ -828,9 +843,7 @@
                         const errorData = await response.json().catch(() => null);
                         const statusText = response.statusText;
                         const statusCode = response.status;
-                        
                         console.error("AI Backend Error:", statusCode, statusText, errorData); 
-                        
                         return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
                     }
 
