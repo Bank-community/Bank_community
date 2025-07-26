@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ultimate Lock-Mode Chatbot</title>
+    <title>Bank Jarvis - The Ultimate AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
     
-    <!-- Firebase SDKs - Version 8 for compatibility with existing DB structure -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -68,7 +68,7 @@
 
     <div class="chat-container flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-2xl">
         <header class="relative flex items-center justify-center p-4 bg-gray-800 text-white shadow-lg z-10">
-            <h1 class="text-xl font-bold tracking-wider">Ultimate Bank Commity Bot</h1>
+            <h1 class="text-xl font-bold tracking-wider">Bank Jarvis</h1>
         </header>
 
         <div id="lock-mode-banner" class="hidden flex items-center justify-between p-3 bg-yellow-100 border-b-2 border-yellow-300">
@@ -87,7 +87,7 @@
         <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
             <div id="suggestions" class="mb-2 flex flex-wrap gap-2"></div>
             <div class="relative">
-                <input type="text" id="input" class="w-full pl-4 pr-12 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Yahan apna sawaal likhein...">
+                <input type="text" id="input" class="w-full pl-4 pr-12 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Jarvis se apna sawaal likhein...">
                 <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110">
                     <i class="fas fa-paper-plane"></i>
                 </button>
@@ -96,8 +96,8 @@
     </div>
 
     <!-- Modals -->
-    <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center" onclick="window.chatbot.closeImageModal()">
-        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="window.chatbot.closeImageModal()">&times;</span>
+    <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center" onclick="window.jarvis.closeImageModal()">
+        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="window.jarvis.closeImageModal()">&times;</span>
         <img id="modalImageContent" class="max-w-[90%] max-h-[90%] rounded-lg">
     </div>
     
@@ -105,7 +105,7 @@
         <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">Capital Kings Ranking</h2>
-                <button onclick="window.chatbot.closeCapitalModal()" class="text-gray-500 text-2xl">&times;</button>
+                <button onclick="window.jarvis.closeCapitalModal()" class="text-gray-500 text-2xl">&times;</button>
             </div>
             <div id="capital-kings-list" class="space-y-3 overflow-y-auto"></div>
         </div>
@@ -115,7 +115,7 @@
         <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">Capital Score Analysis</h2>
-                <button onclick="window.chatbot.closeCapitalDetailModal()" class="text-gray-500 text-2xl">&times;</button>
+                <button onclick="window.jarvis.closeCapitalDetailModal()" class="text-gray-500 text-2xl">&times;</button>
             </div>
             <div id="capital-detail-content" class="overflow-y-auto"></div>
         </div>
@@ -124,6 +124,7 @@
 
     <script>
         // --- Step 1: Authentication & Initialization ---
+        // This function remains the same, ensuring robust security.
         async function checkAuthAndInitialize() {
             try {
                 const response = await fetch('/api/config');
@@ -135,7 +136,7 @@
                 firebase.initializeApp(config.firebase);
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        runChatbotLogic();
+                        runJarvisLogic(); // Renamed to reflect the new bot
                     } else {
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
@@ -146,7 +147,7 @@
         }
 
         // --- Step 2: Main Application Logic ---
-        function runChatbotLogic() {
+        function runJarvisLogic() {
             const database = firebase.database();
             const faqsRef = database.ref('admin/faqs');
             const membersRef = database.ref('members');
@@ -158,6 +159,7 @@
             let capitalKingsData = null; 
             let lockMode = { active: false, member: null };
             let preAnalyzedCache = null;
+            let chatHistory = []; // NEW: For conversational context
 
             const chatBox = document.getElementById('chat');
             const inputBox = document.getElementById('input');
@@ -168,7 +170,7 @@
             const unlockBtn = document.getElementById('unlock-btn');
 
             async function initializeBot() {
-                await typeMessage("नमस्ते! मैं आपका स्मार्ट बैंक असिस्टेंट हूँ।", "bot");
+                await typeMessage("Namaste! Main aapka smart financial assistant, Jarvis hoon.", "bot");
                 const typing = appendRichMessage("...", "bot typing");
                 try {
                     const [memberSnapshot, faqsSnapshot] = await Promise.all([ membersRef.once('value'), faqsRef.once('value') ]);
@@ -189,16 +191,16 @@
                         const faqsData = faqsSnapshot.val();
                         for(const key in faqsData) { if(faqsData[key].questions && faqsData[key].answer) { cachedFaqs.push(faqsData[key]); } }
                     } else {
-                        const mockFaqs = [
+                        // Mock FAQs if database is empty
+                        cachedFaqs = [
                             { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है।" },
                             { questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
                             { questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है।" }
                         ];
-                        cachedFaqs = mockFaqs;
                     }
 
                     typing.remove();
-                    await typeMessage("आप किसी सदस्य का नाम टाइप कर सकते हैं या कोई नियम पूछ सकते हैं।", "bot");
+                    await typeMessage("Aap kisi sadasya ka naam type kar sakte hain ya koi niyam pooch sakte hain.", "bot");
                     isBotInitialized = true;
                     showDefaultSuggestions();
 
@@ -207,14 +209,22 @@
             
             // --- Core Message Handling ---
             async function handleSend(simulatedQuery = null) {
-                if (!isBotInitialized) { await typeMessage("बॉट अभी शुरू हो रहा है, कृपया प्रतीक्षा करें...", "bot"); return; }
-                const query = simulatedQuery || inputBox.value.trim();
+                if (!isBotInitialized) { await typeMessage("Jarvis abhi shuru ho raha hai, kripya prateeksha karein...", "bot"); return; }
+                const query = (simulatedQuery || inputBox.value.trim()).replace(/^jarvis/i, '').trim();
                 if (!query) return;
-                appendRichMessage(query, "user");
+
+                appendRichMessage(inputBox.value.trim(), "user");
+                if (lockMode.active) {
+                    chatHistory.push({ role: 'user', parts: [{ text: query }]});
+                }
                 inputBox.value = '';
                 suggestionsBox.innerHTML = '';
-                if (lockMode.active) { await processLockedQuery(query, lockMode.member); } 
-                else { await processGeneralQuery(query); }
+                
+                if (lockMode.active) { 
+                    await processLockedQuery(query, lockMode.member); 
+                } else { 
+                    await processGeneralQuery(query); 
+                }
             }
 
             async function processGeneralQuery(query) {
@@ -229,61 +239,72 @@
                 if (matchingMembers.length === 1 && !query.match(/list|sabhi|all/i)) {
                     await displayMemberDetails(matchingMembers[0].id);
                 } else if (matchingMembers.length > 1) {
-                    await typeMessage("मुझे इस नाम से मिलते-जुलते कई सदस्य मिले। आप किसके बारे में जानना चाहते हैं?", "bot");
+                    await typeMessage("Mujhe is naam se milte-julte kai sadasya mile. Aap kiske baare mein janna chahte hain?", "bot");
                     matchingMembers.forEach(m => appendMemberClarification(m));
                 } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
                     await typeMessage(topFaq.answer, "bot");
                     showPostAnswerSuggestions(topFaq);
                 } else {
-                    await typeMessage(`माफ़ कीजिए, मैं केवल बैंक कम्युनिटी से जुड़े सवालों का जवाब दे सकता हूँ।`, "bot");
+                    await typeMessage(`Maaf kijiye, main keval bank community se jude sawalon ka jawab de sakta hoon.`, "bot");
                     showDefaultSuggestions();
                 }
             }
 
             async function processLockedQuery(query, member) {
-                if (!preAnalyzedCache) {
-                    await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
-                    return;
-                }
-                
-                // **NEW SUPER CALCULATOR**: First, try to answer using the internal calculator
-                const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
-
-                if (analyticalAnswer) {
-                    await typeMessage(analyticalAnswer.text, "bot");
-                    // If a chart is suggested by the calculator, render it
-                    if (analyticalAnswer.chartData) {
-                        renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
+                const typing = appendRichMessage("...", "bot typing");
+                try {
+                    if (!preAnalyzedCache) {
+                        await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
+                        return;
                     }
-                    return;
+                    
+                    // **PRIORITY 1: SUPER CALCULATOR**
+                    // The calculator attempts to provide a direct, 100% accurate answer first.
+                    const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
+
+                    if (analyticalAnswer) {
+                        await typeMessage(analyticalAnswer.text, "bot", analyticalAnswer.text);
+                        // If a chart is suggested by the calculator, render it.
+                        if (analyticalAnswer.chartData) {
+                            renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
+                        }
+                        return;
+                    }
+
+                    // **PRIORITY 2: GEMINI AI (for conversational queries)**
+                    // If the calculator can't answer, it's a job for the AI.
+                    const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
+                    
+                    // The new, more detailed prompt for Jarvis
+                    const prompt = `You are Jarvis, a super-intelligent financial AI assistant for a bank community. Your current focus is solely on a member named **${member.name}**.
+
+                    **PRIMARY DIRECTIVE:** Your main role is to ANALYZE financial data and EXPLAIN it in simple, conversational Hinglish. You are NOT a calculator. All calculations are pre-computed. Your job is to present the information clearly.
+
+                    **CRITICAL RULES:**
+                    1.  **Scope:** ONLY answer questions related to the provided "MEMBER'S TRANSACTION HISTORY". If the user asks about anything else (general knowledge, small talk, etc.), you MUST respond with EXACTLY this sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
+                    2.  **Language & Formatting:**
+                        * Respond in simple, helpful Hinglish.
+                        * ALWAYS use numerals (e.g., 1500, 2000) for numbers. NEVER write them in words (e.g., "पंद्रह सौ").
+                        * Format dates as DD-MM-YYYY.
+                    3.  **Context is Key:** The "CONVERSATION HISTORY" provides the last few messages. Use it to understand follow-up questions. For example, if the user asks "why?", refer to the previous answer to understand what "why" is about.
+
+                    **CONVERSATION HISTORY (for context):**
+                    ${JSON.stringify(chatHistory.slice(-4))}
+
+                    **MEMBER'S ENTIRE TRANSACTION HISTORY (for analysis):**
+                    \`\`\`json
+                    ${JSON.stringify(transactions, null, 2)}
+                    \`\`\`
+
+                    **User's Current Query:** "${query}"`;
+                    
+                    const aiResponse = await callGemini(prompt);
+                    await typeMessage(aiResponse, "bot", aiResponse);
+
+                } finally {
+                    typing.remove();
                 }
-
-                // **FALLBACK**: If calculator can't answer, use Gemini for complex queries
-                const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
-                const prompt = `**ABSOLUTE PRIMARY DIRECTIVE: Your ONLY purpose is to answer questions about the financial data of a bank community member named ${member.name}.**
-
-                **CRITICAL RULE #1:** First, analyze the "User's Query". Can this question be answered using the provided "MEMBER'S TRANSACTION HISTORY"?
-                * If **NO**, or if the user is making small talk or asking a general knowledge question, you MUST ignore all other instructions and respond with **ONLY** this exact sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
-                * If **YES**, proceed to the analysis instructions below.
-
-                **Analysis Instructions (Only if Rule #1 is passed):**
-                You are a genius-level financial analyst AI. Your primary skill is to analyze a user's raw transaction history and answer any complex, conversational question about it with 100% accuracy. You must be helpful and respond in simple Hindi.
-                * To find the 'highest' or 'sabse jyada' of anything (e.g., SIP), iterate through all transactions, find the maximum value for that field, and state the amount and its 'Date'.
-                * To find the 'first' or 'pehla' of anything, sort transactions by 'Date' ascending and pick the first relevant one.
-                * To find the 'recent' or 'aakhiri' of anything, sort transactions by 'Date' descending and pick the first relevant one.
-                * To calculate 'days since', find the relevant transaction and calculate the days between its 'Date' and today's date (${new Date().toISOString().split('T')[0]}).
-                * Always format dates as DD-MM-YYYY.
-
-                **MEMBER'S ENTIRE TRANSACTION HISTORY:**
-                \`\`\`json
-                ${JSON.stringify(transactions, null, 2)}
-                \`\`\`
-
-                **User's Query:** "${query}"`;
-                
-                const aiResponse = await callGemini(prompt);
-                await typeMessage(aiResponse, "bot");
             }
             
             // --- Response Rendering ---
@@ -291,7 +312,7 @@
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 content = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
-                content = content.replace(/(\d+[,.]?\d*%?)/g, '<strong>$1</strong>');
+                content = content.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>'); // Improved regex for numbers with commas
                 return content;
             }
 
@@ -317,8 +338,11 @@
                 return bubbleEl;
             }
 
-            function typeMessage(text, type) {
+            function typeMessage(text, type, rawTextForHistory = null) {
                 return new Promise(resolve => {
+                    if (type === 'bot' && rawTextForHistory) {
+                        chatHistory.push({ role: 'model', parts: [{ text: rawTextForHistory }] });
+                    }
                     const formattedText = formatBotAnswer(text);
                     const finalHtml = processLinks(formattedText.replace(/\n/g, '<br>'));
                     
@@ -348,9 +372,9 @@
 
             function appendMemberClarification(member) {
                 const html = `<p class="font-semibold">${member.name}</p>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="window.chatbot.displayMemberDetails('${member.id}')" class="bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110"><i class="fas fa-eye"></i></button>
-                        <button onclick="window.chatbot.activateLockMode({id: '${member.id}', name: '${member.name}'})" class="bg-gray-500 hover:bg-gray-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110"><i class="fas fa-lock"></i></button>
+                    <div class="flex items-center space-x-2 mt-2">
+                        <button onclick="window.jarvis.displayMemberDetails('${member.id}')" class="bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" title="View Details"><i class="fas fa-eye"></i></button>
+                        <button onclick="window.jarvis.activateLockMode({id: '${member.id}', name: '${member.name}'})" class="bg-gray-500 hover:bg-gray-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" title="Activate Lock Mode"><i class="fas fa-lock"></i></button>
                     </div>`;
                 const messageEl = document.createElement('div');
                 messageEl.className = 'message bg-white p-3 rounded-lg shadow-md flex items-center justify-between';
@@ -367,7 +391,7 @@
                 const data = aggregateMemberData(memberData);
                 const profileImageUrl = data.profilePicUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${data.name.charAt(0)}`;
                 const signatureImageUrl = data.signatureUrl || `https://placehold.co/150x75/E2E8F0/4A5568?text=No+Sign`;
-                const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-green-500 cursor-pointer" onclick="window.chatbot.openImageModal('${profileImageUrl}')"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${data.joinDate}</p></div></div><button onclick="window.chatbot.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-green-600 transition-transform hover:scale-125" title="Lock on this member"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.chatbot.openImageModal('${signatureImageUrl}')" alt="Signature"></div></div>`;
+                const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-green-500 cursor-pointer" onclick="window.jarvis.openImageModal('${profileImageUrl}')"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${data.joinDate}</p></div></div><button onclick="window.jarvis.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-green-600 transition-transform hover:scale-125" title="Lock on this member"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.jarvis.openImageModal('${signatureImageUrl}')" alt="Signature"></div></div>`;
                 appendRichMessage(cardHtml, "bot");
             }
             
@@ -427,17 +451,17 @@
                 const itemsToShow = showAll ? capitalKingsData : capitalKingsData.slice(0, 3);
                 
                 if (!showAll) {
-                    await typeMessage("पेश हैं हमारे Capital Kings - वो सदस्य जिन्होंने सबसे लंबे समय तक सबसे ज़्यादा पूँजी (capital) hold की है:", "bot");
+                    await typeMessage("Pesh hain hamare Capital Kings - wo sadasya jinhone sabse lambe samay tak sabse zyada poonji (capital) hold ki hai:", "bot");
                 }
 
                 const rankIcons = ['🥇', '🥈', '🥉'];
-                const rankColors = ['gold', 'silver', 'bronze'];
+                const rankColors = ['border-yellow-400', 'border-gray-400', 'border-orange-400'];
                 
                 const listContainer = showAll ? document.getElementById('capital-kings-list') : null;
                 if(listContainer) listContainer.innerHTML = '';
 
                 itemsToShow.forEach((member, index) => {
-                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || ''}" onclick="window.chatbot.openCapitalDetailModal(${index})">
+                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || 'border-gray-200'}" onclick="window.jarvis.openCapitalDetailModal(${index})">
                         <div class="flex items-center">
                             <span class="text-3xl mr-4">${rankIcons[index] || `#${index + 1}`}</span>
                             <div>
@@ -458,14 +482,16 @@
                 });
                 
                 if (!showAll && capitalKingsData.length > 3) {
-                    const viewMoreBtn = `<button onclick="window.chatbot.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View Full Ranking</button>`;
+                    const viewMoreBtn = `<button onclick="window.jarvis.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View Full Ranking</button>`;
                     appendRichMessage(viewMoreBtn, 'bot');
                 }
             }
 
             // --- Utility & Helper Functions ---
             
-            // **NEW**: The Super Calculator Engine
+            // **NEW & IMPROVED: The Super Calculator Engine**
+            // This function handles all direct calculations with 100% accuracy.
+            // It returns a structured object {text, chartData} or null if the query is not a calculation.
             function superCalculator(query, cache, memberName) {
                 const lowerQuery = query.toLowerCase();
                 const s = cache.summary;
@@ -482,7 +508,7 @@
                 };
 
                 // Pattern for "first/last N items" e.g., "first 6 sip", "last 3 loan"
-                const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment)/);
+                const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment|transaction|len den)/);
                 if (rangeMatch) {
                     const direction = rangeMatch[1];
                     const count = parseInt(rangeMatch[2], 10);
@@ -495,78 +521,93 @@
                     if (type === 'sip') {
                         relevantTxs = tx.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
                         field = 'SIP Payment';
-                        typeName = 'SIP भुगतान';
+                        typeName = 'SIP bhugtaan';
                     } else if (type === 'loan') {
                         relevantTxs = tx.filter(t => (parseFloat(t.Loan) || 0) > 0);
                         field = 'Loan';
-                        typeName = 'लोन';
+                        typeName = 'Loan';
                     } else if (type === 'return') {
                         relevantTxs = tx.filter(t => (parseFloat(t['Return amount']) || 0) > 0);
                         field = 'Return amount';
-                        typeName = 'रिटर्न';
+                        typeName = 'Return';
                     } else if (type === 'payment') {
                          relevantTxs = tx.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
                         field = 'Loan Payment';
-                        typeName = 'लोन भुगतान';
+                        typeName = 'Loan bhugtaan';
+                    } else if (type.includes('transaction') || type.includes('len den')) {
+                        relevantTxs = tx;
+                        typeName = 'transaction';
                     }
 
                     if (relevantTxs.length > 0) {
                         const sortedTxs = [...relevantTxs].sort((a, b) => new Date(a.Date) - new Date(b.Date));
                         const selectedTxs = direction.startsWith('first') || direction.startsWith('pehla')
                             ? sortedTxs.slice(0, count)
-                            : sortedTxs.slice(-count);
-
+                            : sortedTxs.slice(-count).reverse();
+                        
                         if (selectedTxs.length > 0) {
-                            const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0);
-                            let responseLines = selectedTxs.map(t => `* ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`);
-                            text = `${direction === 'first' || direction === 'pehla' ? 'पहले' : 'आखिरी'} ${selectedTxs.length} ${typeName} का कुल योग ₹${total.toLocaleString('en-IN')} है। विवरण इस प्रकार है:\n${responseLines.join('\n')}`;
+                            if(typeName === 'transaction'){
+                                let responseLines = selectedTxs.map((t, i) => {
+                                    const sip = parseFloat(t['SIP Payment']) || 0;
+                                    const loanPay = parseFloat(t['Loan Payment']) || 0;
+                                    const loan = parseFloat(t.Loan) || 0;
+                                    const ret = parseFloat(t['Return amount']) || 0;
+                                    let desc = sip > 0 ? `SIP: ₹${sip}` : loanPay > 0 ? `Loan Payment: ₹${loanPay}` : ret > 0 ? `Return: ₹${ret}` : loan > 0 ? `Loan: ₹${loan}` : 'Other';
+                                    return `${i+1}. ${formatDate(t.Date)} - ${desc}`;
+                                });
+                                text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} transactions is prakaar hain:\n${responseLines.join('\n')}`;
+                            } else {
+                                const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0);
+                                let responseLines = selectedTxs.map((t, i) => `${i+1}. ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`);
+                                text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} ${typeName} ka kul yog ₹${total.toLocaleString('en-IN')} hai. Vivaran is prakaar hai:\n${responseLines.join('\n')}`;
+                            }
                             return { text, chartData: null };
                         }
                     }
-                    text = `आपके कोई ${typeName} नहीं मिले।`;
+                    text = `Aapke koi ${typeName} nahi mile.`;
                     return { text, chartData: null };
                 }
 
                 // General summary queries
                 if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
-                    text = `${memberName} जी, आपके कुल SIP का योग ₹${s.totalSIP.toLocaleString('en-IN')} है।`;
+                    text = `${memberName} ji, aapke kul SIP ka yog ₹${s.totalSIP.toLocaleString('en-IN')} hai.`;
                     const topData = findTopContributors();
                     chartData = { type: 'totalSip', data: { totalValue: calculateAllTimeTotals().sip, currentUser: { name: memberName, value: s.totalSIP }, topUser: topData.totalSipUser } };
                 } else if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) {
-                    text = `${memberName} जी, आपने अब तक कुल ₹${s.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
-                    if (s.netLoanOutstanding > 0) { text += ` जिसमें से अभी ₹${s.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`; }
+                    text = `${memberName} ji, aapne ab tak kul ₹${s.totalLoan.toLocaleString('en-IN')} ka loan liya hai.`;
+                    if (s.netLoanOutstanding > 0) { text += ` Jismein se abhi ₹${s.netLoanOutstanding.toLocaleString('en-IN')} bakaaya hai.`; }
                     const topData = findTopContributors();
                     chartData = { type: 'totalLoan', data: { totalValue: calculateAllTimeTotals().loan, currentUser: { name: memberName, value: s.totalLoan }, topUser: topData.totalLoanUser } };
                 } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) {
-                    text = `${memberName} जी, आपको अब तक कुल ₹${s.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है।`;
+                    text = `${memberName} ji, aapko ab tak kul ₹${s.totalReturn.toLocaleString('en-IN')} ka return mila hai.`;
                     const topData = findTopContributors();
                     chartData = { type: 'totalReturn', data: { totalValue: calculateAllTimeTotals().return, currentUser: { name: memberName, value: s.totalReturn }, topUser: topData.totalReturnUser } };
                 } else if (lowerQuery.includes('outstanding') || lowerQuery.includes('bakaya')) {
-                    text = s.netLoanOutstanding > 0 ? `${memberName} जी, आपका कुल बकाया लोन ₹${s.netLoanOutstanding.toLocaleString('en-IN')} है।` : `${memberName} जी, आपका कोई लोन बकाया नहीं है।`;
+                    text = s.netLoanOutstanding > 0 ? `${memberName} ji, aapka kul bakaaya loan ₹${s.netLoanOutstanding.toLocaleString('en-IN')} hai.` : `${memberName} ji, aapka koi loan bakaaya nahi hai. Shandaar!`;
                 } else if (lowerQuery.includes('net balance') || lowerQuery.includes('kul balance')) {
-                    text = `${memberName} जी, आपका नेट बैलेंस (कुल जमा - कुल निकासी) ₹${s.netBalance.toLocaleString('en-IN')} है।`;
+                    text = `${memberName} ji, aapka net balance (kul jama - kul nikaasi) ₹${s.netBalance.toLocaleString('en-IN')} hai.`;
                 } else if (lowerQuery.includes('total deposit') || lowerQuery.includes('kul jama')) {
-                    text = `${memberName} जी, आपकी कुल जमा राशि (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} है।`;
+                    text = `${memberName} ji, aapki kul jama raashi (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} hai.`;
                 } else if (lowerQuery.includes('total withdrawal') || lowerQuery.includes('kul nikasi')) {
-                    text = `${memberName} जी, आपकी कुल निकासी (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} है।`;
+                    text = `${memberName} ji, aapki kul nikaasi (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} hai.`;
                 } else if (lowerQuery.match(/loan.*?sip.*?antar|difference/)) {
                     const diff = Math.abs(s.totalSIP - s.totalLoan);
-                    text = `आपके कुल SIP (₹${s.totalSIP.toLocaleString('en-IN')}) और कुल लोन (₹${s.totalLoan.toLocaleString('en-IN')}) के बीच का अंतर ₹${diff.toLocaleString('en-IN')} है।`;
+                    text = `Aapke kul SIP (₹${s.totalSIP.toLocaleString('en-IN')}) aur kul Loan (₹${s.totalLoan.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`;
                 } else if (lowerQuery.match(/jama.*?nikasi.*?antar|difference/)) {
                     const diff = Math.abs(s.totalDeposits - s.totalWithdrawals);
-                    text = `आपकी कुल जमा (₹${s.totalDeposits.toLocaleString('en-IN')}) और कुल निकासी (₹${s.totalWithdrawals.toLocaleString('en-IN')}) के बीच का अंतर ₹${diff.toLocaleString('en-IN')} है।`;
+                    text = `Aapki kul jama (₹${s.totalDeposits.toLocaleString('en-IN')}) aur kul nikaasi (₹${s.totalWithdrawals.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`;
                 } else if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
                     const data = cache.highestSip;
-                    text = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                    text = data ? `Aapka sabse zyada SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila.";
                 } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) {
                     const data = cache.firstSip;
-                    text = data ? `आपका पहला SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                    text = data ? `Aapka pehla SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila.";
                 } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) {
                     const data = cache.recentLoanPayment;
-                    text = data ? `आपका हाल ही का लोन पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके लोन पेमेंट का कोई रिकॉर्ड नहीं मिला।";
+                    text = data ? `Aapka haal hi ka loan payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke loan payment ka koi record nahi mila.";
                 } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) {
                     const data = cache.firstLoan;
-                    text = data ? `आपने अपना पहला लोन (${data.daysAgo} दिन पहले) ${data.date} को ₹${data.amount.toLocaleString('en-IN')} का लिया था।` : "आपके लोन लेने का कोई रिकॉर्ड नहीं मिला।";
+                    text = data ? `Aapne apna pehla loan (${data.daysAgo} din pehle) ${data.date} ko ₹${data.amount.toLocaleString('en-IN')} ka liya tha.` : "Aapke loan lene ka koi record nahi mila.";
                 }
 
                 if (text) {
@@ -627,7 +668,7 @@
 
                 const container = document.createElement('div');
                 container.className = 'p-2';
-                container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">अन्य सवाल:</p>';
+                container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">Anya Sawaal:</p>';
                 
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'flex flex-wrap justify-start';
@@ -781,26 +822,28 @@
 
                 return {
                     summary: aggregateMemberData(memberData),
-                    transactions: sortedTransactions, // Store all sorted transactions for the calculator
+                    transactions: sortedTransactions,
                     highestSip, firstSip, recentLoanPayment, firstLoan
                 };
             }
 
 
             // --- Global Functions & Event Listeners ---
-            window.chatbot = {
+            window.jarvis = {
                 activateLockMode: (member) => { 
                     lockMode = { active: true, member }; 
                     preAnalyzedCache = preAnalyzeMemberData(member.id);
+                    chatHistory = []; // Reset history for new session
                     lockedMemberNameEl.textContent = `Focused on ${member.name}`; 
                     lockBanner.classList.remove('hidden'); 
-                    appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Data pre-analyzed for faster responses.`, "bot"); 
+                    appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); 
                     suggestionsBox.innerHTML = ''; 
                 },
                 deactivateLockMode: () => { 
                     appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); 
                     lockMode = { active: false, member: null }; 
                     preAnalyzedCache = null;
+                    chatHistory = [];
                     lockBanner.classList.add('hidden'); 
                     showDefaultSuggestions(); 
                 },
@@ -847,7 +890,7 @@
                     const chartColors = [];
 
                     if (prevMember) { chartLabels.push(`#${index} ${prevMember.name}`); chartData.push(prevMember.score); chartColors.push('rgba(255, 99, 132, 0.7)'); }
-                    chartLabels.push(`#${index + 1} ${member.name} (You)`); chartData.push(member.score); chartColors.push('rgba(75, 192, 192, 0.7)');
+                    chartLabels.push(`#${index + 1} ${member.name}`); chartData.push(member.score); chartColors.push('rgba(75, 192, 192, 0.7)');
                     if (nextMember) { chartLabels.push(`#${index + 2} ${nextMember.name}`); chartData.push(nextMember.score); chartColors.push('rgba(255, 206, 86, 0.7)'); }
                     
                     const ctx = document.getElementById('capitalCompareChart').getContext('2d');
@@ -892,7 +935,7 @@
                         const statusText = response.statusText;
                         const statusCode = response.status;
                         console.error("AI Backend Error:", statusCode, statusText, errorData); 
-                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
+                        return `AI se jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
                     }
 
                     const data = await response.json();
@@ -907,7 +950,7 @@
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
             inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
-            unlockBtn.addEventListener('click', window.chatbot.deactivateLockMode);
+            unlockBtn.addEventListener('click', window.jarvis.deactivateLockMode);
             
             initializeBot();
         }
