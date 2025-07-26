@@ -18,7 +18,7 @@
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 </head>
@@ -269,7 +269,7 @@ let db;
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", () => checkAuthAndInitialize());
 
-// ✅ NAYA LOGIC: Authentication check
+// --- Authentication check ---
 async function checkAuthAndInitialize() {
     try {
         const response = await fetch('/api/config');
@@ -281,12 +281,10 @@ async function checkAuthAndInitialize() {
         
         firebase.auth().onAuthStateChanged(user => {
             if (user) {
-                // User is logged in, now show the password prompt.
                 console.log("User authenticated, showing PIN prompt...");
                 document.getElementById('loader').classList.add('hidden');
                 setupPasswordPrompt();
             } else {
-                // User is not logged in, redirect.
                 console.log("User not authenticated, redirecting...");
                 window.location.href = `/login.html?redirect=${window.location.pathname}`;
             }
@@ -308,7 +306,7 @@ function setupPasswordPrompt() {
         if (passwordInput.value === CONFIG.PASSWORD) {
             passwordContainer.classList.add('visually-hidden');
             document.getElementById('loader').classList.remove('hidden');
-            loadAndProcessData(); // Data fetching now happens after PIN
+            loadAndProcessData();
         } else {
             alert("Incorrect PIN");
             passwordInput.value = "";
@@ -360,13 +358,14 @@ async function loadAndProcessData() {
     }
 }
 
-// --- AI EXPLANATION FUNCTIONS ---
-async function getGeminiExplanation(promptText) {
+// --- AI EXPLANATION FUNCTIONS (UPDATED) ---
+async function getGeminiExplanation(requestData) {
     try {
+        // The requestData object now contains both promptText and source
         const response = await fetch('/api/getAiExplanation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ promptText })
+            body: JSON.stringify(requestData)
         });
         if (!response.ok) {
             const errorData = await response.json();
@@ -380,7 +379,7 @@ async function getGeminiExplanation(promptText) {
     }
 }
 
-async function generateAndShowExplanation(promptGenerator) {
+async function generateAndShowExplanation(promptGenerator, source = 'default') {
     const resultDiv = document.getElementById('aiExplanationResult');
     const langToggleContainer = document.getElementById('languageToggleContainer');
     
@@ -391,7 +390,8 @@ async function generateAndShowExplanation(promptGenerator) {
     const initialPrompt = promptGenerator();
 
     try {
-        const explanation = await getGeminiExplanation(initialPrompt);
+        // Pass both the prompt and the source to the backend
+        const explanation = await getGeminiExplanation({ promptText: initialPrompt, source: source });
         resultDiv.innerHTML = marked.parse(explanation);
         resultDiv.dataset.originalText = explanation;
         langToggleContainer.classList.remove('hidden');
@@ -413,7 +413,10 @@ async function handleLanguageToggle(event) {
     resultDiv.innerHTML = `<div class="ai-loader"><div class="spinner"></div></div>`;
 
     try {
-        const translatedText = await getGeminiExplanation(translationPrompt);
+        // For translation, we can use the same source as the original request.
+        // Or default if it's not critical to track translations separately.
+        const sourceForTranslation = resultDiv.dataset.source || 'default';
+        const translatedText = await getGeminiExplanation({ promptText: translationPrompt, source: sourceForTranslation });
         resultDiv.innerHTML = marked.parse(translatedText);
     } catch (error) {
         resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> Translation fail ho gaya.</p>`;
@@ -633,7 +636,6 @@ function calculateTotalProfitForMember(memberName) {
 }
 
 function calculateProfitDistribution(paymentRecord) {
-    // --- UPDATED CODE: Only 90% of the return amount is considered for profit distribution ---
     const profit = paymentRecord.returnAmount * 0.90; 
     if (profit <= 0) return null;
 
@@ -694,7 +696,8 @@ function displayReturnRanking() {
                 });
                 return `Tum ek financial advisor ho. Member '${member.name}' ko mile total profit (₹${member.totalProfit.toFixed(2)}) ko aasan Hindi me samjhao. Unhe yeh profit kahan kahan se mila, iska breakdown do: ${profitBreakdown}\n\nAnt mein, 'Salah' section mein batao ki total profit badhane ke liye unhe apna performance score hamesha accha rakhna chahiye.`;
             };
-            generateAndShowExplanation(promptGenerator);
+            // UPDATED: Pass the source to use the correct API key
+            generateAndShowExplanation(promptGenerator, 'profit_system');
         });
         listEl.appendChild(li);
     });
@@ -715,7 +718,8 @@ function displayScoreRanking() {
                 const { name, scores } = member;
                 return `Tum ek financial advisor ho. Member '${name}' ka performance score ${scores.totalScore.toFixed(2)} hai. Is score ko aasan Hindi me samjhao. Batao ki yeh score in teen cheezon se milkar bana hai: 1. Capital Score: ${scores.capitalScore.toFixed(2)} (Weight: 40%), 2. Consistency Score: ${scores.consistencyScore.toFixed(2)} (Weight: 30%), 3. Credit Score: ${scores.creditScore.toFixed(2)} (Weight: 30%).\n\nAnt mein, 'Aapko Kya Karna Chahiye' naam ka ek section jodkar 2-3 line mein sabse zaroori kadam batao jisse ve apna score sudhar sakein.`;
             };
-            generateAndShowExplanation(promptGenerator);
+            // UPDATED: Pass the source to use the correct API key
+            generateAndShowExplanation(promptGenerator, 'profit_system');
         });
         tableBody.appendChild(row);
     });
@@ -747,7 +751,8 @@ function displayEligibilityRanking() {
                     return `Tum ek financial advisor ho. Member '${name}' abhi loan ke liye eligible kyun nahi hai, yeh aasan Hindi me samjhao. Karan: ${eligibility.reason}. Is karan ka matlab samjhao.\n\nAnt mein, 'Salah' section mein batao ki is samasya ko kaise theek kiya ja sakta hai.`;
                 }
             };
-            generateAndShowExplanation(promptGenerator);
+            // UPDATED: Pass the source to use the correct API key
+            generateAndShowExplanation(promptGenerator, 'profit_system');
         });
         tableBody.appendChild(row);
     });
@@ -873,7 +878,8 @@ function showDistributionModal(profitEvent) {
                     else { prompt += `Apna score behtar karke aap agle munafey mein aur bhi zyada hissa paa sakte hain.`; }
                     return prompt;
                 };
-                generateAndShowExplanation(promptGenerator);
+                // UPDATED: Pass the source to use the correct API key
+                generateAndShowExplanation(promptGenerator, 'profit_system');
             });
             listEl.appendChild(li);
         });
