@@ -124,7 +124,6 @@
 
     <script>
         // --- Step 1: Authentication & Initialization ---
-        // This function remains the same, ensuring robust security.
         async function checkAuthAndInitialize() {
             try {
                 const response = await fetch('/api/config');
@@ -136,7 +135,7 @@
                 firebase.initializeApp(config.firebase);
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        runJarvisLogic(); // Renamed to reflect the new bot
+                        runJarvisLogic();
                     } else {
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
@@ -159,7 +158,7 @@
             let capitalKingsData = null; 
             let lockMode = { active: false, member: null };
             let preAnalyzedCache = null;
-            let chatHistory = []; // NEW: For conversational context
+            let chatHistory = [];
 
             const chatBox = document.getElementById('chat');
             const inputBox = document.getElementById('input');
@@ -191,7 +190,6 @@
                         const faqsData = faqsSnapshot.val();
                         for(const key in faqsData) { if(faqsData[key].questions && faqsData[key].answer) { cachedFaqs.push(faqsData[key]); } }
                     } else {
-                        // Mock FAQs if database is empty
                         cachedFaqs = [
                             { questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है"], answer: "बैंक कम्युनिटी लोन एक प्रकार का ऋण है जो सदस्यों को उनकी जमा राशि के आधार पर दिया जाता है।" },
                             { questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
@@ -210,10 +208,11 @@
             // --- Core Message Handling ---
             async function handleSend(simulatedQuery = null) {
                 if (!isBotInitialized) { await typeMessage("Jarvis abhi shuru ho raha hai, kripya prateeksha karein...", "bot"); return; }
-                const query = (simulatedQuery || inputBox.value.trim()).replace(/^jarvis/i, '').trim();
+                const originalQuery = simulatedQuery || inputBox.value.trim();
+                const query = originalQuery.replace(/^jarvis/i, '').trim();
                 if (!query) return;
 
-                appendRichMessage(inputBox.value.trim(), "user");
+                appendRichMessage(originalQuery, "user");
                 if (lockMode.active) {
                     chatHistory.push({ role: 'user', parts: [{ text: query }]});
                 }
@@ -260,12 +259,10 @@
                     }
                     
                     // **PRIORITY 1: SUPER CALCULATOR**
-                    // The calculator attempts to provide a direct, 100% accurate answer first.
                     const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
 
                     if (analyticalAnswer) {
                         await typeMessage(analyticalAnswer.text, "bot", analyticalAnswer.text);
-                        // If a chart is suggested by the calculator, render it.
                         if (analyticalAnswer.chartData) {
                             renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
                         }
@@ -273,10 +270,8 @@
                     }
 
                     // **PRIORITY 2: GEMINI AI (for conversational queries)**
-                    // If the calculator can't answer, it's a job for the AI.
                     const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
                     
-                    // The new, more detailed prompt for Jarvis
                     const prompt = `You are Jarvis, a super-intelligent financial AI assistant for a bank community. Your current focus is solely on a member named **${member.name}**.
 
                     **PRIMARY DIRECTIVE:** Your main role is to ANALYZE financial data and EXPLAIN it in simple, conversational Hinglish. You are NOT a calculator. All calculations are pre-computed. Your job is to present the information clearly.
@@ -312,7 +307,7 @@
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 content = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
-                content = content.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>'); // Improved regex for numbers with commas
+                content = content.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>');
                 return content;
             }
 
@@ -488,12 +483,37 @@
             }
 
             // --- Utility & Helper Functions ---
+
+            // **THE FIX**: This new function converts number words to digits.
+            function convertWordsToNumbers(text) {
+                const numberWords = {
+                    'ek': '1', 'one': '1',
+                    'do': '2', 'two': '2',
+                    'teen': '3', 'three': '3',
+                    'char': '4', 'four': '4',
+                    'panch': '5', 'five': '5',
+                    'chhah': '6', 'chhe': '6', 'six': '6',
+                    'saat': '7', 'seven': '7',
+                    'aath': '8', 'eight': '8',
+                    'nau': '9', 'nine': '9',
+                    'das': '10', 'ten': '10'
+                    // Add more numbers if needed
+                };
+
+                let processedText = text;
+                for (const word in numberWords) {
+                    // Use a regex to replace whole words only
+                    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                    processedText = processedText.replace(regex, numberWords[word]);
+                }
+                return processedText;
+            }
             
-            // **NEW & IMPROVED: The Super Calculator Engine**
-            // This function handles all direct calculations with 100% accuracy.
-            // It returns a structured object {text, chartData} or null if the query is not a calculation.
+            // **IMPROVED: The Super Calculator Engine now uses the word converter**
             function superCalculator(query, cache, memberName) {
-                const lowerQuery = query.toLowerCase();
+                // First, convert any number words in the query to digits.
+                const lowerQuery = convertWordsToNumbers(query.toLowerCase());
+                
                 const s = cache.summary;
                 const tx = cache.transactions;
                 let text = null;
@@ -507,7 +527,7 @@
                     return `${day}-${month}-${year}`;
                 };
 
-                // Pattern for "first/last N items" e.g., "first 6 sip", "last 3 loan"
+                // This regex now works reliably because "panch" is converted to "5"
                 const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment|transaction|len den)/);
                 if (rangeMatch) {
                     const direction = rangeMatch[1];
@@ -611,9 +631,9 @@
                 }
 
                 if (text) {
-                    return { text, chartData }; // Return the calculated answer
+                    return { text, chartData };
                 }
-                return null; // Return null if no direct calculation was found
+                return null;
             }
 
             function createSuggestionPill(text, type) {
@@ -833,7 +853,7 @@
                 activateLockMode: (member) => { 
                     lockMode = { active: true, member }; 
                     preAnalyzedCache = preAnalyzeMemberData(member.id);
-                    chatHistory = []; // Reset history for new session
+                    chatHistory = [];
                     lockedMemberNameEl.textContent = `Focused on ${member.name}`; 
                     lockBanner.classList.remove('hidden'); 
                     appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); 
