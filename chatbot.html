@@ -252,6 +252,9 @@
                 **CRITICAL RULE #2: SCOPE**
                 * If the user's query is unrelated to their financial data (e.g., "what is the capital of France?", "hello"), you MUST respond with ONLY this exact sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
 
+                **CRITICAL RULE #3: NUMBERS**
+                * You MUST keep all numbers as digits. DO NOT write numbers as words (e.g., write "5", not "पांच"; write "2024", not "दो हजार चौबीस"). This is essential for the system to work.
+
                 **Analysis Instructions:**
                 * Analyze the user's query to understand their intent (e.g., are they asking for the 'first 5', 'last 3', or 'total' of something?).
                 * Extract the relevant data points from the transaction history.
@@ -266,28 +269,21 @@
 
                 **User's Query:** "${query}"`;
                 
-                try {
-                    let aiResponse = await callGemini(prompt);
+                let aiResponse = await callGemini(prompt);
 
-                    const calcRegex = /\[CALCULATE:\s*([^\]]+)\]/g;
-                    const matches = aiResponse.match(calcRegex);
+                const calcRegex = /\[CALCULATE:\s*([^\]]+)\]/g;
+                const matches = aiResponse.match(calcRegex);
 
-                    if (matches) {
-                        matches.forEach(match => {
-                            const expression = match.replace('[CALCULATE:', '').replace(']', '').trim();
-                            const result = safeCalculator(expression);
-                            aiResponse = aiResponse.replace(match, `<strong>₹${result.toLocaleString('en-IN')}</strong>`);
-                        });
-                    }
-                    
-                    typing.remove();
-                    await typeMessage(aiResponse, "bot");
-
-                } catch (error) {
-                    typing.remove();
-                    console.error("Error in processLockedQuery:", error);
-                    await typeMessage(error.message, "bot"); // Display the specific error message from callGemini
+                if (matches) {
+                    matches.forEach(match => {
+                        const expression = match.replace('[CALCULATE:', '').replace(']', '').trim();
+                        const result = safeCalculator(expression);
+                        aiResponse = aiResponse.replace(match, `<strong>₹${result.toLocaleString('en-IN')}</strong>`);
+                    });
                 }
+                
+                typing.remove();
+                await typeMessage(aiResponse, "bot");
             }
             
             // --- Response Rendering ---
@@ -374,6 +370,54 @@
                 appendRichMessage(cardHtml, "bot");
             }
             
+            function renderComparisonChart(data, type) {
+                const chartId = `chart-${Date.now()}`;
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+                chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`;
+                
+                if (type === 'totalReturn') {
+                    const notification = document.createElement('p');
+                    notification.className = 'text-center text-xs text-gray-500 mt-2';
+                    notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.';
+                    chartContainer.appendChild(notification);
+                }
+                
+                appendRichMessage(chartContainer.outerHTML, 'bot');
+                
+                const titles = { totalSip: 'Total SIP Comparison', totalLoan: 'Total Loan Comparison', totalReturn: 'Total Return Comparison' };
+                const colors = { totalSip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], totalLoan: ['#FF6384', '#FF9F40', '#E5E7EB'], totalReturn: ['#9966FF', '#FFCD56', '#E5E7EB'] };
+                
+                const { totalValue, currentUser, topUser } = data;
+                const chartLabels = [];
+                const chartDataPoints = [];
+
+                chartLabels.push(currentUser.name);
+                chartDataPoints.push(currentUser.value);
+
+                if (topUser && topUser.name !== currentUser.name) {
+                    chartLabels.push(topUser.name);
+                    chartDataPoints.push(topUser.value);
+                }
+                
+                const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
+                if (othersValue > 0.01) {
+                    chartLabels.push('Other Members');
+                    chartDataPoints.push(othersValue);
+                }
+
+                const chartConfig = {
+                    type: 'doughnut',
+                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] },
+                    options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' }
+                };
+                
+                setTimeout(() => {
+                    const ctx = document.getElementById(chartId)?.getContext('2d');
+                    if (ctx) new Chart(ctx, chartConfig);
+                }, 100);
+            }
+
             async function displayCapitalKings(showAll = false) {
                 if (!capitalKingsData) {
                     capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score);
@@ -534,6 +578,22 @@
 
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
             
+            function findTopContributors() {
+                let totalSipUser = { name: 'N/A', value: 0 }, totalLoanUser = { name: 'N/A', value: 0 }, totalReturnUser = { name: 'N/A', value: 0 };
+                if (!allMembersFullData) return { totalSipUser, totalLoanUser, totalReturnUser };
+                
+                for (const memberId in allMembersFullData) {
+                    const member = allMembersFullData[memberId];
+                    const summary = aggregateMemberData(member);
+                    if (summary.totalSIP > totalSipUser.value) totalSipUser = { name: member.fullName, value: summary.totalSIP };
+                    if (summary.totalLoan > totalLoanUser.value) totalLoanUser = { name: member.fullName, value: summary.totalLoan };
+                    if (summary.totalReturn > totalReturnUser.value) totalReturnUser = { name: member.fullName, value: summary.totalReturn };
+                }
+                return { totalSipUser, totalLoanUser, totalReturnUser };
+            }
+
+            function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
+            
             function calculateCapitalScores() {
                 const results = []; const today = new Date();
                 if (!allMembersFullData) return [];
@@ -658,21 +718,30 @@
             };
             
             async function callGemini(prompt) {
-                const response = await fetch('/api/getAiExplanation', { 
-                    method: "POST", 
-                    headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify({ promptText: prompt }) 
-                });
-                
-                if (!response.ok) { 
-                    const errorData = await response.json().catch(() => ({ error: "Unknown server error" }));
-                    console.error("AI Backend Error:", response.status, errorData); 
-                    // Throw a user-friendly error message
-                    throw new Error(`AI से जवाब नहीं मिल पा रहा है। (Error: ${response.status})`); 
-                }
+                try {
+                    const response = await fetch('/api/getAiExplanation', { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json" }, 
+                        body: JSON.stringify({ promptText: prompt }) 
+                    });
+                    
+                    if (!response.ok) { 
+                        const errorData = await response.json().catch(() => null);
+                        const statusText = response.statusText;
+                        const statusCode = response.status;
+                        
+                        console.error("AI Backend Error:", statusCode, statusText, errorData); 
+                        
+                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
+                    }
 
-                const data = await response.json();
-                return data.explanation;
+                    const data = await response.json();
+                    return data.explanation;
+
+                } catch (e) { 
+                    console.error("Network error calling AI backend:", e); 
+                    return "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein."; 
+                }
             }
 
             sendBtn.addEventListener('click', () => handleSend(null));
