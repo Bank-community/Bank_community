@@ -1,27 +1,5 @@
 // File: /api/getAiExplanation.js
-// Yeh aapke Vercel project ke liye theek kiya hua serverless function hai.
-
-// Yahan Vercel Environment Variables se aapki saari API keys aa jayengi.
-const API_KEYS = [
-  process.env.GEMINI_API_KEY_1,
-  process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3,
-].filter(key => key); // Yeh kisi bhi undefined key ko hata dega.
-
-let currentKeyIndex = 0;
-
-// Yeh function har baar agli key deta hai.
-function getNextApiKey() {
-  if (API_KEYS.length === 0) {
-    throw new Error("Vercel environment variables mein koi bhi Gemini API key nahi mili.");
-  }
-  // Abhi wali key lo (CORRECTED LINE)
-  const key = API_KEYS[currentKeyIndex];
-  // Agli request ke liye index badha do
-  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-  console.log(`Using API Key Index: ${currentKeyIndex}`); // Debugging ke liye
-  return key;
-}
+// Yeh aapke Vercel project ke liye saral aur bharosemand serverless function hai.
 
 export default async function handler(req, res) {
   // Kisi bhi origin se request allow karo (CORS)
@@ -38,14 +16,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  // Sirf ek API key ka istemal karo jo Vercel mein save hai
+  const apiKey = process.env.GEMINI_API_KEY_1;
+
+  if (!apiKey) {
+    console.error("GEMINI_API_KEY_1 not found in environment variables.");
+    return res.status(500).json({ error: "Server configuration error: API key not found." });
+  }
+
   try {
     const { promptText } = req.body;
     if (!promptText) {
       return res.status(400).json({ error: 'promptText zaroori hai' });
     }
-
-    // Agli available API key lo
-    const apiKey = getNextApiKey();
     
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
@@ -72,14 +55,13 @@ export default async function handler(req, res) {
     });
 
     if (!apiResponse.ok) {
-      const errorBody = await apiResponse.text();
+      const errorBody = await apiResponse.json();
       console.error('Gemini API Error:', errorBody);
-      throw new Error(`Gemini API ne status ${apiResponse.status} ke saath jawab diya`);
+      return res.status(apiResponse.status).json(errorBody);
     }
 
     const data = await apiResponse.json();
     
-    // Response se text nikalo
     const explanation = data.candidates[0]?.content?.parts[0]?.text || 'Jawab mein koi text nahi mila.';
 
     res.status(200).json({ explanation });
