@@ -1,5 +1,5 @@
 // File: /api/getAiExplanation.js
-// Yeh aapke Vercel project ke liye updated serverless function hai.
+// Yeh aapke Vercel project ke liye theek kiya hua serverless function hai.
 
 // Yahan Vercel Environment Variables se aapki saari API keys aa jayengi.
 const API_KEYS = [
@@ -15,10 +15,11 @@ function getNextApiKey() {
   if (API_KEYS.length === 0) {
     throw new Error("Vercel environment variables mein koi bhi Gemini API key nahi mili.");
   }
-  // Abhi wali key lo
-  const key = API_K[currentKeyIndex];
+  // Abhi wali key lo (CORRECTED LINE)
+  const key = API_KEYS[currentKeyIndex];
   // Agli request ke liye index badha do
   currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  console.log(`Using API Key Index: ${currentKeyIndex}`); // Debugging ke liye
   return key;
 }
 
