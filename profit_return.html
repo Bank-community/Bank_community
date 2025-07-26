@@ -359,14 +359,20 @@ async function loadAndProcessData() {
 }
 
 // --- AI EXPLANATION FUNCTIONS (UPDATED) ---
-async function getGeminiExplanation(requestData) {
+async function getGeminiExplanation(promptText, source = 'default') {
     try {
-        // The requestData object now contains both promptText and source
-        const response = await fetch('/api/getAiExplanation', {
+        // Determine which API endpoint to call based on the source
+        let apiEndpoint = '/api/getAiExplanation'; // Default API
+        if (source === 'profit_system') {
+            apiEndpoint = '/api/getProfitAiExplanation'; // Specific API for profit system
+        }
+
+        const response = await fetch(apiEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify({ promptText: promptText }) // Only send the prompt
         });
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.details || 'AI request failed.');
@@ -390,10 +396,11 @@ async function generateAndShowExplanation(promptGenerator, source = 'default') {
     const initialPrompt = promptGenerator();
 
     try {
-        // Pass both the prompt and the source to the backend
-        const explanation = await getGeminiExplanation({ promptText: initialPrompt, source: source });
+        // Pass the prompt and the source to the helper function
+        const explanation = await getGeminiExplanation(initialPrompt, source);
         resultDiv.innerHTML = marked.parse(explanation);
         resultDiv.dataset.originalText = explanation;
+        resultDiv.dataset.source = source; // Store the source for translation
         langToggleContainer.classList.remove('hidden');
     } catch (error) {
         resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> AI se jawab nahi mil saka. Kripya Vercel logs check karein.</p><p style="font-size:0.8em; color: var(--text-light);">${error.message}</p>`;
@@ -413,10 +420,9 @@ async function handleLanguageToggle(event) {
     resultDiv.innerHTML = `<div class="ai-loader"><div class="spinner"></div></div>`;
 
     try {
-        // For translation, we can use the same source as the original request.
-        // Or default if it's not critical to track translations separately.
+        // Use the same source as the original request for the translation call
         const sourceForTranslation = resultDiv.dataset.source || 'default';
-        const translatedText = await getGeminiExplanation({ promptText: translationPrompt, source: sourceForTranslation });
+        const translatedText = await getGeminiExplanation(translationPrompt, sourceForTranslation);
         resultDiv.innerHTML = marked.parse(translatedText);
     } catch (error) {
         resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> Translation fail ho gaya.</p>`;
