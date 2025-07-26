@@ -247,43 +247,82 @@
                     return;
                 }
                 
-                // **NEW SUPER CALCULATOR**: First, try to answer using the internal calculator
-                const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
+                const typing = appendRichMessage("...", "bot typing");
 
-                if (analyticalAnswer) {
-                    await typeMessage(analyticalAnswer.text, "bot");
-                    // If a chart is suggested by the calculator, render it
-                    if (analyticalAnswer.chartData) {
-                        renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
-                    }
-                    return;
+                // **NEW ARCHITECTURE**
+                // Step 1: AI interprets the query to create a command for the calculator.
+                const commandPrompt = `You are a query-to-JSON command converter. Your task is to analyze the user's query and the available data fields to create a JSON command for a JavaScript calculator.
+
+                **Available Data Fields:**
+                - "SIP Payment"
+                - "Loan"
+                - "Loan Payment"
+                - "Return amount"
+                - "Penalty amount"
+
+                **Available Tasks:**
+                - "sum_total": Calculate the total sum of a field.
+                - "sum_range": Calculate the sum of the first or last 'n' items of a field.
+                - "get_details": Get the details (date and amount) for the first or last 'n' items.
+                - "find_extreme": Find the highest or lowest value of a field.
+                - "qualitative": The query is conversational and doesn't require calculation.
+
+                **JSON Command Format:**
+                {
+                  "task": "task_name",
+                  "field": "field_name", // (optional)
+                  "count": number, // (for sum_range, get_details)
+                  "direction": "first" or "last", // (for sum_range, get_details)
+                  "extreme": "highest" or "lowest" // (for find_extreme)
                 }
 
-                // **FALLBACK**: If calculator can't answer, use Gemini for complex queries
-                const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
-                const prompt = `**ABSOLUTE PRIMARY DIRECTIVE: Your ONLY purpose is to answer questions about the financial data of a bank community member named ${member.name}.**
+                **Examples:**
+                1.  Query: "total sip kitna hai" -> {"task": "sum_total", "field": "SIP Payment"}
+                2.  Query: "first ke 6 sip ka yog aur date batao" -> {"task": "get_details", "field": "SIP Payment", "count": 6, "direction": "first"}
+                3.  Query: "aakhiri 3 loan payment" -> {"task": "get_details", "field": "Loan Payment", "count": 3, "direction": "last"}
+                4.  Query: "sabse jyada loan kab liya" -> {"task": "find_extreme", "field": "Loan", "extreme": "highest"}
+                5.  Query: "meri financial health kaisi hai" -> {"task": "qualitative"}
 
-                **CRITICAL RULE #1:** First, analyze the "User's Query". Can this question be answered using the provided "MEMBER'S TRANSACTION HISTORY"?
-                * If **NO**, or if the user is making small talk or asking a general knowledge question, you MUST ignore all other instructions and respond with **ONLY** this exact sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।"
-                * If **YES**, proceed to the analysis instructions below.
+                **User Query:** "${query}"
 
-                **Analysis Instructions (Only if Rule #1 is passed):**
-                You are a genius-level financial analyst AI. Your primary skill is to analyze a user's raw transaction history and answer any complex, conversational question about it with 100% accuracy. You must be helpful and respond in simple Hindi.
-                * To find the 'highest' or 'sabse jyada' of anything (e.g., SIP), iterate through all transactions, find the maximum value for that field, and state the amount and its 'Date'.
-                * To find the 'first' or 'pehla' of anything, sort transactions by 'Date' ascending and pick the first relevant one.
-                * To find the 'recent' or 'aakhiri' of anything, sort transactions by 'Date' descending and pick the first relevant one.
-                * To calculate 'days since', find the relevant transaction and calculate the days between its 'Date' and today's date (${new Date().toISOString().split('T')[0]}).
-                * Always format dates as DD-MM-YYYY.
+                Now, generate the JSON command.`;
 
-                **MEMBER'S ENTIRE TRANSACTION HISTORY:**
-                \`\`\`json
-                ${JSON.stringify(transactions, null, 2)}
-                \`\`\`
+                try {
+                    const commandResponse = await callGemini(commandPrompt, true); // true to expect JSON
+                    const command = JSON.parse(commandResponse);
+                    
+                    // Step 2: Execute the command using the 100% accurate JS calculator
+                    const calcResult = executeCalculatorCommand(command, preAnalyzedCache);
 
-                **User's Query:** "${query}"`;
-                
-                const aiResponse = await callGemini(prompt);
-                await typeMessage(aiResponse, "bot");
+                    // Step 3: Present the result.
+                    let finalResponse;
+                    if (calcResult.error) {
+                        finalResponse = calcResult.error;
+                    } else if (command.task === 'qualitative') {
+                        // For non-calculation questions, call AI again for a descriptive answer.
+                        const descriptivePrompt = `You are a helpful financial assistant. Based on the following data summary for ${member.name}, answer the user's question in a conversational and helpful way. DO NOT perform any calculations.
+
+                        **Data Summary:**
+                        ${JSON.stringify(preAnalyzedCache.summary, null, 2)}
+
+                        **User's Question:**
+                        "${query}"
+
+                        Provide a helpful, qualitative response in Hindi.`;
+                        finalResponse = await callGemini(descriptivePrompt);
+                    } else {
+                        // For calculation questions, use the precise result from the calculator.
+                        finalResponse = formatCalculatorResponse(calcResult, command);
+                    }
+                    
+                    typing.remove();
+                    await typeMessage(finalResponse, "bot");
+
+                } catch (e) {
+                    console.error("Error in locked query processing:", e);
+                    typing.remove();
+                    await typeMessage("माफ़ कीजिए, मैं आपके सवाल को समझ नहीं पाया। कृपया इसे दूसरे तरीके से पूछें।", "bot");
+                }
             }
             
             // --- Response Rendering ---
@@ -291,7 +330,8 @@
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 content = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
-                content = content.replace(/(\d+[,.]?\d*%?)/g, '<strong>$1</strong>');
+                // Bolding numbers, including those with commas.
+                content = content.replace(/₹?[\d,]+(\.\d+)?/g, '<strong>$&</strong>');
                 return content;
             }
 
@@ -371,54 +411,6 @@
                 appendRichMessage(cardHtml, "bot");
             }
             
-            function renderComparisonChart(data, type) {
-                const chartId = `chart-${Date.now()}`;
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`;
-                
-                if (type === 'totalReturn') {
-                    const notification = document.createElement('p');
-                    notification.className = 'text-center text-xs text-gray-500 mt-2';
-                    notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.';
-                    chartContainer.appendChild(notification);
-                }
-                
-                appendRichMessage(chartContainer.outerHTML, 'bot');
-                
-                const titles = { totalSip: 'Total SIP Comparison', totalLoan: 'Total Loan Comparison', totalReturn: 'Total Return Comparison' };
-                const colors = { totalSip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], totalLoan: ['#FF6384', '#FF9F40', '#E5E7EB'], totalReturn: ['#9966FF', '#FFCD56', '#E5E7EB'] };
-                
-                const { totalValue, currentUser, topUser } = data;
-                const chartLabels = [];
-                const chartDataPoints = [];
-
-                chartLabels.push(currentUser.name);
-                chartDataPoints.push(currentUser.value);
-
-                if (topUser && topUser.name !== currentUser.name) {
-                    chartLabels.push(topUser.name);
-                    chartDataPoints.push(topUser.value);
-                }
-                
-                const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
-                if (othersValue > 0.01) {
-                    chartLabels.push('Other Members');
-                    chartDataPoints.push(othersValue);
-                }
-
-                const chartConfig = {
-                    type: 'doughnut',
-                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] },
-                    options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' }
-                };
-                
-                setTimeout(() => {
-                    const ctx = document.getElementById(chartId)?.getContext('2d');
-                    if (ctx) new Chart(ctx, chartConfig);
-                }, 100);
-            }
-
             async function displayCapitalKings(showAll = false) {
                 if (!capitalKingsData) {
                     capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score);
@@ -464,115 +456,85 @@
             }
 
             // --- Utility & Helper Functions ---
-            
-            // **NEW**: The Super Calculator Engine
-            function superCalculator(query, cache, memberName) {
-                const lowerQuery = query.toLowerCase();
-                const s = cache.summary;
+
+            // **THE NEW JAVASCRIPT CALCULATOR ENGINE**
+            function executeCalculatorCommand(command, cache) {
+                const { task, field, count, direction, extreme } = command;
                 const tx = cache.transactions;
-                let text = null;
-                let chartData = null;
+
+                if (!task) return { error: "Invalid command from AI." };
+
+                const getRelevantTxs = (fieldName) => tx.filter(t => t[fieldName] && parseFloat(t[fieldName]) > 0);
+
+                switch (task) {
+                    case 'sum_total': {
+                        const total = cache.summary[`total${field.split(' ')[0]}`];
+                        return { total };
+                    }
+                    case 'get_details': {
+                        const relevantTxs = getRelevantTxs(field);
+                        if (relevantTxs.length === 0) return { total: 0, details: [] };
+
+                        const selectedTxs = direction === 'first'
+                            ? relevantTxs.slice(0, count)
+                            : relevantTxs.slice(-count);
+                        
+                        const total = selectedTxs.reduce((sum, t) => sum + parseFloat(t[field]), 0);
+                        const details = selectedTxs.map(t => ({
+                            date: t.Date,
+                            amount: parseFloat(t[field])
+                        }));
+                        return { total, details };
+                    }
+                    case 'find_extreme': {
+                         const relevantTxs = getRelevantTxs(field);
+                         if (relevantTxs.length === 0) return { transaction: null };
+
+                         const extremeTx = relevantTxs.reduce((a, b) => {
+                            const valA = parseFloat(a[field]);
+                            const valB = parseFloat(b[field]);
+                            if (extreme === 'highest') return valA > valB ? a : b;
+                            return valA < valB ? a : b;
+                         });
+                         return { transaction: { date: extremeTx.Date, amount: parseFloat(extremeTx[field]) } };
+                    }
+                    default:
+                        return { error: "Calculator cannot handle this task." };
+                }
+            }
+
+            function formatCalculatorResponse(result, command) {
+                const { task, field, direction, count } = command;
+                const fieldNameMapping = {
+                    "SIP Payment": "SIP", "Loan": "लोन", "Loan Payment": "लोन भुगतान", "Return amount": "रिटर्न"
+                };
+                const fieldName = fieldNameMapping[field] || field;
 
                 const formatDate = (dateStr) => {
                     const d = new Date(dateStr);
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const year = d.getFullYear();
-                    return `${day}-${month}-${year}`;
+                    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
                 };
 
-                // Pattern for "first/last N items" e.g., "first 6 sip", "last 3 loan"
-                const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment)/);
-                if (rangeMatch) {
-                    const direction = rangeMatch[1];
-                    const count = parseInt(rangeMatch[2], 10);
-                    const type = rangeMatch[3];
-
-                    let relevantTxs = [];
-                    let field = '';
-                    let typeName = '';
-
-                    if (type === 'sip') {
-                        relevantTxs = tx.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
-                        field = 'SIP Payment';
-                        typeName = 'SIP भुगतान';
-                    } else if (type === 'loan') {
-                        relevantTxs = tx.filter(t => (parseFloat(t.Loan) || 0) > 0);
-                        field = 'Loan';
-                        typeName = 'लोन';
-                    } else if (type === 'return') {
-                        relevantTxs = tx.filter(t => (parseFloat(t['Return amount']) || 0) > 0);
-                        field = 'Return amount';
-                        typeName = 'रिटर्न';
-                    } else if (type === 'payment') {
-                         relevantTxs = tx.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
-                        field = 'Loan Payment';
-                        typeName = 'लोन भुगतान';
+                switch (task) {
+                    case 'get_details': {
+                        if (result.details.length === 0) return `आपको कोई ${fieldName} नहीं मिला है।`;
+                        
+                        const dirText = direction === 'first' ? 'पहले' : 'आखिरी';
+                        let response = `${dirText} ${result.details.length} ${fieldName} का कुल योग ₹${result.total.toLocaleString('en-IN')} है।\n`;
+                        response += "विवरण इस प्रकार है:\n";
+                        result.details.forEach(d => {
+                            response += `* ${formatDate(d.date)}: ₹${d.amount.toLocaleString('en-IN')}\n`;
+                        });
+                        return response;
                     }
-
-                    if (relevantTxs.length > 0) {
-                        const sortedTxs = [...relevantTxs].sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                        const selectedTxs = direction.startsWith('first') || direction.startsWith('pehla')
-                            ? sortedTxs.slice(0, count)
-                            : sortedTxs.slice(-count);
-
-                        if (selectedTxs.length > 0) {
-                            const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0);
-                            let responseLines = selectedTxs.map(t => `* ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`);
-                            text = `${direction === 'first' || direction === 'pehla' ? 'पहले' : 'आखिरी'} ${selectedTxs.length} ${typeName} का कुल योग ₹${total.toLocaleString('en-IN')} है। विवरण इस प्रकार है:\n${responseLines.join('\n')}`;
-                            return { text, chartData: null };
-                        }
+                    case 'find_extreme': {
+                        if (!result.transaction) return `आपको कोई ${fieldName} नहीं मिला है।`;
+                        const extText = command.extreme === 'highest' ? 'सबसे ज़्यादा' : 'सबसे कम';
+                        return `आपका ${extText} ${fieldName} ₹${result.transaction.amount.toLocaleString('en-IN')} का था, जो ${formatDate(result.transaction.date)} को किया गया था।`;
                     }
-                    text = `आपके कोई ${typeName} नहीं मिले।`;
-                    return { text, chartData: null };
+                    // Add other cases as needed
                 }
-
-                // General summary queries
-                if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) {
-                    text = `${memberName} जी, आपके कुल SIP का योग ₹${s.totalSIP.toLocaleString('en-IN')} है।`;
-                    const topData = findTopContributors();
-                    chartData = { type: 'totalSip', data: { totalValue: calculateAllTimeTotals().sip, currentUser: { name: memberName, value: s.totalSIP }, topUser: topData.totalSipUser } };
-                } else if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) {
-                    text = `${memberName} जी, आपने अब तक कुल ₹${s.totalLoan.toLocaleString('en-IN')} का लोन लिया है।`;
-                    if (s.netLoanOutstanding > 0) { text += ` जिसमें से अभी ₹${s.netLoanOutstanding.toLocaleString('en-IN')} बकाया है।`; }
-                    const topData = findTopContributors();
-                    chartData = { type: 'totalLoan', data: { totalValue: calculateAllTimeTotals().loan, currentUser: { name: memberName, value: s.totalLoan }, topUser: topData.totalLoanUser } };
-                } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) {
-                    text = `${memberName} जी, आपको अब तक कुल ₹${s.totalReturn.toLocaleString('en-IN')} का रिटर्न मिला है।`;
-                    const topData = findTopContributors();
-                    chartData = { type: 'totalReturn', data: { totalValue: calculateAllTimeTotals().return, currentUser: { name: memberName, value: s.totalReturn }, topUser: topData.totalReturnUser } };
-                } else if (lowerQuery.includes('outstanding') || lowerQuery.includes('bakaya')) {
-                    text = s.netLoanOutstanding > 0 ? `${memberName} जी, आपका कुल बकाया लोन ₹${s.netLoanOutstanding.toLocaleString('en-IN')} है।` : `${memberName} जी, आपका कोई लोन बकाया नहीं है।`;
-                } else if (lowerQuery.includes('net balance') || lowerQuery.includes('kul balance')) {
-                    text = `${memberName} जी, आपका नेट बैलेंस (कुल जमा - कुल निकासी) ₹${s.netBalance.toLocaleString('en-IN')} है।`;
-                } else if (lowerQuery.includes('total deposit') || lowerQuery.includes('kul jama')) {
-                    text = `${memberName} जी, आपकी कुल जमा राशि (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} है।`;
-                } else if (lowerQuery.includes('total withdrawal') || lowerQuery.includes('kul nikasi')) {
-                    text = `${memberName} जी, आपकी कुल निकासी (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} है।`;
-                } else if (lowerQuery.match(/loan.*?sip.*?antar|difference/)) {
-                    const diff = Math.abs(s.totalSIP - s.totalLoan);
-                    text = `आपके कुल SIP (₹${s.totalSIP.toLocaleString('en-IN')}) और कुल लोन (₹${s.totalLoan.toLocaleString('en-IN')}) के बीच का अंतर ₹${diff.toLocaleString('en-IN')} है।`;
-                } else if (lowerQuery.match(/jama.*?nikasi.*?antar|difference/)) {
-                    const diff = Math.abs(s.totalDeposits - s.totalWithdrawals);
-                    text = `आपकी कुल जमा (₹${s.totalDeposits.toLocaleString('en-IN')}) और कुल निकासी (₹${s.totalWithdrawals.toLocaleString('en-IN')}) के बीच का अंतर ₹${diff.toLocaleString('en-IN')} है।`;
-                } else if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) {
-                    const data = cache.highestSip;
-                    text = data ? `आपका सबसे ज़्यादा SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) {
-                    const data = cache.firstSip;
-                    text = data ? `आपका पहला SIP पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके SIP पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) {
-                    const data = cache.recentLoanPayment;
-                    text = data ? `आपका हाल ही का लोन पेमेंट ₹${data.amount.toLocaleString('en-IN')} का था, जो आपने ${data.date} को किया था।` : "आपके लोन पेमेंट का कोई रिकॉर्ड नहीं मिला।";
-                } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) {
-                    const data = cache.firstLoan;
-                    text = data ? `आपने अपना पहला लोन (${data.daysAgo} दिन पहले) ${data.date} को ₹${data.amount.toLocaleString('en-IN')} का लिया था।` : "आपके लोन लेने का कोई रिकॉर्ड नहीं मिला।";
-                }
-
-                if (text) {
-                    return { text, chartData }; // Return the calculated answer
-                }
-                return null; // Return null if no direct calculation was found
+                return "Calculation successful, but formatting not implemented for this task.";
             }
 
             function createSuggestionPill(text, type) {
@@ -596,51 +558,6 @@
                     const pill = createSuggestionPill(text, 'faq');
                     suggestionsBox.appendChild(pill);
                 });
-            }
-            
-            function showSuggestions(query) {
-                suggestionsBox.innerHTML = '';
-                if (!query || query.length < 2 || lockMode.active) {
-                    if (!lockMode.active) showDefaultSuggestions();
-                    return;
-                }
-                const memberSuggestions = findMatchingMembers(query).slice(0, 2);
-                const faqSuggestions = findMatchingFaqs(query, 2);
-                
-                const allSuggestions = [...memberSuggestions, ...faqSuggestions];
-                if (allSuggestions.length === 0) {
-                    showDefaultSuggestions();
-                    return;
-                }
-
-                allSuggestions.forEach(s => {
-                    const text = s.id ? s.name : s.questions[0];
-                    const type = s.id ? 'member' : 'faq';
-                    const pill = createSuggestionPill(text, type);
-                    suggestionsBox.appendChild(pill);
-                });
-            }
-            
-            function showPostAnswerSuggestions(answeredFaq) {
-                let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3);
-                if (relatedFaqs.length === 0) return;
-
-                const container = document.createElement('div');
-                container.className = 'p-2';
-                container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">अन्य सवाल:</p>';
-                
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'flex flex-wrap justify-start';
-                
-                relatedFaqs.forEach(faq => {
-                    const btn = document.createElement('button');
-                    btn.className = 'post-answer-suggestion';
-                    btn.textContent = faq.questions[0];
-                    btn.onclick = () => handleSend(faq.questions[0]);
-                    buttonContainer.appendChild(btn);
-                });
-                container.appendChild(buttonContainer);
-                appendRichMessage(container.outerHTML, 'bot');
             }
             
             function getWordMatchScore(query, text) { const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2)); const textWords = new Set(text.toLowerCase().split(/\s+/)); let score = 0; for (const word of queryWords) { if (textWords.has(word)) score++; } return score; }
@@ -679,23 +596,6 @@
             }
 
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
-            
-            function findTopContributors() {
-                let totalSipUser = { name: 'N/A', value: 0 }, totalLoanUser = { name: 'N/A', value: 0 }, totalReturnUser = { name: 'N/A', value: 0 };
-                if (!allMembersFullData) return { totalSipUser, totalLoanUser, totalReturnUser };
-                
-                for (const memberId in allMembersFullData) {
-                    const member = allMembersFullData[memberId];
-                    if(!member.fullName) continue;
-                    const summary = aggregateMemberData(member);
-                    if (summary.totalSIP > totalSipUser.value) totalSipUser = { name: member.fullName, value: summary.totalSIP };
-                    if (summary.totalLoan > totalLoanUser.value) totalLoanUser = { name: member.fullName, value: summary.totalLoan };
-                    if (summary.totalReturn > totalReturnUser.value) totalReturnUser = { name: member.fullName, value: summary.totalReturn };
-                }
-                return { totalSipUser, totalLoanUser, totalReturnUser };
-            }
-
-            function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
             
             function calculateCapitalScores() {
                 const results = []; const today = new Date();
@@ -736,53 +636,11 @@
 
                 const transactions = memberData.transactions ? Object.values(memberData.transactions).filter(tx => tx.Date) : [];
                 
-                if (transactions.length === 0) {
-                    return { summary: aggregateMemberData(memberData), transactions: [] };
-                }
-
-                const today = new Date();
-                const formatDate = (dateStr) => {
-                    const d = new Date(dateStr);
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const year = d.getFullYear();
-                    return `${day}-${month}-${year}`;
-                };
-                const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24)));
-
                 const sortedTransactions = [...transactions].sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-                const sipPayments = sortedTransactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0);
-                const loanPayments = sortedTransactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0);
-                const loansTaken = sortedTransactions.filter(t => (parseFloat(t.Loan) || 0) > 0);
-                
-                let highestSip = null;
-                if (sipPayments.length > 0) {
-                    const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]);
-                    highestSip = { amount: parseFloat(topSip['SIP Payment']), date: formatDate(topSip.Date) };
-                }
-
-                let firstSip = null;
-                if (sipPayments.length > 0) {
-                    firstSip = { amount: parseFloat(sipPayments[0]['SIP Payment']), date: formatDate(sipPayments[0].Date) };
-                }
-                
-                let recentLoanPayment = null;
-                if (loanPayments.length > 0) {
-                    const lastLoanPayment = loanPayments[loanPayments.length - 1];
-                    recentLoanPayment = { amount: parseFloat(lastLoanPayment['Loan Payment']), date: formatDate(lastLoanPayment.Date) };
-                }
-                
-                let firstLoan = null;
-                if (loansTaken.length > 0) {
-                    const firstLoanTx = loansTaken[0];
-                    firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) };
-                }
 
                 return {
                     summary: aggregateMemberData(memberData),
                     transactions: sortedTransactions, // Store all sorted transactions for the calculator
-                    highestSip, firstSip, recentLoanPayment, firstLoan
                 };
             }
 
@@ -879,34 +737,34 @@
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'),
             };
             
-            async function callGemini(prompt) {
+            async function callGemini(prompt, expectJson = false) {
                 try {
+                    const headers = { "Content-Type": "application/json" };
+                    const body = JSON.stringify({ promptText: prompt, expectJson: expectJson });
+
                     const response = await fetch('/api/getAiExplanation', { 
                         method: "POST", 
-                        headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ promptText: prompt }) 
+                        headers: headers, 
+                        body: body
                     });
                     
                     if (!response.ok) { 
                         const errorData = await response.json().catch(() => null);
-                        const statusText = response.statusText;
-                        const statusCode = response.status;
-                        console.error("AI Backend Error:", statusCode, statusText, errorData); 
-                        return `AI से jawaab nahi mil pa raha hai. (Error: ${statusCode})`; 
+                        throw new Error(`AI Backend Error: ${response.status} ${response.statusText}`);
                     }
 
                     const data = await response.json();
                     return data.explanation;
 
                 } catch (e) { 
-                    console.error("Network error calling AI backend:", e); 
-                    return "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein."; 
+                    console.error("Error calling AI backend:", e); 
+                    return expectJson ? '{"task": "qualitative"}' : "AI backend se connect nahi ho pa raha hai."; 
                 }
             }
 
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
-            inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
+            // inputBox.addEventListener('input', () => showSuggestions(inputBox.value)); // Disabled in lock mode
             unlockBtn.addEventListener('click', window.chatbot.deactivateLockMode);
             
             initializeBot();
