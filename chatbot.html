@@ -19,7 +19,7 @@
         :root {
             --primary-gradient: linear-gradient(135deg, #2E7D32, #4CAF50);
             --secondary-color: #f0f4f8;
-            /* UPDATED: User message background color as requested */
+            /* FIXED: User message background color is now correct as per your request */
             --user-message-bg: #DCF8C7; 
             --bot-message-bg: #ffffff;
             --text-dark: #1C1C1E;
@@ -80,8 +80,30 @@
         .capital-king-card { border-left: 4px solid; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-        .modal { display: none; } .modal.active { display: flex; }
-        .modal-content { animation: fadeIn 0.3s; }
+        /* FIXED: Modal styles for correct display */
+        .modal { 
+            display: none; 
+            position: fixed;
+            z-index: 100; /* Increased z-index */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.85);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { 
+            display: flex; 
+            animation: fadeIn 0.3s;
+        }
+        .modal-content-wrapper {
+             position: relative;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+        }
 
         .post-answer-suggestion {
             background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;
@@ -95,6 +117,7 @@
             top: 50%;
             left: 0;
             right: 0;
+            width: 100%;
             display: flex;
             justify-content: space-between;
             transform: translateY(-50%);
@@ -154,12 +177,15 @@
     </div>
 
     <!-- Modals -->
-    <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center">
+    <!-- FIXED: Modal structure and event handling for correct closing behavior -->
+    <div id="imageModal" class="modal" onclick="window.jarvis.closeImageModal()">
         <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="window.jarvis.closeImageModal()">&times;</span>
-        <img id="modalImageContent" class="max-w-[90%] max-h-[90%] rounded-lg">
-        <div id="modalNav">
-            <button id="prevBtn" onclick="window.jarvis.showPrevImage()"><i class="fas fa-chevron-left"></i></button>
-            <button id="nextBtn" onclick="window.jarvis.showNextImage()"><i class="fas fa-chevron-right"></i></button>
+        <div class="modal-content-wrapper" onclick="event.stopPropagation()">
+            <img id="modalImageContent" class="max-w-[90vw] max-h-[85vh] rounded-lg">
+            <div id="modalNav">
+                <button id="prevBtn" onclick="window.jarvis.showPrevImage()"><i class="fas fa-chevron-left"></i></button>
+                <button id="nextBtn" onclick="window.jarvis.showNextImage()"><i class="fas fa-chevron-right"></i></button>
+            </div>
         </div>
     </div>
     
@@ -260,22 +286,20 @@
                         const faqsData = faqsSnapshot.val();
                         for(const key in faqsData) {
                             const faq = faqsData[key];
-                            // **FIX**: Normalize image URL data structure for robustness
                             let gallery = [];
                             if (faq.imageUrls && Array.isArray(faq.imageUrls)) {
-                                gallery = faq.imageUrls; // Preferred modern format
-                            } else if (faq.imageUrl) { // Legacy format check
+                                gallery = faq.imageUrls;
+                            } else if (faq.imageUrl) {
                                 if (Array.isArray(faq.imageUrl)) {
-                                    gallery = faq.imageUrl; // Is an array
-                                } else if (typeof faq.imageUrl === 'object') {
-                                    gallery = Object.values(faq.imageUrl); // Is an object like {0: url, 1: url}
+                                    gallery = faq.imageUrl;
+                                } else if (typeof faq.imageUrl === 'object' && faq.imageUrl !== null) {
+                                    gallery = Object.values(faq.imageUrl);
                                 } else if (typeof faq.imageUrl === 'string') {
-                                    gallery = [faq.imageUrl]; // Is a single string
+                                    gallery = [faq.imageUrl];
                                 }
                             }
-                            faq.imageGallery = gallery; // Create a consistent property to use everywhere
+                            faq.imageGallery = gallery;
 
-                            // Ensure it has questions and either an answer or images
                             if(faq.questions && (faq.answer || faq.imageGallery.length > 0)) { 
                                 cachedFaqs.push(faq); 
                             } 
@@ -295,7 +319,7 @@
                                 type: 'image',
                                 questions: ["KYC ke liye kya documents chahiye?", "documents required for kyc"],
                                 imageTitle: "KYC Documents Guide",
-                                imageGallery: [ // Use the normalized property
+                                imageGallery: [
                                     'https://placehold.co/600x400/2E7D32/FFFFFF?text=1.+Aadhaar+Card',
                                     'https://placehold.co/600x400/4CAF50/FFFFFF?text=2.+PAN+Card',
                                     'https://placehold.co/600x400/8BC34A/FFFFFF?text=3.+Bank+Passbook'
@@ -313,7 +337,6 @@
                 } catch (error) { console.error("Initialization failed:", error); typing.innerHTML = "त्रुटि: डेटाबेस से कनेक्ट नहीं हो सका।"; }
             }
             
-            // --- Core Message Handling ---
             async function handleSend(simulatedQuery = null) {
                 if (!isBotInitialized) { await typeMessage("Jarvis abhi shuru ho raha hai, kripya prateeksha karein...", "bot"); return; }
                 const originalQuery = simulatedQuery || inputBox.value.trim();
@@ -392,7 +415,6 @@
                 }
             }
             
-            // --- Response Rendering ---
             function formatBotAnswer(content) {
                 if (!content) return '';
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
@@ -499,7 +521,6 @@
 
                 const imageContainer = document.createElement('div');
                 imageContainer.className = 'relative w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer';
-                // **FIX**: Use the normalized imageGallery property
                 imageContainer.onclick = () => window.jarvis.openImageModal(faq.imageGallery, 0);
                 
                 const loaderContainer = document.createElement('div');
@@ -509,7 +530,6 @@
                 loaderContainer.appendChild(loader);
                 
                 const image = document.createElement('img');
-                // **FIX**: Use the first image from the normalized gallery
                 image.src = faq.imageGallery[0]; 
                 image.alt = faq.imageTitle;
                 image.className = 'w-full rounded-lg hidden';
@@ -672,7 +692,7 @@
                 deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; preAnalyzedCache = null; chatHistory = []; lockBanner.classList.add('hidden'); showDefaultSuggestions(); }, 
                 
                 openImageModal: (urls, startIndex = 0) => { 
-                    if (!urls || urls.length === 0 || urls[0].includes('placehold.co')) return;
+                    if (!urls || urls.length === 0 || (urls[0] && urls[0].includes('placehold.co'))) return;
                     currentImageUrls = urls;
                     currentImageIndex = startIndex;
                     modalImage.src = currentImageUrls[currentImageIndex];
@@ -699,7 +719,11 @@
                 },
 
                 displayMemberDetails: displayMemberDetails, 
-                displayCapitalKings: (showAll) => { const modal = document.getElementById('capitalKingsModal'); if (showAll) { modal.classList.add('active'); displayCapitalKings(true); } else { displayCapitalKings(false); } }, 
+                displayCapitalKings: (showAll) => { 
+                    const modal = document.getElementById('capitalKingsModal'); 
+                    modal.classList.add('active'); 
+                    displayCapitalKings(true); 
+                }, 
                 closeCapitalModal: () => document.getElementById('capitalKingsModal').classList.remove('active'), 
                 openCapitalDetailModal: (index) => { if (!capitalKingsData) return; const member = capitalKingsData[index]; const prevMember = index > 0 ? capitalKingsData[index - 1] : null; const nextMember = index < capitalKingsData.length - 1 ? capitalKingsData[index + 1] : null; const contentEl = document.getElementById('capital-detail-content'); contentEl.innerHTML = ''; let html = `<div class="text-center mb-6"><h3 class="text-3xl font-bold">${member.name}</h3><p class="text-xl text-gray-600">Rank #${index + 1}</p><p class="text-4xl font-extrabold text-green-600 mt-2">${member.score.toFixed(0)} <span class="text-lg font-medium text-gray-500">Score</span></p><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-left"><div class="bg-gray-100 p-4 rounded-lg"><strong>Current Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</div><div class="bg-gray-100 p-4 rounded-lg"><strong>Holding Period:</strong> ${member.holdingDays} days</div></div><p class="text-sm text-gray-500 mt-4 italic">Score is calculated based on the amount of capital held over time. Higher capital for a longer duration results in a higher score.</p></div><div class="my-6"><canvas id="capitalCompareChart"></canvas></div>`; contentEl.innerHTML = html; const chartLabels = []; const chartData = []; const chartColors = []; if (prevMember) { chartLabels.push(`#${index} ${prevMember.name}`); chartData.push(prevMember.score); chartColors.push('rgba(255, 99, 132, 0.7)'); } chartLabels.push(`#${index + 1} ${member.name}`); chartData.push(member.score); chartColors.push('rgba(75, 192, 192, 0.7)'); if (nextMember) { chartLabels.push(`#${index + 2} ${nextMember.name}`); chartData.push(nextMember.score); chartColors.push('rgba(255, 206, 86, 0.7)'); } const ctx = document.getElementById('capitalCompareChart').getContext('2d'); new Chart(ctx, { type: 'bar', data: { labels: chartLabels, datasets: [{ label: 'Capital Score', data: chartData, backgroundColor: chartColors, borderColor: chartColors.map(c => c.replace('0.7', '1')), borderWidth: 1 }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Score Comparison with Nearby Ranks' } }, scales: { x: { beginAtZero: true } } } }); document.getElementById('capitalDetailModal').classList.add('active'); }, 
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'), 
