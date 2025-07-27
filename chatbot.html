@@ -80,11 +80,11 @@
         .capital-king-card { border-left: 4px solid; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-        /* FIXED: Modal styles for correct display */
+        /* FIXED: Modal styles for correct full-screen display */
         .modal { 
             display: none; 
             position: fixed;
-            z-index: 100; /* Increased z-index */
+            z-index: 100;
             left: 0;
             top: 0;
             width: 100%;
@@ -103,6 +103,8 @@
              display: flex;
              align-items: center;
              justify-content: center;
+             width: 100%;
+             height: 100%;
         }
 
         .post-answer-suggestion {
@@ -179,7 +181,7 @@
     <!-- Modals -->
     <!-- FIXED: Modal structure and event handling for correct closing behavior -->
     <div id="imageModal" class="modal" onclick="window.jarvis.closeImageModal()">
-        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="window.jarvis.closeImageModal()">&times;</span>
+        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer z-20" onclick="window.jarvis.closeImageModal()">&times;</span>
         <div class="modal-content-wrapper" onclick="event.stopPropagation()">
             <img id="modalImageContent" class="max-w-[90vw] max-h-[85vh] rounded-lg">
             <div id="modalNav">
@@ -440,7 +442,14 @@
                 const messageEl = document.createElement('div');
                 messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
                 const bubbleEl = document.createElement('div');
-                bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'bg-user-message-bg text-gray-800 rounded-br-none' : 'bg-bot-message-bg rounded-bl-none'}`;
+                // FIXED: Applying the background color directly using the CSS variable
+                bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'rounded-br-none' : 'rounded-bl-none'}`;
+                if (type === 'user') {
+                    bubbleEl.style.backgroundColor = 'var(--user-message-bg)';
+                    bubbleEl.style.color = 'var(--text-dark)';
+                } else {
+                    bubbleEl.style.backgroundColor = 'var(--bot-message-bg)';
+                }
                 
                 if (type === 'bot typing') {
                     bubbleEl.innerHTML = `<div class="flex items-center space-x-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div></div>`;
@@ -463,7 +472,13 @@
                     const messageEl = document.createElement('div');
                     messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
                     const bubbleEl = document.createElement('div');
-                    bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'bg-user-message-bg text-gray-800 rounded-br-none' : 'bg-bot-message-bg rounded-bl-none'}`;
+                    bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'rounded-br-none' : 'rounded-bl-none'}`;
+                     if (type === 'user') {
+                        bubbleEl.style.backgroundColor = 'var(--user-message-bg)';
+                        bubbleEl.style.color = 'var(--text-dark)';
+                    } else {
+                        bubbleEl.style.backgroundColor = 'var(--bot-message-bg)';
+                    }
                     messageEl.appendChild(bubbleEl);
                     chatBox.appendChild(messageEl);
                     
@@ -521,6 +536,7 @@
 
                 const imageContainer = document.createElement('div');
                 imageContainer.className = 'relative w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer';
+                // Pass the full gallery to the modal
                 imageContainer.onclick = () => window.jarvis.openImageModal(faq.imageGallery, 0);
                 
                 const loaderContainer = document.createElement('div');
@@ -684,7 +700,7 @@
             
             function updateModalNav() {
                 prevBtn.disabled = currentImageIndex === 0;
-                nextBtn.disabled = currentImageIndex === currentImageUrls.length - 1;
+                nextBtn.disabled = currentImageIndex >= currentImageUrls.length - 1;
             }
 
             window.jarvis = { 
