@@ -15,7 +15,7 @@
         :root {
              --primary-color: #007BFF; --secondary-color: #056fff; --light-bg: #f8f9fa;
              --text-light: #fff; --text-dark: #555; --positive-color: #04c800;
-             --negative-color: #ff1f02; --warning-color: #ffc107; --neutral-color: #808080; /* Gray for Due */
+             --negative-color: #ff1f02; --warning-color: #ffc107; --neutral-color: #808080;
              --profile-bg: linear-gradient(135deg, #0d6efd, #0a58ca); --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
              --profile-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
              --loader-color: var(--primary-color); --modal-bg: rgba(0, 0, 0, 0.88);
@@ -63,10 +63,9 @@
             z-index: 1000; padding: 15px; display: grid;
             grid-template-areas:
                 "pic header buttons"
-                "pic stats  stats"
-                "bar bar    bar";
+                "stats stats stats";
             grid-template-columns: auto 1fr auto;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: auto 1fr;
             gap: 10px 15px;
             align-items: start; transition: top 0.3s ease;
         }
@@ -83,10 +82,6 @@
             justify-content: center; min-width: 0; align-items: start; margin-top: 5px;
         }
         .profile-header-area h3 { margin: 0; font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
-        .profile-sub-tags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
-        .profile-rank { background-color: rgba(255, 255, 255, 0.2); color: var(--text-light); padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: bold; line-height: 1; display: inline-block; }
-        .best-member-tag { font-size: 11px; font-weight: bold; color: #ffd700; background-color: rgba(0, 0, 0, 0.3); padding: 2px 6px; border-radius: 4px; display: inline-block; }
-        .profile-rank.hidden, .best-member-tag.hidden { display: none; }
         .profile-buttons-area {
             grid-area: buttons; display: flex; flex-direction: column; align-items: end; gap: 5px; margin-top: 5px;
         }
@@ -97,6 +92,8 @@
              transition: background-color 0.2s ease; white-space: nowrap;
         }
         .profile-buttons-area button:hover { background-color: rgba(255, 255, 255, 0.3); }
+        
+        /* UPDATED: New grid for dynamic cards */
         .profile-stats-grid {
             grid-area: stats; display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -109,18 +106,10 @@
         }
         .metric-card .label { font-size: 11px; opacity: 0.9; margin-bottom: 3px; white-space: nowrap; color: #e0e0e0; }
         .metric-card .value { font-weight: bold; font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-light); }
-        #profileEligibilityCard .value.eligible { color: var(--positive-color); font-weight: bold; }
-        #profileEligibilityCard .value.not-eligible { color: var(--negative-color); font-weight: bold; }
-        #profileEligibilityCard .sub-value { font-size: 10px; opacity: 0.9; color: #e0e0e0; }
-        #profileAmountCard .value.positive { color: #b2f0b2; } #profileAmountCard .value.negative { color: #f7c8c8; }
-        #profileCurrentLoanCard .value.positive { color: #b2f0b2; } #profileCurrentLoanCard .value.negative { color: #f7c8c8; }
-        #profileSipStatusCard .value.pending { color: var(--negative-color); }
-        #profileSipStatusCard .value.paid { color: #b2f0b2; }
-        #profileSipStatusCard .value.due { color: var(--neutral-color); font-weight: bold;}
-        .progress-bar-container { grid-area: bar; width: 100%; height: 6px; background-color: rgba(255, 255, 255, 0.3); border-radius: 3px; overflow: hidden; margin-top: 8px; }
-        .progress-bar { height: 100%; width: 0; transition: width 1s ease-in-out, background-color 0.5s ease-in-out; }
-        .progress-bar.positive { background-color: #39ff14; } .progress-bar.negative { background-color: #ff3d3d; }
-        .profile-section .footnote { grid-column: 1 / -1; font-size: 9px; opacity: 0.7; margin: 0 0 -5px 0; text-align: center; line-height: 1.1; }
+        #netAmountCard .value.positive { color: #b2f0b2; } 
+        #netAmountCard .value.negative { color: #f7c8c8; }
+        #loanAmountCard .value { color: #f7c8c8; }
+        #sipAmountCard .value, #paymentAmountCard .value, #returnAmountCard .value { color: #b2f0b2; }
 
         /* Filters */
         .filters { display: flex; justify-content: center; margin: 15px 10px; gap: 15px; flex-wrap: wrap; padding-top: 180px; }
@@ -139,19 +128,13 @@
             margin: 0 0 15px 0; font-size: 1.1em; color: var(--primary-color);
             text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px;
         }
-        .summary-stats {
-            display: flex; justify-content: space-around; text-align: center;
-            flex-wrap: wrap; gap: 15px;
-        }
+        .summary-stats { display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; gap: 15px; }
         .summary-stat { flex: 1; min-width: 120px; }
         .summary-stat .label { font-size: 0.8em; color: #666; margin-bottom: 4px; }
         .summary-stat .value { font-size: 1.3em; font-weight: bold; }
         .summary-stat .value.positive { color: var(--positive-color); }
         .summary-stat .value.negative { color: var(--negative-color); }
-        .table-footnote {
-            font-size: 0.8em; color: #777; text-align: center;
-            margin: 5px auto 15px auto; padding: 0 15px;
-        }
+        .table-footnote { font-size: 0.8em; color: #777; text-align: center; margin: 5px auto 15px auto; padding: 0 15px; }
         .table-footnote.hidden { display: none; }
 
         /* Table Styles */
@@ -172,36 +155,29 @@
         .modal.hidden { opacity: 0; pointer-events: none; }
         .modal-content { background-color: #fff; padding: 20px 25px; border-radius: 8px; box-shadow: var(--card-shadow); max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; position: relative; box-sizing: border-box; }
         .modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 28px; color: #aaa; cursor: pointer; line-height: 1; z-index: 10; padding: 0; }
-        .modal-close:hover { color: #777; }
         .modal h2 { margin-top: 0; margin-bottom: 15px; font-size: 18px; color: var(--primary-color); text-align: center; }
         #imageModal .modal-content { background: none; box-shadow: none; padding: 5px; width: auto; height: auto; max-width: 95%; max-height: 95%; overflow: hidden; }
         #modalImage { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; border-radius: 10px; border: 4px solid white; object-fit: contain; box-sizing: border-box; }
         #sipStatusModal .status-list { max-height: 60vh; overflow-y: auto; margin-top: 10px; padding-right: 5px;}
         #sipStatusModal .status-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; font-size: 14px; }
-        #sipStatusModal .status-item:last-child { border-bottom: none; }
-        #sipStatusModal .status-item span:first-child { font-weight: 500; }
         #sipStatusModal .status-item span:last-child { font-weight: bold; display: flex; align-items: center; gap: 5px;}
         #sipStatusModal .status-paid { color: var(--positive-color); }
         #sipStatusModal .status-pending { color: var(--negative-color); }
         #sipStatusModal .status-due { color: var(--neutral-color); }
 
-
         /* --- Responsive adjustments --- */
         @media only screen and (max-width: 1024px) { body { padding-top: 195px; } .filters { padding-top: 150px; } .profile-section { max-width: 95%; } }
         @media only screen and (max-width: 600px) {
             body { padding-top: 205px; } .header { height: 55px; } .header h1 { font-size: 1em; }
-            .profile-section { top: 65px; width: 95%; padding: 10px 12px; grid-template-areas: "pic header buttons" "stats stats stats" "bar bar bar"; grid-template-columns: 55px 1fr auto; gap: 8px 10px; }
+            .profile-section { top: 65px; width: 95%; padding: 10px 12px; grid-template-columns: 55px 1fr auto; gap: 8px 10px; }
             .profile-picture { width: 50px; height: 50px; font-size: 22px; border-width: 2px; margin-top: 0;}
-            .profile-header-area h3 { font-size: 16px; } .profile-sub-tags{ margin-top: 2px; gap: 5px; } .profile-rank{font-size: 10px; padding: 1px 5px;} .best-member-tag{font-size: 9px; padding: 1px 4px;}
+            .profile-header-area h3 { font-size: 16px; }
             .profile-buttons-area { flex-direction: row; gap: 6px; grid-column: 3; grid-row: 1; align-self: center; margin-top: 0;}
-            #sipStatusButton { font-size: 10px; padding: 3px 5px;}
-            .profile-stats-grid{ grid-area: stats; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+            .profile-stats-grid{ grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
             .metric-card{ min-height: 55px; padding: 5px 6px; border-radius: 4px; }
             .metric-card .label{ font-size: 9px; } .metric-card .value{ font-size: 12px; }
-            #profileEligibilityCard .sub-value { font-size: 9px; }
-            .progress-bar-container{ margin-top: 8px; }
             .filters { padding-top: 165px; gap: 10px; margin-top: 15px; } label, select { font-size: 12px; min-width: 110px;} select { padding: 5px 6px; }
-            .table-container { margin-top: 10px; } th { font-size: 11px; padding: 6px 8px; } td { font-size: 10px; padding: 5px 6px; white-space: normal; overflow-wrap: break-word; word-break: break-word; vertical-align: middle; } tfoot td { font-size: 11px; }
+            .table-container { margin-top: 10px; } th { font-size: 11px; padding: 6px 8px; } td { font-size: 10px; padding: 5px 6px; } tfoot td { font-size: 11px; }
             .modal-content{ width: 95%; padding: 15px 20px; } .modal h2{ font-size: 16px; }
             #sipStatusModal .status-item{font-size: 13px;}
             .summary-container h3 { font-size: 1em; }
@@ -212,7 +188,7 @@
             .profile-section { grid-template-columns: 50px 1fr auto; gap: 5px 8px; padding: 8px 10px; }
             .profile-picture { width: 45px; height: 45px; font-size: 20px; }
             .profile-header-area h3 { font-size: 15px; }
-            .profile-stats-grid { grid-template-columns: 1fr 1fr; }
+            .profile-stats-grid { grid-template-columns: repeat(2, 1fr); }
             .filters { padding-top: 180px; }
         }
 
@@ -240,43 +216,38 @@
             <div class="profile-picture" id="profilePictureContainer"></div>
             <div class="profile-header-area">
                  <h3 id="profileName">Loading...</h3>
-                 <div class="profile-sub-tags">
-                     <span id="profileRank" class="profile-rank hidden">#?</span>
-                     <span id="bestMemberTag" class="best-member-tag hidden">✨ Best Member</span>
-                 </div>
             </div>
             <div class="profile-buttons-area">
                 <button id="sipStatusButton">SIP Status</button>
             </div>
-
+            
+            <!-- UPDATED: New Dynamic Cards -->
             <div class="profile-stats-grid">
-                 <div class="metric-card" id="profileEligibilityCard">
-                     <span class="label">Loan Eligibility</span>
-                     <span id="profileEligibilityStatus" class="value not-eligible">Not Eligible</span>
-                     <span id="profileEligibilityAmount" class="sub-value"></span>
+                 <div class="metric-card" id="sipAmountCard">
+                     <span class="label">Total SIP</span>
+                     <span id="totalSipValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="profileAmountCard">
-                     <span class="label">Balance</span>
-                     <span id="profileAmount" class="value positive">0</span>
+                 <div class="metric-card" id="paymentAmountCard">
+                     <span class="label">Total Payment</span>
+                     <span id="totalPaymentValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="profileCurrentLoanCard">
-                     <span class="label">Current Loan*</span>
-                     <span id="profileCurrentLoan" class="value negative">0</span>
+                 <div class="metric-card" id="returnAmountCard">
+                     <span class="label">Total Return</span>
+                     <span id="totalReturnValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="profileSipStatusCard">
-                     <span class="label">SIP Status</span>
-                     <span id="profileSipStatus" class="value">--</span>
+                 <div class="metric-card" id="loanAmountCard">
+                     <span class="label">Total Loan</span>
+                     <span id="totalLoanValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="profileJoinDateCard">
-                     <span class="label">Join Date</span>
-                     <span id="profileJoinDate" class="value">--</span>
+                 <div class="metric-card" id="netAmountCard">
+                     <span class="label">Net Amount</span>
+                     <span id="netAmountValue" class="value">0</span>
+                 </div>
+                 <div class="metric-card" id="daysCard">
+                     <span class="label">Total Days</span>
+                     <span id="totalDaysValue" class="value">0</span>
                  </div>
             </div>
-
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-            <p class="footnote">*Current Loan calculated based on loans after last regular payment.</p>
         </div>
 
         <div class="filters">
@@ -289,7 +260,7 @@
              <div>
                 <label for="typeFilter">Filter Data By:</label>
                 <select id="typeFilter">
-                    <option value="Performance Score">Performance Score</option>
+                    <!-- REMOVED: Performance Score option -->
                     <option value="all_transactions">All Transactions</option>
                     <option value="members_invest">Loan Repayments</option>
                     <option value="loan_history">Loan History</option>
@@ -340,32 +311,26 @@
 
 <script>
     // Global variables
-    let allData = []; // This will hold the transformed flat transaction list
-    let allMembers = {}; // This will hold the raw member data from Firebase
-    let communityBalance = 0;
-    let userRankMap = new Map();
+    let allData = [];
+    let allMembers = {};
     const defaultProfilePic = 'https://via.placeholder.com/70/CCCCCC/FFFFFF?text=M';
 
     // --- Initialization & Authentication Flow ---
     document.addEventListener("DOMContentLoaded", () => {
-        // Start the initialization process
         initializeApp();
     });
 
     async function initializeApp() {
         const loader = document.getElementById('loader');
         try {
-            // Fetch Firebase config from your Vercel function
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
 
-            // Initialize Firebase
             if (!firebase.apps.length) {
                 firebase.initializeApp(config.firebase);
             }
             
-            // Show password prompt
             setupPasswordPrompt();
 
         } catch (error) {
@@ -399,7 +364,6 @@
             passwordSubmit.textContent = "Checking...";
 
             try {
-                // Fetch all members to check against the PIN
                 const membersSnapshot = await firebase.database().ref('members').once('value');
                 allMembers = membersSnapshot.val() || {};
                 
@@ -408,7 +372,6 @@
                 if (isValidPin) {
                     passwordContainer.classList.add('hidden');
                     loader.classList.remove('hidden');
-                    // If PIN is correct, fetch and process all data
                     processFirebaseData();
                 } else {
                     passwordError.textContent = "Incorrect PIN";
@@ -431,22 +394,17 @@
     function processFirebaseData() {
         const loader = document.getElementById('loader');
         try {
-            // `allMembers` is already fetched during PIN check
             let flatTransactionList = [];
-
             for (const memberId in allMembers) {
                 const member = allMembers[memberId];
                 if (member.transactions) {
                     for (const txId in member.transactions) {
                         const tx = member.transactions[txId];
-                        
-                        // Parse date, handle potential errors
                         let parsedDate = new Date(tx.Date || 0);
                         if (isNaN(parsedDate)) {
                             console.warn(`Invalid date format "${tx.Date}" for member ${member.fullName}.`);
-                            parsedDate = new Date(0); // Use epoch as fallback
+                            parsedDate = new Date(0);
                         }
-
                         flatTransactionList.push({
                             Name: member.fullName,
                             Date: parsedDate,
@@ -454,21 +412,13 @@
                             Payment: parseFloat(tx['Loan Payment']) || 0,
                             SipPayment: parseFloat(tx['SIP Payment']) || 0,
                             ReturnAmount: parseFloat(tx['Return amount']) || 0,
-                            ImageUrl: member.profilePicUrl || null,
-                            MemberId: memberId
                         });
                     }
                 }
             }
-
-            // Sort all transactions by date once
             flatTransactionList.sort((a, b) => a.Date - b.Date);
             allData = flatTransactionList;
-
-            // Calculate overall community balance
-            communityBalance = allData.reduce((acc, r) => acc + r.Payment + r.SipPayment + r.ReturnAmount - r.Loan, 0);
             
-            // Initialize the main dashboard view
             initializeDashboard();
 
         } catch (error) {
@@ -529,15 +479,12 @@
     // --- Filter Population ---
     function populateNameFilter() {
         const nameFilter = document.getElementById("nameFilter");
-        // Use the allMembers object which is already structured
         const memberBalances = Object.values(allMembers).map(member => {
             const memberData = allData.filter(r => r.Name === member.fullName);
             const balance = memberData.reduce((acc, r) => acc + r.Payment + r.SipPayment + r.ReturnAmount - r.Loan, 0);
             return { name: member.fullName, balance: balance };
         });
-        
         memberBalances.sort((a, b) => b.balance - a.balance);
-        
         nameFilter.innerHTML = '<option value="all">All Members</option>';
         memberBalances.forEach(({ name }) => {
             nameFilter.innerHTML += `<option value="${name}">${name}</option>`;
@@ -552,40 +499,71 @@
         document.getElementById('returnSummary').classList.add('hidden');
         document.getElementById('returnFootnote').classList.add('hidden');
 
-        calculateAllUserRanks();
-        const currentUserRank = selectedName === 'all' ? null : userRankMap.get(selectedName);
-        const eligibilityResult = calculateEligibility(selectedName);
-        updateProfileSection(selectedName, currentUserRank, eligibilityResult);
+        updateProfileSection(selectedName);
+        
+        const filteredData = getFilteredTransactionData(selectedName, selectedType);
+        
+        // NEW: Update top cards based on the filtered data
+        updateTopCards(filteredData, selectedName);
 
         switch (selectedType) {
-             case 'Performance Score':
-                updateTableHeader('performance_score');
-                displayPerformanceScoreTable(selectedName);
-                break;
             case 'total_return':
                 updateTableHeader('total_return');
                 calculateAndDisplayTotalReturn();
                 break;
             case 'all_transactions':
-                updateTableHeader('all_transactions_cumulative'); // Use new header type
-                const transactionData = getFilteredTransactionData(selectedName, selectedType);
-                displayTransactionData(transactionData, true); // Pass true for cumulative
-                checkRecentStatus(selectedName);
+                updateTableHeader('all_transactions_cumulative');
+                displayTransactionData(filteredData, true);
                 break;
             case 'loan_history':
             case 'members_invest':
             case 'sip_payment':
                 updateTableHeader(selectedType);
-                const filteredTxData = getFilteredTransactionData(selectedName, selectedType);
-                displayTransactionData(filteredTxData, false); // No cumulative for these views
-                checkRecentStatus(selectedName);
+                displayTransactionData(filteredData, false);
                 break;
             default:
                  updateTableHeader('default');
                  document.querySelector("#dataTable tbody").innerHTML = `<tr><td colspan="5">Invalid filter.</td></tr>`;
-                 updateTransactionTotals(0, 0);
+                 updateTransactionTotals(0, 0, 0);
         }
     }
+    
+    // --- NEW: Function to update the top dynamic cards ---
+    function updateTopCards(filteredData, selectedName) {
+        let totalSip = 0, totalReturn = 0, totalLoan = 0, totalPayment = 0, netAmount = 0, totalDays = 0;
+
+        if (filteredData.length > 0) {
+            filteredData.forEach(row => {
+                totalSip += row.SipPayment;
+                totalReturn += row.ReturnAmount;
+                totalLoan += row.Loan;
+                totalPayment += row.Payment;
+            });
+            netAmount = (totalSip + totalReturn + totalPayment) - totalLoan;
+
+            // Calculate total days
+            const firstDate = filteredData[0].Date; // Data is pre-sorted
+            const today = new Date();
+            totalDays = Math.round((today - firstDate) / (1000 * 60 * 60 * 24));
+        }
+
+        // Handle special case for "All Members" total duration
+        if (selectedName === 'all' && allData.length > 0) {
+             const firstEverDate = allData[0].Date;
+             const today = new Date();
+             totalDays = Math.round((today - firstEverDate) / (1000 * 60 * 60 * 24));
+        }
+
+        document.getElementById('totalSipValue').textContent = totalSip.toFixed(2);
+        document.getElementById('totalPaymentValue').textContent = totalPayment.toFixed(2);
+        document.getElementById('totalReturnValue').textContent = totalReturn.toFixed(2);
+        document.getElementById('totalLoanValue').textContent = totalLoan.toFixed(2);
+        const netAmountEl = document.getElementById('netAmountValue');
+        netAmountEl.textContent = netAmount.toFixed(2);
+        netAmountEl.parentElement.className = `metric-card ${netAmount >= 0 ? 'positive' : 'negative'}`;
+        document.getElementById('totalDaysValue').textContent = totalDays;
+    }
+
 
     // --- Table Header Management ---
     function updateTableHeader(type) {
@@ -600,29 +578,20 @@
 
         switch (type) {
             case 'all_transactions_cumulative':
-                headers = ["Date", "Loan", "Payment", "Member", "Net Balance"]; // Changed header
+                headers = ["Date", "Loan", "Payment", "Member", "Net Balance"];
                 footCells[0].textContent = "Total:"; footCells[0].colSpan = 1;
-                footCells[1].id = "totalLoan";
-                footCells[2].id = "totalPayment";
-                footCells[3].textContent = "Final:"; // Label for final balance
-                footCells[3].id = "totalNetBalance";
-                footCells[3].className = 'positive';
-                break;
-            // Other cases remain the same...
-             case 'performance_score':
-                headers = ["Rank", "Name", "Perf. Score*", "Balance"];
-                footCells[0].textContent = "Total Members:";
-                footCells[1].id = "totalMembers";
-                footCells[2].id = "totalScore";
-                footCells[3].id = "totalBalance";
+                footCells[1].id = "totalValue1";
+                footCells[2].id = "totalValue2";
+                footCells[3].textContent = "Final:";
+                footCells[3].id = "totalValue3";
                 footCells[3].className = 'positive';
                 break;
             case 'total_return':
                 headers = ["Sadasya", "Kul Loan", "Kul Payment*", "Return Payment**"];
                 footCells[0].textContent = "Kul Total:";
-                footCells[1].id = "totalLoanReturn";
-                footCells[2].id = "totalPaymentReturn";
-                footCells[3].id = "totalNetReturn";
+                footCells[1].id = "totalValue1";
+                footCells[2].id = "totalValue2";
+                footCells[3].id = "totalValue3";
                 footCells[3].className = 'positive';
                 break;
             case 'loan_history':
@@ -631,9 +600,9 @@
                 headers = ["Date", "Loan", "Payment", "Member", "Txn Net"];
                 footCells[0].textContent = "Total:";
                 footCells[0].colSpan = 1;
-                footCells[1].id = "totalLoan";
-                footCells[2].id = "totalPayment";
-                footCells[3].id = "totalNetBalance";
+                footCells[1].id = "totalValue1";
+                footCells[2].id = "totalValue2";
+                footCells[3].id = "totalValue3";
                 footCells[3].className = 'positive';
                 if (type === 'sip_payment') headers[2] = "SIP Paid";
                 if (type === 'members_invest') headers[2] = "Reg. Payment";
@@ -641,7 +610,7 @@
             default:
                 headers = ["Date", "Loan", "Payment", "Member", "Net"];
                 footCells[0].textContent = "Total:"; footCells[0].colSpan = 2;
-                footCells[1].id = "totalLoan"; footCells[2].id = "totalPayment"; footCells[3].id = "totalNetBalance";
+                footCells[1].id = "totalValue1"; footCells[2].id = "totalValue2"; footCells[3].id = "totalValue3";
                 footCells[3].className = 'positive';
         }
         tableHead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
@@ -660,7 +629,9 @@
             case 'sip_payment':
                 return nameFilteredData.filter(r => r.SipPayment > 0);
             case 'all_transactions':
-                 return nameFilteredData; // Return all transactions for the user/all users
+                 return nameFilteredData;
+            case 'total_return': // Though handled separately, good to have a case
+                 return nameFilteredData.filter(r => r.ReturnAmount > 0);
             default:
                  return [];
         }
@@ -711,100 +682,29 @@
     // --- Footer Total Updates ---
     function updateTransactionTotals(loanSum, paymentSum, finalBalance) {
         const netSum = paymentSum - loanSum;
-        document.getElementById("totalLoan").textContent = loanSum.toFixed(2);
-        document.getElementById("totalPayment").textContent = paymentSum.toFixed(2);
-        const elNet = document.getElementById("totalNetBalance");
-        // In cumulative view, the last cell shows the final running balance.
-        // In other views, it shows the net of the displayed transactions.
+        document.getElementById("totalValue1").textContent = loanSum.toFixed(2);
+        document.getElementById("totalValue2").textContent = paymentSum.toFixed(2);
+        const elNet = document.getElementById("totalValue3");
         const balanceToShow = finalBalance !== undefined ? finalBalance : netSum;
         elNet.textContent = balanceToShow.toFixed(2);
         elNet.className = balanceToShow < 0 ? "negative" : "positive";
     }
 
     // --- Profile Section Update ---
-    function updateProfileSection(name, rank, eligibilityResult) {
+    function updateProfileSection(name) {
         const profileNameEl = document.getElementById("profileName");
-        const profileAmountEl = document.getElementById("profileAmount");
-        const profileCurrentLoanEl = document.getElementById("profileCurrentLoan");
-        const profileSipStatusEl = document.getElementById("profileSipStatus");
-        const profileJoinDateEl = document.getElementById("profileJoinDate");
-        const profileRankEl = document.getElementById("profileRank");
-        const bestMemberTagEl = document.getElementById("bestMemberTag");
-        const progressBar = document.getElementById("progressBar");
         const profilePicContainer = document.getElementById("profilePictureContainer");
-        const eligibilityStatusEl = document.getElementById("profileEligibilityStatus");
-        const eligibilityAmountEl = document.getElementById("profileEligibilityAmount");
 
-        let amount = 0, joinDate = "--", sipStatus = "--", sipStatusClass = "", profileImageUrl = defaultProfilePic, displayName = "All Members";
-        let currentLoan = 0;
-        const now = new Date();
-        const currentMonth = now.getMonth(), currentYear = now.getFullYear(), currentDay = now.getDate();
+        let profileImageUrl = defaultProfilePic, displayName = "Community Overview";
 
-        if (name === 'all') {
-            displayName = "Community Overview";
-            amount = communityBalance;
-            sipStatus = "N/A"; joinDate = "N/A";
-            profileRankEl.classList.add('hidden');
-            bestMemberTagEl.classList.add('hidden');
-            document.getElementById("profileEligibilityCard").style.display = 'none';
-            profilePicContainer.innerHTML = `<div style="width:100%; height:100%; background-color:#ddd; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; color: #555;" title="Community Overview">👥</div>`;
-        } else {
+        if (name !== 'all') {
             const memberInfo = Object.values(allMembers).find(m => m.fullName === name);
-            const userData = allData.filter(r => r.Name === name);
             displayName = name;
-            document.getElementById("profileEligibilityCard").style.display = 'flex';
-
-            if (userData.length > 0) {
-                 amount = userData.reduce((acc, r) => acc + r.Payment + r.SipPayment + r.ReturnAmount - r.Loan, 0);
-                 const regularPayments = userData.filter(r => r.Payment > 0).sort((a, b) => b.Date - a.Date);
-                 if (regularPayments.length > 0) {
-                     const lastRegularPaymentDate = regularPayments[0].Date;
-                     currentLoan = userData.filter(r => r.Loan > 0 && r.Date > lastRegularPaymentDate).reduce((sum, r) => sum + r.Loan, 0);
-                 } else {
-                     currentLoan = userData.reduce((acc, r) => acc + r.Loan, 0);
-                 }
-                 joinDate = memberInfo ? formatDate(new Date(memberInfo.joiningDate)) : formatDate(userData[0].Date);
-                 const paidThisMonth = userData.some(r => r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
-                 if (paidThisMonth) { [sipStatus, sipStatusClass] = ["✅ Paid", "paid"]; }
-                 else if (currentDay > 10) { [sipStatus, sipStatusClass] = ["❌ Pending", "pending"]; }
-                 else { [sipStatus, sipStatusClass] = ["🔴 Due", "due"]; }
-                 
-                 if (rank) { profileRankEl.textContent = rank; profileRankEl.classList.remove('hidden'); }
-                 else { profileRankEl.classList.add('hidden'); }
-                 bestMemberTagEl.classList.toggle('hidden', rank !== '🥇');
-                 
-                 profileImageUrl = memberInfo?.profilePicUrl || defaultProfilePic;
-            } else {
-                 profileRankEl.classList.add('hidden'); bestMemberTagEl.classList.add('hidden');
-                 eligibilityResult = { isEligible: false, approvedAmount: 0 };
-                 if(memberInfo) joinDate = formatDate(new Date(memberInfo.joiningDate));
-            }
-            profilePicContainer.innerHTML = `<img src="${profileImageUrl}" alt="Profile image of ${name}" onerror="this.onerror=null; this.src='${defaultProfilePic}';" style="cursor: ${profileImageUrl !== defaultProfilePic ? 'pointer' : 'default'};">`;
-            if (eligibilityResult.isEligible) {
-                 eligibilityStatusEl.textContent = "Eligible";
-                 eligibilityStatusEl.className = 'value eligible';
-                 eligibilityAmountEl.textContent = `Amt: ₹${eligibilityResult.approvedAmount.toFixed(0)}`;
-            } else {
-                 eligibilityStatusEl.textContent = "Not Eligible";
-                 eligibilityStatusEl.className = 'value not-eligible';
-                 let reason = "";
-                 if (amount < 0) reason = `(Balance: ₹${amount.toFixed(0)})`;
-                 else if (communityBalance <= 0) reason = "(Fund Low)";
-                 eligibilityAmountEl.textContent = reason;
-            }
+            profileImageUrl = memberInfo?.profilePicUrl || defaultProfilePic;
         }
+        
         profileNameEl.textContent = displayName;
-        profileAmountEl.textContent = amount.toFixed(2);
-        profileAmountEl.className = amount >= 0 ? 'value positive' : 'value negative';
-        profileCurrentLoanEl.textContent = currentLoan.toFixed(2);
-        profileCurrentLoanEl.className = currentLoan <= 0 ? 'value positive' : 'value negative';
-        profileSipStatusEl.textContent = sipStatus;
-        profileSipStatusEl.className = `value ${sipStatusClass}`;
-        profileJoinDateEl.textContent = joinDate;
-        const maxBalanceAbs = 50000;
-        const progressPercent = Math.max(0, Math.min(100, (Math.abs(amount) / maxBalanceAbs) * 50 + 50));
-        progressBar.style.width = `${progressPercent}%`;
-        progressBar.className = `progress-bar ${amount < 0 ? 'negative' : 'positive'}`;
+        profilePicContainer.innerHTML = `<img src="${profileImageUrl}" alt="Profile image of ${name}" onerror="this.onerror=null; this.src='${defaultProfilePic}';" style="cursor: ${profileImageUrl !== defaultProfilePic ? 'pointer' : 'default'};">`;
     }
     
     // --- All other functions (unchanged or with minor adjustments) ---
@@ -829,26 +729,6 @@
             itemDiv.innerHTML = `<span>${name}</span><span class="${statusClass}">${statusIcon} ${statusText}</span>`;
             listContainer.appendChild(itemDiv);
         });
-    }
-    function calculateAllUserRanks() {
-        userRankMap.clear();
-        const userData = {};
-        allData.forEach(row => {
-            if (!userData[row.Name]) userData[row.Name] = { amount: 0 };
-            userData[row.Name].amount += row.Payment + row.SipPayment + row.ReturnAmount - row.Loan;
-        });
-        const sortedData = Object.entries(userData).map(([name, { amount }]) => ({ name, score: calculatePerformanceScore(amount) })).sort((a, b) => b.score - a.score);
-        sortedData.forEach((user, index) => { userRankMap.set(user.name, index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`); });
-    }
-    function calculateEligibility(userName) {
-        if (userName === 'all') return { isEligible: false, approvedAmount: 0 };
-        const userData = allData.filter(r => r.Name === userName);
-        if (userData.length === 0) return { isEligible: false, approvedAmount: 0 };
-        const userCurrentBalance = userData.reduce((acc, r) => acc + r.Payment + r.SipPayment + r.ReturnAmount - r.Loan, 0);
-        const isEligible = userCurrentBalance > 0 && communityBalance > 0;
-        const potentialAmount = userCurrentBalance * 1.5;
-        const approvedAmount = isEligible ? Math.floor(Math.min(potentialAmount, communityBalance)) : 0;
-        return { isEligible, approvedAmount };
     }
     function calculateAndDisplayTotalReturn() {
         const tbody = document.querySelector("#dataTable tbody");
@@ -884,44 +764,17 @@
         summaryContainer.innerHTML = `<h3>Kul Return Ka Vivaran</h3><div class="summary-stats"><div class="summary-stat"><div class="label">Kul Loan</div><div class="value loan">${totalLoan.toFixed(2)}</div></div><div class="summary-stat"><div class="label">Kul Regular Payment</div><div class="value payment">${totalPayment.toFixed(2)}</div></div><div class="summary-stat"><div class="label">Kul Return Payment</div><div class="value ${totalReturn >= 0 ? 'positive' : 'negative'}">${totalReturn.toFixed(2)}</div></div></div>`;
         summaryContainer.classList.remove('hidden');
     }
-    function updateScoreTotals(count, scoreSum, balanceSum) {
-        document.getElementById("totalMembers").textContent = `${count}`;
-        document.getElementById("totalScore").textContent = scoreSum.toFixed(0);
-        const elBal = document.getElementById("totalBalance");
-        elBal.textContent = balanceSum.toFixed(2);
-        elBal.className = balanceSum < 0 ? "negative" : "positive";
-    }
     function updateReturnTotals(loanSum, regularPaymentSum, returnPaymentSum) {
-        document.getElementById("totalLoanReturn").textContent = loanSum.toFixed(2);
-        document.getElementById("totalPaymentReturn").textContent = regularPaymentSum.toFixed(2);
-        const elRet = document.getElementById("totalNetReturn");
+        document.getElementById("totalValue1").textContent = loanSum.toFixed(2);
+        document.getElementById("totalValue2").textContent = regularPaymentSum.toFixed(2);
+        const elRet = document.getElementById("totalValue3");
         elRet.textContent = returnPaymentSum.toFixed(2);
         elRet.className = returnPaymentSum >= 0 ? "positive" : "negative";
     }
-    function calculatePerformanceScore(amount) { return Math.max(0, Math.min(1500, Math.round(500 + (amount / 10)))); }
     function formatDate(date, options = {}) {
         if (!(date instanceof Date) || isNaN(date)) return "Invalid Date";
         const defaultOptions = { day: '2-digit', month: 'short', year: 'numeric' };
         try { return date.toLocaleDateString('en-GB', { ...defaultOptions, ...options }); } catch (e) { const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
-    }
-    function checkRecentStatus(selectedName) {
-        document.querySelectorAll("#dataTable tbody tr.highlight-recent-loan").forEach(r => r.classList.remove('highlight-recent-loan'));
-        const namesToProcess = selectedName === 'all' ? [...new Set(allData.map(d => d.Name))] : [selectedName];
-        namesToProcess.forEach(name => {
-            const records = allData.filter(r => r.Name === name).sort((a, b) => b.Date - a.Date);
-            const lastLoanRecord = records.find(r => r.Loan > 0);
-             if(lastLoanRecord) {
-                  const regularPaymentFoundAfterLoan = records.some(r => r.Date > lastLoanRecord.Date && r.Payment > 0);
-                  if (!regularPaymentFoundAfterLoan) {
-                     const lastLoanDateISO = lastLoanRecord.Date.toISOString();
-                     const tableBody = document.querySelector("#dataTable tbody");
-                     if (tableBody) {
-                         const rowToHighlight = tableBody.querySelector(`tr[data-name="${name}"][data-date="${lastLoanDateISO}"]`);
-                         if (rowToHighlight) rowToHighlight.classList.add('highlight-recent-loan');
-                     }
-                  }
-             }
-        });
     }
     const styleSheet = document.createElement("style");
     styleSheet.type = "text/css";
