@@ -58,7 +58,7 @@
              box-shadow: 0 0 8px rgba(52, 73, 94, 0.4);
         }
         .form-container button {
-            background: #c0392b; /* Changed color for exit theme */
+            background: #c0392b; /* Exit theme color */
             color: white;
             font-size: 16px;
             font-weight: bold;
@@ -175,7 +175,7 @@
         }
         #capture .content-text .name {
             font-weight: bold;
-            color: #c0392b; /* Changed color */
+            color: #c0392b;
         }
         #displayAadhaar {
             font-weight: bold;
@@ -371,10 +371,8 @@
                 
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        console.log("User authenticated, running app logic...");
                         runAppLogic();
                     } else {
-                        console.log("User not authenticated, redirecting to login...");
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
                 });
@@ -459,6 +457,8 @@
                 const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=c0392b&color=fff&size=140`;
                 const imageUrl = member.profilePicUrl || defaultPic;
                 
+                // Ensure the img tag has the crossorigin attribute set
+                apiApplicantPhotoEl.crossOrigin = "anonymous";
                 apiApplicantPhotoEl.src = createProxyUrl(imageUrl);
                 
                 apiApplicantPhotoEl.onerror = () => {
@@ -495,62 +495,49 @@
                 captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            // This function ensures all images are loaded before capture
+            // This function was the key to fixing the original joining letter download.
+            // It ensures all images are fully loaded before capturing.
             async function waitForImages(containerElement) {
-                const images = Array.from(containerElement.querySelectorAll('img'));
+                const images = Array.from(containerElement.querySelectorAll('img:not([src=""])'));
                 const promises = images.map(img => {
-                    if (!img.complete || img.naturalHeight === 0) { // Check if image is actually loaded
-                        return new Promise((resolve, reject) => {
+                    if (!img.complete) {
+                        return new Promise((resolve) => {
                             img.onload = resolve;
                             img.onerror = () => {
-                                console.warn(`Image failed to load, will continue anyway: ${img.src}`);
-                                resolve(); // Resolve even on error to not block the download
+                                console.warn(`Image failed to load: ${img.src}`);
+                                resolve(); // Resolve even on error to not block the process
                             };
                         });
                     }
                     return Promise.resolve();
                 });
-                // Add a small extra delay for rendering after load
-                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
+                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500))); // Extra delay for rendering
             }
 
-            // **DOWNLOAD LOGIC UPDATED FOR RELIABILITY**
             downloadBtn.addEventListener('click', async () => {
                 downloadBtn.textContent = 'Preparing Download...';
                 downloadBtn.disabled = true;
-                console.log('Download process started.');
-                
                 try {
-                    console.log('Waiting for all images to load...');
                     await waitForImages(captureDiv);
-                    console.log('All images loaded. Generating canvas...');
-
                     const canvas = await html2canvas(captureDiv, {
-                        scale: 3, // Higher scale for better quality
-                        useCORS: true, // Crucial for loading external images
-                        allowTaint: true, // Helps with some cross-origin issues
-                        logging: false, // Set to true for debugging if needed
+                        scale: 3,
+                        useCORS: true, // This is essential
+                        logging: false,
                         backgroundColor: '#ffffff'
                     });
-
-                    console.log('Canvas generated. Creating download link.');
                     const link = document.createElement('a');
                     const fileName = `Exit_Letter_${displayNameEl.innerText.replace(/\s+/g, '_') || 'User'}.png`;
                     link.download = fileName;
                     link.href = canvas.toDataURL('image/png', 1.0);
-                    
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    console.log('Download should have started.');
-
                 } catch (error) {
                     console.error('Error during download generation:', error);
-                    alert('Download failed. This might be due to a network or browser security issue. Please try again or check the console (F12) for errors.');
+                    alert('Failed to generate download. Please check console for errors.');
                 } finally {
                     downloadBtn.textContent = 'Download Letter';
                     downloadBtn.disabled = false;
-                    console.log('Download process finished.');
                 }
             });
 
