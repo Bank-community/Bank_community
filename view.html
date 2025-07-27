@@ -349,6 +349,8 @@
                     sipPayment: parseFloat(row["SIP Payment"]) || 0,
                     returnAmount: parseFloat(row["Return amount"] || 0),
                     extraBalance: parseFloat(row["Extra Balance"] || 0),
+                    // ✅ BUG FIX: Read the new withdrawal field
+                    extraWithdraw: parseFloat(row["Extra Withdraw"] || 0),
                 })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
                 
@@ -459,10 +461,15 @@
                 [...balanceHistory].reverse().forEach(item => {
                     const div = document.createElement('div');
                     const isCredit = item.amount > 0;
+                    let title = '';
+                    if (item.type === 'profit') title = `Profit from ${item.from}`;
+                    else if (item.type === 'manual_credit') title = 'Manual Credit';
+                    else if (item.type === 'withdrawal') title = 'Withdrawal';
+                    
                     div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
                     div.innerHTML = `
                         <div>
-                            <p class="font-semibold text-gray-800">${item.type === 'profit' ? `Profit from ${item.from}` : 'Manual Adjustment'}</p>
+                            <p class="font-semibold text-gray-800">${title}</p>
                             <p class="text-xs text-gray-400">${item.date.toLocaleDateString('en-GB')}</p>
                         </div>
                         <span class="font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${item.amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
@@ -483,7 +490,6 @@
             const cardProfilePic = document.getElementById('card-profile-pic');
             const cardSignature = document.getElementById('card-signature');
             
-            // Convert images to data URLs to fix canvas issues
             const profilePicUrl = await toDataURL(currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC);
             const signatureUrl = await toDataURL(currentMemberData.signatureUrl || '');
 
@@ -503,15 +509,25 @@
         
         // --- IMAGE & SHARING FUNCTIONS ---
         function toDataURL(url) {
-            return fetch(url)
-                .then(response => response.blob())
+            // Use a CORS proxy for Firebase Storage URLs
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+            const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
+
+            return fetch(targetUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok.');
+                    return response.blob();
+                })
                 .then(blob => new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onloadend = () => resolve(reader.result);
                     reader.onerror = reject;
                     reader.readAsDataURL(blob);
                 }))
-                .catch(() => url); // Fallback to original url if fetch fails
+                .catch((error) => {
+                    console.warn(`Could not fetch image via proxy: ${error}. Falling back to original URL.`);
+                    return url; // Fallback to original url if fetch fails
+                });
         }
 
         async function getCardAsBlob() {
@@ -519,7 +535,7 @@
             const canvas = await html2canvas(cardElement, { 
                 scale: 3, 
                 backgroundColor: null,
-                useCORS: true, // Important for external images
+                useCORS: true, 
             });
             return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         }
@@ -552,10 +568,11 @@
             }
         }
 
-        // --- FINANCIAL CALCULATOR LOGIC ---
+        // --- FINANCIAL CALCULATOR LOGIC (WITH BUG FIX) ---
         function calculateTotalExtraBalance(memberId) {
             let total = 0;
             const history = [];
+            const memberFullName = currentMemberData.fullName;
 
             // 1. Calculate profit from loan distributions
             const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
@@ -581,32 +598,39 @@
                     }
                 });
 
-                const currentMemberName = currentMemberData.fullName;
-                if (totalScoreInSnapshot > 0 && snapshotScores[currentMemberName]) {
-                    let memberShare = (snapshotScores[currentMemberName] / totalScoreInSnapshot) * profit;
+                if (totalScoreInSnapshot > 0 && snapshotScores[memberFullName]) {
+                    let memberShare = (snapshotScores[memberFullName] / totalScoreInSnapshot) * profit;
                     
-                    const lastLoanDate = allMemberTransactions.filter(r => r.fullName === currentMemberName && r.loan > 0 && r.date <= loanDate).pop()?.date;
-                    const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
+                    const lastLoanDate = allMemberTransactions.filter(r => r.fullName === memberFullName && r.loan > 0 && r.date <= loanDate).pop()?.date;
+                    const daysSinceLastLoan = lastLoanDate ? (loanDate - loanDate) / (1000 * 3600 * 24) : Infinity;
                     
                     if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_MEMBER_DAYS_LIMIT) {
                         memberShare *= CALC_CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER;
                     }
                     
                     if (memberShare > 0) {
-                        total += memberShare;
                         history.push({ type: 'profit', from: paymentRecord.fullName, date: paymentRecord.date, amount: memberShare });
                     }
                 }
             });
 
-            // 2. Add manual extra balance adjustments
-            const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && tx.extraBalance !== 0);
+            // 2. Process manual adjustments (credit and withdrawal) for the current member
+            const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && (tx.extraBalance !== 0 || tx.extraWithdraw !== 0));
             manualAdjustments.forEach(tx => {
-                total += tx.extraBalance;
-                history.push({ type: 'manual', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+                if (tx.extraBalance > 0) {
+                    history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+                }
+                if (tx.extraWithdraw > 0) {
+                    // Make the amount negative for withdrawal
+                    history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
+                }
             });
             
             history.sort((a,b) => a.date - b.date);
+            
+            // Calculate final total from sorted history
+            total = history.reduce((acc, item) => acc + item.amount, 0);
+
             return { total, history };
         }
 
