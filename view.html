@@ -78,8 +78,8 @@
     .info-icon { color: #4f46e5; }
     /* New Withdrawal Card Style */
     .withdrawal-card-container {
-        max-width: 340px; /* Max-width for the card */
         width: 100%;
+        max-width: 380px; /* 16:10 aspect ratio approx */
     }
     .withdrawal-card {
         font-family: 'Poppins', sans-serif;
@@ -87,6 +87,9 @@
         border: 1px solid #e5e7eb;
         background-color: white;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        aspect-ratio: 16 / 10.5; /* Aspect ratio control */
+        display: flex;
+        flex-direction: column;
     }
   </style>
 </head>
@@ -175,7 +178,7 @@
                             </div>
                             <div class="mt-6 p-4 bg-indigo-50 rounded-lg text-center">
                                 <div class="flex justify-between items-center">
-                                    <p class="text-sm text-gray-500">Extra Balance (Profit)</p>
+                                    <p class="text-sm text-gray-500">Extra Balance</p>
                                     <button id="view-history-btn" class="text-xs text-indigo-600 font-semibold hover:underline">View History</button>
                                 </div>
                                 <p id="extra-balance" class="font-bold text-4xl text-green-600 my-2"></p>
@@ -216,7 +219,7 @@
   
   <div id="historyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
-          <h3 class="text-xl font-bold text-center mb-4">Profit History</h3>
+          <h3 class="text-xl font-bold text-center mb-4">Extra Balance History</h3>
           <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
               <!-- History items will be injected here -->
           </div>
@@ -227,31 +230,29 @@
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="withdrawal-card-container">
         <!-- Card to be downloaded -->
-        <div id="withdrawalCard" class="withdrawal-card">
-            <div class="p-5">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <img id="card-profile-pic" alt="Profile image" class="w-16 h-16 rounded-full object-cover" src="">
-                        <div>
-                            <h2 id="card-name" class="text-gray-900 font-extrabold text-lg leading-tight"></h2>
-                            <p class="text-gray-500 text-sm font-semibold">Extra Balance Withdrawal</p>
-                        </div>
-                    </div>
+        <div id="withdrawalCard" class="withdrawal-card p-4 flex flex-col justify-between">
+            <div class="flex items-center space-x-3">
+                <img id="card-profile-pic" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-100" src="">
+                <div>
+                    <h2 id="card-name" class="text-gray-800 font-bold text-base leading-tight"></h2>
+                    <p class="text-gray-500 text-xs font-medium">Extra Balance Withdrawal</p>
                 </div>
-                <div class="mt-5 bg-gray-100 rounded-xl p-5 space-y-3 text-center">
-                     <p class="text-gray-500 font-semibold">Withdrawal Amount</p>
-                     <p id="card-amount" class="text-gray-900 font-extrabold text-4xl"></p>
+            </div>
+            <div class="text-center my-2">
+                 <p class="text-gray-500 text-sm">Withdrawal Amount</p>
+                 <p id="card-amount" class="text-green-600 font-extrabold text-5xl"></p>
+            </div>
+            <div class="flex justify-between items-end">
+                <div class="text-xs text-gray-400">
+                    <p>Date: <span id="card-date"></span></p>
                 </div>
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <p class="text-xs text-gray-400 text-center mb-1">Signature</p>
-                    <img id="card-signature" src="" alt="Signature" class="h-12 mx-auto object-contain">
-                </div>
+                <img id="card-signature" src="" alt="Signature" class="h-10 object-contain">
             </div>
         </div>
         <!-- Action Buttons -->
         <div class="mt-4 flex gap-4">
             <button id="download-card-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-download"></i>Download</button>
-            <button id="share-card-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"><i class="fab fa-whatsapp"></i>Share</button>
+            <button id="share-card-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hidden"><i class="fab fa-whatsapp"></i>Share</button>
         </div>
          <button id="close-card-modal" class="mt-2 w-full bg-gray-200 text-gray-700 font-bold py-2 rounded-lg">Close</button>
       </div>
@@ -271,7 +272,7 @@
 
     let currentMemberData = {};
     let allMemberTransactions = [];
-    let profitHistory = [];
+    let balanceHistory = [];
 
     // --- AUTHENTICATION & APP INITIALIZATION ---
     async function checkAuthAndInitialize() {
@@ -320,16 +321,12 @@
                 const membersRef = db.ref('members');
                 const snapshot = await membersRef.once('value');
                 
-                if (!snapshot.exists()) {
-                    throw new Error(`No members found in the database.`);
-                }
+                if (!snapshot.exists()) throw new Error(`No members found.`);
                 
                 const allMembersData = snapshot.val();
                 currentMemberData = allMembersData[memberId];
 
-                if (!currentMemberData) {
-                    throw new Error(`Member with ID "${memberId}" not found.`);
-                }
+                if (!currentMemberData) throw new Error(`Member with ID "${memberId}" not found.`);
 
                 allMemberTransactions = [];
                 for (const id in allMembersData) {
@@ -338,7 +335,8 @@
                         for (const txId in member.transactions) {
                             allMemberTransactions.push({
                                 ...member.transactions[txId],
-                                name: member.fullName,
+                                memberId: id,
+                                fullName: member.fullName,
                             });
                         }
                     }
@@ -350,7 +348,8 @@
                     payment: parseFloat(row["Loan Payment"]) || 0,
                     sipPayment: parseFloat(row["SIP Payment"]) || 0,
                     returnAmount: parseFloat(row["Return amount"] || 0),
-                })).filter(r => r.name && !isNaN(r.date.getTime()));
+                    extraBalance: parseFloat(row["Extra Balance"] || 0),
+                })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
                 
                 populateProfileData(currentMemberData);
@@ -365,9 +364,9 @@
         }
 
         function populateProfileData(data) {
-            const profitResult = calculateProfitDistributionForMember(data.fullName);
-            const extraBalance = profitResult.totalProfit;
-            profitHistory = profitResult.history;
+            const balanceResult = calculateTotalExtraBalance(data.membershipId);
+            const extraBalance = balanceResult.total;
+            balanceHistory = balanceResult.history;
             
             let totalSip = 0;
             if (data.transactions) {
@@ -395,13 +394,8 @@
             document.getElementById('extra-balance').textContent = `₹${extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             const withdrawBtn = document.getElementById('withdraw-btn');
-            if (extraBalance < 10) {
-                withdrawBtn.disabled = true;
-                withdrawBtn.title = "Minimum withdrawal amount is ₹10";
-            } else {
-                withdrawBtn.disabled = false;
-                withdrawBtn.title = "";
-            }
+            withdrawBtn.disabled = extraBalance < 10;
+            withdrawBtn.title = extraBalance < 10 ? "Minimum withdrawal amount is ₹10" : "";
 
             document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
@@ -421,12 +415,10 @@
 
         // --- Event Listeners ---
         const imageViewerModal = document.getElementById('imageViewerModal');
-        const fullImageView = document.getElementById('fullImageView');
         document.querySelectorAll('.document-thumbnail').forEach(img => {
             img.addEventListener('click', () => {
-                fullImageView.src = img.src;
+                document.getElementById('fullImageView').src = img.src;
                 imageViewerModal.classList.remove('hidden');
-                imageViewerModal.classList.add('flex');
             });
         });
         document.getElementById('closeImageViewer').addEventListener('click', () => imageViewerModal.classList.add('hidden'));
@@ -449,7 +441,7 @@
                 errorMsg.classList.remove('hidden'); return;
             }
             if (amount > currentMemberData.extraBalance) {
-                errorMsg.textContent = "Withdrawal amount cannot exceed available balance.";
+                errorMsg.textContent = "Amount exceeds available balance.";
                 errorMsg.classList.remove('hidden'); return;
             }
             errorMsg.classList.add('hidden');
@@ -461,18 +453,19 @@
         document.getElementById('view-history-btn').addEventListener('click', () => {
             const historyList = document.getElementById('history-list');
             historyList.innerHTML = '';
-            if (profitHistory.length === 0) {
-                historyList.innerHTML = '<p class="text-center text-gray-500">No profit history found.</p>';
+            if (balanceHistory.length === 0) {
+                historyList.innerHTML = '<p class="text-center text-gray-500">No history found.</p>';
             } else {
-                profitHistory.forEach(item => {
+                [...balanceHistory].reverse().forEach(item => {
                     const div = document.createElement('div');
+                    const isCredit = item.amount > 0;
                     div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
                     div.innerHTML = `
                         <div>
-                            <p class="font-semibold text-gray-800">From ${item.from}</p>
-                            <p class="text-xs text-gray-400">${item.date.toLocaleDateString()}</p>
+                            <p class="font-semibold text-gray-800">${item.type === 'profit' ? `Profit from ${item.from}` : 'Manual Adjustment'}</p>
+                            <p class="text-xs text-gray-400">${item.date.toLocaleDateString('en-GB')}</p>
                         </div>
-                        <span class="font-bold text-green-600">+ ₹${item.share.toFixed(2)}</span>
+                        <span class="font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${item.amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     `;
                     historyList.appendChild(div);
                 });
@@ -486,31 +479,55 @@
         document.getElementById('download-card-btn').addEventListener('click', downloadCard);
         document.getElementById('share-card-btn').addEventListener('click', shareCard);
 
-        function showWithdrawalCard(amount) {
-            document.getElementById('card-profile-pic').src = currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC;
+        async function showWithdrawalCard(amount) {
+            const cardProfilePic = document.getElementById('card-profile-pic');
+            const cardSignature = document.getElementById('card-signature');
+            
+            // Convert images to data URLs to fix canvas issues
+            const profilePicUrl = await toDataURL(currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC);
+            const signatureUrl = await toDataURL(currentMemberData.signatureUrl || '');
+
+            cardProfilePic.src = profilePicUrl;
+            cardSignature.src = signatureUrl;
+            
             document.getElementById('card-name').textContent = currentMemberData.fullName;
             document.getElementById('card-amount').textContent = `₹${amount.toLocaleString('en-IN')}`;
-            document.getElementById('card-signature').src = currentMemberData.signatureUrl || '';
+            document.getElementById('card-date').textContent = new Date().toLocaleDateString('en-GB');
             
-            if (navigator.share && navigator.canShare) {
+            if (navigator.share) {
                 document.getElementById('share-card-btn').classList.remove('hidden');
-            } else {
-                document.getElementById('share-card-btn').classList.add('hidden');
             }
             
             cardResultModal.classList.remove('hidden');
         }
+        
+        // --- IMAGE & SHARING FUNCTIONS ---
+        function toDataURL(url) {
+            return fetch(url)
+                .then(response => response.blob())
+                .then(blob => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                }))
+                .catch(() => url); // Fallback to original url if fetch fails
+        }
 
         async function getCardAsBlob() {
             const cardElement = document.getElementById('withdrawalCard');
-            const canvas = await html2canvas(cardElement, { scale: 3, backgroundColor: null });
+            const canvas = await html2canvas(cardElement, { 
+                scale: 3, 
+                backgroundColor: null,
+                useCORS: true, // Important for external images
+            });
             return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         }
 
         async function downloadCard() {
             const blob = await getCardAsBlob();
             const link = document.createElement('a');
-            link.download = `withdrawal-${currentMemberData.fullName.replace(' ','-')}.png`;
+            link.download = `withdrawal-${currentMemberData.fullName.replace(/\s+/g, '-')}.png`;
             link.href = URL.createObjectURL(blob);
             link.click();
             URL.revokeObjectURL(link.href);
@@ -518,7 +535,7 @@
         
         async function shareCard() {
             const blob = await getCardAsBlob();
-            const file = new File([blob], `withdrawal-${currentMemberData.fullName.replace(' ','-')}.png`, { type: 'image/png' });
+            const file = new File([blob], `withdrawal.png`, { type: 'image/png' });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
@@ -527,24 +544,26 @@
                         text: `Withdrawal receipt for ${currentMemberData.fullName}.`
                     });
                 } catch (error) {
-                    console.error('Error sharing:', error);
+                    console.error('Share failed:', error);
+                    alert('Could not share the image.');
                 }
             } else {
-                alert("Sharing not supported on this browser.");
+                alert("Sharing is not supported on this browser.");
             }
         }
 
         // --- FINANCIAL CALCULATOR LOGIC ---
-        function calculateProfitDistributionForMember(memberName) {
-            let totalProfit = 0;
+        function calculateTotalExtraBalance(memberId) {
+            let total = 0;
             const history = [];
-            const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
 
+            // 1. Calculate profit from loan distributions
+            const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
             profitEvents.forEach(paymentRecord => {
                 const profit = paymentRecord.returnAmount * 0.90;
                 if (profit <= 0) return;
 
-                const userLoansBeforePayment = allMemberTransactions.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date);
+                const userLoansBeforePayment = allMemberTransactions.filter(r => r.fullName === paymentRecord.fullName && r.loan > 0 && r.date < paymentRecord.date);
                 if (userLoansBeforePayment.length === 0) return;
                 
                 const relevantLoan = userLoansBeforePayment.pop();
@@ -552,7 +571,7 @@
                 
                 let totalScoreInSnapshot = 0;
                 const snapshotScores = {};
-                const membersInSystemAtLoanDate = [...new Set(allMemberTransactions.filter(r => r.date <= loanDate).map(r => r.name))];
+                const membersInSystemAtLoanDate = [...new Set(allMemberTransactions.filter(r => r.date <= loanDate).map(r => r.fullName))];
                 
                 membersInSystemAtLoanDate.forEach(name => {
                     const scoreObject = calculatePerformanceScore(name, loanDate);
@@ -562,10 +581,11 @@
                     }
                 });
 
-                if (totalScoreInSnapshot > 0 && snapshotScores[memberName]) {
-                    let memberShare = (snapshotScores[memberName] / totalScoreInSnapshot) * profit;
+                const currentMemberName = currentMemberData.fullName;
+                if (totalScoreInSnapshot > 0 && snapshotScores[currentMemberName]) {
+                    let memberShare = (snapshotScores[currentMemberName] / totalScoreInSnapshot) * profit;
                     
-                    const lastLoanDate = allMemberTransactions.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate).pop()?.date;
+                    const lastLoanDate = allMemberTransactions.filter(r => r.fullName === currentMemberName && r.loan > 0 && r.date <= loanDate).pop()?.date;
                     const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
                     
                     if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_MEMBER_DAYS_LIMIT) {
@@ -573,16 +593,25 @@
                     }
                     
                     if (memberShare > 0) {
-                        totalProfit += memberShare;
-                        history.push({ from: paymentRecord.name, date: paymentRecord.date, share: memberShare });
+                        total += memberShare;
+                        history.push({ type: 'profit', from: paymentRecord.fullName, date: paymentRecord.date, amount: memberShare });
                     }
                 }
             });
-            return { totalProfit, history };
+
+            // 2. Add manual extra balance adjustments
+            const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && tx.extraBalance !== 0);
+            manualAdjustments.forEach(tx => {
+                total += tx.extraBalance;
+                history.push({ type: 'manual', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+            });
+            
+            history.sort((a,b) => a.date - b.date);
+            return { total, history };
         }
 
         function calculatePerformanceScore(memberName, untilDate) {
-            const memberData = allMemberTransactions.filter(r => r.name === memberName && r.date <= untilDate);
+            const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
             if (memberData.length === 0) return { totalScore: 0 };
             const totalDays = 180;
             const startDate = new Date(untilDate.getTime() - totalDays * 24 * 3600 * 1000);
@@ -624,7 +653,7 @@
         }
 
         function getLoanEligibility(memberName, score) {
-            const memberData = allMemberTransactions.filter(r => r.name === memberName);
+            const memberData = allMemberTransactions.filter(r => r.fullName === memberName);
             const totalLoan = memberData.reduce((sum, r) => sum + r.loan, 0);
             const totalPayment = memberData.reduce((sum, r) => sum + r.payment + r.sipPayment, 0); 
             if (totalLoan > totalPayment) return { eligible: false, reason: 'Outstanding Loan' };
