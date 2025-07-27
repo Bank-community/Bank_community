@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Bank Exit Letter Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+            margin: 0;
+        }
+        .form-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 30px;
+        }
+        .form-container h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+         .form-container label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+         }
+        .form-container select, .form-container button {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+             transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .form-container select:focus {
+             border-color: #34495e;
+             outline: none;
+             box-shadow: 0 0 8px rgba(52, 73, 94, 0.4);
+        }
+        .form-container button {
+            background: #c0392b; /* Changed color for exit theme */
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            padding: 1.1em 2em;
+            margin-top: 10px;
+             transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+         .form-container button:hover {
+            background-color: #a93226; /* Darker red on hover */
+             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+             transform: translateY(-2px);
+         }
+
+        #capture {
+            position: relative;
+            overflow: hidden;
+            width: 210mm;
+            min-height: 297mm;
+            background-color: #ffffff;
+            padding: 15mm;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+            margin: 20px auto;
+            display: none;
+            flex-direction: column;
+            color: #333;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        #capture::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            background-image: url('https://images.weserv.nl/?url=i.imgur.com/JLyQvpv.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.05;
+            z-index: 0;
+        }
+        
+        #capture > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        #capture .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1.5px solid #d4af37;
+            padding-bottom: 15px;
+        }
+         #capture .header #logoStamp {
+             display: block;
+             width: 75px; 
+             height: 75px;
+             object-fit: contain;
+             margin: 0 auto 10px auto;
+         }
+         #capture .header .bank-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+         }
+          #capture .header .address {
+            font-size: 13px;
+            color: #555;
+            margin: 5px 0 0 0;
+         }
+        #capture .header .date {
+            position: absolute;
+            top: 5px;
+            right: 0;
+            font-size: 13px;
+            color: #333;
+        }
+        #capture h1.letter-title {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .content-area {
+             display: flex;
+             justify-content: space-between;
+             align-items: flex-start;
+             margin-bottom: 20px;
+             flex-grow: 1;
+        }
+        #capture .content-text {
+            font-size: 15px;
+            line-height: 1.6; 
+            flex-basis: 75%;
+            padding-right: 20px;
+        }
+         #capture .content-text p {
+            margin-bottom: 18px;
+         }
+        #capture .content-text b {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        #capture .content-text .name {
+            font-weight: bold;
+            color: #c0392b; /* Changed color */
+        }
+        #displayAadhaar {
+            font-weight: bold;
+            color: #b8860b;
+        }
+        #displayPosition {
+            font-weight: bold;
+            color: #2c3e50;
+            background-color: rgba(218, 165, 32, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border-bottom: 2px solid rgba(218, 165, 32, 0.4);
+        }
+        .exit-details p {
+            margin: 4px 0;
+        }
+
+        .api-photo-container-exit {
+            flex-basis: 22%;
+            text-align: center;
+            margin-top: 10px;
+        }
+         .api-photo-container-exit p {
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 8px;
+         }
+        #apiApplicantPhoto {
+            width: 100%;
+            max-width: 140px;
+            height: auto;
+            border: 4px solid #daa520;
+            border-radius: 8px;
+            padding: 5px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            object-fit: cover;
+        }
+
+        .board-members-section {
+            margin-top: auto;
+            padding-top: 15px;
+            margin-bottom: 20px;
+        }
+        .board-members-section b {
+            font-size: 15px;
+            color: #2c3e50;
+        }
+        .board-members-list {
+            margin: 8px 0 0 0;
+            padding-left: 0;
+            list-style: none;
+            line-height: 1.6;
+        }
+        .board-members-list p {
+            margin: 2px 0;
+            font-size: 14px;
+            color: #34495e;
+            font-weight: bold;
+        }
+
+        #capture .footer {
+            padding-top: 20px;
+            text-align: right;
+            border-top: 1px dashed #ccc;
+            height: 150px;
+        }
+        #capture .footer .signature-text {
+            position: absolute;
+            bottom: 110px;
+            right: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        #capture .footer .team-text {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        .stamp {
+            position: absolute;
+            object-fit: contain;
+        }
+        .stamp-bottom-right {
+            bottom: 25px;
+            right: 15px;
+            width: 110px;
+            height: 110px;
+        }
+
+        #download {
+            display: none;
+            margin-top: 20px;
+            padding: 1.1em 2em;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            max-width: 450px;
+            transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #download:hover {
+            background-color: #229954;
+             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+             transform: translateY(-2px);
+         }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Smart Exit Letter</h1>
+        <form id="letterForm">
+            <label for="nameSelect">Applicant Name:</label>
+            <select id="nameSelect" required>
+                <option value="" disabled selected>Loading members...</option>
+            </select>
+            <button type="submit">Generate Exit Letter</button>
+        </form>
+    </div>
+
+    <div id="capture">
+        <div class="header">
+            <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" alt="Bank Logo" id="logoStamp">
+            <p class="bank-name">Bank Community Loan</p>
+            <p class="address">Lalunagar, Begusarai, Bihar</p>
+            <p class="date">Date: <span id="displayDate"></span></p>
+        </div>
+
+        <h1 class="letter-title">Community Exit Letter (Relieving Letter)</h1>
+
+        <div class="content-area">
+            <div class="content-text">
+                <p>Dear <span class="name" id="displayName"></span>,</p>
+                <p>
+                    This letter is to formally acknowledge the conclusion of your membership as a <span id="displayPosition"></span> with our community. 
+                </p>
+                 <div class="exit-details">
+                    <b>Exit Details:</b>
+                    <p><i class="fas fa-id-card fa-fw" style="color: #b8860b;"></i> <b>Aadhaar No:</b> <span id="displayAadhaar"></span></p>
+                    <p><i class="fas fa-calendar-check fa-fw" style="color: #c0392b;"></i> <b>Membership End Date:</b> <b><span id="displayEndDate"></span></b></p>
+                </div>
+                 <p id="displayExtraText" style="margin-top: 18px;"></p>
+                 <p>
+                    We thank you for your association and contributions during your time with us. We wish you the very best for all your future endeavors.
+                 </p>
+            </div>
+             <div class="api-photo-container-exit">
+                <p>Applicant Photo:</p>
+                <img id="apiApplicantPhoto" src="" crossorigin="anonymous" alt="Applicant Photo">
+            </div>
+        </div>
+
+        <div class="board-members-section">
+            <b>Board Members:</b>
+            <div class="board-members-list">
+                <p>AMIT KUMAR</p>
+                <p>MITHILESH SAHNI</p>
+                <p>PRINCE RAMA</p>
+            </div>
+        </div>
+
+        <div class="footer">
+             <p class="team-text">Sincerely,<br>Bank Community Team</p>
+             <p class="signature-text">Authorized Signature</p>
+            <img src="https://images.weserv.nl/?url=i.imgur.com/P0rtQjw.png" crossorigin="anonymous" class="stamp stamp-bottom-right" alt="Authorized Signature Stamp" id="signatureStamp">
+        </div>
+    </div>
+
+    <button id="download">Download Letter</button>
+
+    <script>
+        // Authentication check logic remains the same
+        async function checkAuthAndInitialize() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Configuration failed to load.');
+                const config = await response.json();
+                
+                firebase.initializeApp(config.firebase);
+                
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        console.log("User authenticated, running app logic...");
+                        runAppLogic();
+                    } else {
+                        console.log("User not authenticated, redirecting to login...");
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
+                });
+
+            } catch (error) {
+                console.error('Initialization Error:', error);
+                alert('Application failed to initialize. Please check console.');
+            }
+        }
+
+        // Main app logic
+        function runAppLogic() {
+            let membersData = {};
+            const primeMemberNames = ["amit kumar", "mithilesh sahni", "prince rama"];
+            
+            const form = document.getElementById('letterForm');
+            const nameSelect = document.getElementById('nameSelect');
+            const captureDiv = document.getElementById('capture');
+            const displayDateEl = document.getElementById('displayDate');
+            const displayNameEl = document.getElementById('displayName');
+            const displayPositionEl = document.getElementById('displayPosition');
+            const displayAadhaarEl = document.getElementById('displayAadhaar');
+            const displayEndDateEl = document.getElementById('displayEndDate'); // Changed from StartDate
+            const displayExtraTextEl = document.getElementById('displayExtraText');
+            const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
+            const downloadBtn = document.getElementById('download');
+            
+            async function fetchMemberData() {
+                try {
+                    const db = firebase.database();
+                    const membersRef = db.ref('members');
+                    const snapshot = await membersRef.once('value');
+                    if (!snapshot.exists()) throw new Error('No member data found.');
+                    
+                    membersData = snapshot.val();
+                    
+                    // Now we can list all members, not just approved, for exit letters
+                    const allMembers = Object.entries(membersData)
+                        .filter(([id, member]) => member.fullName)
+                        .map(([id, member]) => ({ id, name: member.fullName }))
+                        .sort((a, b) => a.name.localeCompare(b.name));
+
+                    nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
+                    allMembers.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id; 
+                        option.textContent = member.name;
+                        nameSelect.appendChild(option);
+                    });
+                    nameSelect.disabled = false;
+
+                } catch (error) {
+                    console.error('Error fetching member data:', error);
+                    nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
+                    alert('Failed to load member data. Please check console.');
+                }
+            }
+
+            function createProxyUrl(url) {
+                if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+                    return '';
+                }
+                const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
+                return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
+            }
+
+            function formatDisplayDate(dateString) {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return "N/A";
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                return date.toLocaleDateString('en-GB', options);
+            }
+
+            // **UPDATED FUNCTION FOR EXIT LETTER**
+            function generateExitText(name, position) {
+                if (position === "Prime Member") {
+                    return `प्रिय ${name},<br>एक प्राइम मेंबर के रूप में आपके योगदान के लिए हम आपका हृदय से धन्यवाद करते हैं। आपके भविष्य के सभी प्रयासों के लिए हमारी ओर से हार्दिक शुभकामनाएँ।`;
+                } else {
+                    return `प्रिय ${name},<br>बैंक कम्युनिटी के सदस्य के रूप में आपके साथ के लिए धन्यवाद। हम आपके उज्ज्वल भविष्य की कामना करते हैं।`;
+                }
+            }
+
+            function setApiImage(member) {
+                const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=c0392b&color=fff&size=140`;
+                const imageUrl = member.profilePicUrl || defaultPic;
+                
+                apiApplicantPhotoEl.src = createProxyUrl(imageUrl);
+                
+                apiApplicantPhotoEl.onerror = () => {
+                    apiApplicantPhotoEl.src = createProxyUrl(defaultPic);
+                };
+            }
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const selectedMemberId = nameSelect.value;
+                if (!selectedMemberId) {
+                    alert('Please select an applicant.');
+                    return;
+                }
+                const member = membersData[selectedMemberId];
+                if (!member) {
+                    alert('Selected member data not found.');
+                    return;
+                }
+                
+                const position = primeMemberNames.includes(member.fullName.toLowerCase()) ? "Prime Member" : "Bank Member";
+                
+                const today = new Date().toISOString();
+                displayDateEl.innerText = formatDisplayDate(today);
+                displayNameEl.innerText = member.fullName;
+                displayPositionEl.innerText = position;
+                displayAadhaarEl.innerText = member.aadhaar || 'N/A';
+                displayEndDateEl.innerText = formatDisplayDate(today); // Using today's date as exit date
+                displayExtraTextEl.innerHTML = generateExitText(member.fullName, position); // Using new exit text function
+                setApiImage(member);
+
+                captureDiv.style.display = 'flex';
+                downloadBtn.style.display = 'block';
+                captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            async function waitForImages(containerElement) {
+                const images = Array.from(containerElement.querySelectorAll('img:not([src=""])'));
+                const promises = images.map(img => {
+                    if (!img.complete) {
+                        return new Promise((resolve) => {
+                            img.onload = resolve;
+                            img.onerror = () => {
+                                console.warn(`Image failed to load: ${img.src}`);
+                                resolve();
+                            };
+                        });
+                    }
+                    return Promise.resolve();
+                });
+                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
+            }
+
+            downloadBtn.addEventListener('click', async () => {
+                downloadBtn.textContent = 'Preparing Download...';
+                downloadBtn.disabled = true;
+                try {
+                    await waitForImages(captureDiv);
+                    const canvas = await html2canvas(captureDiv, {
+                        scale: 3,
+                        useCORS: true,
+logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+                    const link = document.createElement('a');
+                    // **UPDATED FILENAME**
+                    const fileName = `Exit_Letter_${displayNameEl.innerText.replace(/\s+/g, '_') || 'User'}.png`;
+                    link.download = fileName;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (error) {
+                    console.error('Error during download generation:', error);
+                    alert('Failed to generate download. Please check console for errors.');
+                } finally {
+                    downloadBtn.textContent = 'Download Letter';
+                    downloadBtn.disabled = false;
+                }
+            });
+
+            nameSelect.disabled = true;
+            fetchMemberData();
+        }
+
+        // Start the app
+        checkAuthAndInitialize();
+    </script>
+</body>
+</html>
+
