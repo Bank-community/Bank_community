@@ -57,13 +57,30 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
         .color-input-group { display: flex; align-items: center; gap: 0.5rem; }
-        .color-input-group input[type="color"] { width: 2.5rem; height: 2.5rem; padding: 0.25rem; border: none; background: none; cursor: pointer; }
+        .color-input-group input[type="color"] { min-width: 2.5rem; width: 2.5rem; height: 2.5rem; padding: 0.25rem; border: none; background: none; cursor: pointer; }
         .color-input-group input[type="text"] { flex-grow: 1; }
         .button-preview-wrapper {
             background-color: #e5e7eb;
             background-image: linear-gradient(45deg, #f9fafb 25%, transparent 25%), linear-gradient(-45deg, #f9fafb 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f9fafb 75%), linear-gradient(-45deg, transparent 75%, #f9fafb 75%);
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .civil-button {
+            padding: 12px 25px;
+            font-size: 1em;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .civil-button svg {
+            width: 20px;
+            height: 20px;
         }
     </style>
 </head>
@@ -132,6 +149,7 @@
     <div id="editPenaltyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="headerButtonModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="dashboardButtonModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 scale-95">
             <h3 id="confirmModalTitle" class="text-lg font-bold text-gray-900">Confirmation</h3>
@@ -541,13 +559,14 @@
             const container = document.getElementById('page-settings-view');
             const colors = adminSettings.card_colors || {};
             const headerButtons = adminSettings.header_buttons || {};
+            const dashboardButtons = adminSettings.dashboard_buttons || {};
 
             container.innerHTML = `
                 <div class="space-y-8">
                     <!-- Manage Index Header Buttons -->
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-gray-800">Index Buttons</h3>
+                            <h3 class="text-xl font-bold text-gray-800">Index Page Header Buttons</h3>
                             <button id="add-new-header-button-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
                                 <i class="ph-plus-circle"></i> Add New Button
                             </button>
@@ -556,12 +575,12 @@
                             ${Object.keys(headerButtons).length > 0 ? Object.entries(headerButtons).sort(([,a],[,b]) => (a.order || 0) - (b.order || 0)).map(([key, btn]) => `
                                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded flex items-center justify-center" style="background-color: ${btn.color || '#ccc'}; color: ${btn.textColor || '#000'}">
+                                        <div class="w-10 h-10 rounded-md flex items-center justify-center" style="background-color: ${btn.color || '#ccc'}; color: ${btn.textColor || '#000'}">
                                             ${btn.icon_svg ? btn.icon_svg : ''}
                                         </div>
                                         <div>
                                             <p class="font-semibold text-gray-800">${btn.name}</p>
-                                            <p class="text-xs text-gray-500">${btn.url || `Action: ${btn.id}`}</p>
+                                            <p class="text-xs text-gray-500">${btn.url || `Action ID: ${btn.id}`}</p>
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-3">
@@ -569,7 +588,36 @@
                                         <button class="delete-header-button-btn text-gray-500 hover:text-red-600" data-key="${key}"><i class="ph-trash text-xl"></i></button>
                                     </div>
                                 </div>
-                            `).join('') : '<p class="text-center text-gray-500 py-4">No header buttons created yet.</p>'}
+                            `).join('') : '<p class="text-center text-gray-500 py-4">No Index Header buttons created yet.</p>'}
+                        </div>
+                    </div>
+
+                    <!-- Manage Dashboard Buttons (Old feature) -->
+                     <div class="bg-white p-6 rounded-xl shadow-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">Admin Dashboard Links</h3>
+                            <button id="add-new-dashboard-button-btn" class="btn-primary flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg">
+                                <i class="ph-plus-circle"></i> Add New Link
+                            </button>
+                        </div>
+                        <div id="dashboard-buttons-list" class="space-y-3 mt-4">
+                           ${Object.keys(dashboardButtons).length > 0 ? Object.entries(dashboardButtons).map(([key, btn]) => `
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded flex items-center justify-center" style="background-color: ${btn.color || '#ccc'};">
+                                            ${btn.icon ? btn.icon : ''}
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-800">${btn.name}</p>
+                                            <p class="text-xs text-gray-500">${btn.url}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <button class="edit-dashboard-button-btn text-gray-500 hover:text-indigo-600" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
+                                        <button class="delete-dashboard-button-btn text-gray-500 hover:text-red-600" data-key="${key}"><i class="ph-trash text-xl"></i></button>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-center text-gray-500 py-4">No admin dashboard links created yet.</p>'}
                         </div>
                     </div>
 
@@ -606,6 +654,50 @@
                 </div>
             `;
         }
+        
+        function renderDashboardButtonModal(key = null) {
+            const modal = document.getElementById('dashboardButtonModal');
+            const isEditing = key !== null;
+            const btnData = isEditing ? adminSettings.dashboard_buttons[key] : {};
+            
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md scale-95">
+                    <form id="dashboard-button-form" data-key="${isEditing ? key : ''}">
+                        <div class="p-4 border-b flex justify-between items-center">
+                            <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Dashboard Link</h3>
+                            <button type="button" class="close-modal-btn text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label for="dash-btn-name" class="block text-sm font-medium text-gray-700 mb-1">Button Name</label>
+                                <input type="text" id="dash-btn-name" class="form-input w-full p-2 rounded-lg" placeholder="e.g., Pay EMI" value="${btnData.name || ''}" required>
+                            </div>
+                            <div>
+                                <label for="dash-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
+                                <input type="text" id="dash-btn-url" class="form-input w-full p-2 rounded-lg" placeholder="https://... or page.html" value="${btnData.url || ''}" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="dash-btn-color-picker" value="${btnData.color || '#4f46e5'}">
+                                    <input type="text" id="dash-btn-color-hex" class="form-input rounded-md" value="${btnData.color || '#4f46e5'}">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="dash-btn-icon" class="block text-sm font-medium text-gray-700 mb-1">Button Icon (SVG Code)</label>
+                                <textarea id="dash-btn-icon" class="form-input w-full p-2 rounded-lg font-mono text-xs" rows="3" placeholder='<svg>...</svg>'>${btnData.icon || ''}</textarea>
+                                <p class="text-xs text-gray-500 mt-1">Paste full SVG code. Use white fill/stroke for visibility.</p>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Save Link</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            openModal(modal);
+        }
 
         function renderHeaderButtonModal(key = null) {
             const modal = document.getElementById('headerButtonModal');
@@ -616,42 +708,48 @@
                 borderRadius: '50px',
                 borderColor: '#ffc107',
                 borderWidth: '0px',
+                width: 'auto',
+                height: 'auto',
                 base_class: 'civil-button'
             };
             
             modal.innerHTML = `
-                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col scale-95">
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col scale-95">
                     <form id="header-button-form" data-key="${isEditing ? key : ''}" class="flex flex-col h-full">
-                        <div class="p-4 border-b">
+                        <div class="p-4 border-b flex justify-between items-center">
                             <h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Index Button</h3>
+                            <button type="button" class="close-modal-btn text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                         </div>
-                        <div class="flex-grow p-6 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto">
+                        <div class="flex-grow p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 overflow-y-auto">
                             <!-- Form Fields -->
                             <div class="space-y-4">
                                 <div>
                                     <label for="btn-name" class="block text-sm font-medium text-gray-700 mb-1">Button Name</label>
                                     <input type="text" id="btn-name" class="form-input w-full p-2 rounded-lg" value="${btnData.name || ''}" required>
                                 </div>
-                                <div>
-                                    <label for="btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button Link (URL)</label>
-                                    <input type="text" id="btn-url" class="form-input w-full p-2 rounded-lg" placeholder="e.g., gallery.html" value="${btnData.url || ''}">
-                                </div>
-                                <div>
-                                    <label for="btn-id" class="block text-sm font-medium text-gray-700 mb-1">Button Action ID</label>
-                                    <input type="text" id="btn-id" class="form-input w-full p-2 rounded-lg" placeholder="e.g., sipStatusBtn" value="${btnData.id || ''}">
-                                    <p class="text-xs text-gray-500 mt-1">Use for special buttons like SIP Status or Notification.</p>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="btn-url" class="block text-sm font-medium text-gray-700 mb-1">Link (URL)</label>
+                                        <input type="text" id="btn-url" class="form-input w-full p-2 rounded-lg" placeholder="gallery.html" value="${btnData.url || ''}">
+                                    </div>
+                                    <div>
+                                        <label for="btn-id" class="block text-sm font-medium text-gray-700 mb-1">Action ID</label>
+                                        <input type="text" id="btn-id" class="form-input w-full p-2 rounded-lg" placeholder="sipStatusBtn" value="${btnData.id || ''}">
+                                    </div>
                                 </div>
                                 <div>
                                     <label for="btn-icon" class="block text-sm font-medium text-gray-700 mb-1">Icon (SVG Code)</label>
                                     <textarea id="btn-icon" class="form-input w-full p-2 rounded-lg font-mono text-xs" rows="4">${btnData.icon_svg || ''}</textarea>
                                 </div>
-                                <div>
-                                    <label for="btn-order" class="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
-                                    <input type="number" id="btn-order" class="form-input w-full p-2 rounded-lg" value="${btnData.order || 0}">
-                                </div>
-                                <div>
-                                    <label for="btn-base-class" class="block text-sm font-medium text-gray-700 mb-1">Base CSS Class</label>
-                                    <input type="text" id="btn-base-class" class="form-input w-full p-2 rounded-lg" value="${btnData.base_class || 'civil-button'}">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="btn-order" class="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                                        <input type="number" id="btn-order" class="form-input w-full p-2 rounded-lg" value="${btnData.order || 0}">
+                                    </div>
+                                    <div>
+                                        <label for="btn-base-class" class="block text-sm font-medium text-gray-700 mb-1">Base CSS Class</label>
+                                        <input type="text" id="btn-base-class" class="form-input w-full p-2 rounded-lg" value="${btnData.base_class || 'civil-button'}">
+                                    </div>
                                 </div>
                             </div>
                             <!-- Styling & Preview -->
@@ -671,7 +769,9 @@
                                             <input type="text" id="btn-text-color-hex" class="form-input rounded-md" value="${btnData.textColor || '#333333'}">
                                         </div>
                                     </div>
-                                    <div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Border Color</label>
                                         <div class="color-input-group">
                                             <input type="color" id="btn-border-color-picker" value="${btnData.borderColor || '#ffc107'}">
@@ -681,17 +781,27 @@
                                     <div class="grid grid-cols-2 gap-2">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Border Width</label>
-                                            <input type="text" id="btn-border-width" class="form-input w-full p-2 rounded-lg" placeholder="e.g., 2px" value="${btnData.borderWidth || '0px'}">
+                                            <input type="text" id="btn-border-width" class="form-input w-full p-2 rounded-lg" placeholder="2px" value="${btnData.borderWidth || '0px'}">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Border Radius</label>
-                                            <input type="text" id="btn-border-radius" class="form-input w-full p-2 rounded-lg" placeholder="e.g., 50px" value="${btnData.borderRadius || '50px'}">
+                                            <input type="text" id="btn-border-radius" class="form-input w-full p-2 rounded-lg" placeholder="50px" value="${btnData.borderRadius || '50px'}">
                                         </div>
                                     </div>
                                 </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                     <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Width</label>
+                                        <input type="text" id="btn-width" class="form-input w-full p-2 rounded-lg" placeholder="auto" value="${btnData.width || 'auto'}">
+                                     </div>
+                                     <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
+                                        <input type="text" id="btn-height" class="form-input w-full p-2 rounded-lg" placeholder="auto" value="${btnData.height || 'auto'}">
+                                     </div>
+                                </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Live Preview</label>
-                                    <div class="button-preview-wrapper p-8 rounded-lg flex items-center justify-center">
+                                    <div class="button-preview-wrapper p-8 rounded-lg flex items-center justify-center min-h-[120px]">
                                         <button id="button-preview" class="civil-button" style="flex-grow: 0;">Preview</button>
                                     </div>
                                 </div>
@@ -1194,6 +1304,8 @@
             const borderColor = document.getElementById('btn-border-color-hex').value;
             const borderWidth = document.getElementById('btn-border-width').value;
             const baseClass = document.getElementById('btn-base-class').value;
+            const width = document.getElementById('btn-width').value;
+            const height = document.getElementById('btn-height').value;
             
             preview.className = baseClass; // Reset and apply base class
             preview.style.backgroundColor = color;
@@ -1202,6 +1314,8 @@
             preview.style.borderColor = borderColor;
             preview.style.borderWidth = borderWidth;
             preview.style.borderStyle = parseFloat(borderWidth) > 0 ? 'solid' : 'none';
+            preview.style.width = width;
+            preview.style.height = height;
             preview.style.flexGrow = '0'; // Override flex-grow for preview
 
             preview.innerHTML = `${icon} <b>${name || 'Button'}</b>`;
@@ -1308,6 +1422,9 @@
             if(e.target.id === 'btn-text-color-hex') syncColorInputs(e.target, document.getElementById('btn-text-color-picker'));
             if(e.target.id === 'btn-border-color-picker') syncColorInputs(e.target, document.getElementById('btn-border-color-hex'));
             if(e.target.id === 'btn-border-color-hex') syncColorInputs(e.target, document.getElementById('btn-border-color-picker'));
+            
+            if(e.target.id === 'dash-btn-color-picker') syncColorInputs(e.target, document.getElementById('dash-btn-color-hex'));
+            if(e.target.id === 'dash-btn-color-hex') syncColorInputs(e.target, document.getElementById('dash-btn-color-picker'));
         });
 
         document.body.addEventListener('change', e => {
@@ -1466,6 +1583,8 @@
                     borderColor: document.getElementById('btn-border-color-hex').value,
                     borderWidth: document.getElementById('btn-border-width').value,
                     borderRadius: document.getElementById('btn-border-radius').value,
+                    width: document.getElementById('btn-width').value,
+                    height: document.getElementById('btn-height').value,
                     order: parseInt(document.getElementById('btn-order').value) || 0,
                     base_class: document.getElementById('btn-base-class').value
                 };
@@ -1477,6 +1596,26 @@
                     closeModal(document.getElementById('headerButtonModal'));
                 } catch (err) {
                     alert('Error saving button: ' + err.message);
+                }
+            }
+             if (e.target.id === 'dashboard-button-form') {
+                e.preventDefault();
+                const form = e.target;
+                const key = form.dataset.key;
+                const btnData = {
+                    name: document.getElementById('dash-btn-name').value,
+                    url: document.getElementById('dash-btn-url').value,
+                    color: document.getElementById('dash-btn-color-hex').value,
+                    icon: document.getElementById('dash-btn-icon').value,
+                };
+                
+                const dbRef = key ? ref(db, `admin/dashboard_buttons/${key}`) : push(ref(db, 'admin/dashboard_buttons'));
+                try {
+                    await set(dbRef, btnData);
+                    alert(`Dashboard Link ${key ? 'updated' : 'added'} successfully!`);
+                    closeModal(document.getElementById('dashboardButtonModal'));
+                } catch (err) {
+                    alert('Error saving link: ' + err.message);
                 }
             }
             if (e.target.id === 'edit-penalty-form') {
@@ -1686,12 +1825,10 @@
             if(addNewHeaderButtonBtn) {
                 renderHeaderButtonModal();
             }
-
             const editHeaderButtonBtn = e.target.closest('.edit-header-button-btn');
             if(editHeaderButtonBtn) {
                 renderHeaderButtonModal(editHeaderButtonBtn.dataset.key);
             }
-
             const deleteHeaderButtonBtn = e.target.closest('.delete-header-button-btn');
             if(deleteHeaderButtonBtn) {
                 const key = deleteHeaderButtonBtn.dataset.key;
@@ -1703,6 +1840,29 @@
                         alert('Button deleted successfully.');
                     } catch (err) {
                         alert('Error deleting button: ' + err.message);
+                    }
+                }
+            }
+            
+            const addNewDashboardButtonBtn = e.target.closest('#add-new-dashboard-button-btn');
+            if(addNewDashboardButtonBtn) {
+                renderDashboardButtonModal();
+            }
+            const editDashboardButtonBtn = e.target.closest('.edit-dashboard-button-btn');
+            if(editDashboardButtonBtn) {
+                renderDashboardButtonModal(editDashboardButtonBtn.dataset.key);
+            }
+            const deleteDashboardButtonBtn = e.target.closest('.delete-dashboard-button-btn');
+            if(deleteDashboardButtonBtn) {
+                const key = deleteDashboardButtonBtn.dataset.key;
+                const btnName = adminSettings.dashboard_buttons[key]?.name || 'this link';
+                const confirmed = await showConfirmation('Delete Link?', `Are you sure you want to delete "${btnName}"?`);
+                if (confirmed) {
+                    try {
+                        await remove(ref(db, `admin/dashboard_buttons/${key}`));
+                        alert('Link deleted successfully.');
+                    } catch (err) {
+                        alert('Error deleting link: ' + err.message);
                     }
                 }
             }
