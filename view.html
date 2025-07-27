@@ -7,11 +7,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
   />
+  <!-- html2canvas for downloading card -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <!-- ✅ Auth script joda gaya -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <style>
@@ -20,122 +23,228 @@
       font-family: 'Poppins', sans-serif;
       background-color: #f0f2f5;
     }
-    .main-container {
-        background: #f0f2f5;
+    .profile-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
     }
-    .profile-card {
+    .stat-card {
         background-color: white;
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+        border-radius: 1rem;
+        box-shadow: 0 4px 15px -5px rgba(0,0,0,0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -10px rgba(0,0,0,0.15);
     }
     .info-item {
         border-bottom: 1px solid #e5e7eb;
+        padding: 0.75rem 0;
     }
-    .info-item:last-child {
-        border-bottom: none;
-    }
-    .document-image {
+    .info-item:last-child { border-bottom: none; }
+    .document-thumbnail {
         cursor: pointer;
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: 2px solid transparent;
     }
-    .document-image:hover {
+    .document-thumbnail:hover {
         transform: scale(1.05);
         box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-color: #4f46e5;
+    }
+    .loader-container {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f2f5;
+        z-index: 100;
     }
     .loader {
-        border: 5px solid #f3f3f3;
+        border: 5px solid #e5e7eb;
         border-top: 5px solid #4f46e5;
         border-radius: 50%;
         width: 50px;
         height: 50px;
         animation: spin 1s linear infinite;
     }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    .hidden {
-        display: none;
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .hidden { display: none; }
     .modal-overlay {
         background-color: rgba(0, 0, 0, 0.8);
         backdrop-filter: blur(4px);
     }
-    .info-icon {
-        color: #4f46e5;
+    .info-icon { color: #4f46e5; }
+    .withdrawal-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        font-family: 'Poppins', sans-serif;
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 main-container">
+<body class="min-h-screen">
   
-  <div id="loader" class="loader"></div>
-  <div id="error-message" class="hidden text-center text-red-600 font-semibold bg-white p-8 rounded-xl shadow-lg">
+  <div id="loader-container" class="loader-container">
+      <div class="loader"></div>
+  </div>
+
+  <div id="error-message" class="hidden text-center text-red-600 font-semibold bg-white p-8 rounded-xl shadow-lg max-w-md mx-auto mt-10">
       <h2 class="text-2xl mb-2">Error</h2>
-      <p>Could not load member data. Please check the ID and try again.</p>
+      <p>Could not load member data.</p>
   </div>
   
-  <div id="profile-content" class="max-w-4xl w-full hidden">
-    <div class="profile-card p-6 sm:p-8">
-        <!-- Header Section -->
-        <div class="flex flex-col sm:flex-row items-center gap-6 mb-8 pb-8 border-b border-gray-200">
-            <img id="profile-pic" src="" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-indigo-500 shadow-lg">
-            <div class="text-center sm:text-left">
-                <h1 id="profile-name" class="text-3xl font-bold text-gray-800"></h1>
-                <p id="membership-id" class="text-gray-500"></p>
-            </div>
-        </div>
-
-        <!-- Details Section -->
-        <div class="space-y-6">
-            <div>
-                <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Personal Details</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-phone-alt info-icon w-5 text-center"></i><span id="mobile-number" class="font-semibold text-gray-800"></span></div>
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-birthday-cake info-icon w-5 text-center"></i><span id="dob" class="font-semibold text-gray-800"></span></div>
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-id-card info-icon w-5 text-center"></i><span id="aadhaar" class="font-semibold text-gray-800"></span></div>
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-map-marker-alt info-icon w-5 text-center"></i><span id="address" class="font-semibold text-gray-800 text-left"></span></div>
-                </div>
-            </div>
-            <div>
-                <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Financial Details</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-calendar-alt info-icon w-5 text-center"></i><span id="joining-date" class="font-semibold text-gray-800"></span></div>
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-user-shield info-icon w-5 text-center"></i><span id="guarantor-name" class="font-semibold text-gray-800"></span></div>
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-piggy-bank info-icon w-5 text-center"></i><span id="total-sip" class="font-bold text-lg text-indigo-600"></span></div>
-                    <div class="info-item flex items-center py-2 gap-4"><i class="fas fa-wallet info-icon w-5 text-center"></i><span id="extra-balance" class="font-bold text-lg text-green-600"></span></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Documents Section -->
-        <div class="mt-10 pt-6 border-t border-gray-200">
-            <h3 class="text-xl font-semibold text-gray-700 text-center mb-6">Documents</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="text-center">
-                    <h4 class="font-semibold mb-2 text-gray-600">Profile Photo</h4>
-                    <img id="doc-profile-pic" src="" alt="Profile Photo" class="document-image w-full h-40 object-cover rounded-lg border-2 border-gray-200 bg-gray-100">
-                </div>
-                <div class="text-center">
-                    <h4 class="font-semibold mb-2 text-gray-600">Document</h4>
-                    <img id="doc-document" src="" alt="Document" class="document-image w-full h-40 object-contain rounded-lg border-2 border-gray-200 bg-gray-100 p-2">
-                </div>
-                <div class="text-center">
-                    <h4 class="font-semibold mb-2 text-gray-600">Signature</h4>
-                    <img id="doc-signature" src="" alt="Signature" class="document-image w-full h-40 object-contain rounded-lg border-2 border-gray-200 bg-gray-100 p-2">
-                </div>
+  <div id="profile-content" class="w-full hidden">
+    <!-- Header -->
+    <div class="profile-header text-white p-6 rounded-b-3xl shadow-lg">
+        <div class="max-w-5xl mx-auto flex items-center gap-6">
+            <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg">
+            <div class="flex-grow">
+                <h1 id="profile-name" class="text-2xl sm:text-4xl font-bold"></h1>
+                <p id="membership-id" class="text-indigo-200 text-sm"></p>
             </div>
         </div>
     </div>
+
+    <main class="max-w-5xl mx-auto p-4 -mt-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Financial Health Card -->
+                <div class="stat-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-heart-pulse text-indigo-500"></i> Financial Health</h3>
+                     <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">Performance Score</span>
+                            <span id="performance-score" class="font-bold text-lg text-indigo-600">Calculating...</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">Loan Eligibility</span>
+                            <span id="loan-eligibility" class="font-bold text-lg text-green-600">Calculating...</span>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Documents Card -->
+                <div class="stat-card p-6">
+                     <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-folder-open text-indigo-500"></i> Documents</h3>
+                     <div class="grid grid-cols-3 gap-4">
+                         <div class="text-center">
+                            <img id="doc-profile-pic" src="" alt="Profile" class="document-thumbnail w-full h-20 object-cover rounded-lg bg-gray-100">
+                            <p class="text-xs mt-1 text-gray-500">Profile</p>
+                         </div>
+                         <div class="text-center">
+                            <img id="doc-document" src="" alt="Document" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1">
+                            <p class="text-xs mt-1 text-gray-500">Document</p>
+                         </div>
+                         <div class="text-center">
+                            <img id="doc-signature" src="" alt="Signature" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1">
+                             <p class="text-xs mt-1 text-gray-500">Signature</p>
+                         </div>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="stat-card p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Personal Details -->
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-user-circle text-indigo-500"></i> Personal Details</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-phone-alt info-icon w-5 text-center"></i><span id="mobile-number" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-birthday-cake info-icon w-5 text-center"></i><span id="dob" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-id-card info-icon w-5 text-center"></i><span id="aadhaar" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-map-marker-alt info-icon w-5 text-center"></i><span id="address" class="font-semibold text-gray-800 text-left"></span></div>
+                            </div>
+                        </div>
+                        <!-- Financial Details -->
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-wallet text-indigo-500"></i> Financial Details</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Joining Date</span><span id="joining-date" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Guarantor</span><span id="guarantor-name" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Total SIP</span><span id="total-sip" class="font-bold text-lg text-indigo-600"></span></div>
+                            </div>
+                            <div class="mt-6 p-4 bg-indigo-50 rounded-lg text-center">
+                                <p class="text-sm text-gray-500">Extra Balance Available</p>
+                                <p id="extra-balance" class="font-bold text-4xl text-green-600 my-2"></p>
+                                <button id="withdraw-btn" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400">
+                                    <i class="fas fa-hand-holding-usd mr-2"></i>Withdraw
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
   </div>
 
-  <!-- Image Viewer Modal -->
+  <!-- Modals -->
   <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
       <button id="closeImageViewer" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
   </div>
 
+  <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+          <h3 class="text-xl font-bold text-center mb-4">Withdraw Extra Balance</h3>
+          <p class="text-center text-sm text-gray-500 mb-1">Available to withdraw:</p>
+          <p id="modal-available-balance" class="text-center text-2xl font-bold text-green-600 mb-4"></p>
+          <div>
+              <label for="withdrawal-amount" class="font-semibold text-gray-700">Amount (Min: ₹10)</label>
+              <input type="number" id="withdrawal-amount" class="w-full border-2 border-gray-300 rounded-lg p-3 mt-1 text-2xl font-bold text-center focus:border-indigo-500 focus:ring-indigo-500" placeholder="0.00">
+              <p id="withdrawal-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <div class="mt-6 flex gap-4">
+              <button id="close-withdrawal-modal" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg">Cancel</button>
+              <button id="submit-withdrawal" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Confirm</button>
+          </div>
+      </div>
+  </div>
+
+  <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="relative">
+        <div id="withdrawalCard" class="withdrawal-card p-6 w-full max-w-sm space-y-4">
+            <div class="flex items-center gap-4">
+                <img id="card-profile-pic" src="" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-200">
+                <div>
+                    <h4 id="card-name" class="text-xl font-bold text-gray-800"></h4>
+                    <p class="text-sm text-gray-500">अतिरिक्त शेष निकासी</p>
+                </div>
+            </div>
+            <div class="bg-indigo-50 rounded-lg p-4 text-center">
+                <p class="text-sm text-indigo-500">निकासी राशि</p>
+                <p id="card-amount" class="text-4xl font-extrabold text-indigo-600"></p>
+            </div>
+            <div class="flex justify-between text-sm pt-2 border-t">
+                <span class="text-gray-500">Total SIP Contribution</span>
+                <span id="card-total-sip" class="font-bold text-gray-700"></span>
+            </div>
+        </div>
+        <div class="mt-4 flex gap-4">
+            <button id="download-card-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg"><i class="fas fa-download mr-2"></i>Download Card</button>
+            <button id="close-card-modal" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg">Close</button>
+        </div>
+      </div>
+  </div>
+
   <script type="module">
-    // ✅ NAYA LOGIC: Authentication check
+    // --- CONFIGURATION FOR FINANCIAL CALCULATOR ---
+    const CALC_CONFIG = {
+        CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
+        LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
+        LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
+        MINIMUM_MEMBERSHIP_DAYS: 60, SIP_ON_TIME_LIMIT: 10,
+        LOAN_TERM_TIER3: 90,
+    };
+
+    let currentMemberData = {};
+    let allMemberTransactions = [];
+
+    // --- AUTHENTICATION & APP INITIALIZATION ---
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -146,36 +255,29 @@
             
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    // User is logged in, now load the member data.
-                    console.log("User authenticated, loading member data...");
                     runAppLogic();
                 } else {
-                    // User is not logged in, redirect to login page.
-                    console.log("User not authenticated, redirecting to login...");
-                    // Hum vartaman URL aur uske parameters (jaise ?memberId=...) ko redirect ke roop mein bhejte hain
                     window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
                 }
             });
-
         } catch (error) {
             showError(error.message);
         }
     }
 
-    // ✅ NAYA LOGIC: App ka mukhya logic ab is function ke andar hai
     function runAppLogic() {
-        const loader = document.getElementById('loader');
+        const loaderContainer = document.getElementById('loader-container');
         const profileContent = document.getElementById('profile-content');
-        const errorMessage = document.getElementById('error-message');
+        const errorMessageEl = document.getElementById('error-message');
         const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
         function showError(message) {
-            loader.classList.add('hidden');
-            errorMessage.querySelector('p').textContent = message;
-            errorMessage.classList.remove('hidden');
+            loaderContainer.classList.add('hidden');
+            errorMessageEl.querySelector('p').textContent = message;
+            errorMessageEl.classList.remove('hidden');
         }
 
-        async function loadMemberData() {
+        async function loadAllData() {
             const db = firebase.database();
             const urlParams = new URLSearchParams(window.location.search);
             const memberId = urlParams.get('memberId');
@@ -186,20 +288,48 @@
             }
 
             try {
-                const memberRef = db.ref(`members/${memberId}`);
-                const snapshot = await memberRef.once('value');
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
                 
                 if (!snapshot.exists()) {
-                    throw new Error(`Member with ID "${memberId}" not found.`);
+                    throw new Error(`No members found in the database.`);
                 }
                 
-                const memberData = snapshot.val();
-                populateProfileData(memberData);
+                const allMembersData = snapshot.val();
+                currentMemberData = allMembersData[memberId];
 
-                loader.classList.add('hidden');
+                if (!currentMemberData) {
+                    throw new Error(`Member with ID "${memberId}" not found.`);
+                }
+
+                // Process all transactions for the calculator
+                allMemberTransactions = [];
+                for (const id in allMembersData) {
+                    const member = allMembersData[id];
+                    if (member.transactions) {
+                        for (const txId in member.transactions) {
+                            allMemberTransactions.push({
+                                ...member.transactions[txId],
+                                name: member.fullName,
+                            });
+                        }
+                    }
+                }
+                allMemberTransactions = allMemberTransactions.map(row => ({
+                    ...row,
+                    date: new Date(row.Date),
+                    loan: parseFloat(row.Loan) || 0,
+                    payment: parseFloat(row["Loan Payment"]) || 0,
+                    sipPayment: parseFloat(row["SIP Payment"]) || 0,
+                })).filter(r => r.name && !isNaN(r.date.getTime()));
+                
+                populateProfileData(currentMemberData);
+
+                loaderContainer.classList.add('hidden');
                 profileContent.classList.remove('hidden');
+
             } catch (error) {
-                console.error("Failed to fetch member data:", error);
+                console.error("Failed to fetch data:", error);
                 showError(error.message);
             }
         }
@@ -212,6 +342,8 @@
                 extraBalance = transactions.reduce((sum, tx) => sum + (parseFloat(tx['Extra Balance']) || 0), 0);
                 totalSip = transactions.reduce((sum, tx) => sum + (parseFloat(tx['SIP Payment']) || 0), 0);
             }
+            currentMemberData.extraBalance = extraBalance;
+            currentMemberData.totalSip = totalSip;
 
             const formatDate = (dateString) => {
                 if (!dateString) return "N/A";
@@ -219,53 +351,191 @@
                 return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             };
 
+            // Header
             document.getElementById('profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('profile-name').textContent = data.fullName || 'N/A';
             document.getElementById('membership-id').textContent = `Membership ID: ${data.membershipId || 'N/A'}`;
 
+            // Personal Details
             document.getElementById('mobile-number').textContent = data.mobileNumber || 'N/A';
             document.getElementById('dob').textContent = formatDate(data.dob);
             document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
             document.getElementById('address').textContent = data.address || 'N/A';
 
-            document.getElementById('joining-date').textContent = `Joined: ${formatDate(data.joiningDate)}`;
-            document.getElementById('guarantor-name').textContent = `Guarantor: ${data.guarantorName || 'N/A'}`;
-            document.getElementById('total-sip').textContent = `Total SIP: ₹${totalSip.toLocaleString('en-IN')}`;
-            document.getElementById('extra-balance').textContent = `Extra Balance: ₹${extraBalance.toLocaleString('en-IN')}`;
+            // Financial Details
+            document.getElementById('joining-date').textContent = formatDate(data.joiningDate);
+            document.getElementById('guarantor-name').textContent = data.guarantorName || 'N/A';
+            document.getElementById('total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
+            document.getElementById('extra-balance').textContent = `₹${extraBalance.toLocaleString('en-IN')}`;
+            
+            // Enable/disable withdraw button
+            const withdrawBtn = document.getElementById('withdraw-btn');
+            if (extraBalance < 10) {
+                withdrawBtn.disabled = true;
+                withdrawBtn.title = "Minimum withdrawal amount is ₹10";
+            } else {
+                withdrawBtn.disabled = false;
+                withdrawBtn.title = "";
+            }
 
+            // Documents
             document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
+
+            // --- Calculate and Display Financial Health ---
+            const scoreResult = calculatePerformanceScore(data.fullName, new Date());
+            const eligibilityResult = getLoanEligibility(data.fullName, scoreResult.totalScore);
+
+            document.getElementById('performance-score').textContent = scoreResult.totalScore.toFixed(2);
+            if (eligibilityResult.eligible) {
+                document.getElementById('loan-eligibility').textContent = `${eligibilityResult.multiplier.toFixed(2)}x`;
+                document.getElementById('loan-eligibility').className = 'font-bold text-lg text-green-600';
+            } else {
+                document.getElementById('loan-eligibility').textContent = eligibilityResult.reason;
+                document.getElementById('loan-eligibility').className = 'font-bold text-sm text-red-600';
+            }
         }
 
+        // --- Event Listeners ---
         const imageViewerModal = document.getElementById('imageViewerModal');
         const fullImageView = document.getElementById('fullImageView');
-        
-        document.querySelectorAll('.document-image').forEach(img => {
+        document.querySelectorAll('.document-thumbnail').forEach(img => {
             img.addEventListener('click', () => {
                 fullImageView.src = img.src;
                 imageViewerModal.classList.remove('hidden');
                 imageViewerModal.classList.add('flex');
             });
         });
+        document.getElementById('closeImageViewer').addEventListener('click', () => imageViewerModal.classList.add('hidden'));
+        imageViewerModal.addEventListener('click', (e) => { if (e.target === imageViewerModal) imageViewerModal.classList.add('hidden'); });
 
-        document.getElementById('closeImageViewer').addEventListener('click', () => {
-            imageViewerModal.classList.add('hidden');
-            imageViewerModal.classList.remove('flex');
+        // Withdrawal Modal Listeners
+        const withdrawalModal = document.getElementById('withdrawalModal');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        const closeWithdrawalBtn = document.getElementById('close-withdrawal-modal');
+        const submitWithdrawalBtn = document.getElementById('submit-withdrawal');
+        const amountInput = document.getElementById('withdrawal-amount');
+        const errorMsg = document.getElementById('withdrawal-error');
+
+        withdrawBtn.addEventListener('click', () => {
+            document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN')}`;
+            amountInput.value = '';
+            errorMsg.classList.add('hidden');
+            withdrawalModal.classList.remove('hidden');
+            withdrawalModal.classList.add('flex');
+        });
+
+        closeWithdrawalBtn.addEventListener('click', () => withdrawalModal.classList.add('hidden'));
+        
+        submitWithdrawalBtn.addEventListener('click', () => {
+            const amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount < 10) {
+                errorMsg.textContent = "Minimum withdrawal amount is ₹10.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            if (amount > currentMemberData.extraBalance) {
+                errorMsg.textContent = "Withdrawal amount cannot exceed available balance.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            errorMsg.classList.add('hidden');
+            withdrawalModal.classList.add('hidden');
+            showWithdrawalCard(amount);
         });
         
-        imageViewerModal.addEventListener('click', (e) => {
-            if (e.target === imageViewerModal) {
-                imageViewerModal.classList.add('hidden');
-                imageViewerModal.classList.remove('flex');
-            }
+        // Card Result Modal Listeners
+        const cardResultModal = document.getElementById('cardResultModal');
+        document.getElementById('close-card-modal').addEventListener('click', () => cardResultModal.classList.add('hidden'));
+        document.getElementById('download-card-btn').addEventListener('click', () => {
+            const cardElement = document.getElementById('withdrawalCard');
+            html2canvas(cardElement, { scale: 3, backgroundColor: null }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `withdrawal-receipt-${currentMemberData.fullName.replace(' ','-')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         });
 
+        function showWithdrawalCard(amount) {
+            document.getElementById('card-profile-pic').src = currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC;
+            document.getElementById('card-name').textContent = currentMemberData.fullName;
+            document.getElementById('card-amount').textContent = `₹${amount.toLocaleString('en-IN')}`;
+            document.getElementById('card-total-sip').textContent = `₹${currentMemberData.totalSip.toLocaleString('en-IN')}`;
+            cardResultModal.classList.remove('hidden');
+            cardResultModal.classList.add('flex');
+        }
+
+        // --- FINANCIAL CALCULATOR LOGIC ---
+        function calculatePerformanceScore(memberName, untilDate) {
+            const memberData = allMemberTransactions.filter(r => r.name === memberName && r.date <= untilDate);
+            if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
+            const totalDays = 180;
+            const startDate = new Date(untilDate.getTime() - totalDays * 24 * 3600 * 1000);
+            let weightedCapitalSum = 0, currentBalance = 0;
+            const relevantTransactions = memberData.filter(r => r.date >= startDate);
+            if (relevantTransactions.length > 0) {
+                let lastDate = startDate;
+                relevantTransactions.forEach(t => {
+                    const daysDifference = (t.date - lastDate) / (1000 * 3600 * 24);
+                    weightedCapitalSum += currentBalance * daysDifference;
+                    currentBalance += t.sipPayment + t.payment - t.loan;
+                    lastDate = t.date;
+                });
+                weightedCapitalSum += currentBalance * ((untilDate - lastDate) / (1000 * 3600 * 24));
+            }
+            const capitalScore = Math.max(0, weightedCapitalSum / totalDays);
+            const normalizedCapitalScore = Math.min(100, (capitalScore / 50000) * 100);
+            const sipHistory = {};
+            memberData.filter(r => r.sipPayment > 0).forEach(r => {
+                const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`;
+                if (!sipHistory[monthKey]) sipHistory[monthKey] = r.date.getDate() <= CALC_CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5;
+            });
+            const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
+            const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
+            const consistencyScore = (consistencyPoints / (monthsConsidered * 10)) * 100;
+            let creditPoints = 0;
+            const memberLoans = memberData.filter(r => r.loan > 0);
+            memberLoans.forEach(loanRecord => {
+                const repayment = memberData.find(r => r.payment >= loanRecord.loan && r.date > loanRecord.date);
+                if (repayment) {
+                    const daysToRepay = (repayment.date - loanRecord.date) / (1000 * 3600 * 24);
+                    if (daysToRepay <= CALC_CONFIG.LOAN_TERM_TIER3) creditPoints += 20;
+                    else creditPoints -= 5;
+                } else { creditPoints -= 40; }
+            });
+            const creditScore = memberLoans.length > 0 ? Math.max(0, (creditPoints / (memberLoans.length * 20)) * 100) : 70;
+            const totalScore = (normalizedCapitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
+            return { totalScore: isNaN(totalScore) ? 0 : totalScore, capitalScore: normalizedCapitalScore, consistencyScore, creditScore };
+        }
+
+        function getLoanEligibility(memberName, score) {
+            const memberData = allMemberTransactions.filter(r => r.name === memberName);
+            const totalLoan = memberData.reduce((sum, r) => sum + r.loan, 0);
+            const totalPayment = memberData.reduce((sum, r) => sum + r.payment + r.sipPayment, 0); 
+            if (totalLoan > totalPayment) return { eligible: false, reason: 'Outstanding Loan' };
+            const firstSip = memberData.find(r => r.sipPayment > 0);
+            if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
+            const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
+            if (daysSinceFirstSip < CALC_CONFIG.MINIMUM_MEMBERSHIP_DAYS) {
+                const daysLeft = Math.ceil(CALC_CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip);
+                return { eligible: false, reason: `${daysLeft} days left` };
+            }
+            const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CALC_CONFIG;
+            let multiplier = LOAN_LIMIT_TIER1_MAX;
+            if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
+            else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
+            else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
+            else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
+            return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, isNaN(multiplier) ? 1.0 : multiplier) };
+        }
+
         // Start loading data
-        loadMemberData();
+        loadAllData();
     }
 
-    // ✅ App ko shuru karein
+    // Start the app
     checkAuthAndInitialize();
   </script>
 </body>
