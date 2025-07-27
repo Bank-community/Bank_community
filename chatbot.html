@@ -19,7 +19,7 @@
         :root {
             --secondary-color: #f8fafc; --user-message-bg: #DCF8C6; --bot-message-bg: #ffffff;
             --text-dark: #1C1C1E; --highlight-color: #111827; 
-            --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 0.1), 0 2px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 0.08);
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes image-fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -31,40 +31,52 @@
         .message { display: flex; margin-bottom: 1rem; }
         .message.user { justify-content: flex-end; }
         .message.bot { justify-content: flex-start; }
+        
         .bubble { padding: 0.75rem 1rem; border-radius: 1.25rem; box-shadow: var(--shadow-md); max-width: 85%; }
         .bubble.user-bubble { background-color: var(--user-message-bg); color: #303030; border-bottom-right-radius: 0.5rem; }
         .bubble.bot-bubble { background-color: var(--bot-message-bg); border-bottom-left-radius: 0.5rem; width: 95%; max-width: none; }
-        
-        /* UPDATED: Styles for formatted lists */
-        .bubble.bot-bubble ul, .bubble.bot-bubble ol { padding-left: 20px; margin-top: 8px; margin-bottom: 8px; }
-        .bubble.bot-bubble li { margin-bottom: 5px; }
 
         .chat-messages::-webkit-scrollbar { width: 6px; }
         .chat-messages::-webkit-scrollbar-track { background: transparent; }
         .chat-messages::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
         
-        .suggestion-pill { transition: all 0.2s ease-in-out; background-color: #f1f5f9; border: 1px solid #e2e8f0; }
-        .suggestion-pill:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); background-color: #e2e8f0; }
+        .suggestion-pill { transition: all 0.2s ease-in-out; }
+        .suggestion-pill:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
         .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
         
         .modal { display: none; } .modal.active { display: flex; }
         .modal-content { animation: fadeIn 0.3s; }
 
-        /* UPDATED: Image Gallery Modal Styles */
-        #imageModal .modal-content { background: transparent; box-shadow: none; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; }
-        #gallery-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-        #modalImageContent { max-width: 90vw; max-height: 80vh; object-fit: contain; border-radius: 10px; }
-        .gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 24px; cursor: pointer; z-index: 60; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
-        .gallery-nav:hover { background-color: rgba(0,0,0,0.8); }
-        #prev-btn { left: 10px; }
-        #next-btn { right: 10px; }
-        #gallery-counter { position: absolute; bottom: 20px; background-color: rgba(0,0,0,0.7); color: white; padding: 5px 15px; border-radius: 15px; font-size: 14px; z-index: 60; }
-        .modal-close-btn { position: absolute; top: 15px; right: 15px; z-index: 60; color: white; font-size: 36px; cursor: pointer; text-shadow: 0 0 8px black; }
-
-        /* UPDATED: Image counter on thumbnail */
-        .image-preview-container { position: relative; display: inline-block; }
-        .image-counter { position: absolute; top: 8px; right: 8px; background-color: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+        /* NEW: Image Gallery Modal Styles */
+        #imageGalleryModal .modal-content { background: transparent; box-shadow: none; width: 100%; height: 100%; padding: 0; }
+        #galleryContainer { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        #galleryImage { max-width: 90%; max-height: 85%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .gallery-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5); color: white;
+            border: none; border-radius: 50%;
+            width: 44px; height: 44px; font-size: 24px;
+            cursor: pointer; transition: background-color 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gallery-nav:hover { background-color: rgba(0, 0, 0, 0.8); }
+        #prevImageBtn { left: 10px; }
+        #nextImageBtn { right: 10px; }
+        #galleryCounter {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7); color: white;
+            padding: 5px 15px; border-radius: 20px; font-size: 14px;
+        }
+        .gallery-close-btn { position: absolute; top: 15px; right: 15px; font-size: 36px; color: white; text-shadow: 0 0 5px black; cursor: pointer; }
+        
+        /* NEW: Image preview in chat */
+        .image-preview-container { position: relative; cursor: pointer; }
+        .image-more-indicator {
+            position: absolute; bottom: 8px; right: 8px;
+            background-color: rgba(0, 0, 0, 0.7); color: white;
+            padding: 4px 8px; border-radius: 10px; font-size: 12px; font-weight: bold;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -89,18 +101,20 @@
         </div>
     </div>
 
-    <!-- UPDATED: Image Modal is now a gallery -->
-    <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-90 z-50 items-center justify-center">
-        <span class="modal-close-btn" onclick="window.jarvis.closeImageModal()">&times;</span>
-        <div id="gallery-container">
-            <img id="modalImageContent" src="">
-            <button id="prev-btn" class="gallery-nav" onclick="window.jarvis.navigateGallery(-1)">&#10094;</button>
-            <button id="next-btn" class="gallery-nav" onclick="window.jarvis.navigateGallery(1)">&#10095;</button>
-            <div id="gallery-counter">1 / 1</div>
+    <!-- UPDATED: This is now the Image Gallery Modal -->
+    <div id="imageGalleryModal" class="modal fixed inset-0 bg-black bg-opacity-80 z-50 items-center justify-center">
+        <div class="modal-content">
+            <span class="gallery-close-btn" onclick="window.jarvis.closeImageGallery()">&times;</span>
+            <div id="galleryContainer">
+                <img id="galleryImage" src="" alt="Gallery View">
+                <button id="prevImageBtn" class="gallery-nav">&#10094;</button>
+                <button id="nextImageBtn" class="gallery-nav">&#10095;</button>
+                <div id="galleryCounter">1 / 1</div>
+            </div>
         </div>
     </div>
     
-    <!-- Other modals remain unchanged -->
+    <!-- Other modals remain the same -->
     <div id="capitalKingsModal" class="modal"></div>
     <div id="capitalDetailModal" class="modal"></div>
 
@@ -133,10 +147,11 @@
 
             let isBotInitialized = false;
             let cachedFaqs = null;
+            let cachedMemberIndex = null;
             let allMembersFullData = null;
             
-            // NEW: Global state for the image gallery
-            let currentGalleryImages = [];
+            // NEW: Gallery state variables
+            let galleryImages = [];
             let currentGalleryIndex = 0;
 
             const chatBox = document.getElementById('chat');
@@ -150,8 +165,15 @@
                 try {
                     const [memberSnapshot, faqsSnapshot] = await Promise.all([ membersRef.once('value'), faqsRef.once('value') ]);
                     
+                    cachedMemberIndex = [];
                     if (memberSnapshot.exists()) {
                         allMembersFullData = memberSnapshot.val();
+                        for (const key in allMembersFullData) {
+                            if (allMembersFullData[key].fullName) {
+                                cachedMemberIndex.push({ id: key, name: allMembersFullData[key].fullName });
+                            }
+                        }
+                        cachedMemberIndex.sort((a,b) => a.name.localeCompare(b.name));
                     }
 
                     cachedFaqs = [];
@@ -166,8 +188,9 @@
                     
                     if (cachedFaqs.length === 0) {
                         cachedFaqs = [
-                            { type: "text", questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है", "community loan kya hai"], answer: "Bank Community Loan एक सामुदायिक financial संस्था है, जहाँ सभी सदस्य हर माह ₹500 की SIP के रूप में जमा करते हैं। यह राशि एक community fund बनाती है, जिससे जरूरतमंद members को minimum interest rate पर, पूरी transparency और तय नियमों के अनुसार loan प्रदान किया जाता है।" },
-                            { type: "text", questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" }
+                            { type: "text", questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है", "community loan kya hai", "Bank community loan kya hai", "बैंक कम्युनिटी क्या है"], answer: "Bank Community Loan एक सामुदायिक financial संस्था है, जहाँ सभी सदस्य हर माह ₹500 की SIP के रूप में जमा करते हैं। यह राशि एक community fund बनाती है, जिससे जरूरतमंद members को minimum interest rate पर, पूरी transparency और तय नियमों के अनुसार loan प्रदान किया जाता है।" },
+                            { type: "text", questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
+                            { type: "text", questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है।" }
                         ];
                     }
 
@@ -175,26 +198,32 @@
                     await typeMessage("Aap kisi sadasya ka naam type kar sakte hain ya koi niyam pooch sakte hain.", "bot");
                     isBotInitialized = true;
                     showDefaultSuggestions();
-
                 } catch (error) { console.error("Initialization failed:", error); typing.innerHTML = "त्रुटि: डेटाबेस से कनेक्ट नहीं हो सका।"; }
             }
             
             async function handleSend(simulatedQuery = null) {
                 if (!isBotInitialized) return;
                 const originalQuery = simulatedQuery || inputBox.value.trim();
-                if (!originalQuery) return;
+                const query = originalQuery.replace(/^jarvis/i, '').trim();
+                if (!query) return;
 
                 appendRichMessage(originalQuery, "user");
                 inputBox.value = '';
                 suggestionsBox.innerHTML = '';
                 
-                await processGeneralQuery(originalQuery); 
+                await processGeneralQuery(query); 
             }
 
             async function processGeneralQuery(query) {
+                const matchingMembers = findMatchingMembers(query);
                 const matchingFaqs = findMatchingFaqs(query, 1);
                 
-                if (matchingFaqs.length > 0) {
+                if (matchingMembers.length === 1 && !query.match(/list|sabhi|all/i)) {
+                    await displayMemberDetails(matchingMembers[0].id);
+                } else if (matchingMembers.length > 1) {
+                    await typeMessage("Mujhe is naam se milte-julte kai sadasya mile. Aap kiske baare mein janna chahte hain?", "bot");
+                    matchingMembers.forEach(m => appendMemberClarification(m));
+                } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
                     if (topFaq.type === 'image') {
                         await displayImageFaq(topFaq);
@@ -203,42 +232,26 @@
                     }
                     showPostAnswerSuggestions(topFaq);
                 } else {
-                    await typeMessage(`Maaf kijiye, main is sawaal ko samajh nahi paaya. Aap koi doosra sawaal pooch sakte hain.`, "bot");
+                    await typeMessage(`Maaf kijiye, main keval bank community se jude sawalon ka jawab de sakta hoon.`, "bot");
                     showDefaultSuggestions();
                 }
             }
             
             // --- Response Rendering ---
+            // NEW: Formats text with line breaks for readability
+            function formatStructuredText(text) {
+                if (!text) return '';
+                // Regex to find patterns like "31-60 din", "1.", or a word followed by ":"
+                // and add a line break after them.
+                return text.replace(/(\d+-\d+\s+\w+)|(\d+\.\s)|(\w+:) /g, '$&\n');
+            }
             
-            // UPDATED: This function now also handles list formatting
             function formatBotAnswer(content) {
                 if (!content) return '';
-                let processedContent = content;
-
-                // Keyword highlighting
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
-                processedContent = processedContent.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
-                
-                // Number highlighting
+                let processedContent = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
                 processedContent = processedContent.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>');
-
-                // List formatting
-                // Matches lines starting with number+dot or hyphen
-                const listRegex = /((?:\d+\.\s|[-*]\s).+(?:\n|$))+/g;
-                processedContent = processedContent.replace(listRegex, (match) => {
-                    const items = match.trim().split('\n');
-                    const listType = /^\d+\./.test(items[0]) ? 'ol' : 'ul';
-                    let listHtml = `<${listType}>`;
-                    items.forEach(item => {
-                        // Remove the number/hyphen prefix before wrapping in <li>
-                        const cleanItem = item.replace(/^\d+\.\s|[-*]\s/, '');
-                        listHtml += `<li>${cleanItem}</li>`;
-                    });
-                    listHtml += `</${listType}>`;
-                    return listHtml;
-                });
-
                 return processedContent;
             }
 
@@ -253,12 +266,7 @@
                 messageEl.className = `message ${type}`;
                 const bubbleEl = document.createElement('div');
                 bubbleEl.className = `bubble ${type}-bubble`;
-                
-                if (type === 'bot typing') {
-                    bubbleEl.innerHTML = `<div class="flex items-center space-x-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div></div>`;
-                } else {
-                    bubbleEl.innerHTML = content;
-                }
+                bubbleEl.innerHTML = content;
                 messageEl.appendChild(bubbleEl);
                 chatBox.appendChild(messageEl);
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -266,49 +274,50 @@
             }
 
             function typeMessage(text, type) {
-                return new Promise(resolve => {
-                    const finalHtml = processLinks(formatBotAnswer(text));
-                    const messageEl = document.createElement('div');
-                    messageEl.className = `message ${type}`;
-                    const bubbleEl = document.createElement('div');
-                    bubbleEl.className = `bubble ${type}-bubble`;
-                    messageEl.appendChild(bubbleEl);
-                    chatBox.appendChild(messageEl);
-                    
-                    let i = 0;
-                    bubbleEl.innerHTML = "▋";
-                    const interval = setInterval(() => {
-                        if (i < text.length) {
-                            bubbleEl.innerHTML = processLinks(formatBotAnswer(text.substring(0, i + 1))) + "▋";
-                            chatBox.scrollTop = chatBox.scrollHeight;
-                            i++;
-                        } else {
-                            clearInterval(interval);
-                            bubbleEl.innerHTML = finalHtml;
-                            chatBox.scrollTop = chatBox.scrollHeight;
-                            resolve(bubbleEl);
-                        }
-                    }, 25);
-                });
+                // Apply the new structured text formatting first
+                const structuredText = formatStructuredText(text);
+                const finalHtml = processLinks(formatBotAnswer(structuredText)).replace(/\n/g, '<br>');
+                
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${type}`;
+                const bubbleEl = document.createElement('div');
+                bubbleEl.className = `bubble ${type}-bubble`;
+                messageEl.appendChild(bubbleEl);
+                chatBox.appendChild(messageEl);
+                
+                let i = 0;
+                bubbleEl.innerHTML = "▋";
+                const interval = setInterval(() => {
+                    if (i < structuredText.length) {
+                        const currentText = structuredText.substring(0, i + 1);
+                        bubbleEl.innerHTML = processLinks(formatBotAnswer(currentText)).replace(/\n/g, '<br>') + "▋";
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                        i++;
+                    } else {
+                        clearInterval(interval);
+                        bubbleEl.innerHTML = finalHtml;
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                }, 25);
             }
-
-            // UPDATED: Image FAQ display logic
+            
+            // UPDATED: New animated image FAQ display
             async function displayImageFaq(faq) {
-                const imageUrls = Array.isArray(faq.imageUrl) ? faq.imageUrl : [faq.imageUrl].filter(Boolean);
+                const imageUrls = Array.isArray(faq.imageUrl) ? faq.imageUrl : [faq.imageUrl];
                 if (imageUrls.length === 0) return;
 
-                // Create the HTML for the first image with a counter if multiple exist
-                let imageHtml = `
-                    <div class="image-preview-container">
-                        <img src="${imageUrls[0]}" alt="${faq.imageTitle || 'Image'}" class="image-faq-img w-full rounded-lg border-2 border-gray-200 cursor-pointer shadow-md" 
-                             onclick="window.jarvis.openImageGallery(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(imageUrls))}')))">
-                        ${imageUrls.length > 1 ? `<div class="image-counter">1 / ${imageUrls.length}</div>` : ''}
-                    </div>`;
+                let moreIndicator = '';
+                if (imageUrls.length > 1) {
+                    moreIndicator = `<div class="image-more-indicator">+${imageUrls.length - 1} more</div>`;
+                }
 
                 const initialContent = `
                     <div class="p-1">
                         <p class="font-bold text-lg text-gray-800 mb-2">${faq.imageTitle || ''}</p>
-                        ${imageHtml}
+                        <div class="image-preview-container" onclick="window.jarvis.openImageGallery(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(imageUrls))}')))">
+                            <img src="${imageUrls[0]}" alt="${faq.imageTitle || 'Image'}" class="image-faq-img w-full rounded-lg border-2 border-gray-200 shadow-md">
+                            ${moreIndicator}
+                        </div>
                         <div class="description-container mt-3"></div>
                     </div>`;
 
@@ -322,12 +331,14 @@
 
             function typeMessageIntoElement(text, element) {
                 return new Promise(resolve => {
-                    const finalHtml = processLinks(formatBotAnswer(text));
+                    const structuredText = formatStructuredText(text);
+                    const finalHtml = processLinks(formatBotAnswer(structuredText)).replace(/\n/g, '<br>');
                     let i = 0;
                     element.innerHTML = "▋";
                     const interval = setInterval(() => {
-                        if (i < text.length) {
-                            element.innerHTML = processLinks(formatBotAnswer(text.substring(0, i + 1))) + "▋";
+                        if (i < structuredText.length) {
+                            const currentText = structuredText.substring(0, i + 1);
+                            element.innerHTML = processLinks(formatBotAnswer(currentText)).replace(/\n/g, '<br>') + "▋";
                             chatBox.scrollTop = chatBox.scrollHeight;
                             i++;
                         } else {
@@ -340,69 +351,50 @@
                 });
             }
 
-            function showDefaultSuggestions() {
-                suggestionsBox.innerHTML = '';
-                const suggestions = ['बैंक कम्युनिटी लोन क्या है?', 'Smart slab system', 'Community picture'];
-                suggestions.forEach(text => {
-                    const pill = document.createElement('button');
-                    pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm text-gray-700';
-                    pill.textContent = text;
-                    pill.onclick = () => handleSend(text);
-                    suggestionsBox.appendChild(pill);
-                });
-            }
+            // --- All other functions remain unchanged ---
+            function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
+            function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => { let searchText = ''; if (faq.type === 'image') { searchText = `${faq.imageTitle || ''} ${faq.questions.join(' ')} ${faq.answer || ''}`; } else { searchText = `${faq.answer || ''} ${faq.questions.join(' ')} ${faq.category || ''}`; } return { ...faq, score: getWordMatchScore(lowerQuery, searchText.toLowerCase()) }; }).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
+            function getWordMatchScore(query, text) { const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2)); const textWords = new Set(text.toLowerCase().split(/\s+/)); let score = 0; for (const word of queryWords) { if (textWords.has(word)) score++; } return score; }
+            function showDefaultSuggestions() { suggestionsBox.innerHTML = ''; const suggestions = ['बैंक कम्युनिटी लोन क्या है?', 'SIP kab jama karna hota hai?', 'Smart slab system']; suggestions.forEach(text => { const pill = document.createElement('button'); pill.className = 'suggestion-pill bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm'; pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${text}`; pill.onclick = () => { inputBox.value = text; handleSend(); }; suggestionsBox.appendChild(pill); }); }
+            function showSuggestions(query) { suggestionsBox.innerHTML = ''; if (!query || query.length < 2) { showDefaultSuggestions(); return; } const memberSuggestions = findMatchingMembers(query).slice(0, 2); const faqSuggestions = findMatchingFaqs(query, 2); const allSuggestions = [...memberSuggestions, ...faqSuggestions]; if (allSuggestions.length === 0) { showDefaultSuggestions(); return; } allSuggestions.forEach(s => { const text = s.id ? s.name : s.questions[0]; const type = s.id ? 'member' : 'faq'; const pill = document.createElement('button'); pill.className = `suggestion-pill px-3 py-1 rounded-full text-sm ${type === 'member' ? 'bg-gray-200 text-gray-700' : 'bg-blue-100 text-blue-700'}`; pill.innerHTML = `<i class="fas ${type === 'member' ? 'fa-user' : 'fa-question-circle'} mr-2"></i>${text}`; pill.onclick = () => { inputBox.value = text; handleSend(); }; suggestionsBox.appendChild(pill); }); }
+            function showPostAnswerSuggestions(answeredFaq) { let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3); if (relatedFaqs.length === 0) return; const container = document.createElement('div'); container.className = 'p-2'; container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">Anya Sawaal:</p>'; const buttonContainer = document.createElement('div'); buttonContainer.className = 'flex flex-wrap justify-start'; relatedFaqs.forEach(faq => { const btn = document.createElement('button'); btn.className = 'post-answer-suggestion'; btn.textContent = faq.questions[0]; btn.onclick = () => handleSend(faq.questions[0]); buttonContainer.appendChild(btn); }); container.appendChild(buttonContainer); appendRichMessage(container.outerHTML, 'bot'); }
             
-            function showPostAnswerSuggestions(answeredFaq) {
-                let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3);
-                if (relatedFaqs.length === 0) return;
-                const container = document.createElement('div');
-                container.className = 'p-2';
-                container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">Anya Sawaal:</p>';
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'flex flex-wrap justify-start';
-                relatedFaqs.forEach(faq => {
-                    const btn = document.createElement('button');
-                    btn.className = 'post-answer-suggestion';
-                    btn.textContent = faq.questions[0];
-                    btn.onclick = () => handleSend(faq.questions[0]);
-                    buttonContainer.appendChild(btn);
-                });
-                container.appendChild(buttonContainer);
-                appendRichMessage(container.outerHTML, 'bot');
+            // --- NEW: Image Gallery Functions ---
+            function updateGalleryView() {
+                const galleryImage = document.getElementById('galleryImage');
+                const galleryCounter = document.getElementById('galleryCounter');
+                galleryImage.src = galleryImages[currentGalleryIndex];
+                galleryCounter.textContent = `${currentGalleryIndex + 1} / ${galleryImages.length}`;
             }
-            
-            function getWordMatchScore(query, text) { const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 1)); const textWords = new Set(text.toLowerCase().split(/\s+/)); let score = 0; for (const word of queryWords) { if (textWords.has(word)) score++; } return score; }
-            function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => { let searchText = `${faq.answer || ''} ${faq.questions.join(' ')} ${faq.imageTitle || ''} ${faq.category || ''}`; return { ...faq, score: getWordMatchScore(lowerQuery, searchText.toLowerCase()) }; }).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
 
-            // --- Global Functions & Event Listeners ---
             window.jarvis = {
-                openImageGallery: (imageUrls, startIndex = 0) => {
-                    currentGalleryImages = imageUrls;
-                    document.getElementById('imageModal').classList.add('active');
-                    window.jarvis.showGalleryImage(startIndex);
+                openImageGallery: (urls, startIndex = 0) => {
+                    galleryImages = urls;
+                    currentGalleryIndex = startIndex;
+                    const modal = document.getElementById('imageGalleryModal');
+                    modal.classList.add('active');
+                    updateGalleryView();
                 },
-                closeImageModal: () => {
-                    document.getElementById('imageModal').classList.remove('active');
-                    currentGalleryImages = [];
-                    currentGalleryIndex = 0;
-                },
-                navigateGallery: (direction) => {
-                    const newIndex = currentGalleryIndex + direction;
-                    if (newIndex >= 0 && newIndex < currentGalleryImages.length) {
-                        window.jarvis.showGalleryImage(newIndex);
-                    }
-                },
-                showGalleryImage: (index) => {
-                    currentGalleryIndex = index;
-                    document.getElementById('modalImageContent').src = currentGalleryImages[index];
-                    document.getElementById('gallery-counter').textContent = `${index + 1} / ${currentGalleryImages.length}`;
-                    document.getElementById('prev-btn').style.display = index > 0 ? 'flex' : 'none';
-                    document.getElementById('next-btn').style.display = index < currentGalleryImages.length - 1 ? 'flex' : 'none';
+                closeImageGallery: () => {
+                    const modal = document.getElementById('imageGalleryModal');
+                    modal.classList.remove('active');
                 }
             };
             
+            document.getElementById('nextImageBtn').addEventListener('click', () => {
+                currentGalleryIndex = (currentGalleryIndex + 1) % galleryImages.length;
+                updateGalleryView();
+            });
+
+            document.getElementById('prevImageBtn').addEventListener('click', () => {
+                currentGalleryIndex = (currentGalleryIndex - 1 + galleryImages.length) % galleryImages.length;
+                updateGalleryView();
+            });
+
+            // Event listeners
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
+            inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
             
             initializeBot();
         }
