@@ -18,7 +18,7 @@
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #2E7D32, #4CAF50);
-            --secondary-color: #f0f4f8;
+            --secondary-color: #f8fafc; /* Lighter background for more space */
             --user-message-bg: #DCF8C6;
             --bot-message-bg: #ffffff;
             --text-dark: #1C1C1E;
@@ -31,7 +31,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         
-        /* NEW: Animation for images in chat */
+        /* Animation for images in chat */
         @keyframes image-fade-in {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
@@ -42,12 +42,43 @@
 
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--secondary-color); }
         .chat-container { animation: fadeIn 0.5s ease-out; }
-        .message { animation: fadeIn 0.3s ease-out; }
         
+        /* UPDATED: Reduced padding for a more spacious feel */
+        .chat-messages { padding: 1rem 0.5rem; }
+
+        /* UPDATED: New message styling for the "relaxation feel" */
+        .message {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+        .message.user {
+            justify-content: flex-end;
+        }
+        .message.bot {
+            justify-content: flex-start;
+        }
+        .bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            box-shadow: var(--shadow-md);
+            max-width: 85%; /* User bubble max width */
+        }
+        .bubble.user-bubble {
+            background-color: var(--user-message-bg);
+            color: #303030;
+            border-bottom-right-radius: 0.5rem;
+        }
+        .bubble.bot-bubble {
+            background-color: var(--bot-message-bg);
+            border-bottom-left-radius: 0.5rem;
+            /* UPDATED: Bot bubble takes more width as requested */
+            width: 95%; 
+            max-width: none;
+        }
+
         .chat-messages::-webkit-scrollbar { width: 6px; }
         .chat-messages::-webkit-scrollbar-track { background: transparent; }
         .chat-messages::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-        .chat-messages::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         
         .suggestion-pill { transition: all 0.2s ease-in-out; }
         .suggestion-pill:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -55,10 +86,9 @@
         #lock-mode-banner { animation: fadeIn 0.5s ease; }
         .lock-icon-pulse { animation: pulse 2s infinite ease-in-out; }
 
-        /* UPDATED: Links are now styled more clearly */
         .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
         .clickable-link:hover { color: #1d4ed8; }
-        .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
+        .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; }
         
         .capital-king-card { border-left: 4px solid; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -92,7 +122,7 @@
             <button id="unlock-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-full text-sm">Unlock</button>
         </div>
 
-        <div id="chat" class="chat-messages flex-1 p-6 overflow-y-auto bg-secondary-color"></div>
+        <div id="chat" class="chat-messages flex-1 overflow-y-auto bg-secondary-color"></div>
 
         <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
             <div id="suggestions" class="mb-2 flex flex-wrap gap-2"></div>
@@ -205,15 +235,9 @@
                         }
                     } 
                     
-                    // Fallback FAQs if Firebase is empty, with the updated answer
                     if (cachedFaqs.length === 0) {
                         cachedFaqs = [
-                            { 
-                                type: "text",
-                                // Added more variations to increase its match score
-                                questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है", "community loan kya hai", "Bank community loan kya hai", "बैंक कम्युनिटी क्या है"], 
-                                answer: "Bank Community Loan एक सामुदायिक financial संस्था है, जहाँ सभी सदस्य हर माह ₹500 की SIP के रूप में जमा करते हैं। यह राशि एक community fund बनाती है, जिससे जरूरतमंद members को minimum interest rate पर, पूरी transparency और तय नियमों के अनुसार loan प्रदान किया जाता है।" 
-                            },
+                            { type: "text", questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है", "community loan kya hai", "Bank community loan kya hai", "बैंक कम्युनिटी क्या है"], answer: "Bank Community Loan एक सामुदायिक financial संस्था है, जहाँ सभी सदस्य हर माह ₹500 की SIP के रूप में जमा करते हैं। यह राशि एक community fund बनाती है, जिससे जरूरतमंद members को minimum interest rate पर, पूरी transparency और तय नियमों के अनुसार loan प्रदान किया जाता है।" },
                             { type: "text", questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
                             { type: "text", questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है।" }
                         ];
@@ -279,28 +303,17 @@
             async function processLockedQuery(query, member) {
                 const typing = appendRichMessage("...", "bot typing");
                 try {
-                    if (!preAnalyzedCache) {
-                        await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
-                        return;
-                    }
-                    
+                    if (!preAnalyzedCache) { await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot"); return; }
                     const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
-
                     if (analyticalAnswer) {
                         await typeMessage(analyticalAnswer.text, "bot", analyticalAnswer.text);
-                        if (analyticalAnswer.chartData) {
-                            renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
-                        }
+                        if (analyticalAnswer.chartData) { renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type); }
                         return;
                     }
-
                     const transactions = allMembersFullData[member.id].transactions ? Object.values(allMembersFullData[member.id].transactions) : [];
-                    
                     const prompt = `You are Jarvis, a super-intelligent financial AI assistant for a bank community. Your current focus is solely on a member named **${member.name}**. **PRIMARY DIRECTIVE:** Your main role is to ANALYZE financial data and EXPLAIN it in simple, conversational Hinglish. You are NOT a calculator. All calculations are pre-computed. Your job is to present the information clearly. **CRITICAL RULES:** 1. **Scope:** ONLY answer questions related to the provided "MEMBER'S TRANSACTION HISTORY". If the user asks about anything else (general knowledge, small talk, etc.), you MUST respond with EXACTLY this sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।" 2. **Language & Formatting:** * Respond in simple, helpful Hinglish. * ALWAYS use numerals (e.g., 1500, 2000) for numbers. NEVER write them in words (e.g., "पंद्रह सौ"). * Format dates as DD-MM-YYYY. 3. **Context is Key:** The "CONVERSATION HISTORY" provides the last few messages. Use it to understand follow-up questions. For example, if the user asks "why?", refer to the previous answer to understand what "why" is about. **CONVERSATION HISTORY (for context):** ${JSON.stringify(chatHistory.slice(-4))} **MEMBER'S ENTIRE TRANSACTION HISTORY (for analysis):** \`\`\`json ${JSON.stringify(transactions, null, 2)} \`\`\` **User's Current Query:** "${query}"`;
-                    
                     const aiResponse = await callGemini(prompt);
                     await typeMessage(aiResponse, "bot", aiResponse);
-
                 } finally {
                     typing.remove();
                 }
@@ -316,18 +329,19 @@
                 return processedContent;
             }
 
-            // UPDATED: This function now processes links within any text.
             function processLinks(content) {
                 if (!content) return '';
                 const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
                 return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
             }
 
+            // UPDATED: This function now creates the new message structure
             function appendRichMessage(content, type) {
                 const messageEl = document.createElement('div');
-                messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
+                messageEl.className = `message ${type}`;
+                
                 const bubbleEl = document.createElement('div');
-                bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'bg-user-message-bg text-gray-800 rounded-br-none' : 'bg-bot-message-bg rounded-bl-none'}`;
+                bubbleEl.className = `bubble ${type}-bubble`;
                 
                 if (type === 'bot typing') {
                     bubbleEl.innerHTML = `<div class="flex items-center space-x-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div></div>`;
@@ -340,18 +354,18 @@
                 return bubbleEl;
             }
 
+            // UPDATED: This function now types into the new message structure
             function typeMessage(text, type, rawTextForHistory = null) {
                 return new Promise(resolve => {
                     if (type === 'bot' && rawTextForHistory) {
                         chatHistory.push({ role: 'model', parts: [{ text: rawTextForHistory }] });
                     }
-                    // Pass the text through both formatters
                     const finalHtml = processLinks(formatBotAnswer(text));
                     
                     const messageEl = document.createElement('div');
-                    messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
+                    messageEl.className = `message ${type}`;
                     const bubbleEl = document.createElement('div');
-                    bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'bg-user-message-bg text-gray-800 rounded-br-none' : 'bg-bot-message-bg rounded-bl-none'}`;
+                    bubbleEl.className = `bubble ${type}-bubble`;
                     messageEl.appendChild(bubbleEl);
                     chatBox.appendChild(messageEl);
                     
@@ -359,7 +373,6 @@
                     bubbleEl.innerHTML = "▋";
                     const interval = setInterval(() => {
                         if (i < text.length) {
-                            // Apply formatting as it types
                             bubbleEl.innerHTML = processLinks(formatBotAnswer(text.substring(0, i + 1))) + "▋";
                             chatBox.scrollTop = chatBox.scrollHeight;
                             i++;
@@ -379,137 +392,78 @@
                         <button onclick="window.jarvis.displayMemberDetails('${member.id}')" class="bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" title="View Details"><i class="fas fa-eye"></i></button>
                         <button onclick="window.jarvis.activateLockMode({id: '${member.id}', name: '${member.name}'})" class="bg-gray-500 hover:bg-gray-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" title="Activate Lock Mode"><i class="fas fa-lock"></i></button>
                     </div>`;
-                const messageEl = document.createElement('div');
-                messageEl.className = 'message bg-white p-3 rounded-lg shadow-md flex items-center justify-between';
-                messageEl.innerHTML = html;
-                chatBox.appendChild(messageEl);
-                chatBox.scrollTop = chatBox.scrollHeight;
+                appendRichMessage(html, "bot");
             }
 
             async function displayMemberDetails(memberId) {
                 const typing = appendRichMessage("...", "bot typing");
-                const memberData = allMembersFullData[memberId];
                 await new Promise(resolve => setTimeout(resolve, 500));
                 typing.remove();
-                if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
-                const data = aggregateMemberData(memberData);
+                if (!allMembersFullData[memberId]) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
+                const data = aggregateMemberData(allMembersFullData[memberId]);
                 const profileImageUrl = data.profilePicUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${data.name.charAt(0)}`;
                 const signatureImageUrl = data.signatureUrl || `https://placehold.co/150x75/E2E8F0/4A5568?text=No+Sign`;
                 const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-green-500 cursor-pointer" onclick="window.jarvis.openImageModal('${profileImageUrl}')"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${data.joinDate}</p></div></div><button onclick="window.jarvis.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-green-600 transition-transform hover:scale-125" title="Lock on this member"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.jarvis.openImageModal('${signatureImageUrl}')" alt="Signature"></div></div>`;
                 appendRichMessage(cardHtml, "bot");
             }
             
-            // **UPDATED**: This function now adds a typing animation and processes links in the answer.
+            // **UPDATED**: New function for animated image FAQ display
             async function displayImageFaq(faq) {
-                const typing = appendRichMessage("...", "bot typing");
-                await new Promise(resolve => setTimeout(resolve, 800)); // Simulate thinking
-                typing.remove();
-
-                // Process the answer text to make links clickable
-                const processedAnswer = processLinks(faq.answer);
-
-                const cardHtml = `
-                    <div class="p-1">
-                        <p class="font-bold text-lg text-gray-800 mb-2">${faq.imageTitle}</p>
-                        <img src="${faq.imageUrl}" alt="${faq.imageTitle}" class="image-faq-img w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200 cursor-pointer shadow-md" onclick="window.jarvis.openImageModal('${faq.imageUrl}')">
-                        <p class="text-gray-700 mt-3">${processedAnswer}</p>
-                    </div>`;
-                appendRichMessage(cardHtml, "bot");
-            }
-
-            function renderComparisonChart(data, type) {
-                const chartId = `chart-${Date.now()}`;
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`;
+                // 1. Handle single or multiple images
+                const imageUrls = Array.isArray(faq.imageUrl) ? faq.imageUrl : [faq.imageUrl];
                 
-                if (type === 'totalReturn') {
-                    const notification = document.createElement('p');
-                    notification.className = 'text-center text-xs text-gray-500 mt-2';
-                    notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.';
-                    chartContainer.appendChild(notification);
-                }
-                
-                appendRichMessage(chartContainer.outerHTML, 'bot');
-                
-                const titles = { totalSip: 'Total SIP Comparison', totalLoan: 'Total Loan Comparison', totalReturn: 'Total Return Comparison' };
-                const colors = { totalSip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], totalLoan: ['#FF6384', '#FF9F40', '#E5E7EB'], totalReturn: ['#9966FF', '#FFCD56', '#E5E7EB'] };
-                
-                const { totalValue, currentUser, topUser } = data;
-                const chartLabels = [];
-                const chartDataPoints = [];
-
-                chartLabels.push(currentUser.name);
-                chartDataPoints.push(currentUser.value);
-
-                if (topUser && topUser.name !== currentUser.name) {
-                    chartLabels.push(topUser.name);
-                    chartDataPoints.push(topUser.value);
-                }
-                
-                const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0));
-                if (othersValue > 0.01) {
-                    chartLabels.push('Other Members');
-                    chartDataPoints.push(othersValue);
-                }
-
-                const chartConfig = {
-                    type: 'doughnut',
-                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] },
-                    options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' }
-                };
-                
-                setTimeout(() => {
-                    const ctx = document.getElementById(chartId)?.getContext('2d');
-                    if (ctx) new Chart(ctx, chartConfig);
-                }, 100);
-            }
-
-            async function displayCapitalKings(showAll = false) {
-                if (!capitalKingsData) {
-                    capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score);
-                }
-                
-                const itemsToShow = showAll ? capitalKingsData : capitalKingsData.slice(0, 3);
-                
-                if (!showAll) {
-                    await typeMessage("Pesh hain hamare Capital Kings - wo sadasya jinhone sabse lambe samay tak sabse zyada poonji (capital) hold ki hai:", "bot");
-                }
-
-                const rankIcons = ['🥇', '🥈', '🥉'];
-                const rankColors = ['border-yellow-400', 'border-gray-400', 'border-orange-400'];
-                
-                const listContainer = showAll ? document.getElementById('capital-kings-list') : null;
-                if(listContainer) listContainer.innerHTML = '';
-
-                itemsToShow.forEach((member, index) => {
-                    const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || 'border-gray-200'}" onclick="window.jarvis.openCapitalDetailModal(${index})">
-                        <div class="flex items-center">
-                            <span class="text-3xl mr-4">${rankIcons[index] || `#${index + 1}`}</span>
-                            <div>
-                                <h3 class="font-bold text-lg">${member.name}</h3>
-                                <div class="text-sm text-gray-600 mt-1">
-                                    <p><strong>Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</p>
-                                    <p><strong>Holding:</strong> ${member.holdingDays} days</p>
-                                    <p><strong>Score:</strong> ${member.score.toFixed(0)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                    if(showAll) {
-                        listContainer.innerHTML += cardHtml;
-                    } else {
-                        appendRichMessage(cardHtml, 'bot');
-                    }
+                // 2. Create the image grid
+                let imagesHtml = '<div class="grid grid-cols-2 gap-2 mt-2">';
+                imageUrls.forEach(url => {
+                    imagesHtml += `
+                        <img src="${url}" alt="${faq.imageTitle || 'Image'}" class="image-faq-img w-full rounded-lg border-2 border-gray-200 cursor-pointer shadow-md" onclick="window.jarvis.openImageModal('${url}')">
+                    `;
                 });
-                
-                if (!showAll && capitalKingsData.length > 3) {
-                    const viewMoreBtn = `<button onclick="window.jarvis.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View Full Ranking</button>`;
-                    appendRichMessage(viewMoreBtn, 'bot');
+                imagesHtml += '</div>';
+
+                // 3. Create the initial message with title and images (no description yet)
+                const initialContent = `
+                    <div class="p-1">
+                        <p class="font-bold text-lg text-gray-800 mb-2">${faq.imageTitle || ''}</p>
+                        ${imagesHtml}
+                        <div class="description-container mt-3"></div>
+                    </div>`;
+
+                const bubbleEl = appendRichMessage(initialContent, "bot");
+
+                // 4. Find the description container we just created
+                const descriptionContainer = bubbleEl.querySelector('.description-container');
+
+                // 5. Type the description into the container
+                if (faq.answer && descriptionContainer) {
+                    await typeMessageIntoElement(faq.answer, descriptionContainer);
                 }
             }
 
-            // --- Utility & Helper Functions ---
+            // **NEW**: Helper function to type text into a specific element
+            function typeMessageIntoElement(text, element) {
+                return new Promise(resolve => {
+                    const finalHtml = processLinks(formatBotAnswer(text));
+                    let i = 0;
+                    element.innerHTML = "▋";
+                    const interval = setInterval(() => {
+                        if (i < text.length) {
+                            element.innerHTML = processLinks(formatBotAnswer(text.substring(0, i + 1))) + "▋";
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                            i++;
+                        } else {
+                            clearInterval(interval);
+                            element.innerHTML = finalHtml;
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                            resolve();
+                        }
+                    }, 25);
+                });
+            }
+
+            // --- All other functions remain unchanged ---
+            function renderComparisonChart(data, type) { const chartId = `chart-${Date.now()}`; const chartContainer = document.createElement('div'); chartContainer.className = 'chart-container'; chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`; if (type === 'totalReturn') { const notification = document.createElement('p'); notification.className = 'text-center text-xs text-gray-500 mt-2'; notification.innerHTML = '<b>Note:</b> Return amount ka 10% Bank wallet mein chala jaata hai.'; chartContainer.appendChild(notification); } appendRichMessage(chartContainer.outerHTML, 'bot'); const titles = { totalSip: 'Total SIP Comparison', totalLoan: 'Total Loan Comparison', totalReturn: 'Total Return Comparison' }; const colors = { totalSip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], totalLoan: ['#FF6384', '#FF9F40', '#E5E7EB'], totalReturn: ['#9966FF', '#FFCD56', '#E5E7EB'] }; const { totalValue, currentUser, topUser } = data; const chartLabels = []; const chartDataPoints = []; chartLabels.push(currentUser.name); chartDataPoints.push(currentUser.value); if (topUser && topUser.name !== currentUser.name) { chartLabels.push(topUser.name); chartDataPoints.push(topUser.value); } const othersValue = Math.max(0, totalValue - chartDataPoints.reduce((a,b) => a+b, 0)); if (othersValue > 0.01) { chartLabels.push('Other Members'); chartDataPoints.push(othersValue); } const chartConfig = { type: 'doughnut', data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] }, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' } }; setTimeout(() => { const ctx = document.getElementById(chartId)?.getContext('2d'); if (ctx) new Chart(ctx, chartConfig); }, 100); }
+            async function displayCapitalKings(showAll = false) { if (!capitalKingsData) { capitalKingsData = calculateCapitalScores().sort((a, b) => b.score - a.score); } const itemsToShow = showAll ? capitalKingsData : capitalKingsData.slice(0, 3); if (!showAll) { await typeMessage("Pesh hain hamare Capital Kings - wo sadasya jinhone sabse lambe samay tak sabse zyada poonji (capital) hold ki hai:", "bot"); } const rankIcons = ['🥇', '🥈', '🥉']; const rankColors = ['border-yellow-400', 'border-gray-400', 'border-orange-400']; const listContainer = showAll ? document.getElementById('capital-kings-list') : null; if(listContainer) listContainer.innerHTML = ''; itemsToShow.forEach((member, index) => { const cardHtml = `<div class="capital-king-card bg-white p-4 rounded-lg shadow-md mt-2 ${rankColors[index] || 'border-gray-200'}" onclick="window.jarvis.openCapitalDetailModal(${index})"><div class="flex items-center"><span class="text-3xl mr-4">${rankIcons[index] || `#${index + 1}`}</span><div><h3 class="font-bold text-lg">${member.name}</h3><div class="text-sm text-gray-600 mt-1"><p><strong>Capital:</strong> ₹${member.capital.toLocaleString('en-IN')}</p><p><strong>Holding:</strong> ${member.holdingDays} days</p><p><strong>Score:</strong> ${member.score.toFixed(0)}</p></div></div></div></div>`; if(showAll) { listContainer.innerHTML += cardHtml; } else { appendRichMessage(cardHtml, 'bot'); } }); if (!showAll && capitalKingsData.length > 3) { const viewMoreBtn = `<button onclick="window.jarvis.displayCapitalKings(true)" class="mt-2 w-full text-center text-blue-600 font-semibold p-2">View Full Ranking</button>`; appendRichMessage(viewMoreBtn, 'bot'); } }
             function convertWordsToNumbers(text) { const numberWords = { 'ek': '1', 'one': '1', 'do': '2', 'two': '2', 'teen': '3', 'three': '3', 'char': '4', 'four': '4', 'panch': '5', 'five': '5', 'chhah': '6', 'chhe': '6', 'six': '6', 'saat': '7', 'seven': '7', 'aath': '8', 'eight': '8', 'nau': '9', 'nine': '9', 'das': '10', 'ten': '10' }; let processedText = text; for (const word in numberWords) { const regex = new RegExp(`\\b${word}\\b`, 'gi'); processedText = processedText.replace(regex, numberWords[word]); } return processedText; }
             function superCalculator(query, cache, memberName) { const lowerQuery = convertWordsToNumbers(query.toLowerCase()); const s = cache.summary; const tx = cache.transactions; let text = null; let chartData = null; const formatDate = (dateStr) => { const d = new Date(dateStr); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}-${month}-${year}`; }; const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment|transaction|len den)/); if (rangeMatch) { const direction = rangeMatch[1]; const count = parseInt(rangeMatch[2], 10); const type = rangeMatch[3]; let relevantTxs = []; let field = ''; let typeName = ''; if (type === 'sip') { relevantTxs = tx.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0); field = 'SIP Payment'; typeName = 'SIP bhugtaan'; } else if (type === 'loan') { relevantTxs = tx.filter(t => (parseFloat(t.Loan) || 0) > 0); field = 'Loan'; typeName = 'Loan'; } else if (type === 'return') { relevantTxs = tx.filter(t => (parseFloat(t['Return amount']) || 0) > 0); field = 'Return amount'; typeName = 'Return'; } else if (type === 'payment') { relevantTxs = tx.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0); field = 'Loan Payment'; typeName = 'Loan bhugtaan'; } else if (type.includes('transaction') || type.includes('len den')) { relevantTxs = tx; typeName = 'transaction'; } if (relevantTxs.length > 0) { const sortedTxs = [...relevantTxs].sort((a, b) => new Date(a.Date) - new Date(b.Date)); const selectedTxs = direction.startsWith('first') || direction.startsWith('pehla') ? sortedTxs.slice(0, count) : sortedTxs.slice(-count).reverse(); if (selectedTxs.length > 0) { if(typeName === 'transaction'){ let responseLines = selectedTxs.map((t, i) => { const sip = parseFloat(t['SIP Payment']) || 0; const loanPay = parseFloat(t['Loan Payment']) || 0; const loan = parseFloat(t.Loan) || 0; const ret = parseFloat(t['Return amount']) || 0; let desc = sip > 0 ? `SIP: ₹${sip}` : loanPay > 0 ? `Loan Payment: ₹${loanPay}` : ret > 0 ? `Return: ₹${ret}` : loan > 0 ? `Loan: ₹${loan}` : 'Other'; return `${i+1}. ${formatDate(t.Date)} - ${desc}`; }); text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} transactions is prakaar hain:\n${responseLines.join('\n')}`; } else { const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0); let responseLines = selectedTxs.map((t, i) => `${i+1}. ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`); text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} ${typeName} ka kul yog ₹${total.toLocaleString('en-IN')} hai. Vivaran is prakaar hai:\n${responseLines.join('\n')}`; } return { text, chartData: null }; } } text = `Aapke koi ${typeName} nahi mile.`; return { text, chartData: null }; } if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) { text = `${memberName} ji, aapke kul SIP ka yog ₹${s.totalSIP.toLocaleString('en-IN')} hai.`; const topData = findTopContributors(); chartData = { type: 'totalSip', data: { totalValue: calculateAllTimeTotals().sip, currentUser: { name: memberName, value: s.totalSIP }, topUser: topData.totalSipUser } }; } else if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) { text = `${memberName} ji, aapne ab tak kul ₹${s.totalLoan.toLocaleString('en-IN')} ka loan liya hai.`; if (s.netLoanOutstanding > 0) { text += ` Jismein se abhi ₹${s.netLoanOutstanding.toLocaleString('en-IN')} bakaaya hai.`; } const topData = findTopContributors(); chartData = { type: 'totalLoan', data: { totalValue: calculateAllTimeTotals().loan, currentUser: { name: memberName, value: s.totalLoan }, topUser: topData.totalLoanUser } }; } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) { text = `${memberName} ji, aapko ab tak kul ₹${s.totalReturn.toLocaleString('en-IN')} ka return mila hai.`; const topData = findTopContributors(); chartData = { type: 'totalReturn', data: { totalValue: calculateAllTimeTotals().return, currentUser: { name: memberName, value: s.totalReturn }, topUser: topData.totalReturnUser } }; } else if (lowerQuery.includes('outstanding') || lowerQuery.includes('bakaya')) { text = s.netLoanOutstanding > 0 ? `${memberName} ji, aapka kul bakaaya loan ₹${s.netLoanOutstanding.toLocaleString('en-IN')} hai.` : `${memberName} ji, aapka koi loan bakaaya nahi hai. Shandaar!`; } else if (lowerQuery.includes('net balance') || lowerQuery.includes('kul balance')) { text = `${memberName} ji, aapka net balance (kul jama - kul nikaasi) ₹${s.netBalance.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('total deposit') || lowerQuery.includes('kul jama')) { text = `${memberName} ji, aapki kul jama raashi (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('total withdrawal') || lowerQuery.includes('kul nikasi')) { text = `${memberName} ji, aapki kul nikaasi (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.match(/loan.*?sip.*?antar|difference/)) { const diff = Math.abs(s.totalSIP - s.totalLoan); text = `Aapke kul SIP (₹${s.totalSIP.toLocaleString('en-IN')}) aur kul Loan (₹${s.totalLoan.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.match(/jama.*?nikasi.*?antar|difference/)) { const diff = Math.abs(s.totalDeposits - s.totalWithdrawals); text = `Aapki kul jama (₹${s.totalDeposits.toLocaleString('en-IN')}) aur kul nikaasi (₹${s.totalWithdrawals.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) { const data = cache.highestSip; text = data ? `Aapka sabse zyada SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila."; } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) { const data = cache.firstSip; text = data ? `Aapka pehla SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila."; } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) { const data = cache.recentLoanPayment; text = data ? `Aapka haal hi ka loan payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke loan payment ka koi record nahi mila."; } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) { const data = cache.firstLoan; text = data ? `Aapne apna pehla loan (${data.daysAgo} din pehle) ${data.date} ko ₹${data.amount.toLocaleString('en-IN')} ka liya tha.` : "Aapke loan lene ka koi record nahi mila."; } if (text) { return { text, chartData }; } return null; }
             function createSuggestionPill(text, type) { const pill = document.createElement('button'); pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm'; if (type === 'member') { pill.classList.add('bg-gray-200', 'text-gray-700'); pill.innerHTML = `<i class="fas fa-user mr-2"></i>${text}`; } else { pill.classList.add('bg-blue-100', 'text-blue-700'); pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${text}`; } pill.onclick = () => { inputBox.value = text; handleSend(); }; return pill; }
