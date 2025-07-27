@@ -186,12 +186,10 @@
             const database = firebase.database();
             const faqsRef = database.ref('admin/faqs');
 
-            // --- Form Elements ---
             const faqTypeRadios = document.querySelectorAll('input[name="faq-type"]');
             const textFaqFields = document.getElementById('text-faq-fields');
             const imageFaqFields = document.getElementById('image-faq-fields');
             
-            // Text fields
             const categoryInput = document.getElementById('category');
             const mainQuestionInput = document.getElementById('main-question');
             const answerInput = document.getElementById('answer');
@@ -201,7 +199,6 @@
             const enhanceAnswerBtn = document.getElementById('enhance-answer-btn');
             const addVariationBtn = document.getElementById('add-variation-btn');
 
-            // Image fields
             const imageMainQuestionInput = document.getElementById('image-main-question');
             const generateImageVariationsBtn = document.getElementById('generate-image-variations-btn');
             const imageVariationsList = document.getElementById('image-variations-list');
@@ -215,14 +212,12 @@
             const imageAnswerSuggestionsContainer = document.getElementById('image-answer-suggestions-container');
             const imageUploadLoader = document.getElementById('image-upload-loader');
 
-            // Common elements
             const submitFaqBtn = document.getElementById('submit-faq-btn');
             const existingFaqsContainer = document.getElementById('existing-faqs-container');
             const loadingFaqs = document.getElementById('loading-faqs');
             const refreshFaqsBtn = document.getElementById('refresh-faqs-btn');
             const searchFaqsInput = document.getElementById('search-faqs');
             
-            // Modal elements
             const editModal = document.getElementById('edit-modal');
             const editModalContent = document.getElementById('edit-modal-content');
             const cancelEditBtn = document.getElementById('cancel-edit-btn');
@@ -234,7 +229,6 @@
                 alert("चेतावनी: इमेज अपलोड की चाबी नहीं मिली। इमेज अपलोड काम नहीं करेगा।");
             }
 
-            // --- AI & API Call Functions ---
             async function callGemini(prompt) {
                 try {
                     const response = await fetch('/api/getAiExplanation', {
@@ -255,7 +249,6 @@
                 }
             }
 
-            // --- Form Logic & Event Handlers ---
             function toggleFaqType(type) {
                 if (type === 'image') {
                     textFaqFields.classList.add('hidden');
@@ -280,7 +273,7 @@
                     }
                     imageUploadLoader.classList.add('hidden');
                 }
-                imageUploadInput.value = ''; // Reset file input
+                imageUploadInput.value = '';
             });
 
             async function handleImageUpload(file) {
@@ -328,7 +321,8 @@
                     const imageUrls = Array.from(imagePreviewsContainer.querySelectorAll('img')).map(img => img.src);
                     if (!mainQuestion || !title || imageUrls.length === 0) { alert("प्रश्न, टाइटल, और कम से कम एक इमेज आवश्यक है।"); toggleButtonLoader(submitFaqBtn, false); return; }
                     const questions = getQuestionsFromList(mainQuestion, '.image-variation-input');
-                    newFaq = { type: 'image', questions, imageTitle: title, imageUrl: imageUrls, answer, createdAt: new Date().toISOString() };
+                    // **FIX**: Save with the key 'imageUrls' (plural) to maintain consistency.
+                    newFaq = { type: 'image', questions, imageTitle: title, imageUrls: imageUrls, answer, createdAt: new Date().toISOString() };
                 }
 
                 try {
@@ -353,7 +347,6 @@
                 imagePreviewsContainer.innerHTML = ''; imageVariationsList.innerHTML = ''; imageAnswerSuggestionsContainer.innerHTML = '';
             }
 
-            // --- Display and Edit Logic ---
             function fetchAndDisplayFAQs() {
                 loadingFaqs.style.display = 'block';
                 loadingFaqs.textContent = "नियम लोड हो रहे हैं...";
@@ -371,10 +364,17 @@
                             let contentHtml = '', searchText = '';
 
                             if (faq.type === 'image') {
+                                // **FIX**: Normalize image URL data structure for robust display
+                                let gallery = [];
+                                if (faq.imageUrls && Array.isArray(faq.imageUrls)) {
+                                    gallery = faq.imageUrls;
+                                } else if (faq.imageUrl) {
+                                    gallery = Array.isArray(faq.imageUrl) ? faq.imageUrl : Object.values(faq.imageUrl);
+                                }
+                                
                                 searchText = `${faq.imageTitle} ${faq.questions.join(' ')} ${faq.answer}`.toLowerCase();
-                                const imageUrls = Array.isArray(faq.imageUrl) ? faq.imageUrl : [faq.imageUrl];
                                 let imagesHtml = '<div class="grid grid-cols-3 gap-2 mt-2">';
-                                imageUrls.forEach(url => { imagesHtml += `<img src="${url}" class="w-full h-16 object-cover rounded-md border">`; });
+                                gallery.forEach(url => { imagesHtml += `<img src="${url}" class="w-full h-16 object-cover rounded-md border">`; });
                                 imagesHtml += '</div>';
                                 contentHtml = `
                                     <div>
@@ -410,14 +410,9 @@
             }
 
             function openEditModal(key) {
-                // This function would need significant changes to support multi-image editing.
-                // For now, it will open as before, but saving will be complex.
-                // A full implementation would require a dynamic image management system within the modal.
                 alert("Multi-image editing is complex. Please delete and re-create the FAQ to change multiple images.");
-                // The rest of the old openEditModal logic is omitted for brevity as it's now deprecated by this alert.
             }
             
-            // --- Helper Functions & Event Listeners ---
             function toggleButtonLoader(button, showLoader) { const icon = button.querySelector('i'); const loader = button.querySelector('.loader'); button.disabled = showLoader; if (icon) icon.style.display = showLoader ? 'none' : 'inline-block'; if (loader) loader.style.display = showLoader ? 'inline-block' : 'none'; }
             function handleFilterFAQs() { const searchTerm = searchFaqsInput.value.toLowerCase(); const items = existingFaqsContainer.querySelectorAll('.faq-item'); items.forEach(item => { item.style.display = item.dataset.searchText.includes(searchTerm) ? '' : 'none'; }); }
             async function handleDeleteFAQ(key) { if (confirm("क्या आप वाकई इस नियम को हटाना चाहते हैं?")) { await faqsRef.child(key).remove(); fetchAndDisplayFAQs(); } }
@@ -429,7 +424,7 @@
                 let prompt = '';
                 if (action === 'enhance') {
                     prompt = `You are an AI assistant for a small community bank in India. Your task is to enhance a given answer. - Keep the answer short, simple, and clear. - Add only a few words (5-10 words max) to make it more professional and complete. - **The language of the enhanced answer MUST BE Hinglish (Hindi written in English alphabet).** - Provide 3 slightly different enhanced versions. - Return the result as a JavaScript array of strings, like ["suggestion 1", "suggestion 2", "suggestion 3"]. Original Answer: "${text}" JavaScript Array:`;
-                } else { // generate
+                } else {
                     prompt = `You are an AI assistant for a bank in India. A user asked this question: "${text}". Your task is to generate 4 other ways a user might ask the exact same thing. **CRITICAL RULE: The generated questions MUST be in Hinglish.** Return the result as a clean JavaScript array of strings, like ["variation 1", "variation 2", "variation 3", "variation 4"]. JavaScript Array:`;
                 }
                 const response = await callGemini(prompt);
@@ -450,25 +445,21 @@
                 toggleButtonLoader(btnEl, false);
             }
 
-            // Attach Event Listeners
             submitFaqBtn.addEventListener('click', handleSubmit);
             refreshFaqsBtn.addEventListener('click', fetchAndDisplayFAQs);
             searchFaqsInput.addEventListener('input', handleFilterFAQs);
             cancelEditBtn.addEventListener('click', () => editModal.classList.remove('active'));
-            saveEditBtn.addEventListener('click', () => alert("Saving via modal is currently disabled for multi-image FAQs.")); // Simplified
+            saveEditBtn.addEventListener('click', () => alert("Saving via modal is currently disabled for multi-image FAQs."));
             existingFaqsContainer.addEventListener('click', (e) => { const btn = e.target.closest('button'); if (!btn) return; const key = btn.dataset.key; if (btn.classList.contains('delete-faq-btn')) handleDeleteFAQ(key); if (btn.classList.contains('edit-faq-btn')) openEditModal(key); });
-            // Text FAQ listeners
             generateVariationsBtn.addEventListener('click', () => handleAiAction('generate', mainQuestionInput, variationsList, generateVariationsBtn));
             enhanceAnswerBtn.addEventListener('click', () => handleAiAction('enhance', answerInput, answerSuggestionsContainer, enhanceAnswerBtn));
             addVariationBtn.addEventListener('click', () => addVariationInput('', variationsList, 'variation-input'));
             variationsList.addEventListener('click', (e) => { if (e.target.matches('.remove-variation-btn')) e.target.parentElement.remove(); });
-            // Image FAQ listeners
             generateImageVariationsBtn.addEventListener('click', () => handleAiAction('generate', imageMainQuestionInput, imageVariationsList, generateImageVariationsBtn));
             enhanceImageAnswerBtn.addEventListener('click', () => handleAiAction('enhance', imageAnswerInput, imageAnswerSuggestionsContainer, enhanceImageAnswerBtn));
             addImageVariationBtn.addEventListener('click', () => addVariationInput('', imageVariationsList, 'image-variation-input'));
             imageVariationsList.addEventListener('click', (e) => { if (e.target.matches('.remove-variation-btn')) e.target.parentElement.remove(); });
 
-            // Initial calls
             fetchAndDisplayFAQs();
         }
 
