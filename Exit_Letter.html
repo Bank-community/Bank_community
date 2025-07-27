@@ -397,7 +397,7 @@
             const displayNameEl = document.getElementById('displayName');
             const displayPositionEl = document.getElementById('displayPosition');
             const displayAadhaarEl = document.getElementById('displayAadhaar');
-            const displayEndDateEl = document.getElementById('displayEndDate'); // Changed from StartDate
+            const displayEndDateEl = document.getElementById('displayEndDate');
             const displayExtraTextEl = document.getElementById('displayExtraText');
             const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
             const downloadBtn = document.getElementById('download');
@@ -411,7 +411,6 @@
                     
                     membersData = snapshot.val();
                     
-                    // Now we can list all members, not just approved, for exit letters
                     const allMembers = Object.entries(membersData)
                         .filter(([id, member]) => member.fullName)
                         .map(([id, member]) => ({ id, name: member.fullName }))
@@ -448,7 +447,6 @@
                 return date.toLocaleDateString('en-GB', options);
             }
 
-            // **UPDATED FUNCTION FOR EXIT LETTER**
             function generateExitText(name, position) {
                 if (position === "Prime Member") {
                     return `प्रिय ${name},<br>एक प्राइम मेंबर के रूप में आपके योगदान के लिए हम आपका हृदय से धन्यवाद करते हैं। आपके भविष्य के सभी प्रयासों के लिए हमारी ओर से हार्दिक शुभकामनाएँ।`;
@@ -488,8 +486,8 @@
                 displayNameEl.innerText = member.fullName;
                 displayPositionEl.innerText = position;
                 displayAadhaarEl.innerText = member.aadhaar || 'N/A';
-                displayEndDateEl.innerText = formatDisplayDate(today); // Using today's date as exit date
-                displayExtraTextEl.innerHTML = generateExitText(member.fullName, position); // Using new exit text function
+                displayEndDateEl.innerText = formatDisplayDate(today);
+                displayExtraTextEl.innerHTML = generateExitText(member.fullName, position);
                 setApiImage(member);
 
                 captureDiv.style.display = 'flex';
@@ -497,48 +495,62 @@
                 captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
+            // This function ensures all images are loaded before capture
             async function waitForImages(containerElement) {
-                const images = Array.from(containerElement.querySelectorAll('img:not([src=""])'));
+                const images = Array.from(containerElement.querySelectorAll('img'));
                 const promises = images.map(img => {
-                    if (!img.complete) {
-                        return new Promise((resolve) => {
+                    if (!img.complete || img.naturalHeight === 0) { // Check if image is actually loaded
+                        return new Promise((resolve, reject) => {
                             img.onload = resolve;
                             img.onerror = () => {
-                                console.warn(`Image failed to load: ${img.src}`);
-                                resolve();
+                                console.warn(`Image failed to load, will continue anyway: ${img.src}`);
+                                resolve(); // Resolve even on error to not block the download
                             };
                         });
                     }
                     return Promise.resolve();
                 });
+                // Add a small extra delay for rendering after load
                 return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
             }
 
+            // **DOWNLOAD LOGIC UPDATED FOR RELIABILITY**
             downloadBtn.addEventListener('click', async () => {
                 downloadBtn.textContent = 'Preparing Download...';
                 downloadBtn.disabled = true;
+                console.log('Download process started.');
+                
                 try {
+                    console.log('Waiting for all images to load...');
                     await waitForImages(captureDiv);
+                    console.log('All images loaded. Generating canvas...');
+
                     const canvas = await html2canvas(captureDiv, {
-                        scale: 3,
-                        useCORS: true,
-logging: false,
+                        scale: 3, // Higher scale for better quality
+                        useCORS: true, // Crucial for loading external images
+                        allowTaint: true, // Helps with some cross-origin issues
+                        logging: false, // Set to true for debugging if needed
                         backgroundColor: '#ffffff'
                     });
+
+                    console.log('Canvas generated. Creating download link.');
                     const link = document.createElement('a');
-                    // **UPDATED FILENAME**
                     const fileName = `Exit_Letter_${displayNameEl.innerText.replace(/\s+/g, '_') || 'User'}.png`;
                     link.download = fileName;
                     link.href = canvas.toDataURL('image/png', 1.0);
+                    
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                    console.log('Download should have started.');
+
                 } catch (error) {
                     console.error('Error during download generation:', error);
-                    alert('Failed to generate download. Please check console for errors.');
+                    alert('Download failed. This might be due to a network or browser security issue. Please try again or check the console (F12) for errors.');
                 } finally {
                     downloadBtn.textContent = 'Download Letter';
                     downloadBtn.disabled = false;
+                    console.log('Download process finished.');
                 }
             });
 
