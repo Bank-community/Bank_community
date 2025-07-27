@@ -60,12 +60,14 @@
         .ad-bank-stats li strong { color: #93c5fd; }
         header h1 { color: white; font-size: 2.2em; margin: 15px 0 5px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); font-weight: 700; }
         header h4 { color: rgba(255, 255, 255, 0.9); margin: 0 0 20px 0; font-weight: 400; font-size: 1em; }
-        .header-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 0 15px; margin-top: 15px; box-sizing: border-box; }
+        .header-actions { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; padding: 0 15px; margin-top: 15px; box-sizing: border-box; }
         .header-actions-row { display: flex; justify-content: center; gap: 15px; width: 100%; }
+        .dynamic-buttons-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; padding: 0 15px; }
         .civil-button { background: var(--prime-color); border-radius: 50px; border: none; text-shadow: none; box-shadow: 0 4px 10px 0px rgba(0,0,0,0.2); padding: 12px 25px; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); font-size: 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; flex-grow: 1; max-width: 180px; }
-        .notification-btn { position: relative; background: var(--prime-color); border: none; border-radius: 50px; padding: 12px 20px; font-size: 1.5em; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); line-height: 1; }
+        .notification-btn { position: relative; background: var(--prime-color); border: none; border-radius: 50px; padding: 12px 20px; font-size: 1.5em; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
         .notification-dot { position: absolute; top: 8px; right: 12px; width: 10px; height: 10px; background-color: var(--danger-color); border-radius: 50%; border: 2px solid var(--prime-color); display: none; }
         .civil-button:hover, .notification-btn:hover { box-shadow: 0 6px 15px 0px rgba(0,0,0,0.3); transform: translateY(-2px); background-color: #ffcd39; color: var(--text-color); }
+        .civil-button svg, .notification-btn svg { width: 20px; height: 20px; margin-right: 8px; }
         .install-button { display: none; background: green; color: white; border: 2px solid white; border-radius: 50px; padding: 10px 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; gap: 10px; align-items: center; justify-content: center; width: 70%; max-width: 180px; }
         .install-button img { width: 24px; height: 24px; }
         .install-button:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); transform: translateY(-3px); }
@@ -371,7 +373,20 @@
 </head>
 <body>
 
-<header class="animate-on-scroll"> <div id="headerDisplay" class="header-display"> <div class="ad-content"> </div> <div class="ticker-wrap"> <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div> </div> </div> <h1>Bank Community Loan</h1> <h4>ESTD: 23 June 2024</h4> <div class="header-actions"> <div class="header-actions-row"> <a href="chatbot.html" class="civil-button">Bank AI 💻</a> <a href="gallery.html" class="civil-button">Gallery 🖼️</a> </div> <div class="header-actions-row"> <a href="profit_return.html" class="civil-button">Return 💵</a> <button class="civil-button" id="sipStatusBtn">SIP Status</button> <button class="notification-btn" id="notificationBtn">🔔<span id="notificationDot" class="notification-dot"></span></button> </div> <div class="header-actions-row"> <button class="install-button" id="installAppBtn"> <img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"> <b>Install Now</b> </button> </div> </div> </header> 
+<header class="animate-on-scroll">
+    <div id="headerDisplay" class="header-display">
+        <div class="ad-content"></div>
+        <div class="ticker-wrap">
+            <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner Bank... SIP is due on the 1st of every month...</div>
+        </div>
+    </div>
+    <h1>Bank Community Loan</h1>
+    <h4>ESTD: 23 June 2024</h4>
+    <div class="header-actions" id="headerActionsContainer">
+        <p class="loading-text" style="color: white;">Loading Actions...</p>
+    </div>
+</header>
+ 
 <main class="content-wrapper">
     <section class="bank-members animate-on-scroll"> 
         <div class="header-container"> 
@@ -391,7 +406,6 @@
         <div class="slide-indicator" id="custom-cards-indicator"></div>
     </section>
 
-    <!-- Modals Start Here -->
     <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> 
     
     <div id="penaltyWalletModal" class="modal">
@@ -419,8 +433,6 @@
             <div class="all-members-list" id="allMembersListContainer"></div>
         </div>
     </div>
-    <!-- Modals End Here -->
-
     <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> 
     
     <section class="action-cards-section animate-on-scroll"> 
@@ -448,7 +460,10 @@
     <section class="letter-slider-section animate-on-scroll"> <h2><i data-feather="image"></i> About Community Letter</h2> <div class="slider-container"> <div class="slides" id="communityLetterSlides">
          </div> <button class="prev" id="prevSlideBtn">❮</button> <button class="next" id="nextSlideBtn">❯</button> </div> <div class="slide-indicator" id="slideIndicator"></div> </section> 
 </main>
-<footer> <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित.</p> </footer> <div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
+<footer>
+    <p>© <span id="currentYear"></span> बैंक कम्युनिटी लोन. सभी अधिकार सुरक्षित. | <a href="Exit_Letter.html" style="color: #a0aec0; text-decoration: none; font-size: 0.8em; opacity: 0.7;" title="Exit Community Letter">Exit Community</a></p>
+</footer>
+<div id="imageModal" class="image-modal-overlay"> <span class="close" id="closeImageModal">×</span> <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> </div>
 
 <div id="passwordPromptModal" class="modal">
     <div class="modal-content">
@@ -530,7 +545,7 @@
     }
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V10 - UI Changes) ##
+    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V11 - Dynamic Buttons) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -565,12 +580,9 @@
         const profileModalReturn = document.getElementById('profileModalReturn');
         const profileModalSipStatus = document.getElementById('profileModalSipStatus');
         const profileModalLoanCount = document.getElementById('profileModalLoanCount');
-        const sipStatusBtn = document.getElementById('sipStatusBtn');
         const sipStatusModalElement = document.getElementById('sipStatusModal');
         const closeSipStatusModalBtn = document.getElementById('closeSipStatusModal');
         const sipStatusListContainer = document.getElementById('sipStatusListContainer');
-        const notificationBtn = document.getElementById('notificationBtn');
-        const notificationDot = document.getElementById('notificationDot');
         const notificationModal = document.getElementById('notificationModal');
         const closeNotificationModalBtn = notificationModal.querySelector('.close');
         const notificationList = document.getElementById('notificationList');
@@ -597,6 +609,7 @@
         const allMembersModal = document.getElementById('allMembersModal');
         const closeAllMembersModal = document.getElementById('closeAllMembersModal');
         const allMembersListContainer = document.getElementById('allMembersListContainer');
+        const headerActionsContainer = document.getElementById('headerActionsContainer');
 
         // App State
         let allMembersData = {}; 
@@ -612,6 +625,7 @@
         let cardColors = {};
         let customCardsData = {};
         let communityLettersData = {};
+        let headerButtonsData = {};
 
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -619,17 +633,26 @@
                 deferredInstallPrompt = e;
                 if(installAppBtn) installAppBtn.style.display = 'inline-flex';
             });
-            if(installAppBtn) installAppBtn.addEventListener('click', async () => {
-                if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    await deferredInstallPrompt.userChoice;
-                    deferredInstallPrompt = null;
-                    installAppBtn.style.display = 'none';
+            if(headerActionsContainer) { // Check if container exists
+                const installButton = document.createElement('button');
+                installButton.className = 'install-button';
+                installButton.id = 'installAppBtn';
+                installButton.innerHTML = `<img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"><b>Install Now</b>`;
+                installButton.style.display = 'none'; // Initially hidden
+                headerActionsContainer.appendChild(installButton);
+                
+                installButton.addEventListener('click', async () => {
+                    if (deferredInstallPrompt) {
+                        deferredInstallPrompt.prompt();
+                        await deferredInstallPrompt.userChoice;
+                        deferredInstallPrompt = null;
+                        installButton.style.display = 'none';
+                    }
+                });
+                window.addEventListener('appinstalled', () => { installButton.style.display = 'none'; });
+                if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                   installButton.style.display = 'none';
                 }
-            });
-            window.addEventListener('appinstalled', () => { if(installAppBtn) installAppBtn.style.display = 'none'; });
-            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-                if(installAppBtn) installAppBtn.style.display = 'none';
             }
         }
 
@@ -652,13 +675,16 @@
                 allMembersData = data.members || {};
                 penaltyWalletData = data.penaltyWallet || {};
                 
-                cardColors = data.admin?.card_colors || {};
-                customCardsData = data.admin?.custom_cards || {};
-                communityLettersData = data.admin?.community_letters || {};
+                const adminData = data.admin || {};
+                cardColors = adminData.card_colors || {};
+                customCardsData = adminData.custom_cards || {};
+                communityLettersData = adminData.community_letters || {};
+                headerButtonsData = adminData.header_buttons || {};
 
                 processAndDisplayData(allMembersData, penaltyWalletData.incomes || {});
                 displayCustomCards(customCardsData);
                 displayCommunityLetters(communityLettersData);
+                displayHeaderButtons(headerButtonsData);
             }, (error) => {
                 console.error('Firebase Read Failed:', error);
                 if (memberContainer) {
@@ -667,6 +693,94 @@
             });
         }
 
+        function displayHeaderButtons(buttons) {
+            if (!headerActionsContainer) return;
+            headerActionsContainer.innerHTML = ''; // Clear loading text
+
+            if (Object.keys(buttons).length === 0) {
+                headerActionsContainer.innerHTML = '<p style="color: white; font-size: 0.9em;">Buttons not configured.</p>';
+                return;
+            }
+
+            const buttonWrapper = document.createElement('div');
+            buttonWrapper.className = 'dynamic-buttons-wrapper';
+
+            Object.values(buttons).sort((a,b) => (a.order || 0) - (b.order || 0)).forEach(btnData => {
+                const isLink = btnData.url && !btnData.action;
+                const element = document.createElement(isLink ? 'a' : 'button');
+
+                element.className = btnData.base_class || 'civil-button';
+                if (btnData.id) element.id = btnData.id;
+                
+                if (isLink) {
+                    element.href = btnData.url;
+                    if (btnData.target) element.target = btnData.target;
+                }
+                
+                let innerHTML = '';
+                if (btnData.icon_svg) innerHTML += btnData.icon_svg;
+                if (btnData.name) innerHTML += `<b>${btnData.name}</b>`;
+                
+                if (btnData.id === 'notificationBtn') {
+                    innerHTML += '<span id="notificationDot" class="notification-dot"></span>';
+                }
+                element.innerHTML = innerHTML;
+
+                if (btnData.color) element.style.backgroundColor = btnData.color;
+                if (btnData.textColor) element.style.color = btnData.textColor;
+                if (btnData.borderColor) {
+                    element.style.border = `2px solid ${btnData.borderColor}`;
+                }
+                if (btnData.borderRadius) element.style.borderRadius = btnData.borderRadius;
+
+                buttonWrapper.appendChild(element);
+            });
+            
+            headerActionsContainer.appendChild(buttonWrapper);
+
+            const installButtonContainer = document.createElement('div');
+            installButtonContainer.className = 'header-actions-row';
+            headerActionsContainer.appendChild(installButtonContainer);
+            
+            const installBtn = document.createElement('button');
+            installBtn.className = 'install-button';
+            installBtn.id = 'installAppBtn';
+            installBtn.innerHTML = `<img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"><b>Install Now</b>`;
+            
+            installButtonContainer.appendChild(installBtn);
+            if (deferredInstallPrompt) {
+                installBtn.style.display = 'inline-flex';
+            }
+            installBtn.addEventListener('click', async () => {
+                 if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    await deferredInstallPrompt.userChoice;
+                    deferredInstallPrompt = null;
+                    installBtn.style.display = 'none';
+                }
+            });
+
+            attachDynamicButtonListeners();
+        }
+
+        function attachDynamicButtonListeners() {
+            const sipStatusBtn = document.getElementById('sipStatusBtn');
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationDot = document.getElementById('notificationDot');
+
+            if (sipStatusBtn) {
+                sipStatusBtn.addEventListener('click', showSipStatusModal);
+            }
+            if (notificationBtn) {
+                notificationBtn.addEventListener('click', () => {
+                    displayNotifications();
+                    notificationModal.classList.add('show');
+                    if(notificationDot) notificationDot.style.display = 'none';
+                    sessionStorage.setItem('notificationsViewed', 'true');
+                });
+            }
+        }
+        
         function processAndDisplayData(membersData, penaltyIncomes) {
             const processedMembers = {};
             let totalLoanDisbursed = 0;
@@ -1152,8 +1266,9 @@
                 const hasAmount = parseFloat(tx['SIP Payment'] || 0) > 0 || parseFloat(tx.Loan || 0) > 0 || parseFloat(tx['Loan Payment'] || 0) > 0;
                 return isToday && hasAmount;
             }).sort((a,b) => b.Date - a.Date);
-
-            if (todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed')) {
+            
+            const notificationDot = document.getElementById('notificationDot');
+            if (notificationDot && todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed')) {
                 notificationDot.style.display = 'block';
             }
         }
@@ -1279,16 +1394,9 @@
             });
             if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', () => closeModal(profileModalElement));
             if (closeImageModalBtn) closeImageModalBtn.addEventListener('click', () => closeModal(imageModalElement));
-            if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
             if (closeSipStatusModalBtn) closeSipStatusModalBtn.addEventListener('click', () => closeModal(sipStatusModalElement));
             if (profileModalHeader) { profileModalHeader.addEventListener('click', () => { if (profileModalImage.src) { showFullImage(profileModalImage.src, profileModalName.textContent); } }); }
             
-            if(notificationBtn) notificationBtn.addEventListener('click', () => {
-                displayNotifications();
-                notificationModal.classList.add('show');
-                notificationDot.style.display = 'none';
-                sessionStorage.setItem('notificationsViewed', 'true');
-            });
             if(closeNotificationModalBtn) closeNotificationModalBtn.addEventListener('click', () => closeModal(notificationModal));
 
             if (fullViewBtn) fullViewBtn.addEventListener('click', () => {
@@ -1300,7 +1408,6 @@
             if (passwordInput) passwordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePasswordCheck(); });
             if (closeFullProfileModal) closeFullProfileModal.addEventListener('click', () => closeModal(fullProfileViewModal));
 
-            // New event listeners for All Members modal
             if (totalMembersCard) totalMembersCard.addEventListener('click', showAllMembersModal);
             if (closeAllMembersModal) closeAllMembersModal.addEventListener('click', () => closeModal(allMembersModal));
 
@@ -1334,4 +1441,3 @@
 
 </body>
 </html>
-
