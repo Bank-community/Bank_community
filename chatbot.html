@@ -19,7 +19,8 @@
         :root {
             --primary-gradient: linear-gradient(135deg, #2E7D32, #4CAF50);
             --secondary-color: #f0f4f8;
-            --user-message-bg: #DCF8C6;
+            /* UPDATED: User message background color as requested */
+            --user-message-bg: #DCF8C7; 
             --bot-message-bg: #ffffff;
             --text-dark: #1C1C1E;
             --text-light: #6C757D;
@@ -31,7 +32,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         
-        /* Animation for images fading in */
         @keyframes image-fade-in {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
@@ -40,7 +40,6 @@
             animation: image-fade-in 0.5s ease-out;
         }
 
-        /* NEW: Image loader animation */
         @keyframes spin { to { transform: rotate(360deg); } }
         .img-loader {
             width: 50px;
@@ -54,11 +53,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 200px; /* Ensure loader has space */
+            min-height: 200px;
             background-color: #f9fafb;
             border-radius: 8px;
         }
-
 
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--secondary-color); }
         .chat-container { animation: fadeIn 0.5s ease-out; }
@@ -92,7 +90,6 @@
         }
         .post-answer-suggestion:hover { background-color: #e0e7ff; border-color: #a5b4fc; }
 
-        /* NEW: Image Modal Navigation Styles */
         #modalNav {
             position: absolute;
             top: 50%;
@@ -102,7 +99,7 @@
             justify-content: space-between;
             transform: translateY(-50%);
             padding: 0 1rem;
-            pointer-events: none; /* Let clicks pass through to the image unless on buttons */
+            pointer-events: none;
         }
         #modalNav button {
             background-color: rgba(0, 0, 0, 0.5);
@@ -114,7 +111,7 @@
             font-size: 24px;
             cursor: pointer;
             transition: background-color 0.2s;
-            pointer-events: all; /* Make buttons clickable */
+            pointer-events: all;
         }
         #modalNav button:hover {
             background-color: rgba(0, 0, 0, 0.8);
@@ -127,7 +124,6 @@
 </head>
 <body class="antialiased">
 
-    <!-- UPDATED: Removed max-w-4xl and mx-auto from here -->
     <div class="chat-container flex flex-col h-screen w-full bg-white shadow-2xl md:max-w-4xl md:mx-auto">
         <header class="relative flex items-center justify-center p-4 bg-gray-800 text-white shadow-lg z-10">
             <h1 class="text-xl font-bold tracking-wider">Bank Jarvis</h1>
@@ -144,7 +140,6 @@
             <button id="unlock-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-full text-sm">Unlock</button>
         </div>
 
-        <!-- UPDATED: Padding is now responsive for better mobile screen usage -->
         <div id="chat" class="chat-messages flex-1 p-3 sm:p-6 overflow-y-auto bg-secondary-color"></div>
 
         <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
@@ -159,7 +154,6 @@
     </div>
 
     <!-- Modals -->
-    <!-- UPDATED: Image modal now contains navigation buttons -->
     <div id="imageModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center">
         <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer" onclick="window.jarvis.closeImageModal()">&times;</span>
         <img id="modalImageContent" class="max-w-[90%] max-h-[90%] rounded-lg">
@@ -228,7 +222,6 @@
             let preAnalyzedCache = null;
             let chatHistory = [];
             
-            // NEW: Global state for image modal gallery
             let currentImageUrls = [];
             let currentImageIndex = 0;
 
@@ -265,31 +258,44 @@
                     cachedFaqs = [];
                     if (faqsSnapshot.exists()) {
                         const faqsData = faqsSnapshot.val();
-                        for(const key in faqsData) { 
-                            // Ensure it has questions and either an answer or imageUrls
-                            if(faqsData[key].questions && (faqsData[key].answer || (faqsData[key].imageUrls && faqsData[key].imageUrls.length > 0))) { 
-                                cachedFaqs.push(faqsData[key]); 
+                        for(const key in faqsData) {
+                            const faq = faqsData[key];
+                            // **FIX**: Normalize image URL data structure for robustness
+                            let gallery = [];
+                            if (faq.imageUrls && Array.isArray(faq.imageUrls)) {
+                                gallery = faq.imageUrls; // Preferred modern format
+                            } else if (faq.imageUrl) { // Legacy format check
+                                if (Array.isArray(faq.imageUrl)) {
+                                    gallery = faq.imageUrl; // Is an array
+                                } else if (typeof faq.imageUrl === 'object') {
+                                    gallery = Object.values(faq.imageUrl); // Is an object like {0: url, 1: url}
+                                } else if (typeof faq.imageUrl === 'string') {
+                                    gallery = [faq.imageUrl]; // Is a single string
+                                }
+                            }
+                            faq.imageGallery = gallery; // Create a consistent property to use everywhere
+
+                            // Ensure it has questions and either an answer or images
+                            if(faq.questions && (faq.answer || faq.imageGallery.length > 0)) { 
+                                cachedFaqs.push(faq); 
                             } 
                         }
                     } 
                     
-                    // Fallback FAQs if Firebase is empty
                     if (cachedFaqs.length === 0) {
                         cachedFaqs = [
                             { 
                                 type: "text",
                                 questions: ["बैंक कम्युनिटी लोन क्या है?", "लोन कैसे मिलता है", "community loan kya hai", "Bank community loan kya hai", "बैंक कम्युनिटी क्या है"], 
-                                // UPDATED: The answer is now exactly as requested
                                 answer: "Bank Community Loan एक सामुदायिक financial संस्था है, जहाँ सभी सदस्य हर माह ₹500 Rupees SIP के रूप में जमा करते हैं। यह राशि एक community fund बनाती है, जिससे जरूरतमंद members को minimum interest rate पर, पूरी transparency और तय नियमों के अनुसार loan प्रदान किया जाता है।" 
                             },
                             { type: "text", questions: ["SIP kab jama karna hota hai?", "SIP ki date kya hai"], answer: "हर महीने 1 से 10 तारीख के बीच SIP भुगतान किया जाता है।" },
                             { type: "text", questions: ["Capital Kings कौन हैं?"], answer: "Capital Kings वे सदस्य हैं जिन्होंने सबसे लंबे समय तक सबसे अधिक पूंजी रखी है।" },
-                             // NEW: Example of a multi-image FAQ for demonstration
                             {
                                 type: 'image',
                                 questions: ["KYC ke liye kya documents chahiye?", "documents required for kyc"],
                                 imageTitle: "KYC Documents Guide",
-                                imageUrls: [
+                                imageGallery: [ // Use the normalized property
                                     'https://placehold.co/600x400/2E7D32/FFFFFF?text=1.+Aadhaar+Card',
                                     'https://placehold.co/600x400/4CAF50/FFFFFF?text=2.+PAN+Card',
                                     'https://placehold.co/600x400/8BC34A/FFFFFF?text=3.+Bank+Passbook'
@@ -344,7 +350,7 @@
                     matchingMembers.forEach(m => appendMemberClarification(m));
                 } else if (matchingFaqs.length > 0) {
                     const topFaq = matchingFaqs[0];
-                    if (topFaq.type === 'image') {
+                    if (topFaq.type === 'image' && topFaq.imageGallery && topFaq.imageGallery.length > 0) {
                         await displayImageFaq(topFaq);
                     } else {
                         await typeMessage(topFaq.answer, "bot");
@@ -387,24 +393,17 @@
             }
             
             // --- Response Rendering ---
-            // UPDATED: This function now formats text better for readability.
             function formatBotAnswer(content) {
                 if (!content) return '';
-                // Keywords to bold
                 const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
                 const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
                 let processedContent = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
                 
-                // Numbers to bold
                 processedContent = processedContent.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>');
                 
-                // NEW: Add line breaks for better readability of lists and slabs.
-                // Converts newlines from AI to <br>
                 processedContent = processedContent.replace(/\n/g, '<br>');
-                // Specifically formats slab-like structures
                 processedContent = processedContent.replace(/(\d+\s*-\s*\d+\s*दिन\s*के\s*लोन\s*पर)/g, '<br><br>$1');
                 processedContent = processedContent.replace(/(\d+\+\s*दिन\s*के\s*लोन\s*पर)/g, '<br><br>$1');
-
 
                 return processedContent;
             }
@@ -489,7 +488,6 @@
                 appendRichMessage(cardHtml, "bot");
             }
             
-            // UPDATED: Complete rewrite of this function for animations and multi-image support
             async function displayImageFaq(faq) {
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'p-1';
@@ -499,10 +497,10 @@
                 title.textContent = faq.imageTitle;
                 cardContainer.appendChild(title);
 
-                // Image container with loader
                 const imageContainer = document.createElement('div');
                 imageContainer.className = 'relative w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer';
-                imageContainer.onclick = () => window.jarvis.openImageModal(faq.imageUrls, 0);
+                // **FIX**: Use the normalized imageGallery property
+                imageContainer.onclick = () => window.jarvis.openImageModal(faq.imageGallery, 0);
                 
                 const loaderContainer = document.createElement('div');
                 loaderContainer.className = 'img-loader-container';
@@ -511,28 +509,25 @@
                 loaderContainer.appendChild(loader);
                 
                 const image = document.createElement('img');
-                image.src = faq.imageUrls[0];
+                // **FIX**: Use the first image from the normalized gallery
+                image.src = faq.imageGallery[0]; 
                 image.alt = faq.imageTitle;
-                image.className = 'w-full rounded-lg hidden'; // Start hidden
+                image.className = 'w-full rounded-lg hidden';
                 
                 imageContainer.appendChild(loaderContainer);
                 imageContainer.appendChild(image);
                 cardContainer.appendChild(imageContainer);
 
-                // Answer text container
                 const answerP = document.createElement('p');
                 answerP.className = 'text-gray-700 mt-3';
                 cardContainer.appendChild(answerP);
 
-                // Append the whole card structure to the chat
                 appendRichMessage(cardContainer.outerHTML, 'bot');
-                // We need to get a reference to the elements we just added to the DOM
                 const lastMessageBubble = chatBox.querySelectorAll('.message .p-4')[chatBox.querySelectorAll('.message .p-4').length - 1];
                 const liveImage = lastMessageBubble.querySelector('img');
                 const liveLoader = lastMessageBubble.querySelector('.img-loader-container');
                 const liveAnswerP = lastMessageBubble.querySelector('.text-gray-700');
 
-                // Start typing animation for the answer
                 let i = 0;
                 const textToType = faq.answer || '';
                 liveAnswerP.innerHTML = "▋";
@@ -548,13 +543,12 @@
                     }
                 }, 25);
 
-                // Show image once it's loaded
                 liveImage.onload = () => {
                     liveLoader.style.display = 'none';
                     liveImage.style.display = 'block';
                     liveImage.classList.add('image-faq-img');
                 };
-                liveImage.onerror = () => { // Handle image load error
+                liveImage.onerror = () => {
                     liveLoader.innerHTML = 'Image not found';
                 };
             }
@@ -668,7 +662,6 @@
             function calculateCapitalScores() { const results = []; const today = new Date(); if (!allMembersFullData) return []; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; if (!member.transactions || !member.joiningDate || !member.fullName) continue; const finalCapital = aggregateMemberData(member).netBalance; if (finalCapital <= 0) continue; const transactions = Object.values(member.transactions).sort((a, b) => new Date(a.Date) - new Date(b.Date)); let capitalDays = 0; let currentCapital = 0; let lastDate = new Date(member.joiningDate); transactions.forEach(tx => { const txDate = new Date(tx.Date); const daysDifference = (txDate - lastDate) / (1000 * 3600 * 24); if (daysDifference > 0) { capitalDays += currentCapital * daysDifference; } const sip = parseFloat(tx['SIP Payment']) || 0; const payment = parseFloat(tx['Loan Payment']) || 0; const loan = parseFloat(tx.Loan) || 0; const ret = parseFloat(tx['Return amount']) || 0; currentCapital += sip + payment + ret - loan; lastDate = txDate; }); const daysSinceLastTx = (today - lastDate) / (1000 * 3600 * 24); capitalDays += currentCapital * daysSinceLastTx; const holdingDays = Math.floor((today - new Date(member.joiningDate)) / (1000 * 3600 * 24)); if (holdingDays > 0) { results.push({ id: memberId, name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays }); } } return results; }
             function preAnalyzeMemberData(memberId) { const memberData = allMembersFullData[memberId]; if (!memberData) return null; const transactions = memberData.transactions ? Object.values(memberData.transactions).filter(tx => tx.Date) : []; if (transactions.length === 0) { return { summary: aggregateMemberData(memberData), transactions: [] }; } const today = new Date(); const formatDate = (dateStr) => { const d = new Date(dateStr); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}-${month}-${year}`; }; const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24))); const sortedTransactions = [...transactions].sort((a, b) => new Date(a.Date) - new Date(b.Date)); const sipPayments = sortedTransactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0); const loanPayments = sortedTransactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0); const loansTaken = sortedTransactions.filter(t => (parseFloat(t.Loan) || 0) > 0); let highestSip = null; if (sipPayments.length > 0) { const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]); highestSip = { amount: parseFloat(topSip['SIP Payment']), date: formatDate(topSip.Date) }; } let firstSip = null; if (sipPayments.length > 0) { firstSip = { amount: parseFloat(sipPayments[0]['SIP Payment']), date: formatDate(sipPayments[0].Date) }; } let recentLoanPayment = null; if (loanPayments.length > 0) { const lastLoanPayment = loanPayments[loanPayments.length - 1]; recentLoanPayment = { amount: parseFloat(lastLoanPayment['Loan Payment']), date: formatDate(lastLoanPayment.Date) }; } let firstLoan = null; if (loansTaken.length > 0) { const firstLoanTx = loansTaken[0]; firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) }; } return { summary: aggregateMemberData(memberData), transactions: sortedTransactions, highestSip, firstSip, recentLoanPayment, firstLoan }; }
             
-            // NEW: Function to update modal navigation buttons visibility
             function updateModalNav() {
                 prevBtn.disabled = currentImageIndex === 0;
                 nextBtn.disabled = currentImageIndex === currentImageUrls.length - 1;
@@ -678,7 +671,6 @@
                 activateLockMode: (member) => { lockMode = { active: true, member }; preAnalyzedCache = preAnalyzeMemberData(member.id); chatHistory = []; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); suggestionsBox.innerHTML = ''; }, 
                 deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; preAnalyzedCache = null; chatHistory = []; lockBanner.classList.add('hidden'); showDefaultSuggestions(); }, 
                 
-                // UPDATED: Image modal functions for gallery
                 openImageModal: (urls, startIndex = 0) => { 
                     if (!urls || urls.length === 0 || urls[0].includes('placehold.co')) return;
                     currentImageUrls = urls;
@@ -689,7 +681,7 @@
                 }, 
                 closeImageModal: () => { 
                     imageModal.classList.remove('active'); 
-                    currentImageUrls = []; // Clear the array
+                    currentImageUrls = [];
                 },
                 showNextImage: () => {
                     if (currentImageIndex < currentImageUrls.length - 1) {
