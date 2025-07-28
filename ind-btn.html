@@ -107,9 +107,30 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 columns on large screens */
             }
         }
+        #auth-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f9fafb;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4f46e5;
+            animation: spin 1s ease infinite;
+        }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
+
+    <div id="auth-loader">
+        <div class="spinner"></div>
+        <p class="mt-4 text-gray-600">Authenticating...</p>
+    </div>
 
     <div id="app-container" class="hidden">
         <header class="bg-white shadow-md sticky top-0 z-10">
@@ -262,14 +283,12 @@
 
     <script type="module">
         // --- Authentication and Firebase Setup ---
-        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
-            window.location.href = `login.html?redirect=${window.location.pathname}`;
-        }
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getDatabase, ref, onValue, set, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         let db;
+        let auth;
         let currentEditKey = null;
 
         async function startApp() {
@@ -280,16 +299,30 @@
                 
                 const app = initializeApp(config.firebase);
                 db = getDatabase(app);
+                auth = getAuth(app);
                 
-                document.getElementById('app-container').classList.remove('hidden');
-                
-                loadButtons();
-                attachEventListeners();
+                // Listen for authentication state changes
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // User is signed in.
+                        document.getElementById('auth-loader').style.display = 'none';
+                        document.getElementById('app-container').classList.remove('hidden');
+                        initializeAppLogic();
+                    } else {
+                        // User is signed out. Redirect to login.
+                        window.location.href = `login.html?redirect=${window.location.pathname}`;
+                    }
+                });
 
             } catch (error) {
                 console.error("App Init Failed:", error);
-                document.body.innerHTML = `<div class="text-center p-8"><h1>Initialization Error</h1><p>${error.message}</p><a href='login.html'>Go to Login</a></div>`;
+                document.getElementById('auth-loader').innerHTML = `<h1>Initialization Error</h1><p>${error.message}</p><a href='login.html'>Go to Login</a>`;
             }
+        }
+
+        function initializeAppLogic() {
+            loadButtons();
+            attachEventListeners();
         }
 
         // --- Data Fetching and Rendering ---
@@ -392,9 +425,8 @@
             preview.style.width = width;
             preview.style.height = height;
 
-            // Reset specific preset overrides if custom values are set
-            if (preset === 'btn-glossy') {
-                preview.style.backgroundImage = isTransparent ? 'none' : `linear-gradient(to top, ${color}, #ffffff)`;
+            if (preset === 'btn-glossy' && !isTransparent) {
+                preview.style.backgroundImage = `linear-gradient(to top, ${color}, #ffffff)`;
             } else {
                 preview.style.backgroundImage = 'none';
             }
@@ -405,7 +437,6 @@
                  preview.style.boxShadow = '';
             }
 
-
             preview.innerHTML = `${icon} ${name ? `<b>${name}</b>` : ''}`;
         }
 
@@ -415,29 +446,11 @@
         
         function populateWithTemplate(type) {
             const templates = {
-                sip: {
-                    name: 'SIP Status', id: 'sipStatusBtn',
-                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-120.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L96,148.69l50.34-50.35A8,8,0,0,1,173.66,95.66Z"></path></svg>',
-                },
-                notification: {
-                    name: '', id: 'notificationBtn', base_class: 'notification-btn',
-                    icon_svg: '🔔', borderRadius: '50%', width: '48px', height: '48px'
-                },
-                balance: {
-                    name: 'Balance', id: 'viewBalanceBtn',
-                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,80a16,16,0,1,1,16-16A16,16,0,0,1,128,160Zm-48-80V56a32,32,0,0,1,64,0V80Z"></path></svg>',
-                    color: '#28a745', textColor: '#ffffff', borderColor: '#28a745'
-                },
-                wallet: {
-                    name: 'Wallet', id: 'viewPenaltyWalletBtn',
-                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,64H48A24,24,0,0,0,24,88V200a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V176a8,8,0,0,0-16,0v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V88a8,8,0,0,1,8-8H224a8,8,0,0,0,0-16ZM208,32H72a8,8,0,0,0,0,16H208a8,8,0,0,1,8,8v8a8,8,0,0,0,16,0V56A24,24,0,0,0,208,32Zm20,96a20,20,0,1,1-20-20A20,20,0,0,1,228,128Z"></path></svg>',
-                    color: '#ffc107', textColor: '#333333', borderColor: '#ffc107'
-                },
-                install: {
-                    name: 'Install App', id: 'installAppBtn', base_class: 'install-button',
-                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM93.66,133.66,120,160V40a8,8,0,0,1,16,0v120l26.34-26.34a8,8,0,0,1,11.32,11.32l-40,40a8,8,0,0,1-11.32,0l-40-40a8,8,0,0,1,11.32-11.32Z"></path></svg>',
-                    color: '#28a745', textColor: '#ffffff', borderColor: '#ffffff', borderWidth: '2px'
-                }
+                sip: { name: 'SIP Status', id: 'sipStatusBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-120.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L96,148.69l50.34-50.35A8,8,0,0,1,173.66,95.66Z"></path></svg>', base_class: 'civil-button' },
+                notification: { name: '', id: 'notificationBtn', icon_svg: '🔔', borderRadius: '50%', width: '48px', height: '48px', base_class: 'notification-btn' },
+                balance: { name: 'Balance', id: 'viewBalanceBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,80a16,16,0,1,1,16-16A16,16,0,0,1,128,160Zm-48-80V56a32,32,0,0,1,64,0V80Z"></path></svg>', color: '#28a745', textColor: '#ffffff', base_class: 'view-balance-btn' },
+                wallet: { name: 'Wallet', id: 'viewPenaltyWalletBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,64H48A24,24,0,0,0,24,88V200a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V176a8,8,0,0,0-16,0v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V88a8,8,0,0,1,8-8H224a8,8,0,0,0,0-16ZM208,32H72a8,8,0,0,0,0,16H208a8,8,0,0,1,8,8v8a8,8,0,0,0,16,0V56A24,24,0,0,0,208,32Zm20,96a20,20,0,1,1-20-20A20,20,0,0,1,228,128Z"></path></svg>', color: '#ffc107', textColor: '#333333', base_class: 'view-balance-btn' },
+                install: { name: 'Install App', id: 'installAppBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM93.66,133.66,120,160V40a8,8,0,0,1,16,0v120l26.34-26.34a8,8,0,0,1,11.32,11.32l-40,40a8,8,0,0,1-11.32,0l-40-40a8,8,0,0,1,11.32-11.32Z"></path></svg>', color: '#28a745', textColor: '#ffffff', borderWidth: '2px', borderColor: '#ffffff', base_class: 'install-button' }
             };
             const template = templates[type] || {};
             showEditor(true, template, null);
