@@ -40,13 +40,13 @@
         .section { padding: 25px; }
         .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .section-title h3 { font-size: 18px; font-weight: 600; }
-        .view-all { color: var(--primary-color); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.3s; }
-        .view-all:hover { opacity: 0.8; }
+        .view-all { color: var(--primary-color); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.3s; padding: 4px 8px; border-radius: 8px; }
+        .view-all.active { background-color: #e3f2fd; color: var(--primary-darker); font-weight: 600; }
         .name-grid { display: flex; gap: 15px; overflow-x: auto; padding: 5px 0 15px 0; -ms-overflow-style: none; scrollbar-width: none; }
         .name-grid::-webkit-scrollbar { display: none; }
         .name-item { text-align: center; flex-shrink: 0; cursor: pointer; }
         .name-avatar { width: 68px; height: 68px; border-radius: 50%; background-size: cover; background-position: center; border: 3px solid transparent; padding: 3px; background-clip: content-box; margin-bottom: 8px; transition: all 0.4s ease; background-color: #eee; }
-        .name-item.active .name-avatar { border-color: var(--primary-color); transform: scale(1.1); }
+        .name-item.active .name-avatar { border-color: var(--primary-color); transform: scale(1.1); box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); }
         .name-label { font-size: 14px; font-weight: 500; color: var(--light-text-color); transition: color 0.3s; }
         .name-item.active .name-label { color: var(--primary-color); font-weight: 600; }
         .albums-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
@@ -81,9 +81,10 @@
         .modal-btn.primary:disabled { background: #BDBDBD; cursor: not-allowed; }
         .modal-btn.secondary { background-color: #e9ecef; color: #555; }
         #likeAsList, #likeHistoryList { list-style: none; max-height: 250px; overflow-y: auto; margin-top: 15px; text-align: left; padding: 0; border: 1px solid var(--border-color); border-radius: 12px; }
-        #likeAsList li, #likeHistoryList li { padding: 12px 15px; border-bottom: 1px solid var(--border-color); font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
+        #likeAsList li, #likeHistoryList li { padding: 12px 15px; border-bottom: 1px solid var(--border-color); font-size: 16px; cursor: pointer; transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center; }
         #likeAsList li:hover { background-color: #f0f2f5; }
         #likeAsList li:last-child, #likeHistoryList li:last-child { border-bottom: none; }
+        .admin-badge { background-color: var(--primary-color); color: white; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; }
         #lightboxModal { background-color: rgba(0,0,0,0.85); }
         .lightbox-content { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .lightbox-image { max-width: 90vw; max-height: 75vh; border-radius: 10px; object-fit: contain; }
@@ -93,8 +94,9 @@
         .lightbox-nav.prev { left: 10px; }
         .lightbox-nav.next { right: 10px; }
         .lightbox-close:hover, .lightbox-nav:hover { opacity: 0.7; }
-        .lightbox-actions { position: absolute; bottom: 70px; display: flex; align-items: center; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); border-radius: 50px; }
-        .lightbox-actions .person-name { color: white; font-weight: 500; }
+        .lightbox-info { position: absolute; bottom: 70px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .lightbox-details { color: #e0e0e0; font-size: 14px; text-align: center; }
+        .lightbox-actions { display: flex; align-items: center; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); border-radius: 50px; }
         .lightbox-actions .like-button { font-size: 16px; padding: 8px 16px; }
         .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 25px; border-radius: 10px; color: white; font-weight: 500; transition: all 0.5s ease; z-index: 2000; opacity: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
         .toast.show { bottom: 80px; opacity: 1;}
@@ -119,7 +121,7 @@
         <section class="section">
             <div class="section-title">
                 <h3>Sabhi Members</h3>
-                <span class="view-all" onclick="showAllPhotos()">View all Photos</span>
+                <span class="view-all active" id="viewAllBtn">View all Photos</span>
             </div>
             <div id="nameGrid" class="name-grid"></div>
         </section>
@@ -190,7 +192,10 @@
         <span class="lightbox-nav next" id="lightboxNextBtn">&#10095;</span>
         <div class="lightbox-content">
             <img id="lightboxImage" class="lightbox-image">
-            <div id="lightboxActions" class="lightbox-actions"></div>
+            <div class="lightbox-info">
+                <div id="lightboxActions" class="lightbox-actions"></div>
+                <div id="lightboxDetails" class="lightbox-details"></div>
+            </div>
         </div>
     </div>
     
@@ -204,14 +209,10 @@
         currentlyVisibleImages: [],
         selectedFile: null,
         lightboxCurrentIndex: 0,
-        currentUser: null, // Logged in Firebase user
+        currentUser: null,
         imgbbApiKey: null,
-        adminUid: 'hWsZo6gONzOOccP7y4GCT4oV93A2', // Admin can delete anything
-        // For password modal
-        actionContext: {
-            type: null, // 'upload' or 'delete'
-            data: null // imageId for delete, or form data for upload
-        }
+        adminUid: 'hWsZo6gONzOOccP7y4GCT4oV93A2',
+        actionContext: { type: null, data: null }
     };
     
     // --- DOM Elements ---
@@ -240,9 +241,11 @@
     const likeHistoryList = getEl('likeHistoryList');
     const lightboxImage = getEl('lightboxImage');
     const lightboxActions = getEl('lightboxActions');
+    const lightboxDetails = getEl('lightboxDetails');
     const lightboxCloseBtn = getEl('lightboxCloseBtn');
     const lightboxPrevBtn = getEl('lightboxPrevBtn');
     const lightboxNextBtn = getEl('lightboxNextBtn');
+    const viewAllBtn = getEl('viewAllBtn');
 
     // --- Utility Functions ---
     const showToast = (message, type = 'success') => {
@@ -272,29 +275,43 @@
         nameGrid.innerHTML = '';
         if (state.allMembers.length === 0) return;
 
+        // Find and render 'Bank' first
+        const bankMember = state.allMembers.find(m => m.fullName === 'Bank');
+        if (bankMember) {
+            nameGrid.appendChild(createNameItem(bankMember));
+        }
+
+        // Render other members
         state.allMembers.forEach(member => {
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'name-item';
-            nameDiv.onclick = () => filterByName(member.fullName);
-            nameDiv.innerHTML = `
-                <div class="name-avatar" style="background-image: url(${member.profilePicUrl || 'https://i.imgur.com/6aATcZR.jpeg'})"></div>
-                <div class="name-label">${member.fullName.split(' ')[0]}</div>
-            `;
-            nameGrid.appendChild(nameDiv);
+            if (member.fullName !== 'Bank') {
+                nameGrid.appendChild(createNameItem(member));
+            }
         });
+    }
+
+    function createNameItem(member) {
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name-item';
+        nameDiv.onclick = () => filterByName(member.fullName);
+        nameDiv.innerHTML = `
+            <div class="name-avatar" style="background-image: url(${member.profilePicUrl || 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'})"></div>
+            <div class="name-label">${member.fullName.split(' ')[0]}</div>
+        `;
+        return nameDiv;
     }
     
     function displayPhotos(filterName = null) {
-        const nameToFilter = filterName ? state.allMembers.find(m => m.fullName === filterName)?.fullName || 'Bank' : null;
+        const nameToFilter = filterName ? state.allMembers.find(m => m.fullName === filterName)?.fullName : null;
         state.currentlyVisibleImages = nameToFilter ? state.allImages.filter(img => img.uploaderName === nameToFilter) : state.allImages;
 
         albumsGrid.innerHTML = ''; 
         if (state.currentlyVisibleImages.length === 0) {
-            albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">🖼️</span><span>${nameToFilter ? 'Is naam se koi photo nahi mila.' : 'Gallery khali hai. Ek photo upload karein!'}</span></div>`;
+            albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">🖼️</span><span>${nameToFilter ? 'Is sadasya ne koi photo upload nahi kiya hai.' : 'Gallery khali hai. Ek photo upload karein!'}</span></div>`;
         }
         
         photoCount.textContent = `${state.currentlyVisibleImages.length} photo${state.currentlyVisibleImages.length === 1 ? '' : 's'}`;
         albumsTitle.textContent = nameToFilter ? `${nameToFilter.split(' ')[0]}'s Photos` : 'All Photos';
+        viewAllBtn.classList.toggle('active', !nameToFilter);
 
         state.currentlyVisibleImages.forEach((image, index) => {
             const photoDiv = document.createElement('div');
@@ -328,6 +345,7 @@
     
     function filterByName(fullName) {
         document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
+        viewAllBtn.classList.remove('active');
         const nameItems = nameGrid.querySelectorAll('.name-item');
         for (let item of nameItems) {
             if (item.querySelector('.name-label').textContent === fullName.split(' ')[0]) {
@@ -349,12 +367,6 @@
             return showToast('Kripya image aur naam chunein.', 'error');
         }
         
-        // "Bank" does not need a password
-        if (selectedName === 'Bank') {
-            handleUpload();
-            return;
-        }
-
         state.actionContext = {
             type: 'upload',
             data: { selectedName, file: state.selectedFile }
@@ -370,7 +382,6 @@
         const image = state.allImages.find(img => img.id === imageId);
         if (!image) return;
 
-        // Admin can delete without password
         if (state.currentUser.uid === state.adminUid) {
             if (confirm('Admin action: Kya aap sach mein is photo ko delete karna chahte hain?')) {
                 deleteImage(imageId);
@@ -397,7 +408,6 @@
             return showToast('Galat password!', 'error');
         }
 
-        // Password is correct, proceed with action
         closeModal(passwordModal);
         if (type === 'upload') {
             await handleUpload();
@@ -411,9 +421,8 @@
         const { selectedName } = personNameSelect.value ? {selectedName: personNameSelect.value} : state.actionContext.data;
         const fileToUpload = state.selectedFile;
         
-        const tempBtn = getEl('uploadBtn');
-        tempBtn.disabled = true;
-        tempBtn.textContent = 'Uploading...';
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
         
         const formData = new FormData();
         formData.append('image', fileToUpload);
@@ -431,7 +440,6 @@
                 };
                 await firebase.database().ref('gallery').push(newPhotoData);
                 showToast('Photo safaltapoorvak upload ho gaya!', 'success');
-                // Reset upload form
                 fileInput.value = null;
                 state.selectedFile = null;
                 previewImage.style.display = 'none';
@@ -441,8 +449,8 @@
             } else { throw new Error(result.error?.message || 'ImgBB upload vifal'); }
         } catch (error) { showToast(`Upload vifal: ${error.message}`, 'error'); }
         finally {
-            tempBtn.disabled = false;
-            tempBtn.textContent = 'Aage Badhein';
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Aage Badhein';
             closeModal(uploadModal);
         }
     }
@@ -451,7 +459,7 @@
         try {
             await firebase.database().ref('gallery/' + imageId).remove();
             showToast('Photo safaltapoorvak delete ho gaya.', 'success');
-            closeLightbox(); // Close lightbox if photo was deleted from there
+            closeLightbox();
         } catch (error) {
             showToast('Delete karne mein vifal.', 'error');
         }
@@ -461,10 +469,11 @@
     function openLikeAsModal(imageId) {
         likeAsList.innerHTML = '';
         state.allMembers.forEach(member => {
+            if (member.fullName === 'Bank') return; // Skip "Bank" from like list
             const li = document.createElement('li');
             li.textContent = member.fullName;
             li.onclick = () => {
-                toggleLike(imageId, member.fullName);
+                toggleLike(imageId, member.fullName, member.id);
                 closeModal(likeAsModal);
             };
             likeAsList.appendChild(li);
@@ -473,9 +482,7 @@
         openModal(likeAsModal);
     }
     
-    async function toggleLike(imageId, likerName) {
-        // In this new system, a user can like/unlike on behalf of anyone.
-        // We'll check if the name already exists in likes.
+    async function toggleLike(imageId, likerName, likerUid) {
         const likeRef = firebase.database().ref(`gallery/${imageId}/likes`);
         const snapshot = await likeRef.once('value');
         const likes = snapshot.val() || {};
@@ -484,7 +491,7 @@
         let likeKeyToRemove = null;
 
         for (const key in likes) {
-            if (likes[key] === likerName) {
+            if (likes[key].name === likerName) {
                 shouldLike = false;
                 likeKeyToRemove = key;
                 break;
@@ -493,7 +500,7 @@
         
         try {
             if (shouldLike) {
-                await likeRef.push(likerName);
+                await likeRef.push({ name: likerName, uid: likerUid });
                 showToast(`${likerName} ke naam se pasand kiya gaya!`, 'success');
             } else {
                 await firebase.database().ref(`gallery/${imageId}/likes/${likeKeyToRemove}`).remove();
@@ -508,9 +515,12 @@
         const image = state.allImages.find(img => img.id === imageId);
         likeHistoryList.innerHTML = '';
         if (image && image.likes && Object.keys(image.likes).length > 0) {
-            Object.values(image.likes).forEach(name => {
+            Object.values(image.likes).forEach(like => {
                 const li = document.createElement('li');
-                li.textContent = name;
+                li.textContent = like.name;
+                if (like.uid === state.adminUid) {
+                    li.innerHTML += `<span class="admin-badge">Admin</span>`;
+                }
                 likeHistoryList.appendChild(li);
             });
         } else {
@@ -540,9 +550,12 @@
         likeButton.appendChild(createHeartIcon());
         likeButton.append(" Like");
 
-        lightboxActions.innerHTML = `<span class="person-name">${image.uploaderName.split(' ')[0]}</span>`;
+        lightboxActions.innerHTML = '';
         lightboxActions.appendChild(likeButton);
         
+        const uploadDate = new Date(image.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        lightboxDetails.innerHTML = `Uploaded by <strong>${image.uploaderName}</strong> on ${uploadDate}`;
+
         lightboxPrevBtn.style.display = state.currentlyVisibleImages.length > 1 ? 'block' : 'none';
         lightboxNextBtn.style.display = state.currentlyVisibleImages.length > 1 ? 'block' : 'none';
     }
@@ -560,12 +573,8 @@
     // --- Initialization ---
     async function initializePage() {
         try {
-            // NOTE: In a real production app, these endpoints would be secured.
-            const [configRes, keyRes] = await Promise.all([
-                fetch('/api/config.js'), 
-                fetch('/api/config.js') // Fetching the same endpoint, assuming it returns both keys
-            ]);
-            if (!configRes.ok || !keyRes.ok) throw new Error('API keys fetch failed');
+            const configRes = await fetch('/api/config.js');
+            if (!configRes.ok) throw new Error('API keys fetch failed');
             
             const configData = await configRes.json();
             const firebaseConfig = configData.firebase;
@@ -582,7 +591,6 @@
                     document.body.style.visibility = 'visible';
                     runMainApp(database);
                 } else {
-                    // Redirect to login if not authenticated
                     window.location.href = '/login.html';
                 }
             });
@@ -598,10 +606,16 @@
 
         membersRef.on('value', (snapshot) => {
             const membersData = snapshot.val() || {};
-            const memberDetails = [];
+            const memberDetails = [{
+                id: 'bank-id',
+                fullName: 'Bank',
+                password: 'bank_password_placeholder', // Not used for login
+                profilePicUrl: 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'
+            }];
+
             for (const key in membersData) {
                 const member = membersData[key];
-                if(member.fullName && member.password){
+                if(member.fullName && member.password && member.status === 'Approved'){
                     memberDetails.push({ 
                         id: key, 
                         fullName: member.fullName, 
@@ -612,9 +626,9 @@
             }
             state.allMembers = memberDetails.sort((a,b) => a.fullName.localeCompare(b.fullName));
             
-            // Populate dropdowns
-            personNameSelect.innerHTML = `<option value="">Apna Naam Chunein</option><option value="Bank">Bank</option>`;
+            personNameSelect.innerHTML = `<option value="">Apna Naam Chunein</option>`;
             state.allMembers.forEach(member => {
+                if (member.fullName === 'Bank') return; // Skip "Bank" from upload dropdown
                 const option = document.createElement('option');
                 option.value = member.fullName;
                 option.textContent = member.fullName;
@@ -628,13 +642,14 @@
             const data = snapshot.val() || {};
             state.allImages = Object.entries(data).map(([id, value]) => ({ id, ...value })).sort((a, b) => b.timestamp - a.timestamp);
             renderGallery();
-            updateLightboxImage(); // Update lightbox if it's open
+            if(lightboxModal.classList.contains('show')) updateLightboxImage();
         });
 
         // --- Event Listeners ---
         openUploadModalBtn.addEventListener('click', () => openModal(uploadModal));
         uploadBtn.addEventListener('click', initiateUpload);
         passwordSubmitBtn.addEventListener('click', handlePasswordSubmit);
+        viewAllBtn.addEventListener('click', showAllPhotos);
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -651,7 +666,7 @@
         });
 
         lightboxCloseBtn.addEventListener('click', closeLightbox);
-        lightboxPrevBtn.addEventListener('click', showPrevImage);
+        lightboxPrevBtn.addEventListener('click', showNextImage);
         lightboxNextBtn.addEventListener('click', showNextImage);
     }
 
