@@ -87,17 +87,16 @@
         .post-answer-suggestion:hover { background-color: #e0e7ff; border-color: #a5b4fc; }
 
         /* --- FIXED & ENHANCED IMAGE MODAL --- */
-        /* This ensures the modal provides a premium, full-screen image viewing experience. */
         .modal { 
             display: none; 
             position: fixed;
-            z-index: 1000; /* High z-index to be on top of everything */
+            z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(15, 23, 42, 0.85); /* Premium dark, semi-transparent background */
-            -webkit-backdrop-filter: blur(4px); /* Frosted glass effect for modern browsers */
+            background-color: rgba(15, 23, 42, 0.85);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
             align-items: center;
             justify-content: center;
@@ -115,11 +114,11 @@
              height: 100%;
         }
         #modalImageContent {
-            max-width: 95vw; /* Use 95% of viewport width */
-            max-height: 90vh; /* Use 90% of viewport height */
+            max-width: 95vw;
+            max-height: 90vh;
             border-radius: 12px;
-            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5); /* Strong shadow to make image pop */
-            object-fit: contain; /* Ensures image aspect ratio is maintained */
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+            object-fit: contain;
         }
         #modalNav {
             position: absolute;
@@ -175,7 +174,8 @@
             <i class="fa-solid fa-shield-halved text-2xl mr-3 text-blue-300"></i>
             <h1 class="text-xl font-bold tracking-wider">Bank Jarvis: Aapka Personal Finance Assistant</h1>
         </header>
-
+        
+        <!-- LOCK MODE BANNER (RESTORED) -->
         <div id="lock-mode-banner" class="hidden flex items-center justify-between p-3 bg-yellow-100 border-b-2 border-yellow-300">
             <div class="flex items-center">
                 <i class="fas fa-lock text-yellow-600 text-xl mr-3 lock-icon-pulse"></i>
@@ -201,8 +201,8 @@
     </div>
 
     <!-- MODALS -->
-    <!-- FIXED & ENHANCED IMAGE MODAL -->
-    <div id="imageModal" class="modal" onclick="window.jarvis.closeImageModal()">
+    <!-- IMAGE MODAL (FIXED) -->
+    <div id="imageModal" class="modal">
         <span class="close-modal-btn" onclick="window.jarvis.closeImageModal()">&times;</span>
         <div class="modal-content-wrapper" onclick="event.stopPropagation()">
             <img id="modalImageContent" src="" alt="Full screen view">
@@ -441,14 +441,12 @@
                     await typeMessage(aiResponse, "bot", aiResponse);
 
                 } finally {
-                    // Safety check in case it wasn't removed
                     const typingEl = document.querySelector('.bot.typing');
                     if (typingEl) typingEl.parentElement.remove();
                 }
             }
             
             function animateMessageIn(element) {
-                // Using Anime.js for a smoother entrance animation
                 anime({
                     targets: element,
                     opacity: [0, 1],
@@ -538,7 +536,7 @@
                 messageEl.innerHTML = html;
                 chatBox.appendChild(messageEl);
                 animateMessageIn(messageEl);
-                tippy(messageEl.querySelectorAll('[data-tippy-content]')); // Re-initialize tippy for new elements
+                tippy(messageEl.querySelectorAll('[data-tippy-content]'));
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
 
@@ -551,7 +549,6 @@
                 const data = aggregateMemberData(memberData);
                 const profileImageUrl = data.profilePicUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${data.name.charAt(0)}`;
                 const signatureImageUrl = data.signatureUrl || `https://placehold.co/150x75/E2E8F0/4A5568?text=No+Sign`;
-                // Using date-fns for better date formatting
                 const formattedJoinDate = dateFns.format(new Date(data.rawJoinDate), 'dd MMM yyyy');
                 const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-blue-500 cursor-pointer" onclick="window.jarvis.openImageModal(['${profileImageUrl}'], 0)"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${formattedJoinDate}</p></div></div><button onclick="window.jarvis.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-blue-600 transition-transform hover:scale-125" data-tippy-content="Is sadasya par lock karein"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.jarvis.openImageModal(['${signatureImageUrl}'], 0)" alt="Signature"></div></div>`;
                 const bubble = appendRichMessage(cardHtml, "bot");
@@ -736,9 +733,25 @@
                 nextBtn.disabled = currentImageIndex >= currentImageUrls.length - 1;
             }
 
+            // Global Jarvis Object with all functions
             window.jarvis = { 
-                activateLockMode: (member) => { lockMode = { active: true, member }; preAnalyzedCache = preAnalyzeMemberData(member.id); chatHistory = []; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); suggestionsBox.innerHTML = ''; }, 
-                deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; preAnalyzedCache = null; chatHistory = []; lockBanner.classList.add('hidden'); showDefaultSuggestions(); }, 
+                activateLockMode: (member) => { 
+                    lockMode = { active: true, member }; 
+                    preAnalyzedCache = preAnalyzeMemberData(member.id); 
+                    chatHistory = []; 
+                    lockedMemberNameEl.textContent = `Focused on ${member.name}`; 
+                    lockBanner.classList.remove('hidden'); 
+                    appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); 
+                    suggestionsBox.innerHTML = ''; 
+                }, 
+                deactivateLockMode: () => { 
+                    appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); 
+                    lockMode = { active: false, member: null }; 
+                    preAnalyzedCache = null; 
+                    chatHistory = []; 
+                    lockBanner.classList.add('hidden'); 
+                    showDefaultSuggestions(); 
+                }, 
                 
                 openImageModal: (urls, startIndex = 0) => { 
                     if (!urls || urls.length === 0 || (urls[0] && urls[0].includes('placehold.co'))) return;
@@ -779,6 +792,7 @@
             };
             async function callGemini(prompt) { try { const response = await fetch('/api/getAiExplanation', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ promptText: prompt }) }); if (!response.ok) { const errorData = await response.json().catch(() => null); const statusText = response.statusText; const statusCode = response.status; console.error("AI Backend Error:", statusCode, statusText, errorData); return `AI se jawaab nahi mil pa raha hai. (Error: ${statusCode})`; } const data = await response.json(); return data.explanation; } catch (e) { console.error("Network error calling AI backend:", e); return "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein."; } }
             
+            // Event Listeners
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
             inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
