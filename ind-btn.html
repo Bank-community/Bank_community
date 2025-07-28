@@ -59,7 +59,8 @@
             transition: all 0.3s ease;
         }
 
-        .civil-button {
+        /* Base Button Style */
+        .preview-btn {
             padding: 12px 25px;
             font-size: 1em;
             font-weight: 600;
@@ -68,14 +69,31 @@
             justify-content: center;
             gap: 8px;
             text-decoration: none;
-            cursor: pointer;
+            cursor: default;
             border: none;
             transition: all 0.3s ease;
-            flex-shrink: 0; /* Prevents button from shrinking in flex container */
+            flex-shrink: 0;
         }
-        .civil-button svg {
+        .preview-btn svg {
             width: 20px;
             height: 20px;
+        }
+
+        /* Preset Styles */
+        .btn-glossy {
+            background-image: linear-gradient(to top, #5a67d8, #7f9cf5);
+            box-shadow: inset 0 1px 1px #a3bffa, 0 4px 6px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #4c51bf;
+        }
+        .btn-neumorphic {
+            background: #e0e5ec;
+            box-shadow: 9px 9px 16px #a3b1c6, -9px -9px 16px #ffffff;
+            border: none;
+        }
+        .btn-outline {
+            background-color: transparent;
+            border-style: solid;
         }
 
         /* Responsive form layout */
@@ -94,9 +112,9 @@
 <body class="bg-gray-100 antialiased">
 
     <div id="app-container" class="hidden">
-        <header class="bg-white shadow-md">
+        <header class="bg-white shadow-md sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800">Index Button Manager</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Index Button Manager</h1>
                 <a href="admin.html" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                     <i class="ph-arrow-left"></i> Back to Admin
                 </a>
@@ -106,10 +124,10 @@
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Left Column: Button List -->
-                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
+                <div class="lg:col-span-1 bg-white p-4 sm:p-6 rounded-xl shadow-md">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-semibold text-gray-900">Button List</h2>
-                        <button id="add-new-button-btn" class="btn-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
+                        <button id="add-new-button-btn" class="btn-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm">
                             <i class="ph-plus-circle"></i> Add New
                         </button>
                     </div>
@@ -120,23 +138,28 @@
 
                 <!-- Right Column: Editor and Preview -->
                 <div id="editor-column" class="lg:col-span-2 space-y-8 hidden">
-                    <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
                         <h2 id="editor-title" class="text-lg font-semibold text-gray-900 mb-4">Add New Button</h2>
-                        <div class="mb-4 p-3 bg-indigo-50 rounded-lg flex flex-wrap gap-2">
-                            <span class="text-sm font-medium text-indigo-800 self-center">Quick Add:</span>
-                            <button id="add-sip-template" class="text-xs bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-full hover:bg-indigo-300">SIP Status Button</button>
-                            <button id="add-notification-template" class="text-xs bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-full hover:bg-indigo-300">Notification Button</button>
+                        <div class="mb-4 p-3 bg-indigo-50 rounded-lg">
+                            <p class="text-sm font-medium text-indigo-800 mb-2">Quick Add Templates:</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button data-template="sip" class="template-btn text-xs bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-full hover:bg-indigo-300">SIP Status</button>
+                                <button data-template="notification" class="template-btn text-xs bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-full hover:bg-indigo-300">Notification</button>
+                                <button data-template="balance" class="template-btn text-xs bg-green-200 text-green-800 font-semibold px-3 py-1 rounded-full hover:bg-green-300">View Balance</button>
+                                <button data-template="wallet" class="template-btn text-xs bg-yellow-200 text-yellow-800 font-semibold px-3 py-1 rounded-full hover:bg-yellow-300">Bank Wallet</button>
+                                <button data-template="install" class="template-btn text-xs bg-blue-200 text-blue-800 font-semibold px-3 py-1 rounded-full hover:bg-blue-300">Install App</button>
+                            </div>
                         </div>
                         <form id="button-form">
                             <div class="form-grid">
                                 <!-- Left side of form -->
                                 <div class="space-y-4">
-                                    <h3 class="font-medium text-gray-700 border-b pb-2">Content</h3>
+                                    <h3 class="font-medium text-gray-700 border-b pb-2">Content & Function</h3>
                                     <div>
-                                        <label for="btn-name" class="block text-sm font-medium text-gray-700 mb-1">Button Name</label>
-                                        <input type="text" id="btn-name" class="form-input w-full p-2 rounded-lg" required>
+                                        <label for="btn-name" class="block text-sm font-medium text-gray-700 mb-1">Button Name (Optional)</label>
+                                        <input type="text" id="btn-name" class="form-input w-full p-2 rounded-lg">
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label for="btn-url" class="block text-sm font-medium text-gray-700 mb-1">Link (URL)</label>
                                             <input type="text" id="btn-url" class="form-input w-full p-2 rounded-lg" placeholder="gallery.html">
@@ -150,21 +173,20 @@
                                         <label for="btn-icon" class="block text-sm font-medium text-gray-700 mb-1">Icon (SVG Code)</label>
                                         <textarea id="btn-icon" class="form-input w-full p-2 rounded-lg font-mono text-xs" rows="5"></textarea>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label for="btn-order" class="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
-                                            <input type="number" id="btn-order" class="form-input w-full p-2 rounded-lg" value="0">
-                                        </div>
-                                        <div>
-                                            <label for="btn-base-class" class="block text-sm font-medium text-gray-700 mb-1">Base CSS Class</label>
-                                            <input type="text" id="btn-base-class" class="form-input w-full p-2 rounded-lg" value="civil-button">
-                                        </div>
-                                    </div>
                                 </div>
                                 <!-- Right side of form -->
                                 <div class="space-y-4">
-                                    <h3 class="font-medium text-gray-700 border-b pb-2">Styling</h3>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <h3 class="font-medium text-gray-700 border-b pb-2">Styling & Layout</h3>
+                                    <div>
+                                        <label for="btn-style-preset" class="block text-sm font-medium text-gray-700 mb-1">Style Preset</label>
+                                        <select id="btn-style-preset" class="form-select w-full p-2 rounded-lg">
+                                            <option value="">Custom (Default)</option>
+                                            <option value="btn-glossy">Glossy</option>
+                                            <option value="btn-neumorphic">Neumorphic</option>
+                                            <option value="btn-outline">Outline</option>
+                                        </select>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
                                             <div class="color-input-group">
@@ -180,7 +202,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Border Color</label>
                                             <div class="color-input-group">
@@ -190,11 +212,11 @@
                                         </div>
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-1">Border Width</label>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Border</label>
                                                 <input type="text" id="btn-border-width" class="form-input w-full p-2 rounded-lg" placeholder="0px" value="0px">
                                             </div>
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-1">Border Radius</label>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Radius</label>
                                                 <input type="text" id="btn-border-radius" class="form-input w-full p-2 rounded-lg" placeholder="50px" value="50px">
                                             </div>
                                         </div>
@@ -209,6 +231,14 @@
                                             <input type="text" id="btn-height" class="form-input w-full p-2 rounded-lg" placeholder="auto" value="auto">
                                         </div>
                                     </div>
+                                    <div class="flex items-center justify-between">
+                                        <label for="btn-order" class="block text-sm font-medium text-gray-700">Display Order</label>
+                                        <input type="number" id="btn-order" class="form-input w-24 p-2 rounded-lg" value="0">
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input id="btn-transparent-bg" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                        <label for="btn-transparent-bg" class="ml-2 block text-sm text-gray-900">Transparent Background</label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex justify-end gap-3 pt-4 border-t mt-4">
@@ -219,10 +249,10 @@
                             </div>
                         </form>
                     </div>
-                     <div>
+                     <div class="sticky bottom-8">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Preview</h3>
-                        <div class="button-preview-wrapper p-8 rounded-lg flex items-center justify-center min-h-[120px]">
-                            <button id="button-preview" class="civil-button" style="flex-grow: 0;">Preview</button>
+                        <div class="button-preview-wrapper p-8 rounded-lg flex items-center justify-center min-h-[120px] shadow-lg">
+                            <button id="button-preview" class="preview-btn">Preview</button>
                         </div>
                     </div>
                 </div>
@@ -281,11 +311,11 @@
                     div.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg border";
                     div.innerHTML = `
                         <div class="flex items-center gap-3 overflow-hidden">
-                            <div class="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: ${btn.color || '#ccc'}; color: ${btn.textColor || '#000'}">
+                            <div class="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: ${btn.transparent ? 'transparent' : (btn.color || '#ccc')}; color: ${btn.textColor || '#000'}; border: 1px solid ${btn.borderColor || 'transparent'}">
                                 ${btn.icon_svg ? btn.icon_svg : '<i class="ph-button text-2xl"></i>'}
                             </div>
                             <div class="truncate">
-                                <p class="font-semibold text-gray-800 truncate">${btn.name}</p>
+                                <p class="font-semibold text-gray-800 truncate">${btn.name || '(No Name)'}</p>
                                 <p class="text-xs text-gray-500 truncate">${btn.url || `Action ID: ${btn.id}`}</p>
                             </div>
                         </div>
@@ -303,17 +333,16 @@
         function showEditor(isNew = true, data = {}, key = null) {
             currentEditKey = isNew ? null : key;
             const form = document.getElementById('button-form');
-            form.reset(); // Clear previous data
+            form.reset();
             
-            document.getElementById('editor-title').textContent = isNew ? 'Add New Button' : `Edit: ${data.name}`;
+            document.getElementById('editor-title').textContent = isNew ? 'Add New Button' : `Edit: ${data.name || 'Icon Button'}`;
             
-            // Populate form with data or defaults
             document.getElementById('btn-name').value = data.name || '';
             document.getElementById('btn-url').value = data.url || '';
             document.getElementById('btn-id').value = data.id || '';
             document.getElementById('btn-icon').value = data.icon_svg || '';
             document.getElementById('btn-order').value = data.order || 0;
-            document.getElementById('btn-base-class').value = data.base_class || 'civil-button';
+            document.getElementById('btn-style-preset').value = data.style_preset || '';
             document.getElementById('btn-width').value = data.width || 'auto';
             document.getElementById('btn-height').value = data.height || 'auto';
             document.getElementById('btn-color-hex').value = data.color || '#ffc107';
@@ -321,11 +350,12 @@
             document.getElementById('btn-border-color-hex').value = data.borderColor || '#ffc107';
             document.getElementById('btn-border-width').value = data.borderWidth || '0px';
             document.getElementById('btn-border-radius').value = data.borderRadius || '50px';
+            document.getElementById('btn-transparent-bg').checked = data.transparent || false;
 
-            // Sync color pickers
-            document.getElementById('btn-color-picker').value = document.getElementById('btn-color-hex').value;
-            document.getElementById('btn-text-color-picker').value = document.getElementById('btn-text-color-hex').value;
-            document.getElementById('btn-border-color-picker').value = document.getElementById('btn-border-color-hex').value;
+            ['btn-color-picker', 'btn-text-color-picker', 'btn-border-color-picker'].forEach(id => {
+                const hexInputId = id.replace('-picker', '-hex');
+                document.getElementById(id).value = document.getElementById(hexInputId).value;
+            });
 
             updateButtonPreview();
             document.getElementById('editor-column').classList.remove('hidden');
@@ -347,21 +377,36 @@
             const borderRadius = document.getElementById('btn-border-radius').value;
             const borderColor = document.getElementById('btn-border-color-hex').value;
             const borderWidth = document.getElementById('btn-border-width').value;
-            const baseClass = document.getElementById('btn-base-class').value;
+            const preset = document.getElementById('btn-style-preset').value;
             const width = document.getElementById('btn-width').value;
             const height = document.getElementById('btn-height').value;
+            const isTransparent = document.getElementById('btn-transparent-bg').checked;
             
-            preview.className = baseClass;
-            preview.style.backgroundColor = color;
+            preview.className = `preview-btn ${preset}`;
+            preview.style.backgroundColor = isTransparent ? 'transparent' : color;
             preview.style.color = textColor;
             preview.style.borderRadius = borderRadius;
             preview.style.borderColor = borderColor;
             preview.style.borderWidth = borderWidth;
-            preview.style.borderStyle = (parseFloat(borderWidth) > 0) ? 'solid' : 'none';
+            preview.style.borderStyle = (parseFloat(borderWidth) > 0 || preset === 'btn-outline') ? 'solid' : 'none';
             preview.style.width = width;
             preview.style.height = height;
 
-            preview.innerHTML = `${icon} <b>${name || 'Button'}</b>`;
+            // Reset specific preset overrides if custom values are set
+            if (preset === 'btn-glossy') {
+                preview.style.backgroundImage = isTransparent ? 'none' : `linear-gradient(to top, ${color}, #ffffff)`;
+            } else {
+                preview.style.backgroundImage = 'none';
+            }
+             if (preset === 'btn-neumorphic') {
+                preview.style.boxShadow = isTransparent ? 'none' : `9px 9px 16px #a3b1c6, -9px -9px 16px #ffffff`;
+                preview.style.background = isTransparent ? 'transparent' : '#e0e5ec';
+            } else {
+                 preview.style.boxShadow = '';
+            }
+
+
+            preview.innerHTML = `${icon} ${name ? `<b>${name}</b>` : ''}`;
         }
 
         function syncColorInputs(source, target) {
@@ -369,25 +414,32 @@
         }
         
         function populateWithTemplate(type) {
-            let template = {};
-            if (type === 'sip') {
-                template = {
-                    name: 'SIP Status',
-                    id: 'sipStatusBtn',
-                    base_class: 'civil-button',
+            const templates = {
+                sip: {
+                    name: 'SIP Status', id: 'sipStatusBtn',
                     icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-120.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L96,148.69l50.34-50.35A8,8,0,0,1,173.66,95.66Z"></path></svg>',
-                };
-            } else if (type === 'notification') {
-                template = {
-                    name: '',
-                    id: 'notificationBtn',
-                    base_class: 'notification-btn',
-                    icon_svg: '🔔',
-                    width: 'auto',
-                    height: 'auto',
-                    borderRadius: '50%',
-                };
-            }
+                },
+                notification: {
+                    name: '', id: 'notificationBtn', base_class: 'notification-btn',
+                    icon_svg: '🔔', borderRadius: '50%', width: '48px', height: '48px'
+                },
+                balance: {
+                    name: 'Balance', id: 'viewBalanceBtn',
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,80a16,16,0,1,1,16-16A16,16,0,0,1,128,160Zm-48-80V56a32,32,0,0,1,64,0V80Z"></path></svg>',
+                    color: '#28a745', textColor: '#ffffff', borderColor: '#28a745'
+                },
+                wallet: {
+                    name: 'Wallet', id: 'viewPenaltyWalletBtn',
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,64H48A24,24,0,0,0,24,88V200a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V176a8,8,0,0,0-16,0v24a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V88a8,8,0,0,1,8-8H224a8,8,0,0,0,0-16ZM208,32H72a8,8,0,0,0,0,16H208a8,8,0,0,1,8,8v8a8,8,0,0,0,16,0V56A24,24,0,0,0,208,32Zm20,96a20,20,0,1,1-20-20A20,20,0,0,1,228,128Z"></path></svg>',
+                    color: '#ffc107', textColor: '#333333', borderColor: '#ffc107'
+                },
+                install: {
+                    name: 'Install App', id: 'installAppBtn', base_class: 'install-button',
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM93.66,133.66,120,160V40a8,8,0,0,1,16,0v120l26.34-26.34a8,8,0,0,1,11.32,11.32l-40,40a8,8,0,0,1-11.32,0l-40-40a8,8,0,0,1,11.32-11.32Z"></path></svg>',
+                    color: '#28a745', textColor: '#ffffff', borderColor: '#ffffff', borderWidth: '2px'
+                }
+            };
+            const template = templates[type] || {};
             showEditor(true, template, null);
         }
 
@@ -400,10 +452,10 @@
             document.getElementById('add-new-button-btn').addEventListener('click', () => showEditor(true));
             document.getElementById('cancel-edit-btn').addEventListener('click', hideEditor);
             
-            document.getElementById('add-sip-template').addEventListener('click', () => populateWithTemplate('sip'));
-            document.getElementById('add-notification-template').addEventListener('click', () => populateWithTemplate('notification'));
+            document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.addEventListener('click', () => populateWithTemplate(btn.dataset.template));
+            });
 
-            // Event delegation for edit/delete buttons
             document.getElementById('buttons-list').addEventListener('click', async (e) => {
                 const editBtn = e.target.closest('.edit-btn');
                 if (editBtn) {
@@ -418,7 +470,7 @@
                 if (deleteBtn) {
                     const key = deleteBtn.dataset.key;
                     const name = deleteBtn.dataset.name;
-                    if (confirm(`Are you sure you want to delete the "${name}" button?`)) {
+                    if (confirm(`Are you sure you want to delete the "${name || 'Icon'}" button?`)) {
                         await remove(ref(db, `admin/header_buttons/${key}`));
                         alert('Button deleted.');
                         hideEditor();
@@ -426,7 +478,6 @@
                 }
             });
             
-            // Color picker and hex input synchronization
             const colorInputs = [
                 ['btn-color-picker', 'btn-color-hex'],
                 ['btn-text-color-picker', 'btn-text-color-hex'],
@@ -453,7 +504,7 @@
                 id: document.getElementById('btn-id').value,
                 icon_svg: document.getElementById('btn-icon').value,
                 order: parseInt(document.getElementById('btn-order').value) || 0,
-                base_class: document.getElementById('btn-base-class').value,
+                style_preset: document.getElementById('btn-style-preset').value,
                 width: document.getElementById('btn-width').value,
                 height: document.getElementById('btn-height').value,
                 color: document.getElementById('btn-color-hex').value,
@@ -461,6 +512,7 @@
                 borderColor: document.getElementById('btn-border-color-hex').value,
                 borderWidth: document.getElementById('btn-border-width').value,
                 borderRadius: document.getElementById('btn-border-radius').value,
+                transparent: document.getElementById('btn-transparent-bg').checked,
             };
 
             const dbRef = currentEditKey 
