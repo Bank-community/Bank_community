@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
+        /* --- General Body and Form Styling --- */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f4f4;
@@ -58,7 +59,7 @@
              box-shadow: 0 0 8px rgba(52, 73, 94, 0.4);
         }
         .form-container button {
-            background: #c0392b; /* Exit theme color */
+            background: #c0392b; /* Main Red for Exit */
             color: white;
             font-size: 16px;
             font-weight: bold;
@@ -70,11 +71,12 @@
              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
          .form-container button:hover {
-            background-color: #a93226; /* Darker red on hover */
+            background-color: #a93226; /* Darker Red on hover */
              box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
              transform: translateY(-2px);
          }
 
+        /* --- Letter Styling (#capture) --- */
         #capture {
             position: relative;
             overflow: hidden;
@@ -89,8 +91,10 @@
             flex-direction: column;
             color: #333;
             font-family: 'Times New Roman', Times, serif;
+            border-top: 10px solid #c0392b; /* Added Red Top Border */
         }
 
+        /* Watermark */
         #capture::before {
             content: '';
             position: absolute;
@@ -112,10 +116,11 @@
             z-index: 1;
         }
 
+        /* Header */
         #capture .header {
             text-align: center;
             margin-bottom: 25px;
-            border-bottom: 1.5px solid #d4af37;
+            border-bottom: 1.5px solid #7f8c8d; /* Changed to Muted Gray */
             padding-bottom: 15px;
         }
          #capture .header #logoStamp {
@@ -143,9 +148,10 @@
             font-size: 13px;
             color: #333;
         }
+        /* Letter Title - Changed to Red */
         #capture h1.letter-title {
             text-align: center;
-            color: #2c3e50;
+            color: #c0392b; 
             font-size: 22px;
             font-weight: 600;
             margin-bottom: 25px;
@@ -173,21 +179,21 @@
             font-weight: bold;
             color: #2c3e50;
         }
+        /* Applicant Name - Kept Red */
         #capture .content-text .name {
             font-weight: bold;
             color: #c0392b;
         }
         #displayAadhaar {
             font-weight: bold;
-            color: #b8860b;
+            color: #566573; /* Muted Gray for consistency */
         }
         #displayPosition {
             font-weight: bold;
-            color: #2c3e50;
-            background-color: rgba(218, 165, 32, 0.15);
+            color: #c0392b;
+            background-color: rgba(192, 57, 43, 0.1); /* Light red background */
             padding: 2px 6px;
             border-radius: 4px;
-            border-bottom: 2px solid rgba(218, 165, 32, 0.4);
         }
         .exit-details p {
             margin: 4px 0;
@@ -204,11 +210,12 @@
             color: #555;
             margin-bottom: 8px;
          }
+        /* Photo Border - Changed to Red */
         #apiApplicantPhoto {
             width: 100%;
             max-width: 140px;
             height: auto;
-            border: 4px solid #daa520;
+            border: 4px solid #c0392b;
             border-radius: 8px;
             padding: 5px;
             background-color: #fff;
@@ -274,6 +281,7 @@
             height: 110px;
         }
 
+        /* Download Button */
         #download {
             display: none;
             margin-top: 20px;
@@ -327,7 +335,8 @@
                 </p>
                  <div class="exit-details">
                     <b>Exit Details:</b>
-                    <p><i class="fas fa-id-card fa-fw" style="color: #b8860b;"></i> <b>Aadhaar No:</b> <span id="displayAadhaar"></span></p>
+                    <!-- Icons are now red for consistency -->
+                    <p><i class="fas fa-id-card fa-fw" style="color: #c0392b;"></i> <b>Aadhaar No:</b> <span id="displayAadhaar"></span></p>
                     <p><i class="fas fa-calendar-check fa-fw" style="color: #c0392b;"></i> <b>Membership End Date:</b> <b><span id="displayEndDate"></span></b></p>
                 </div>
                  <p id="displayExtraText" style="margin-top: 18px;"></p>
@@ -360,7 +369,7 @@
     <button id="download">Download Letter</button>
 
     <script>
-        // Authentication check logic remains the same
+        // Authentication and all JavaScript logic remains the same as it's working correctly.
         async function checkAuthAndInitialize() {
             try {
                 const response = await fetch('/api/config');
@@ -383,7 +392,6 @@
             }
         }
 
-        // Main app logic
         function runAppLogic() {
             let membersData = {};
             const primeMemberNames = ["amit kumar", "mithilesh sahni", "prince rama"];
@@ -457,7 +465,6 @@
                 const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=c0392b&color=fff&size=140`;
                 const imageUrl = member.profilePicUrl || defaultPic;
                 
-                // Ensure the img tag has the crossorigin attribute set
                 apiApplicantPhotoEl.crossOrigin = "anonymous";
                 apiApplicantPhotoEl.src = createProxyUrl(imageUrl);
                 
@@ -495,8 +502,6 @@
                 captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            // This function was the key to fixing the original joining letter download.
-            // It ensures all images are fully loaded before capturing.
             async function waitForImages(containerElement) {
                 const images = Array.from(containerElement.querySelectorAll('img:not([src=""])'));
                 const promises = images.map(img => {
@@ -505,13 +510,13 @@
                             img.onload = resolve;
                             img.onerror = () => {
                                 console.warn(`Image failed to load: ${img.src}`);
-                                resolve(); // Resolve even on error to not block the process
+                                resolve();
                             };
                         });
                     }
                     return Promise.resolve();
                 });
-                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500))); // Extra delay for rendering
+                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
             }
 
             downloadBtn.addEventListener('click', async () => {
@@ -521,7 +526,7 @@
                     await waitForImages(captureDiv);
                     const canvas = await html2canvas(captureDiv, {
                         scale: 3,
-                        useCORS: true, // This is essential
+                        useCORS: true,
                         logging: false,
                         backgroundColor: '#ffffff'
                     });
@@ -545,7 +550,6 @@
             fetchMemberData();
         }
 
-        // Start the app
         checkAuthAndInitialize();
     </script>
 </body>
