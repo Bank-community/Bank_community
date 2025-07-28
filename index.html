@@ -61,16 +61,16 @@
         header h1 { color: white; font-size: 2.2em; margin: 15px 0 5px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); font-weight: 700; }
         header h4 { color: rgba(255, 255, 255, 0.9); margin: 0 0 20px 0; font-weight: 400; font-size: 1em; }
         .header-actions { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; padding: 0 15px; margin-top: 15px; box-sizing: border-box; }
-        .header-actions-row { display: flex; justify-content: center; gap: 15px; width: 100%; }
         .dynamic-buttons-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; padding: 0 15px; }
-        .civil-button { background: var(--prime-color); border-radius: 50px; border: none; text-shadow: none; box-shadow: 0 4px 10px 0px rgba(0,0,0,0.2); padding: 12px 25px; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); font-size: 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; flex-grow: 1; max-width: 180px; }
-        .notification-btn { position: relative; background: var(--prime-color); border: none; border-radius: 50px; padding: 12px 20px; font-size: 1.5em; cursor: pointer; transition: all 0.3s ease; color: var(--text-color); line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+        .civil-button { padding: 12px 25px; font-size: 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer; transition: all 0.3s ease; }
+        .civil-button svg, .notification-btn svg { width: 20px; height: 20px; }
+        .notification-btn { position: relative; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
         .notification-dot { position: absolute; top: 8px; right: 12px; width: 10px; height: 10px; background-color: var(--danger-color); border-radius: 50%; border: 2px solid var(--prime-color); display: none; }
-        .civil-button:hover, .notification-btn:hover { box-shadow: 0 6px 15px 0px rgba(0,0,0,0.3); transform: translateY(-2px); background-color: #ffcd39; color: var(--text-color); }
-        .civil-button svg, .notification-btn svg { width: 20px; height: 20px; margin-right: 8px; }
-        .install-button { display: none; background: green; color: white; border: 2px solid white; border-radius: 50px; padding: 10px 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; gap: 10px; align-items: center; justify-content: center; width: 70%; max-width: 180px; }
+        .install-button { display: none; font-weight: bold; cursor: pointer; transition: all 0.3s ease; gap: 10px; align-items: center; justify-content: center; }
         .install-button img { width: 24px; height: 24px; }
-        .install-button:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); transform: translateY(-3px); }
+        .btn-glossy { background-image: linear-gradient(to top, #5a67d8, #7f9cf5); box-shadow: inset 0 1px 1px #a3bffa, 0 4px 6px rgba(0,0,0,0.2); text-shadow: 0 1px 1px rgba(0,0,0,0.3); border-bottom: 1px solid #4c51bf; }
+        .btn-neumorphic { background: #e0e5ec; box-shadow: 9px 9px 16px #a3b1c6, -9px -9px 16px #ffffff; border: none; }
+        .btn-outline { background-color: transparent; border-style: solid; }
         .content-wrapper { max-width: 1140px; margin: 30px auto; padding: 0; }
         section { margin-bottom: 40px; padding: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-color); border: 1px solid var(--border-color); }
         section h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.7em; }
@@ -391,9 +391,8 @@
     <section class="bank-members animate-on-scroll"> 
         <div class="header-container"> 
             <h2 class="bank-headline">BANK MEMBERS</h2> 
-            <div class="header-buttons-wrapper">
-                <div class="view-balance-btn" id="viewBalanceBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="View Balance" class="balance-icon"> <span>View Balance</span> </div> 
-                <div class="view-balance-btn" id="viewPenaltyWalletBtn"> <img src="https://i.imgur.com/TEHsZ32.png" alt="Penalty Wallet" class="balance-icon"> <span>Bank Wallet</span> </div> 
+            <div class="header-buttons-wrapper" id="staticHeaderButtons">
+                <!-- Static buttons like View Balance can be placed here if needed, but we will make them dynamic -->
             </div>
         </div> 
         <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> 
@@ -406,6 +405,7 @@
         <div class="slide-indicator" id="custom-cards-indicator"></div>
     </section>
 
+    <!-- Modals Start Here -->
     <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> 
     
     <div id="penaltyWalletModal" class="modal">
@@ -433,6 +433,8 @@
             <div class="all-members-list" id="allMembersListContainer"></div>
         </div>
     </div>
+    <!-- Modals End Here -->
+
     <section class="transparency-section animate-on-scroll"> <h2>📝 Transparency info.</h2> <p>Hamari poori prakriya pardarshi hai. Aapke sabhi details aur len-den ki jankari surakshit rehti hai aur sadasyon ko uplabdh karayi jaati hai.</p> <p>Hamari community mein log aapas mein milkar <strong>Bank Community Loan</strong> mein fund ikattha karte hain. Sabhi sadasya thodi-thodi rashi jama karte hain, jiski shuruwat sirf <strong>₹500/-</strong> se hoti hai.</p> <div class="audio-wrapper" style="text-align:center; margin-top: 30px;"> <div class="play-button" id="playBtn" style="display: inline-block; background: #ff4d4d; border-radius: 50%; width: 70px; height: 70px; line-height: 70px; color: white; font-size: 28px; cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(255, 77, 77, 0.6); transition: background 0.3s ease;">▶</div> <div style="font-size: 16px; margin-top: 10px; color: #444;">Tap to Listen</div> <audio id="welcomeAudio"><source src="speech.wav" type="audio/wav">Aapka browser audio support nahi karta.</audio> </div> </section> 
     
     <section class="action-cards-section animate-on-scroll"> 
@@ -515,7 +517,6 @@
         try {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js')
- 
                     .then(reg => console.log('Service Worker registered successfully', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -545,7 +546,7 @@
     }
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (MAJOR UPDATE V11 - Dynamic Buttons) ##
+    // ## MAIN APPLICATION LOGIC (V12 - Advanced Dynamic Buttons) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -555,6 +556,9 @@
 
         // Element Cache
         const memberContainer = document.getElementById('memberContainer');
+        const headerActionsContainer = document.getElementById('headerActionsContainer');
+        const staticHeaderButtonsContainer = document.getElementById('staticHeaderButtons');
+        // ... (rest of the element cache remains the same)
         const customCardsContainer = document.getElementById('customCardsContainer');
         const communityLetterSlides = document.getElementById('communityLetterSlides');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
@@ -564,7 +568,6 @@
         const infoSlider = document.getElementById('infoSlider');
         const sipChartCanvas = document.getElementById('sipChart');
         const balanceModalElement = document.getElementById('balanceModal');
-        const viewBalanceBtn = document.getElementById('viewBalanceBtn');
         const totalBalanceElement = document.getElementById('totalBalance');
         const returnBalanceElement = document.getElementById('returnBalance');
         const combinedBalanceElement = document.getElementById('combinedBalance');
@@ -591,7 +594,6 @@
         const closeImageModalBtn = document.getElementById('closeImageModal');
         const playBtn = document.getElementById('playBtn');
         const audio = document.getElementById('welcomeAudio');
-        const installAppBtn = document.getElementById('installAppBtn');
         const fullViewBtn = document.getElementById('fullViewBtn');
         const passwordPromptModal = document.getElementById('passwordPromptModal');
         const closePasswordModal = document.getElementById('closePasswordModal');
@@ -599,7 +601,6 @@
         const submitPasswordBtn = document.getElementById('submitPasswordBtn');
         const fullProfileViewModal = document.getElementById('fullProfileViewModal');
         const closeFullProfileModal = document.getElementById('closeFullProfileModal');
-        const viewPenaltyWalletBtn = document.getElementById('viewPenaltyWalletBtn');
         const penaltyWalletModal = document.getElementById('penaltyWalletModal');
         const closePenaltyWalletModalBtn = document.getElementById('closePenaltyWalletModal');
         const penaltyBalanceElement = document.getElementById('penaltyBalance');
@@ -609,7 +610,6 @@
         const allMembersModal = document.getElementById('allMembersModal');
         const closeAllMembersModal = document.getElementById('closeAllMembersModal');
         const allMembersListContainer = document.getElementById('allMembersListContainer');
-        const headerActionsContainer = document.getElementById('headerActionsContainer');
 
         // App State
         let allMembersData = {}; 
@@ -631,28 +631,16 @@
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredInstallPrompt = e;
-                if(installAppBtn) installAppBtn.style.display = 'inline-flex';
+                const installBtn = document.getElementById('installAppBtn');
+                if(installBtn) installBtn.style.display = 'inline-flex';
             });
-            if(headerActionsContainer) { // Check if container exists
-                const installButton = document.createElement('button');
-                installButton.className = 'install-button';
-                installButton.id = 'installAppBtn';
-                installButton.innerHTML = `<img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"><b>Install Now</b>`;
-                installButton.style.display = 'none'; // Initially hidden
-                headerActionsContainer.appendChild(installButton);
-                
-                installButton.addEventListener('click', async () => {
-                    if (deferredInstallPrompt) {
-                        deferredInstallPrompt.prompt();
-                        await deferredInstallPrompt.userChoice;
-                        deferredInstallPrompt = null;
-                        installButton.style.display = 'none';
-                    }
-                });
-                window.addEventListener('appinstalled', () => { installButton.style.display = 'none'; });
-                if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-                   installButton.style.display = 'none';
-                }
+            window.addEventListener('appinstalled', () => { 
+                const installBtn = document.getElementById('installAppBtn');
+                if(installBtn) installBtn.style.display = 'none'; 
+            });
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                const installBtn = document.getElementById('installAppBtn');
+                if(installBtn) installBtn.style.display = 'none';
             }
         }
 
@@ -696,6 +684,7 @@
         function displayHeaderButtons(buttons) {
             if (!headerActionsContainer) return;
             headerActionsContainer.innerHTML = ''; // Clear loading text
+            if (staticHeaderButtonsContainer) staticHeaderButtonsContainer.innerHTML = '';
 
             if (Object.keys(buttons).length === 0) {
                 headerActionsContainer.innerHTML = '<p style="color: white; font-size: 0.9em;">Buttons not configured.</p>';
@@ -706,10 +695,10 @@
             buttonWrapper.className = 'dynamic-buttons-wrapper';
 
             Object.values(buttons).sort((a,b) => (a.order || 0) - (b.order || 0)).forEach(btnData => {
-                const isLink = btnData.url && !btnData.action;
+                const isLink = btnData.url && !btnData.id;
                 const element = document.createElement(isLink ? 'a' : 'button');
 
-                element.className = btnData.base_class || 'civil-button';
+                element.className = `${btnData.base_class || 'civil-button'} ${btnData.style_preset || ''}`;
                 if (btnData.id) element.id = btnData.id;
                 
                 if (isLink) {
@@ -726,59 +715,62 @@
                 }
                 element.innerHTML = innerHTML;
 
-                if (btnData.color) element.style.backgroundColor = btnData.color;
-                if (btnData.textColor) element.style.color = btnData.textColor;
-                if (btnData.borderColor) {
-                    element.style.border = `2px solid ${btnData.borderColor}`;
-                }
-                if (btnData.borderRadius) element.style.borderRadius = btnData.borderRadius;
+                // Apply dynamic styles
+                element.style.backgroundColor = btnData.transparent ? 'transparent' : btnData.color;
+                element.style.color = btnData.textColor;
+                element.style.width = btnData.width;
+                element.style.height = btnData.height;
+                element.style.borderRadius = btnData.borderRadius;
+                element.style.borderColor = btnData.borderColor;
+                element.style.borderWidth = btnData.borderWidth;
+                element.style.borderStyle = (parseFloat(btnData.borderWidth) > 0 || btnData.style_preset === 'btn-outline') ? 'solid' : 'none';
 
-                buttonWrapper.appendChild(element);
+                // Specific logic for glossy preset
+                if (btnData.style_preset === 'btn-glossy' && !btnData.transparent) {
+                    element.style.backgroundImage = `linear-gradient(to top, ${btnData.color}, #ffffff)`;
+                }
+
+                // Decide where to append the button
+                if (['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
+                    if (staticHeaderButtonsContainer) staticHeaderButtonsContainer.appendChild(element);
+                } else {
+                    buttonWrapper.appendChild(element);
+                }
             });
             
             headerActionsContainer.appendChild(buttonWrapper);
-
-            const installButtonContainer = document.createElement('div');
-            installButtonContainer.className = 'header-actions-row';
-            headerActionsContainer.appendChild(installButtonContainer);
-            
-            const installBtn = document.createElement('button');
-            installBtn.className = 'install-button';
-            installBtn.id = 'installAppBtn';
-            installBtn.innerHTML = `<img src="https://www.svgrepo.com/show/355077/install-option.svg" alt="Install Icon"><b>Install Now</b>`;
-            
-            installButtonContainer.appendChild(installBtn);
-            if (deferredInstallPrompt) {
-                installBtn.style.display = 'inline-flex';
-            }
-            installBtn.addEventListener('click', async () => {
-                 if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    await deferredInstallPrompt.userChoice;
-                    deferredInstallPrompt = null;
-                    installBtn.style.display = 'none';
-                }
-            });
-
             attachDynamicButtonListeners();
         }
 
         function attachDynamicButtonListeners() {
             const sipStatusBtn = document.getElementById('sipStatusBtn');
             const notificationBtn = document.getElementById('notificationBtn');
-            const notificationDot = document.getElementById('notificationDot');
+            const installBtn = document.getElementById('installAppBtn');
+            const viewBalanceBtn = document.getElementById('viewBalanceBtn');
+            const viewPenaltyWalletBtn = document.getElementById('viewPenaltyWalletBtn');
 
-            if (sipStatusBtn) {
-                sipStatusBtn.addEventListener('click', showSipStatusModal);
-            }
+            if (sipStatusBtn) sipStatusBtn.addEventListener('click', showSipStatusModal);
             if (notificationBtn) {
                 notificationBtn.addEventListener('click', () => {
                     displayNotifications();
                     notificationModal.classList.add('show');
-                    if(notificationDot) notificationDot.style.display = 'none';
+                    const dot = document.getElementById('notificationDot');
+                    if(dot) dot.style.display = 'none';
                     sessionStorage.setItem('notificationsViewed', 'true');
                 });
             }
+            if(installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredInstallPrompt) {
+                        deferredInstallPrompt.prompt();
+                        await deferredInstallPrompt.userChoice;
+                        deferredInstallPrompt = null;
+                        installBtn.style.display = 'none';
+                    }
+                });
+            }
+            if(viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal);
+            if(viewPenaltyWalletBtn) viewPenaltyWalletBtn.addEventListener('click', showPenaltyWalletModal);
         }
         
         function processAndDisplayData(membersData, penaltyIncomes) {
@@ -1345,7 +1337,7 @@
             const container = document.getElementById('customCardsContainer');
             const indicator = document.getElementById('custom-cards-indicator');
             if (!container || !indicator || cards.length <= 1) {
-                indicator.style.display = 'none';
+                if(indicator) indicator.style.display = 'none';
                 return;
             };
             
@@ -1383,9 +1375,7 @@
         function setupEventListeners() {
             if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
             if (playBtn && audio) playBtn.addEventListener('click', () => audio.play());
-            if (viewBalanceBtn) viewBalanceBtn.addEventListener('click', showBalanceModal);
             if (closeBalanceModalBtn) closeBalanceModalBtn.addEventListener('click', () => closeModal(balanceModalElement));
-            if (viewPenaltyWalletBtn) viewPenaltyWalletBtn.addEventListener('click', showPenaltyWalletModal);
             if (closePenaltyWalletModalBtn) closePenaltyWalletModalBtn.addEventListener('click', () => closeModal(penaltyWalletModal));
             if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', () => {
                 const list = document.getElementById('penaltyHistoryList');
@@ -1441,3 +1431,4 @@
 
 </body>
 </html>
+
