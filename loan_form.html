@@ -115,7 +115,7 @@
     <div class="loan-details-container flex justify-between items-start my-5 p-4 border border-gray-200 rounded-lg bg-gray-50">
         <div class="details-text flex-grow pr-4">
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-user w-5 text-center mr-2"></i>Applicant Name: <span class="highlight font-bold ml-1" id="displayName"></span></p>
-          <p id="guarantorRow" class="my-2 text-sm text-gray-800 flex items-center" style="display: none;"><i class="fas fa-user-shield w-5 text-center mr-2"></i>Guarantor Name: <span class="guarantor-highlight font-bold ml-1" id="displayGuarantor"></span></p>
+          <p id="guarantorRow" class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-user-shield w-5 text-center mr-2"></i>Guarantor Name: <span class="guarantor-highlight font-bold ml-1" id="displayGuarantor"></span></p>
           <p id="collateralRow" class="my-2 text-sm text-gray-800 flex items-center" style="display: none;"><i class="fas fa-gem w-5 text-center mr-2"></i>Collateral Item: <span class="highlight font-bold ml-1" id="displayCollateral"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-mobile-alt w-5 text-center mr-2"></i>Mobile Number: <span id="displayMobile" class="ml-1"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-rupee-sign w-5 text-center mr-2"></i>Loan Amount: ₹<span id="displayAmount" class="ml-1"></span></p>
@@ -267,6 +267,7 @@
         function updateFormUI() {
             const category = loanCategorySelect.value;
             const selectedOptions = loanOptions[category];
+            const selectedApplicantText = nameSelect.options[nameSelect.selectedIndex]?.text || '';
 
             durationRateLabel.textContent = selectedOptions.label;
             durationRateSelect.innerHTML = '';
@@ -280,11 +281,10 @@
             goldCollateralSection.style.display = (category === 'gold') ? 'block' : 'none';
             goldCollateralInput.required = (category === 'gold');
             
-            const selectedApplicantText = nameSelect.options[nameSelect.selectedIndex]?.text || '';
-            const isBank = selectedApplicantText.toLowerCase().includes('bank');
-
-            guarantorSection.style.display = (category === 'guarantor' || (category === 'personal' && isBank)) ? 'block' : 'none';
-            guarantorSelect.required = (category === 'guarantor' || (category === 'personal' && isBank));
+            // NEW GUARANTOR LOGIC
+            const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank');
+            guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none';
+            guarantorSelect.required = needsManualGuarantor;
         }
 
         async function fetchMemberData() {
@@ -298,21 +298,21 @@
                 
                 const approvedMembers = Object.entries(membersData)
                     .filter(([id, member]) => member.status === 'Approved' && member.fullName)
-                    .map(([id, member]) => ({ id, name: member.fullName, guarantorName: member.guarantorName }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
+                    .map(([id, member]) => ({ id, ...member }))
+                    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
                 nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
-                guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor Name</option>';
+                guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor</option>';
                 
                 approvedMembers.forEach(member => {
                     const option = document.createElement('option');
                     option.value = member.id; 
-                    option.textContent = member.name;
+                    option.textContent = member.fullName;
                     nameSelect.appendChild(option.cloneNode(true));
                     
                     const guarantorOption = document.createElement('option');
                     guarantorOption.value = member.id;
-                    guarantorOption.textContent = member.name;
+                    guarantorOption.textContent = member.fullName;
                     guarantorSelect.appendChild(guarantorOption);
                 });
                 
@@ -367,19 +367,22 @@
             
             [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, collateralRowEl].forEach(el => el.style.display = 'none');
             
+            // NEW GUARANTOR LOGIC
             let guarantorName = 'N/A';
-            if (category === 'personal' && member.guarantorName) {
-                guarantorName = member.guarantorName;
-                guarantorRowEl.style.display = 'flex';
-            } else if (guarantorSection.style.display === 'block') {
+            const needsManualGuarantor = category === 'guarantor' || member.fullName.toLowerCase().includes('bank');
+
+            if (needsManualGuarantor) {
                 const guarantorId = guarantorSelect.value;
                 if (!guarantorId) {
-                    alert('Please select a guarantor.');
+                    alert('Please select a guarantor for this loan type.');
                     return;
                 }
                 guarantorName = membersData[guarantorId].fullName;
-                guarantorRowEl.style.display = 'flex';
+            } else {
+                guarantorName = member.guarantorName || 'N/A';
             }
+            displayGuarantorEl.textContent = guarantorName;
+            guarantorRowEl.style.display = 'flex'; // Always show guarantor row
             
             if (category === 'gold' && collateralItem) {
                 displayCollateralEl.textContent = collateralItem;
@@ -449,7 +452,6 @@
             let categoryText = loanCategorySelect.options[loanCategorySelect.selectedIndex].text.split('(')[0].trim();
             letterLoanCategoryEl.textContent = categoryText.replace(/LOAN/i, '').trim() + ' LOAN';
             displayNameEl.textContent = member.fullName;
-            displayGuarantorEl.textContent = guarantorName;
             displayMobileEl.textContent = member.mobileNumber || 'N/A';
             displayAmountEl.textContent = amount.toFixed(2);
             displayRateEl.textContent = rateText;
