@@ -109,7 +109,7 @@
       <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
       <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
       <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
-      <h2 id="letterLoanCategory" class="text-2xl font-bold text-blue-800 mt-3"></h2>
+      <h2 id="letterLoanCategory" class="text-2xl font-bold text-green-600 mt-3"></h2>
     </div>
 
     <div class="loan-details-container flex justify-between items-start my-5 p-4 border border-gray-200 rounded-lg bg-gray-50">
@@ -121,8 +121,10 @@
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-rupee-sign w-5 text-center mr-2"></i>Loan Amount: ₹<span id="displayAmount" class="ml-1"></span></p>
           <p id="processingFeeRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-cogs w-5 text-center mr-2"></i>Processing Fee: ₹<span id="displayProcessingFee" class="ml-1"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-percent w-5 text-center mr-2"></i>Interest Rate: <span id="displayRate" class="ml-1"></span></p>
-          <p id="interestOnlyRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-money-bill-wave w-5 text-center mr-2"></i>Monthly Interest Payment: ₹<span id="displayInterestOnlyPayment" class="ml-1"></span></p>
-          <p id="emiRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-chart-pie w-5 text-center mr-2"></i>Monthly EMI: ₹<span id="displayEMI" class="ml-1"></span></p>
+          <p id="interestOnlyPaymentRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-money-bill-wave w-5 text-center mr-2"></i>Sirf Masik Byaj (Interest Only): ₹<span id="displayInterestOnlyPayment" class="ml-1"></span></p>
+          <p id="emiRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-chart-pie w-5 text-center mr-2"></i>Puri Masik EMI (Full EMI): ₹<span id="displayEMI" class="ml-1"></span></p>
+          <p id="businessInterestRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-money-bill-wave w-5 text-center mr-2"></i>Monthly Interest Payment: ₹<span id="displayBusinessInterest" class="ml-1"></span></p>
+          <p id="businessEmiRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-chart-pie w-5 text-center mr-2"></i>Monthly EMI: ₹<span id="displayBusinessEMI" class="ml-1"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-file-invoice-dollar w-5 text-center mr-2"></i>Total Payable: ₹<span id="displayTotalAmount" class="ml-1"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-calendar-alt w-5 text-center mr-2"></i>Repayment Period Ends: <span id="repaymentDate" class="ml-1"></span></p>
         </div>
@@ -206,19 +208,26 @@
         const displayAmountEl = document.getElementById('displayAmount');
         const displayRateEl = document.getElementById('displayRate');
         const displayTotalAmountEl = document.getElementById('displayTotalAmount');
-        const displayEMIEl = document.getElementById('displayEMI');
         const repaymentDateEl = document.getElementById('repaymentDate');
-        const emiRowEl = document.getElementById('emiRow');
-        const processingFeeRowEl = document.getElementById('processingFeeRow');
-        const displayProcessingFeeEl = document.getElementById('displayProcessingFee');
         const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
         const manualUploadSectionEl = document.getElementById('manualUploadSection');
         const manualApplicantPhotoEl = document.getElementById('manualApplicantPhoto');
         const guarantorRowEl = document.getElementById('guarantorRow');
         const collateralRowEl = document.getElementById('collateralRow');
         const displayCollateralEl = document.getElementById('displayCollateral');
-        const interestOnlyRowEl = document.getElementById('interestOnlyRow');
+        
+        // Payment Rows
+        const processingFeeRowEl = document.getElementById('processingFeeRow');
+        const displayProcessingFeeEl = document.getElementById('displayProcessingFee');
+        const interestOnlyPaymentRowEl = document.getElementById('interestOnlyPaymentRow');
         const displayInterestOnlyPaymentEl = document.getElementById('displayInterestOnlyPayment');
+        const emiRowEl = document.getElementById('emiRow');
+        const displayEMIEl = document.getElementById('displayEMI');
+        const businessInterestRowEl = document.getElementById('businessInterestRow');
+        const displayBusinessInterestEl = document.getElementById('displayBusinessInterest');
+        const businessEmiRowEl = document.getElementById('businessEmiRow');
+        const displayBusinessEMIEl = document.getElementById('displayBusinessEMI');
+
 
         const loanOptions = {
             personal: {
@@ -351,8 +360,10 @@
                 return;
             }
             
+            // Reset all payment rows
+            [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, collateralRowEl].forEach(el => el.style.display = 'none');
+            
             let guarantorName = 'N/A';
-            guarantorRowEl.style.display = 'none';
             if (guarantorSection.style.display === 'block') {
                 const guarantorId = guarantorSelect.value;
                 if (!guarantorId) {
@@ -363,17 +374,13 @@
                 guarantorRowEl.style.display = 'flex';
             }
             
-            collateralRowEl.style.display = 'none';
             if (category === 'gold' && collateralItem) {
                 displayCollateralEl.textContent = collateralItem;
                 collateralRowEl.style.display = 'flex';
             }
 
-            let interest = 0, totalMonths = 0, rateText = '', totalAmount = 0, processingFee = 0, emi = 0;
+            let interest = 0, totalMonths = 0, rateText = '', totalAmount = 0;
             
-            interestOnlyRowEl.style.display = 'none';
-            processingFeeRowEl.style.display = 'none';
-
             switch(category) {
                 case 'personal':
                     const [pRate, pMonths] = rateValue.split('-').map(Number);
@@ -381,33 +388,28 @@
                     totalMonths = pMonths;
                     rateText = durationRateSelect.options[durationRateSelect.selectedIndex].text;
                     totalAmount = amount + (amount * (interest / 100));
-                    emi = totalAmount / totalMonths;
+                    displayEMIEl.textContent = (totalAmount / totalMonths).toFixed(2);
+                    emiRowEl.style.display = 'flex';
                     break;
                 case 'business':
                     const [interestOnlyMonths, emiMonths] = rateValue.split('-').map(Number);
-                    const monthlyInterestRate = 18 / 12 / 100; // 1.5%
+                    const monthlyInterestRate = 1.5 / 100;
                     
-                    processingFee = amount * 0.015;
-                    if (amount > 9000) {
-                        processingFee += 200;
-                    }
+                    let processingFee = amount * 0.015;
+                    if (amount > 9000) processingFee += 200;
+                    displayProcessingFeeEl.textContent = processingFee.toFixed(2);
                     processingFeeRowEl.style.display = 'flex';
 
                     const monthlyInterestPayment = amount * monthlyInterestRate;
-                    
-                    const emiPrincipal = amount;
-                    const r = monthlyInterestRate;
-                    const n = emiMonths;
-                    const emiPayment = emiPrincipal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+                    const emiPayment = (amount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, emiMonths)) / (Math.pow(1 + monthlyInterestRate, emiMonths) - 1);
                     
                     totalAmount = (monthlyInterestPayment * interestOnlyMonths) + (emiPayment * emiMonths);
                     totalMonths = interestOnlyMonths + emiMonths;
                     
-                    displayInterestOnlyPaymentEl.textContent = `${monthlyInterestPayment.toFixed(2)} (for first ${interestOnlyMonths} months)`;
-                    interestOnlyRowEl.style.display = 'flex';
-                    
-                    emi = emiPayment;
-                    document.querySelector("#emiRow i").nextSibling.textContent = `Monthly EMI (for last ${emiMonths} months): ₹`;
+                    displayBusinessInterestEl.textContent = `${monthlyInterestPayment.toFixed(2)} (for first ${interestOnlyMonths} months)`;
+                    displayBusinessEMIEl.textContent = `${emiPayment.toFixed(2)} (for last ${emiMonths} months)`;
+                    businessInterestRowEl.style.display = 'flex';
+                    businessEmiRowEl.style.display = 'flex';
                     
                     rateText = `18% Annually`;
                     break;
@@ -417,28 +419,35 @@
                     interest = gRate;
                     totalMonths = gMonths;
                     const monthlyRate = interest / 100;
+
+                    // Calculate interest only payment
+                    const interestOnlyPayment = amount * monthlyRate;
+                    displayInterestOnlyPaymentEl.textContent = interestOnlyPayment.toFixed(2);
+                    interestOnlyPaymentRowEl.style.display = 'flex';
+
+                    // Calculate full EMI based on compound interest
                     totalAmount = amount * Math.pow(1 + monthlyRate, totalMonths);
-                    emi = totalAmount / totalMonths;
+                    const fullEmi = totalAmount / totalMonths;
+                    displayEMIEl.textContent = fullEmi.toFixed(2);
+                    emiRowEl.style.display = 'flex';
+                    
                     rateText = `${interest}% Monthly for ${totalMonths} months`;
                     break;
             }
             
-            emiRowEl.style.display = (totalMonths > 1) ? 'flex' : 'none';
-
             const today = new Date();
             const repaymentDate = new Date(today);
             repaymentDate.setMonth(repaymentDate.getMonth() + totalMonths);
 
-            letterLoanCategoryEl.textContent = `${loanCategorySelect.options[loanCategorySelect.selectedIndex].text.split('(')[0].trim()} LOAN`;
+            currentDateEl.textContent = formatDate(today);
+            letterLoanCategoryEl.textContent = loanCategorySelect.options[loanCategorySelect.selectedIndex].text.split('(')[0].trim();
             displayNameEl.textContent = member.fullName;
             displayGuarantorEl.textContent = guarantorName;
             displayMobileEl.textContent = member.mobileNumber || 'N/A';
             displayAmountEl.textContent = amount.toFixed(2);
-            displayProcessingFeeEl.textContent = processingFee.toFixed(2);
             displayRateEl.textContent = rateText;
             displayTotalAmountEl.textContent = totalAmount.toFixed(2);
             repaymentDateEl.textContent = formatDate(repaymentDate);
-            displayEMIEl.textContent = emi.toFixed(2);
             
             apiApplicantPhotoEl.src = createProxyUrl(member.profilePicUrl);
 
