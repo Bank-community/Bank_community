@@ -298,7 +298,7 @@
                 
                 const approvedMembers = Object.entries(membersData)
                     .filter(([id, member]) => member.status === 'Approved' && member.fullName)
-                    .map(([id, member]) => ({ id, name: member.fullName }))
+                    .map(([id, member]) => ({ id, name: member.fullName, guarantorName: member.guarantorName }))
                     .sort((a, b) => a.name.localeCompare(b.name));
 
                 nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
@@ -308,9 +308,12 @@
                     const option = document.createElement('option');
                     option.value = member.id; 
                     option.textContent = member.name;
-                    
                     nameSelect.appendChild(option.cloneNode(true));
-                    guarantorSelect.appendChild(option.cloneNode(true));
+                    
+                    const guarantorOption = document.createElement('option');
+                    guarantorOption.value = member.id;
+                    guarantorOption.textContent = member.name;
+                    guarantorSelect.appendChild(guarantorOption);
                 });
                 
                 updateFormUI();
@@ -365,7 +368,10 @@
             [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, collateralRowEl].forEach(el => el.style.display = 'none');
             
             let guarantorName = 'N/A';
-            if (guarantorSection.style.display === 'block') {
+            if (category === 'personal' && member.guarantorName) {
+                guarantorName = member.guarantorName;
+                guarantorRowEl.style.display = 'flex';
+            } else if (guarantorSection.style.display === 'block') {
                 const guarantorId = guarantorSelect.value;
                 if (!guarantorId) {
                     alert('Please select a guarantor.');
@@ -425,7 +431,6 @@
                     displayInterestOnlyPaymentEl.textContent = interestOnlyPayment.toFixed(2);
                     interestOnlyPaymentRowEl.style.display = 'flex';
 
-                    // CORRECT EMI CALCULATION (Reducing Balance)
                     const fullEmi = (amount * gMonthlyRate * Math.pow(1 + gMonthlyRate, totalMonths)) / (Math.pow(1 + gMonthlyRate, totalMonths) - 1);
                     totalAmount = fullEmi * totalMonths;
                     
@@ -473,7 +478,7 @@
             shareBtn.style.display = 'block';
             captureDiv.scrollIntoView({ behavior: 'smooth' });
         });
-
+        
         async function generateCanvas() {
             downloadBtn.disabled = true;
             shareBtn.disabled = true;
