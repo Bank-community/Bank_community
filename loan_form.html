@@ -153,7 +153,10 @@
         </div>
     </div>
   </div> 
-  <button id="downloadBtn" class="btn hidden w-full max-w-md p-4 bg-green-600 text-white font-bold rounded-lg text-base cursor-pointer my-5 hover:bg-green-700">Download Letter</button>
+  <div class="flex space-x-4 w-full max-w-md">
+    <button id="downloadBtn" class="btn hidden w-1/2 p-4 bg-green-600 text-white font-bold rounded-lg text-base cursor-pointer my-5 hover:bg-green-700">Download Letter</button>
+    <button id="shareBtn" class="btn hidden w-1/2 p-4 bg-green-500 text-white font-bold rounded-lg text-base cursor-pointer my-5 hover:bg-green-600">Share on WhatsApp</button>
+  </div>
 
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -195,6 +198,7 @@
         const loanForm = document.getElementById('loanForm');
         const captureDiv = document.getElementById('capture');
         const downloadBtn = document.getElementById('downloadBtn');
+        const shareBtn = document.getElementById('shareBtn');
         const guarantorSection = document.getElementById('guarantorSection');
         const guarantorSelect = document.getElementById('guarantorSelect');
         const goldCollateralSection = document.getElementById('goldCollateralSection');
@@ -216,7 +220,6 @@
         const collateralRowEl = document.getElementById('collateralRow');
         const displayCollateralEl = document.getElementById('displayCollateral');
         
-        // Payment Rows
         const processingFeeRowEl = document.getElementById('processingFeeRow');
         const displayProcessingFeeEl = document.getElementById('displayProcessingFee');
         const interestOnlyPaymentRowEl = document.getElementById('interestOnlyPaymentRow');
@@ -227,7 +230,6 @@
         const displayBusinessInterestEl = document.getElementById('displayBusinessInterest');
         const businessEmiRowEl = document.getElementById('businessEmiRow');
         const displayBusinessEMIEl = document.getElementById('displayBusinessEMI');
-
 
         const loanOptions = {
             personal: {
@@ -360,7 +362,6 @@
                 return;
             }
             
-            // Reset all payment rows
             [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, collateralRowEl].forEach(el => el.style.display = 'none');
             
             let guarantorName = 'N/A';
@@ -418,16 +419,16 @@
                     const [gRate, gMonths] = rateValue.split('-').map(Number);
                     interest = gRate;
                     totalMonths = gMonths;
-                    const monthlyRate = interest / 100;
+                    const gMonthlyRate = interest / 100;
 
-                    // Calculate interest only payment
-                    const interestOnlyPayment = amount * monthlyRate;
+                    const interestOnlyPayment = amount * gMonthlyRate;
                     displayInterestOnlyPaymentEl.textContent = interestOnlyPayment.toFixed(2);
                     interestOnlyPaymentRowEl.style.display = 'flex';
 
-                    // Calculate full EMI based on compound interest
-                    totalAmount = amount * Math.pow(1 + monthlyRate, totalMonths);
-                    const fullEmi = totalAmount / totalMonths;
+                    // CORRECT EMI CALCULATION (Reducing Balance)
+                    const fullEmi = (amount * gMonthlyRate * Math.pow(1 + gMonthlyRate, totalMonths)) / (Math.pow(1 + gMonthlyRate, totalMonths) - 1);
+                    totalAmount = fullEmi * totalMonths;
+                    
                     displayEMIEl.textContent = fullEmi.toFixed(2);
                     emiRowEl.style.display = 'flex';
                     
@@ -440,7 +441,8 @@
             repaymentDate.setMonth(repaymentDate.getMonth() + totalMonths);
 
             currentDateEl.textContent = formatDate(today);
-            letterLoanCategoryEl.textContent = loanCategorySelect.options[loanCategorySelect.selectedIndex].text.split('(')[0].trim();
+            let categoryText = loanCategorySelect.options[loanCategorySelect.selectedIndex].text.split('(')[0].trim();
+            letterLoanCategoryEl.textContent = categoryText.replace(/LOAN/i, '').trim() + ' LOAN';
             displayNameEl.textContent = member.fullName;
             displayGuarantorEl.textContent = guarantorName;
             displayMobileEl.textContent = member.mobileNumber || 'N/A';
@@ -468,8 +470,20 @@
 
             captureDiv.style.display = 'flex';
             downloadBtn.style.display = 'block';
+            shareBtn.style.display = 'block';
             captureDiv.scrollIntoView({ behavior: 'smooth' });
         });
+
+        async function generateCanvas() {
+            downloadBtn.disabled = true;
+            shareBtn.disabled = true;
+            await waitForImages(captureDiv);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
+            downloadBtn.disabled = false;
+            shareBtn.disabled = false;
+            return canvas;
+        }
 
         async function waitForImages(containerElement) {
             const images = Array.from(containerElement.getElementsByTagName('img'));
@@ -489,33 +503,20 @@
         }
 
         downloadBtn.addEventListener('click', async function() {
-            downloadBtn.textContent = 'Preparing Download...';
-            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Preparing...';
+            const canvas = await generateCanvas();
+            const link = document.createElement('a');
+            const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
+            link.download = fileName;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            link.remove();
+            downloadBtn.textContent = 'Download Letter';
+        });
 
-            try {
-                await waitForImages(captureDiv);
-                await new Promise(resolve => setTimeout(resolve, 500)); 
-
-                html2canvas(captureDiv, {
-                    scale: 2, 
-                    useCORS: true,
-                    logging: false
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
-                    link.download = fileName;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    link.remove();
-                    downloadBtn.textContent = 'Download Letter';
-                    downloadBtn.disabled = false;
-                });
-            } catch (error) {
-                console.error('Error during download generation:', error);
-                alert('Could not generate the download image.');
-                downloadBtn.textContent = 'Download Letter';
-                downloadBtn.disabled = false;
-            }
+        shareBtn.addEventListener('click', function() {
+            const groupLink = 'https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ';
+            window.open(groupLink, '_blank');
         });
 
         fetchMemberData();
