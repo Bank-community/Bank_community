@@ -8,10 +8,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Firebase SDKs for backend connection -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- UPDATED: Firebase SDKs (v9 Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+        
+        // Making functions available globally for the script tag below
+        window.firebaseTools = {
+            initializeApp,
+            getAuth,
+            onAuthStateChanged,
+            getDatabase,
+            ref,
+            get
+        };
+    </script>
 </head>
 <body>
 <style>
@@ -367,20 +380,28 @@ body {
 
     </div>
 
-<script>
+<script type="module">
 document.addEventListener("DOMContentLoaded", () => {
     
+    // Destructure functions from the global object
+    const { 
+        initializeApp, getAuth, onAuthStateChanged, 
+        getDatabase, ref, get 
+    } = window.firebaseTools;
+
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
-            const config = await response.json();
+            const fbConfig = (await response.json()).firebase;
             
-            firebase.initializeApp(config.firebase);
+            const app = initializeApp(fbConfig);
+            const auth = getAuth(app);
+            const database = getDatabase(app);
             
-            firebase.auth().onAuthStateChanged(user => {
+            onAuthStateChanged(auth, user => {
                 if (user) {
-                    runAppLogic();
+                    runAppLogic(database);
                 } else {
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
@@ -393,7 +414,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function runAppLogic() {
+    function runAppLogic(db) {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
             money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
@@ -417,9 +438,8 @@ document.addEventListener("DOMContentLoaded", () => {
         async function fetchAndProcessData() {
             state.ui.loader.innerHTML = '<div class="spinner"></div>Loading member data...';
             try {
-                const db = firebase.database();
-                const membersRef = db.ref('members');
-                const snapshot = await membersRef.once('value');
+                const membersRef = ref(db, 'members');
+                const snapshot = await get(membersRef);
                 if (!snapshot.exists()) throw new Error('No member data found.');
                 
                 const membersData = snapshot.val();
