@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDKs for backend connection -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 <style>
@@ -18,15 +22,13 @@
     --text-light: #718096;
     --border-color: #e2e8f0;
     --primary-color: #4f46e5;
-    --primary-light: #e0e7ff;
+    --primary-dark: #4338ca;
     --danger-color: #e53e3e;
     --danger-light: #fff5f5;
     --success-color: #38a169;
     --success-light: #f0fff4;
     --warning-color: #dd6b20;
     --warning-light: #fffaf0;
-    --info-color: #3182ce;
-    --info-light: #ebf8ff;
     --font-family: 'Poppins', sans-serif;
 }
 
@@ -194,8 +196,8 @@ body {
 
 .card-top { 
     display: flex; 
-    align-items: flex-start; 
-    margin-bottom: 16px; 
+    align-items: center; 
+    margin-bottom: 20px; 
 }
 .profile-picture { 
     width: 50px; 
@@ -211,24 +213,11 @@ body {
     height: 100%; 
     object-fit: cover; 
 }
-.user-details {
-    flex-grow: 1;
-}
 .user-details h3 { 
     margin: 0; 
     font-size: 18px; 
     font-weight: 600; 
     color: var(--text-dark);
-}
-.loan-type-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 6px;
-    background-color: var(--info-light);
-    color: var(--info-color);
 }
 .loan-date { 
     font-size: 13px; 
@@ -243,12 +232,35 @@ body {
     height: 14px;
 }
 
+.smart-slab-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+.smart-slab-badge.active {
+    background-color: #e0e7ff; 
+    color: var(--primary-color);
+}
+.smart-slab-badge.defaulted {
+    background-color: var(--danger-light);
+    color: var(--danger-color);
+}
+.smart-slab-badge .icon {
+    width: 12px;
+    height: 12px;
+}
+
 .card-middle { 
     background-color: var(--primary-bg); 
     border-radius: 12px; 
     padding: 16px; 
     border: 1px solid var(--border-color);
-    margin-top: 16px;
+    margin-top: auto;
 }
 .detail-row { 
     display: flex; 
@@ -281,35 +293,6 @@ body {
     color: var(--danger-color);
     font-weight: 700; 
 }
-.detail-value.next-payment {
-    color: var(--success-color);
-    font-weight: 700;
-}
-
-.payment-tracker {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-}
-.tracker-box {
-    flex: 1;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-}
-.tracker-box .label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-light);
-    margin-bottom: 4px;
-}
-.tracker-box .count {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--primary-color);
-}
 
 .pending-banner { 
     color: white; 
@@ -322,11 +305,16 @@ body {
     justify-content: center; 
     gap: 8px; 
     transition: background-color 0.3s ease; 
-    margin-top: auto;
 }
-.pending-banner.green { background-color: var(--success-color); }
-.pending-banner.warning { background-color: var(--warning-color); }
-.pending-banner.danger { background-color: var(--danger-color); }
+.pending-banner.green { 
+    background-color: var(--success-color); 
+}
+.pending-banner.warning { 
+    background-color: var(--warning-color); 
+}
+.pending-banner.danger { 
+    background-color: var(--danger-color); 
+}
 .pending-banner .icon {
     width: 18px;
     height: 18px;
@@ -363,55 +351,40 @@ body {
 
     </div>
 
-<!-- NEW: Updated Firebase SDKs and Auth Logic -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-    async function initializeAndAuth() {
-        const loader = document.getElementById('loader');
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    
+    async function checkAuthAndInitialize() {
         try {
-            if (typeof __firebase_config === 'undefined') {
-                throw new Error("Firebase config is not available.");
-            }
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
             
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getDatabase(app);
-
-            onAuthStateChanged(auth, (user) => {
+            firebase.initializeApp(config.firebase);
+            
+            firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    console.log("User authenticated:", user.uid);
-                    loader.innerHTML = '<div class="spinner"></div>Loading member data...';
-                    runAppLogic(db);
+                    runAppLogic();
                 } else {
-                    console.log("No user signed in yet, attempting sign-in...");
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
-            
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                console.warn("Custom auth token not found, signing in anonymously.");
-                await signInAnonymously(auth);
-            }
 
         } catch (error) {
-            console.error("Authentication Error:", error);
-            loader.innerHTML = `<p style="color: red; font-weight: bold;">Application Failed to Start</p><p style="color: red;">${error.message}</p>`;
+            console.error("Initialization Error:", error);
+            const loader = document.getElementById('loader');
+            loader.innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
         }
     }
 
-    function runAppLogic(db) {
+    function runAppLogic() {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
             money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
             penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
             download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
-            next: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>`
+            star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`
         };
 
         const state = {
@@ -426,9 +399,11 @@ body {
         };
 
         async function fetchAndProcessData() {
+            state.ui.loader.innerHTML = '<div class="spinner"></div>Loading member data...';
             try {
-                const membersRef = ref(db, 'members');
-                const snapshot = await get(membersRef);
+                const db = firebase.database();
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
                 if (!snapshot.exists()) throw new Error('No member data found.');
                 
                 const membersData = snapshot.val();
@@ -437,11 +412,7 @@ body {
                     const member = membersData[memberId];
                     if (member.transactions) {
                         for (const txId in member.transactions) {
-                            allTransactions.push({ 
-                                ...member.transactions[txId], 
-                                fullName: member.fullName, 
-                                profilePicUrl: member.profilePicUrl 
-                            });
+                            allTransactions.push({ ...member.transactions[txId], fullName: member.fullName, profilePicUrl: member.profilePicUrl });
                         }
                     }
                 }
@@ -464,84 +435,40 @@ body {
                     Name: String(row.fullName || 'Unknown').trim(),
                     Date: new Date(row.Date),
                     Loan: parseFloat(row.Loan || 0),
-                    LoanType: row['Loan Type'] || 'Personal Loan',
                     Payment: parseFloat(row['Loan Payment'] || 0),
-                    ReturnAmount: parseFloat(row['Return amount'] || 0),
                     ImageUrl: row.profilePicUrl || null
                 }))
                 .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
                 .sort((a, b) => a.Date - b.Date);
         }
-        
-        function calculatePersonalLoanDetails(loanAmount, loanDate, paymentsAfterLoan) {
-            const today = new Date();
-            const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
-            
-            let penaltyPercentage = 0;
-            if (daysSinceLoan > 30 && daysSinceLoan <= 60) penaltyPercentage = 3;
-            else if (daysSinceLoan > 60 && daysSinceLoan <= 90) penaltyPercentage = 5;
-            else if (daysSinceLoan > 90) penaltyPercentage = 6;
-            
-            const penaltyAmount = Math.round((loanAmount * penaltyPercentage) / 100);
 
-            return {
-                type: 'Personal Loan',
-                penalty: { percentage: penaltyPercentage, amount: penaltyAmount },
-                daysAgo: daysSinceLoan,
-                statusText: `Loan taken ${daysSinceLoan} days ago`
-            };
+        function calculateStandardPenalty(loanAmount, daysSinceLoan) {
+            let percentage = 0;
+            if (daysSinceLoan > 0 && daysSinceLoan <= 30)       percentage = 1;
+            else if (daysSinceLoan >= 31 && daysSinceLoan <= 60) percentage = 3;
+            else if (daysSinceLoan >= 61 && daysSinceLoan <= 90) percentage = 5;
+            else if (daysSinceLoan > 90)                   percentage = 6;
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { type: 'penalty', percentage, amount };
         }
 
-        function calculateBusinessLoanDetails(loanAmount, loanDate, paymentsAfterLoan) {
-            const today = new Date();
-            const interestOnlyMonths = 3;
-            const emiMonths = 6;
-            const monthlyInterestRate = 0.015;
-
-            const interestPaymentsMade = paymentsAfterLoan.filter(p => p.ReturnAmount > 0).length;
-            const emiPaymentsMade = paymentsAfterLoan.filter(p => p.Payment > 0).length;
-
-            const monthsPassed = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24 * 30.44));
+        function calculateSmartSlabInterest(loanAmount, paymentsMadeCount) {
+            let percentage = 0;
+            let slabName = "";
             
-            let currentPhase, nextPaymentAmount, statusText;
-            const nextPaymentMonth = new Date(loanDate);
-            nextPaymentMonth.setMonth(nextPaymentMonth.getMonth() + monthsPassed + 1);
-
-            if (monthsPassed < interestOnlyMonths) {
-                currentPhase = `Interest Period (Month ${monthsPassed + 1}/${interestOnlyMonths})`;
-                nextPaymentAmount = loanAmount * monthlyInterestRate;
-                statusText = `Next Interest Due: ${nextPaymentMonth.toLocaleString('default', { month: 'long' })}`;
+            if (paymentsMadeCount === 0) {
+                percentage = 1; 
+                slabName = "Month 1";
+            } else if (paymentsMadeCount === 1) {
+                percentage = 2.5; 
+                slabName = "Month 2";
             } else {
-                currentPhase = `EMI Period (Month ${monthsPassed - interestOnlyMonths + 1}/${emiMonths})`;
-                const emi = (loanAmount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, emiMonths)) / (Math.pow(1 + monthlyInterestRate, emiMonths) - 1);
-                nextPaymentAmount = emi;
-                statusText = `Next EMI Due: ${nextPaymentMonth.toLocaleString('default', { month: 'long' })}`;
+                percentage = 4.5; 
+                slabName = "Month 3+";
             }
-            
-            return {
-                type: 'Business Loan',
-                interestPaymentsCount: interestPaymentsMade,
-                emiPaymentsCount: emiPaymentsMade,
-                currentPhase: currentPhase,
-                nextPayment: { amount: nextPaymentAmount, month: nextPaymentMonth.toLocaleString('default', { month: 'long' }) },
-                statusText: statusText
-            };
-        }
 
-        function calculateSimpleInterestLoanDetails(loanAmount, loanDate, loanType) {
-            const today = new Date();
-            const monthlyInterestRate = 0.03;
-            const nextPaymentAmount = loanAmount * monthlyInterestRate;
-            
-            const monthsPassed = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24 * 30.44));
-            const nextPaymentMonth = new Date(loanDate);
-            nextPaymentMonth.setMonth(nextPaymentMonth.getMonth() + monthsPassed + 1);
-            
-            return {
-                type: loanType,
-                nextPayment: { amount: nextPaymentAmount, month: nextPaymentMonth.toLocaleString('default', { month: 'long' }) },
-                statusText: `Next Interest Due: ${nextPaymentMonth.toLocaleString('default', { month: 'long' })}`;
-            };
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { type: 'smart-interest', percentage, amount, slabName };
         }
 
         function findOutstandingLoans(allData) {
@@ -550,10 +477,11 @@ body {
 
             members.forEach(name => {
                 const memberData = allData.filter(r => r.Name === name);
-                const lastLoanTx = memberData.filter(tx => tx.Loan > 0).pop();
-                if (!lastLoanTx) return;
+                
+                const lastLoan = memberData.filter(tx => tx.Loan > 0).pop();
+                if (!lastLoan) return;
 
-                const transactionsAfterLoan = memberData.filter(tx => tx.Date >= lastLoanTx.Date);
+                const transactionsAfterLoan = memberData.filter(tx => tx.Date >= lastLoan.Date);
                 
                 let currentBalance = 0;
                 transactionsAfterLoan.forEach(tx => {
@@ -563,34 +491,61 @@ body {
                 
                 currentBalance = Math.round(currentBalance);
                 if (currentBalance <= 0) return;
+
+                // --- Yahan se naya logic shuru hota hai ---
+                const today = new Date();
+                const loanDate = lastLoan.Date;
                 
-                const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0 || tx.ReturnAmount > 0);
-                let loanDetails;
-                
-                switch(lastLoanTx.LoanType) {
-                    case 'Business Loan':
-                        loanDetails = calculateBusinessLoanDetails(currentBalance, lastLoanTx.Date, paymentsAfterLoan);
-                        break;
-                    case 'Gold Loan':
-                    case 'Guarantor Loan':
-                        loanDetails = calculateSimpleInterestLoanDetails(currentBalance, lastLoanTx.Date, lastLoanTx.LoanType);
-                        break;
-                    case 'Personal Loan':
-                    default:
-                        loanDetails = calculatePersonalLoanDetails(currentBalance, lastLoanTx.Date, paymentsAfterLoan);
-                        break;
+                // ✅ CORRECTED: Time period hamesha loan date se hi calculate hoga.
+                const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
+
+                let interestInfo;
+                let status = 'standard'; // Default status
+
+                // Smart Slab ki yogyata check karein
+                const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
+                const firstPaymentAfterLoan = paymentsAfterLoan[0];
+                let isSmartSlabEligible = false;
+
+                if (firstPaymentAfterLoan) {
+                    const daysToFirstPayment = (firstPaymentAfterLoan.Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24);
+                    if (daysToFirstPayment <= 30) {
+                        isSmartSlabEligible = true;
+                    }
+                }
+
+                if (isSmartSlabEligible) {
+                    // Member Smart Slab mein hai. Ab default check karein.
+                    const lastPayment = paymentsAfterLoan[paymentsAfterLoan.length - 1];
+                    const daysSinceLastPayment = Math.floor((today.getTime() - lastPayment.Date.getTime()) / (1000 * 3600 * 24));
+                    
+                    if (daysSinceLastPayment > 30) {
+                        // DEFAULT HO GAYA!
+                        status = 'smart-defaulted';
+                        interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                    } else {
+                        // ACTIVE HAI!
+                        status = 'smart-active';
+                        interestInfo = calculateSmartSlabInterest(currentBalance, paymentsAfterLoan.length);
+                    }
+                } else {
+                    // STANDARD PENALTY
+                    status = 'standard';
+                    interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
                 }
 
                 outstanding.push({
                     name: name,
                     loanAmount: currentBalance,
-                    loanDate: lastLoanTx.Date,
+                    daysAgo: daysSinceLoan, // ✅ Hamesha loan date se
                     imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
-                    details: loanDetails
+                    loanDate: loanDate,
+                    interest: interestInfo,
+                    status: status
                 });
             });
             
-            return outstanding.sort((a, b) => b.loanDate - a.loanDate);
+            return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
         }
 
         function displayAllData() {
@@ -603,71 +558,6 @@ body {
             const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
             totalCountEl.textContent = loans.length;
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
-        }
-
-        function renderCardDetails(loan) {
-            const { details } = loan;
-            let detailsHtml = '';
-
-            switch(details.type) {
-                case 'Business Loan':
-                    detailsHtml = `
-                        <div class="payment-tracker">
-                            <div class="tracker-box">
-                                <div class="label">Interest Paid</div>
-                                <div class="count">${details.interestPaymentsCount}</div>
-                            </div>
-                            <div class="tracker-box">
-                                <div class="label">EMIs Paid</div>
-                                <div class="count">${details.emiPaymentsCount}</div>
-                            </div>
-                        </div>
-                        <div class="card-middle">
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.money} Outstanding:</span>
-                                <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.next} Next Payment (${details.nextPayment.month}):</span>
-                                <span class="detail-value next-payment">₹${details.nextPayment.amount.toLocaleString('en-IN')}</span>
-                            </div>
-                        </div>`;
-                    break;
-                case 'Gold Loan':
-                case 'Guarantor Loan':
-                    detailsHtml = `
-                        <div class="card-middle">
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.money} Outstanding:</span>
-                                <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.next} Next Interest (${details.nextPayment.month}):</span>
-                                <span class="detail-value next-payment">₹${details.nextPayment.amount.toLocaleString('en-IN')}</span>
-                            </div>
-                        </div>`;
-                    break;
-                case 'Personal Loan':
-                default:
-                    let penaltyHtml = '';
-                    if (details.penalty.amount > 0) {
-                        penaltyHtml = `
-                        <div class="detail-row">
-                            <span class="detail-label">${ICONS.penalty} Late Fee (${details.penalty.percentage}%):</span>
-                            <span class="detail-value penalty-value">₹${details.penalty.amount.toLocaleString('en-IN')}</span>
-                        </div>`;
-                    }
-                     detailsHtml = `
-                        <div class="card-middle">
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.money} Outstanding:</span>
-                                <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
-                            </div>
-                            ${penaltyHtml}
-                        </div>`;
-                    break;
-            }
-            return detailsHtml;
         }
 
         function displayLoanCards(loans) {
@@ -691,9 +581,28 @@ body {
                 const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                 
                 let bannerClass = 'green';
-                if (loan.details.daysAgo > 30) bannerClass = 'danger';
-                else if (loan.details.daysAgo > 15) bannerClass = 'warning';
+                if (loan.daysAgo > 30) bannerClass = 'danger';
+                else if (loan.daysAgo > 15) bannerClass = 'warning';
                 
+                let interestHtml = '';
+                if (loan.interest.amount > 0) {
+                    const label = loan.status === 'smart-active' ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
+                    interestHtml = `
+                        <div class="detail-row">
+                            <span class="detail-label">${ICONS.penalty} ${label} (${loan.interest.percentage}%):</span>
+                            <span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span>
+                        </div>`;
+                }
+                
+                let statusBadge = '';
+                if (loan.status === 'smart-active') {
+                    statusBadge = `<div class="smart-slab-badge active">${ICONS.star} Smart Slab Active</div>`;
+                } else if (loan.status === 'smart-defaulted') {
+                    statusBadge = `<div class="smart-slab-badge defaulted">${ICONS.penalty} Slab Defaulted</div>`;
+                }
+
+                let bannerText = `Loan taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
+
                 card.innerHTML = `
                     <div class="card-main-content">
                         <button class="download-btn" data-card-id="${cardId}" title="Download Card">
@@ -705,15 +614,21 @@ body {
                             </div>
                             <div class="user-details">
                                 <h3>${loan.name}</h3>
-                                <div class="loan-type-badge">${loan.details.type}</div>
+                                ${statusBadge}
                                 <div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div>
                             </div>
                         </div>
-                        ${renderCardDetails(loan)}
+                        <div class="card-middle">
+                            <div class="detail-row">
+                                <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
+                                <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                            ${interestHtml}
+                        </div>
                     </div>
                     <div class="pending-banner ${bannerClass}">
                         ${ICONS.clock}
-                        <span>${loan.details.statusText}</span>
+                        <span>${bannerText}</span>
                     </div>
                 `;
                 container.appendChild(card);
@@ -759,8 +674,8 @@ body {
         fetchAndProcessData();
     }
     
-    // Start the app
-    initializeAndAuth();
+    checkAuthAndInitialize();
+});
 </script>
 </body>
 </html>
