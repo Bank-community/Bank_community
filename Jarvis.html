@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bank Jarvis - Premium AI Assistant</title>
+    <title>Bank Jarvis - The Ultimate AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -15,38 +15,37 @@
     <!-- Chart.js for Data Visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- NEW LIBRARIES FOR ENHANCED UI/UX -->
-    <!-- Anime.js for advanced animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <!-- date-fns for better date formatting -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.29.3/umd/index.min.js"></script>
-    <!-- Tippy.js for professional tooltips -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-
     <style>
         :root {
-            --header-gradient: linear-gradient(135deg, #1e3a8a, #2563eb);
-            --premium-dark-blue: #0f172a;
-            --secondary-color: #f1f5f9;
-            --user-message-bg: #e0f2fe; 
+            --primary-gradient: linear-gradient(135deg, #2E7D32, #4CAF50);
+            --secondary-color: #f0f4f8;
+            /* FIXED: User message background color is now correct as per your request */
+            --user-message-bg: #DCF8C7; 
             --bot-message-bg: #ffffff;
-            --text-dark: #1e293b;
-            --text-light: #64748b;
-            --border-color: #e2e8f0;
-            --highlight-color: #1d4ed8; 
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --text-dark: #1C1C1E;
+            --text-light: #6C757D;
+            --border-color: #e5e7eb;
+            --highlight-color: #111827; 
+            --shadow-light: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         
+        @keyframes image-fade-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .image-faq-img {
+            animation: image-fade-in 0.5s ease-out;
+        }
+
         @keyframes spin { to { transform: rotate(360deg); } }
         .img-loader {
             width: 50px;
             height: 50px;
-            border: 5px solid #e2e8f0;
-            border-top: 5px solid var(--highlight-color);
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4CAF50;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -55,16 +54,18 @@
             justify-content: center;
             align-items: center;
             min-height: 200px;
-            background-color: #f8fafc;
+            background-color: #f9fafb;
             border-radius: 8px;
         }
 
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--secondary-color); }
-        .message { opacity: 0; /* Initially hidden for anime.js animation */ }
+        .chat-container { animation: fadeIn 0.5s ease-out; }
+        .message { animation: fadeIn 0.3s ease-out; }
         
         .chat-messages::-webkit-scrollbar { width: 6px; }
         .chat-messages::-webkit-scrollbar-track { background: transparent; }
-        .chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         
         .suggestion-pill { transition: all 0.2s ease-in-out; }
         .suggestion-pill:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -74,30 +75,22 @@
 
         .clickable-link { color: #2563eb; font-weight: 600; text-decoration: underline; word-break: break-all; }
         .clickable-link:hover { color: #1d4ed8; }
-        .chart-container { padding: 10px; margin-top: 10px; background-color: #f8fafc; border-radius: 12px; max-width: 320px; margin-left: auto; margin-right: auto; box-shadow: var(--shadow-md); }
+        .chart-container { padding: 10px; margin-top: 10px; background-color: #f9fafb; border-radius: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
         
         .capital-king-card { border-left: 4px solid; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .capital-king-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-        .post-answer-suggestion {
-            background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;
-            padding: 8px 12px; margin: 4px; border-radius: 16px; font-size: 0.9em;
-            cursor: pointer; transition: all 0.2s ease;
-        }
-        .post-answer-suggestion:hover { background-color: #e0e7ff; border-color: #a5b4fc; }
-
-        /* --- FIXED & ENHANCED IMAGE MODAL --- */
+        /* FIXED: Modal styles for correct full-screen display */
         .modal { 
             display: none; 
             position: fixed;
-            z-index: 1000;
+            z-index: 100;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(15, 23, 42, 0.85);
-            -webkit-backdrop-filter: blur(4px);
-            backdrop-filter: blur(4px);
+            overflow: auto;
+            background-color: rgba(0,0,0,0.85);
             align-items: center;
             justify-content: center;
         }
@@ -113,16 +106,19 @@
              width: 100%;
              height: 100%;
         }
-        #modalImageContent {
-            max-width: 95vw;
-            max-height: 90vh;
-            border-radius: 12px;
-            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
-            object-fit: contain;
+
+        .post-answer-suggestion {
+            background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;
+            padding: 8px 12px; margin: 4px; border-radius: 16px; font-size: 0.9em;
+            cursor: pointer; transition: all 0.2s ease;
         }
+        .post-answer-suggestion:hover { background-color: #e0e7ff; border-color: #a5b4fc; }
+
         #modalNav {
             position: absolute;
             top: 50%;
+            left: 0;
+            right: 0;
             width: 100%;
             display: flex;
             justify-content: space-between;
@@ -131,51 +127,33 @@
             pointer-events: none;
         }
         #modalNav button {
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: rgba(0, 0, 0, 0.5);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: none;
             border-radius: 50%;
             width: 44px;
             height: 44px;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.2s;
+            transition: background-color 0.2s;
             pointer-events: all;
         }
         #modalNav button:hover {
-            background-color: rgba(0, 0, 0, 0.7);
-            transform: scale(1.1);
+            background-color: rgba(0, 0, 0, 0.8);
         }
         #modalNav button:disabled {
             opacity: 0.3;
             cursor: not-allowed;
-        }
-        .close-modal-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            color: white;
-            font-size: 35px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-            z-index: 1001;
-        }
-        .close-modal-btn:hover {
-            transform: scale(1.2);
         }
     </style>
 </head>
 <body class="antialiased">
 
     <div class="chat-container flex flex-col h-screen w-full bg-white shadow-2xl md:max-w-4xl md:mx-auto">
-        <!-- PREMIUM HEADER -->
-        <header class="relative flex items-center justify-center p-4 text-white shadow-lg z-10" style="background: var(--premium-dark-blue);">
-            <i class="fa-solid fa-shield-halved text-2xl mr-3 text-blue-300"></i>
-            <h1 class="text-xl font-bold tracking-wider">Bank Jarvis: Aapka Personal Finance Assistant</h1>
+        <header class="relative flex items-center justify-center p-4 bg-gray-800 text-white shadow-lg z-10">
+            <h1 class="text-xl font-bold tracking-wider">Bank Jarvis</h1>
         </header>
-        
-        <!-- LOCK MODE BANNER (RESTORED) -->
+
         <div id="lock-mode-banner" class="hidden flex items-center justify-between p-3 bg-yellow-100 border-b-2 border-yellow-300">
             <div class="flex items-center">
                 <i class="fas fa-lock text-yellow-600 text-xl mr-3 lock-icon-pulse"></i>
@@ -187,25 +165,25 @@
             <button id="unlock-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-full text-sm">Unlock</button>
         </div>
 
-        <div id="chat" class="chat-messages flex-1 p-3 sm:p-6 overflow-y-auto" style="background-color: var(--secondary-color);"></div>
+        <div id="chat" class="chat-messages flex-1 p-3 sm:p-6 overflow-y-auto bg-secondary-color"></div>
 
         <div class="bg-white p-4 border-t border-gray-200 shadow-inner">
-            <div id="suggestions" class="mb-3 flex flex-wrap gap-2"></div>
+            <div id="suggestions" class="mb-2 flex flex-wrap gap-2"></div>
             <div class="relative">
-                <input type="text" id="input" class="w-full pl-5 pr-14 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200" placeholder="Yahan apna sawaal likhein...">
-                <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110 shadow-md">
+                <input type="text" id="input" class="w-full pl-4 pr-12 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Jarvis se apna sawaal likhein...">
+                <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MODALS -->
-    <!-- IMAGE MODAL (FIXED) -->
-    <div id="imageModal" class="modal">
-        <span class="close-modal-btn" onclick="window.jarvis.closeImageModal()">&times;</span>
+    <!-- Modals -->
+    <!-- FIXED: Modal structure and event handling for correct closing behavior -->
+    <div id="imageModal" class="modal" onclick="window.jarvis.closeImageModal()">
+        <span class="absolute top-4 right-6 text-white text-4xl font-bold cursor-pointer z-20" onclick="window.jarvis.closeImageModal()">&times;</span>
         <div class="modal-content-wrapper" onclick="event.stopPropagation()">
-            <img id="modalImageContent" src="" alt="Full screen view">
+            <img id="modalImageContent" class="max-w-[90vw] max-h-[85vh] rounded-lg">
             <div id="modalNav">
                 <button id="prevBtn" onclick="window.jarvis.showPrevImage()"><i class="fas fa-chevron-left"></i></button>
                 <button id="nextBtn" onclick="window.jarvis.showNextImage()"><i class="fas fa-chevron-right"></i></button>
@@ -213,8 +191,8 @@
         </div>
     </div>
     
-    <div id="capitalKingsModal" class="modal">
-        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div id="capitalKingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-40">
+        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">Capital Kings Ranking</h2>
                 <button onclick="window.jarvis.closeCapitalModal()" class="text-gray-500 text-2xl">&times;</button>
@@ -223,8 +201,8 @@
         </div>
     </div>
 
-    <div id="capitalDetailModal" class="modal">
-        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div id="capitalDetailModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">Capital Score Analysis</h2>
                 <button onclick="window.jarvis.closeCapitalDetailModal()" class="text-gray-500 text-2xl">&times;</button>
@@ -286,9 +264,6 @@
             const modalImage = document.getElementById('modalImageContent');
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
-            
-            // Initialize Tippy.js tooltips
-            tippy('[data-tippy-content]');
 
 
             async function initializeBot() {
@@ -347,16 +322,16 @@
                                 questions: ["KYC ke liye kya documents chahiye?", "documents required for kyc"],
                                 imageTitle: "KYC Documents Guide",
                                 imageGallery: [
-                                    'https://placehold.co/800x600/1e3a8a/FFFFFF?text=1.+Aadhaar+Card',
-                                    'https://placehold.co/800x600/2563eb/FFFFFF?text=2.+PAN+Card',
-                                    'https://placehold.co/800x600/3b82f6/FFFFFF?text=3.+Bank+Passbook'
+                                    'https://placehold.co/600x400/2E7D32/FFFFFF?text=1.+Aadhaar+Card',
+                                    'https://placehold.co/600x400/4CAF50/FFFFFF?text=2.+PAN+Card',
+                                    'https://placehold.co/600x400/8BC34A/FFFFFF?text=3.+Bank+Passbook'
                                 ],
                                 answer: "KYC ke liye aapko in documents ki zaroorat padegi: Aadhaar Card, PAN Card, aur Bank Passbook ki photo copy."
                             }
                         ];
                     }
 
-                    typing.parentElement.remove();
+                    typing.remove();
                     await typeMessage("Aap kisi sadasya ka naam type kar sakte hain ya koi niyam pooch sakte hain.", "bot");
                     isBotInitialized = true;
                     showDefaultSuggestions();
@@ -417,14 +392,12 @@
                 try {
                     if (!preAnalyzedCache) {
                         await typeMessage("त्रुटि: सदस्य का डेटा विश्लेषण नहीं हो पाया है। कृपया अनलॉक करके फिर से लॉक करें।", "bot");
-                        typing.parentElement.remove();
                         return;
                     }
                     
                     const analyticalAnswer = superCalculator(query, preAnalyzedCache, member.name);
 
                     if (analyticalAnswer) {
-                        typing.parentElement.remove();
                         await typeMessage(analyticalAnswer.text, "bot", analyticalAnswer.text);
                         if (analyticalAnswer.chartData) {
                             renderComparisonChart(analyticalAnswer.chartData.data, analyticalAnswer.chartData.type);
@@ -437,51 +410,54 @@
                     const prompt = `You are Jarvis, a super-intelligent financial AI assistant for a bank community. Your current focus is solely on a member named **${member.name}**. **PRIMARY DIRECTIVE:** Your main role is to ANALYZE financial data and EXPLAIN it in simple, conversational Hinglish. You are NOT a calculator. All calculations are pre-computed. Your job is to present the information clearly. **CRITICAL RULES:** 1. **Scope:** ONLY answer questions related to the provided "MEMBER'S TRANSACTION HISTORY". If the user asks about anything else (general knowledge, small talk, etc.), you MUST respond with EXACTLY this sentence: "माफ़ कीजिए, मैं अभी लॉक मोड में हूँ और सिर्फ ${member.name} से जुड़े वित्तीय सवालों का जवाब दे सकता हूँ।" 2. **Language & Formatting:** * Respond in simple, helpful Hinglish. * ALWAYS use numerals (e.g., 1500, 2000) for numbers. NEVER write them in words (e.g., "पंद्रह सौ"). * Format dates as DD-MM-YYYY. * Use newlines (\n) to separate points in a list for better readability. 3. **Context is Key:** The "CONVERSATION HISTORY" provides the last few messages. Use it to understand follow-up questions. For example, if the user asks "why?", refer to the previous answer to understand what "why" is about. **CONVERSATION HISTORY (for context):** ${JSON.stringify(chatHistory.slice(-4))} **MEMBER'S ENTIRE TRANSACTION HISTORY (for analysis):** \`\`\`json ${JSON.stringify(transactions, null, 2)} \`\`\` **User's Current Query:** "${query}"`;
                     
                     const aiResponse = await callGemini(prompt);
-                    typing.parentElement.remove();
                     await typeMessage(aiResponse, "bot", aiResponse);
 
                 } finally {
-                    const typingEl = document.querySelector('.bot.typing');
-                    if (typingEl) typingEl.parentElement.remove();
+                    typing.remove();
                 }
             }
             
-            function animateMessageIn(element) {
-                anime({
-                    targets: element,
-                    opacity: [0, 1],
-                    translateY: [20, 0],
-                    duration: 400,
-                    easing: 'easeOutQuad'
-                });
+            function formatBotAnswer(content) {
+                if (!content) return '';
+                const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी'];
+                const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
+                let processedContent = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`);
+                
+                processedContent = processedContent.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>');
+                
+                processedContent = processedContent.replace(/\n/g, '<br>');
+                processedContent = processedContent.replace(/(\d+\s*-\s*\d+\s*दिन\s*के\s*लोन\s*पर)/g, '<br><br>$1');
+                processedContent = processedContent.replace(/(\d+\+\s*दिन\s*के\s*लोन\s*पर)/g, '<br><br>$1');
+
+                return processedContent;
+            }
+
+            function processLinks(content) {
+                if (!content) return '';
+                const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
+                return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
             }
 
             function appendRichMessage(content, type) {
                 const messageEl = document.createElement('div');
-                messageEl.className = `message max-w-lg mb-4 clear-both ${type}`;
-                if (type.includes('user')) messageEl.classList.add('ml-auto');
-                else messageEl.classList.add('mr-auto');
-
+                messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
                 const bubbleEl = document.createElement('div');
-                bubbleEl.className = `p-4 rounded-2xl shadow-md`;
-
-                if (type.includes('user')) {
-                    bubbleEl.className += ' rounded-br-none';
+                // FIXED: Applying the background color directly using the CSS variable
+                bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'rounded-br-none' : 'rounded-bl-none'}`;
+                if (type === 'user') {
                     bubbleEl.style.backgroundColor = 'var(--user-message-bg)';
                     bubbleEl.style.color = 'var(--text-dark)';
                 } else {
-                    bubbleEl.className += ' rounded-bl-none';
                     bubbleEl.style.backgroundColor = 'var(--bot-message-bg)';
                 }
                 
-                if (type.includes('typing')) {
+                if (type === 'bot typing') {
                     bubbleEl.innerHTML = `<div class="flex items-center space-x-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div></div>`;
                 } else {
                     bubbleEl.innerHTML = content;
                 }
                 messageEl.appendChild(bubbleEl);
                 chatBox.appendChild(messageEl);
-                animateMessageIn(messageEl);
                 chatBox.scrollTop = chatBox.scrollHeight;
                 return bubbleEl;
             }
@@ -495,7 +471,6 @@
                     
                     const messageEl = document.createElement('div');
                     messageEl.className = `message max-w-lg mb-4 clear-both ${type === 'user' ? 'ml-auto' : 'mr-auto'}`;
-                    
                     const bubbleEl = document.createElement('div');
                     bubbleEl.className = `p-4 rounded-2xl shadow-md ${type === 'user' ? 'rounded-br-none' : 'rounded-bl-none'}`;
                      if (type === 'user') {
@@ -506,7 +481,6 @@
                     }
                     messageEl.appendChild(bubbleEl);
                     chatBox.appendChild(messageEl);
-                    animateMessageIn(messageEl);
                     
                     let i = 0;
                     bubbleEl.innerHTML = "▋";
@@ -521,22 +495,20 @@
                             chatBox.scrollTop = chatBox.scrollHeight;
                             resolve(bubbleEl);
                         }
-                    }, 20);
+                    }, 25);
                 });
             }
 
             function appendMemberClarification(member) {
                 const html = `<p class="font-semibold">${member.name}</p>
                     <div class="flex items-center space-x-2 mt-2">
-                        <button onclick="window.jarvis.displayMemberDetails('${member.id}')" class="bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" data-tippy-content="View Details"><i class="fas fa-eye"></i></button>
-                        <button onclick="window.jarvis.activateLockMode({id: '${member.id}', name: '${member.name}'})" class="bg-gray-500 hover:bg-gray-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" data-tippy-content="Activate Lock Mode"><i class="fas fa-lock"></i></button>
+                        <button onclick="window.jarvis.displayMemberDetails('${member.id}')" class="bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" title="View Details"><i class="fas fa-eye"></i></button>
+                        <button onclick="window.jarvis.activateLockMode({id: '${member.id}', name: '${member.name}'})" class="bg-gray-500 hover:bg-gray-600 text-white w-8 h-8 rounded-full transition-transform hover:scale-110" title="Activate Lock Mode"><i class="fas fa-lock"></i></button>
                     </div>`;
                 const messageEl = document.createElement('div');
                 messageEl.className = 'message bg-white p-3 rounded-lg shadow-md flex items-center justify-between';
                 messageEl.innerHTML = html;
                 chatBox.appendChild(messageEl);
-                animateMessageIn(messageEl);
-                tippy(messageEl.querySelectorAll('[data-tippy-content]'));
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
 
@@ -544,15 +516,13 @@
                 const typing = appendRichMessage("...", "bot typing");
                 const memberData = allMembersFullData[memberId];
                 await new Promise(resolve => setTimeout(resolve, 500));
-                typing.parentElement.remove();
+                typing.remove();
                 if (!memberData) { await typeMessage("त्रुटि: सदस्य का डेटा नहीं मिला।", "bot"); return; }
                 const data = aggregateMemberData(memberData);
                 const profileImageUrl = data.profilePicUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${data.name.charAt(0)}`;
                 const signatureImageUrl = data.signatureUrl || `https://placehold.co/150x75/E2E8F0/4A5568?text=No+Sign`;
-                const formattedJoinDate = dateFns.format(new Date(data.rawJoinDate), 'dd MMM yyyy');
-                const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-blue-500 cursor-pointer" onclick="window.jarvis.openImageModal(['${profileImageUrl}'], 0)"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${formattedJoinDate}</p></div></div><button onclick="window.jarvis.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-blue-600 transition-transform hover:scale-125" data-tippy-content="Is sadasya par lock karein"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.jarvis.openImageModal(['${signatureImageUrl}'], 0)" alt="Signature"></div></div>`;
-                const bubble = appendRichMessage(cardHtml, "bot");
-                tippy(bubble.querySelectorAll('[data-tippy-content]'));
+                const cardHtml = `<div class="p-1"><div class="flex items-center justify-between pb-4 border-b"><div class="flex items-center"><img src="${profileImageUrl}" class="w-16 h-16 rounded-full mr-4 border-2 border-green-500 cursor-pointer" onclick="window.jarvis.openImageModal(['${profileImageUrl}'], 0)"><div><h3 class="text-xl font-bold text-gray-800">${data.name}</h3><p class="text-sm text-gray-500">Joined: ${data.joinDate}</p></div></div><button onclick="window.jarvis.activateLockMode({id: '${memberId}', name: '${data.name}'})" class="text-gray-400 hover:text-green-600 transition-transform hover:scale-125" title="Lock on this member"><i class="fas fa-lock text-2xl"></i></button></div><div class="grid grid-cols-2 gap-4 text-center py-4"><div class="bg-green-50 p-3 rounded-lg"><p class="text-sm text-green-700">Net Balance</p><p class="font-bold text-lg text-green-900">₹${data.netBalance.toLocaleString('en-IN')}</p></div><div class="bg-red-50 p-3 rounded-lg"><p class="text-sm text-red-700">Outstanding Loan</p><p class="font-bold text-lg text-red-900">₹${data.netLoanOutstanding.toLocaleString('en-IN')}</p></div></div><div class="flex items-center justify-between pt-4 border-t"><div><p class="text-sm text-gray-500">SIP Status (This Month)</p><p class="font-bold text-lg ${data.sipStatus.class}">${data.sipStatus.text}</p></div><img src="${signatureImageUrl}" class="h-10 rounded border cursor-pointer" onclick="window.jarvis.openImageModal(['${signatureImageUrl}'], 0)" alt="Signature"></div></div>`;
+                appendRichMessage(cardHtml, "bot");
             }
             
             async function displayImageFaq(faq) {
@@ -565,7 +535,8 @@
                 cardContainer.appendChild(title);
 
                 const imageContainer = document.createElement('div');
-                imageContainer.className = 'relative w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer transition-transform hover:scale-105';
+                imageContainer.className = 'relative w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer';
+                // Pass the full gallery to the modal
                 imageContainer.onclick = () => window.jarvis.openImageModal(faq.imageGallery, 0);
                 
                 const loaderContainer = document.createElement('div');
@@ -606,11 +577,12 @@
                         liveAnswerP.innerHTML = processLinks(textToType);
                         chatBox.scrollTop = chatBox.scrollHeight;
                     }
-                }, 20);
+                }, 25);
 
                 liveImage.onload = () => {
                     liveLoader.style.display = 'none';
                     liveImage.style.display = 'block';
+                    liveImage.classList.add('image-faq-img');
                 };
                 liveImage.onerror = () => {
                     liveLoader.innerHTML = 'Image not found';
@@ -633,7 +605,7 @@
                 appendRichMessage(chartContainer.outerHTML, 'bot');
                 
                 const titles = { totalSip: 'Total SIP Comparison', totalLoan: 'Total Loan Comparison', totalReturn: 'Total Return Comparison' };
-                const colors = { totalSip: ['#3b82f6', '#60a5fa', '#e5e7eb'], totalLoan: ['#ef4444', '#f87171', '#e5e7eb'], totalReturn: ['#8b5cf6', '#a78bfa', '#e5e7eb'] };
+                const colors = { totalSip: ['#36A2EB', '#4BC0C0', '#E5E7EB'], totalLoan: ['#FF6384', '#FF9F40', '#E5E7EB'], totalReturn: ['#9966FF', '#FFCD56', '#E5E7EB'] };
                 
                 const { totalValue, currentUser, topUser } = data;
                 const chartLabels = [];
@@ -655,7 +627,7 @@
 
                 const chartConfig = {
                     type: 'doughnut',
-                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 2, borderColor: '#f1f5f9' }] },
+                    data: { labels: chartLabels, datasets: [{ data: chartDataPoints, backgroundColor: colors[type], borderWidth: 1 }] },
                     options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: titles[type] }, tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw; const total = context.chart.getDatasetMeta(0).total; const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage})`; } } } }, cutout: '60%' }
                 };
                 
@@ -710,48 +682,30 @@
             }
 
             // --- Utility & Helper Functions ---
-            function formatBotAnswer(content) { if (!content) return ''; const keywords = ['लोन', 'loan', 'ब्याज', 'interest', 'SIP', 'पेनल्टी', 'penalty', 'रिटर्न', 'return', 'बाउंस', 'bounced', 'capital', 'पूँजी']; const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi'); let processedContent = content.replace(keywordRegex, `<strong style="color: var(--highlight-color); font-weight: 700;">$1</strong>`); processedContent = processedContent.replace(/(\d{1,3}(,\d{3})*(\.\d+)?%?)/g, '<strong>$1</strong>'); processedContent = processedContent.replace(/\n/g, '<br>'); return processedContent; }
-            function processLinks(content) { if (!content) return ''; const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g; return content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`); }
             function convertWordsToNumbers(text) { const numberWords = { 'ek': '1', 'one': '1', 'do': '2', 'two': '2', 'teen': '3', 'three': '3', 'char': '4', 'four': '4', 'panch': '5', 'five': '5', 'chhah': '6', 'chhe': '6', 'six': '6', 'saat': '7', 'seven': '7', 'aath': '8', 'eight': '8', 'nau': '9', 'nine': '9', 'das': '10', 'ten': '10' }; let processedText = text; for (const word in numberWords) { const regex = new RegExp(`\\b${word}\\b`, 'gi'); processedText = processedText.replace(regex, numberWords[word]); } return processedText; }
-            function superCalculator(query, cache, memberName) { const lowerQuery = convertWordsToNumbers(query.toLowerCase()); const s = cache.summary; const tx = cache.transactions; let text = null; let chartData = null; const formatDate = (dateStr) => dateFns.format(new Date(dateStr), 'dd-MM-yyyy'); const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment|transaction|len den)/); if (rangeMatch) { const direction = rangeMatch[1]; const count = parseInt(rangeMatch[2], 10); const type = rangeMatch[3]; let relevantTxs = []; let field = ''; let typeName = ''; if (type === 'sip') { relevantTxs = tx.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0); field = 'SIP Payment'; typeName = 'SIP bhugtaan'; } else if (type === 'loan') { relevantTxs = tx.filter(t => (parseFloat(t.Loan) || 0) > 0); field = 'Loan'; typeName = 'Loan'; } else if (type === 'return') { relevantTxs = tx.filter(t => (parseFloat(t['Return amount']) || 0) > 0); field = 'Return amount'; typeName = 'Return'; } else if (type === 'payment') { relevantTxs = tx.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0); field = 'Loan Payment'; typeName = 'Loan bhugtaan'; } else if (type.includes('transaction') || type.includes('len den')) { relevantTxs = tx; typeName = 'transaction'; } if (relevantTxs.length > 0) { const sortedTxs = [...relevantTxs].sort((a, b) => new Date(a.Date) - new Date(b.Date)); const selectedTxs = direction.startsWith('first') || direction.startsWith('pehla') ? sortedTxs.slice(0, count) : sortedTxs.slice(-count).reverse(); if (selectedTxs.length > 0) { if(typeName === 'transaction'){ let responseLines = selectedTxs.map((t, i) => { const sip = parseFloat(t['SIP Payment']) || 0; const loanPay = parseFloat(t['Loan Payment']) || 0; const loan = parseFloat(t.Loan) || 0; const ret = parseFloat(t['Return amount']) || 0; let desc = sip > 0 ? `SIP: ₹${sip}` : loanPay > 0 ? `Loan Payment: ₹${loanPay}` : ret > 0 ? `Return: ₹${ret}` : loan > 0 ? `Loan: ₹${loan}` : 'Other'; return `${i+1}. ${formatDate(t.Date)} - ${desc}`; }); text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} transactions is prakaar hain:\n${responseLines.join('\n')}`; } else { const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0); let responseLines = selectedTxs.map((t, i) => `${i+1}. ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`); text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} ${typeName} ka kul yog ₹${total.toLocaleString('en-IN')} hai. Vivaran is prakaar hai:\n${responseLines.join('\n')}`; } return { text, chartData: null }; } } text = `Aapke koi ${typeName} nahi mile.`; return { text, chartData: null }; } if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) { text = `${memberName} ji, aapke kul SIP ka yog ₹${s.totalSIP.toLocaleString('en-IN')} hai.`; const topData = findTopContributors(); chartData = { type: 'totalSip', data: { totalValue: calculateAllTimeTotals().sip, currentUser: { name: memberName, value: s.totalSIP }, topUser: topData.totalSipUser } }; } else if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) { text = `${memberName} ji, aapne ab tak kul ₹${s.totalLoan.toLocaleString('en-IN')} ka loan liya hai.`; if (s.netLoanOutstanding > 0) { text += ` Jismein se abhi ₹${s.netLoanOutstanding.toLocaleString('en-IN')} bakaaya hai.`; } const topData = findTopContributors(); chartData = { type: 'totalLoan', data: { totalValue: calculateAllTimeTotals().loan, currentUser: { name: memberName, value: s.totalLoan }, topUser: topData.totalLoanUser } }; } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) { text = `${memberName} ji, aapko ab tak kul ₹${s.totalReturn.toLocaleString('en-IN')} ka return mila hai.`; const topData = findTopContributors(); chartData = { type: 'totalReturn', data: { totalValue: calculateAllTimeTotals().return, currentUser: { name: memberName, value: s.totalReturn }, topUser: topData.totalReturnUser } }; } else if (lowerQuery.includes('outstanding') || lowerQuery.includes('bakaya')) { text = s.netLoanOutstanding > 0 ? `${memberName} ji, aapka kul bakaaya loan ₹${s.netLoanOutstanding.toLocaleString('en-IN')} hai.` : `${memberName} ji, aapka koi loan bakaaya nahi hai. Shandaar!`; } else if (lowerQuery.includes('net balance') || lowerQuery.includes('kul balance')) { text = `${memberName} ji, aapka net balance (kul jama - kul nikaasi) ₹${s.netBalance.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('total deposit') || lowerQuery.includes('kul jama')) { text = `${memberName} ji, aapki kul jama raashi (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('total withdrawal') || lowerQuery.includes('kul nikasi')) { text = `${memberName} ji, aapki kul nikaasi (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.match(/loan.*?sip.*?antar|difference/)) { const diff = Math.abs(s.totalSIP - s.totalLoan); text = `Aapke kul SIP (₹${s.totalSIP.toLocaleString('en-IN')}) aur kul Loan (₹${s.totalLoan.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.match(/jama.*?nikasi.*?antar|difference/)) { const diff = Math.abs(s.totalDeposits - s.totalWithdrawals); text = `Aapki kul jama (₹${s.totalDeposits.toLocaleString('en-IN')}) aur kul nikaasi (₹${s.totalWithdrawals.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) { const data = cache.highestSip; text = data ? `Aapka sabse zyada SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila."; } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) { const data = cache.firstSip; text = data ? `Aapka pehla SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila."; } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) { const data = cache.recentLoanPayment; text = data ? `Aapka haal hi ka loan payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke loan payment ka koi record nahi mila."; } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) { const data = cache.firstLoan; text = data ? `Aapne apna pehla loan (${data.daysAgo} din pehle) ${data.date} ko ₹${data.amount.toLocaleString('en-IN')} ka liya tha.` : "Aapke loan lene ka koi record nahi mila."; } if (text) { return { text, chartData }; } return null; }
-            function createSuggestionPill(text, type) { const pill = document.createElement('button'); pill.className = 'suggestion-pill px-3 py-1.5 rounded-full text-sm font-medium'; if (type === 'member') { pill.classList.add('bg-gray-200', 'text-gray-700'); pill.innerHTML = `<i class="fas fa-user mr-2 opacity-70"></i>${text}`; } else { pill.classList.add('bg-blue-100', 'text-blue-800'); pill.innerHTML = `<i class="fas fa-question-circle mr-2 opacity-70"></i>${text}`; } pill.onclick = () => { inputBox.value = text; handleSend(); }; return pill; }
+            function superCalculator(query, cache, memberName) { const lowerQuery = convertWordsToNumbers(query.toLowerCase()); const s = cache.summary; const tx = cache.transactions; let text = null; let chartData = null; const formatDate = (dateStr) => { const d = new Date(dateStr); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}-${month}-${year}`; }; const rangeMatch = lowerQuery.match(/(first|pehla|last|aakhiri)\s*(\d+)\s*(sip|loan|return|payment|transaction|len den)/); if (rangeMatch) { const direction = rangeMatch[1]; const count = parseInt(rangeMatch[2], 10); const type = rangeMatch[3]; let relevantTxs = []; let field = ''; let typeName = ''; if (type === 'sip') { relevantTxs = tx.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0); field = 'SIP Payment'; typeName = 'SIP bhugtaan'; } else if (type === 'loan') { relevantTxs = tx.filter(t => (parseFloat(t.Loan) || 0) > 0); field = 'Loan'; typeName = 'Loan'; } else if (type === 'return') { relevantTxs = tx.filter(t => (parseFloat(t['Return amount']) || 0) > 0); field = 'Return amount'; typeName = 'Return'; } else if (type === 'payment') { relevantTxs = tx.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0); field = 'Loan Payment'; typeName = 'Loan bhugtaan'; } else if (type.includes('transaction') || type.includes('len den')) { relevantTxs = tx; typeName = 'transaction'; } if (relevantTxs.length > 0) { const sortedTxs = [...relevantTxs].sort((a, b) => new Date(a.Date) - new Date(b.Date)); const selectedTxs = direction.startsWith('first') || direction.startsWith('pehla') ? sortedTxs.slice(0, count) : sortedTxs.slice(-count).reverse(); if (selectedTxs.length > 0) { if(typeName === 'transaction'){ let responseLines = selectedTxs.map((t, i) => { const sip = parseFloat(t['SIP Payment']) || 0; const loanPay = parseFloat(t['Loan Payment']) || 0; const loan = parseFloat(t.Loan) || 0; const ret = parseFloat(t['Return amount']) || 0; let desc = sip > 0 ? `SIP: ₹${sip}` : loanPay > 0 ? `Loan Payment: ₹${loanPay}` : ret > 0 ? `Return: ₹${ret}` : loan > 0 ? `Loan: ₹${loan}` : 'Other'; return `${i+1}. ${formatDate(t.Date)} - ${desc}`; }); text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} transactions is prakaar hain:\n${responseLines.join('\n')}`; } else { const total = selectedTxs.reduce((sum, t) => sum + (parseFloat(t[field]) || 0), 0); let responseLines = selectedTxs.map((t, i) => `${i+1}. ${formatDate(t.Date)}: ₹${(parseFloat(t[field]) || 0).toLocaleString('en-IN')}`); text = `Aapke ${direction === 'first' || direction === 'pehla' ? 'pehle' : 'aakhiri'} ${selectedTxs.length} ${typeName} ka kul yog ₹${total.toLocaleString('en-IN')} hai. Vivaran is prakaar hai:\n${responseLines.join('\n')}`; } return { text, chartData: null }; } } text = `Aapke koi ${typeName} nahi mile.`; return { text, chartData: null }; } if (lowerQuery.includes('total sip') || lowerQuery.includes('kul sip')) { text = `${memberName} ji, aapke kul SIP ka yog ₹${s.totalSIP.toLocaleString('en-IN')} hai.`; const topData = findTopContributors(); chartData = { type: 'totalSip', data: { totalValue: calculateAllTimeTotals().sip, currentUser: { name: memberName, value: s.totalSIP }, topUser: topData.totalSipUser } }; } else if (lowerQuery.includes('total loan') || lowerQuery.includes('kul loan')) { text = `${memberName} ji, aapne ab tak kul ₹${s.totalLoan.toLocaleString('en-IN')} ka loan liya hai.`; if (s.netLoanOutstanding > 0) { text += ` Jismein se abhi ₹${s.netLoanOutstanding.toLocaleString('en-IN')} bakaaya hai.`; } const topData = findTopContributors(); chartData = { type: 'totalLoan', data: { totalValue: calculateAllTimeTotals().loan, currentUser: { name: memberName, value: s.totalLoan }, topUser: topData.totalLoanUser } }; } else if (lowerQuery.includes('total return') || lowerQuery.includes('kul return')) { text = `${memberName} ji, aapko ab tak kul ₹${s.totalReturn.toLocaleString('en-IN')} ka return mila hai.`; const topData = findTopContributors(); chartData = { type: 'totalReturn', data: { totalValue: calculateAllTimeTotals().return, currentUser: { name: memberName, value: s.totalReturn }, topUser: topData.totalReturnUser } }; } else if (lowerQuery.includes('outstanding') || lowerQuery.includes('bakaya')) { text = s.netLoanOutstanding > 0 ? `${memberName} ji, aapka kul bakaaya loan ₹${s.netLoanOutstanding.toLocaleString('en-IN')} hai.` : `${memberName} ji, aapka koi loan bakaaya nahi hai. Shandaar!`; } else if (lowerQuery.includes('net balance') || lowerQuery.includes('kul balance')) { text = `${memberName} ji, aapka net balance (kul jama - kul nikaasi) ₹${s.netBalance.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('total deposit') || lowerQuery.includes('kul jama')) { text = `${memberName} ji, aapki kul jama raashi (SIP + Loan Payment + Return) ₹${s.totalDeposits.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('total withdrawal') || lowerQuery.includes('kul nikasi')) { text = `${memberName} ji, aapki kul nikaasi (Loan + Penalty) ₹${s.totalWithdrawals.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.match(/loan.*?sip.*?antar|difference/)) { const diff = Math.abs(s.totalSIP - s.totalLoan); text = `Aapke kul SIP (₹${s.totalSIP.toLocaleString('en-IN')}) aur kul Loan (₹${s.totalLoan.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.match(/jama.*?nikasi.*?antar|difference/)) { const diff = Math.abs(s.totalDeposits - s.totalWithdrawals); text = `Aapki kul jama (₹${s.totalDeposits.toLocaleString('en-IN')}) aur kul nikaasi (₹${s.totalWithdrawals.toLocaleString('en-IN')}) ke beech ka antar ₹${diff.toLocaleString('en-IN')} hai.`; } else if (lowerQuery.includes('sabse jyada sip') || lowerQuery.includes('highest sip')) { const data = cache.highestSip; text = data ? `Aapka sabse zyada SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila."; } else if (lowerQuery.includes('pehla sip') || lowerQuery.includes('first sip')) { const data = cache.firstSip; text = data ? `Aapka pehla SIP payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke SIP payment ka koi record nahi mila."; } else if (lowerQuery.includes('recent loan payment') || lowerQuery.includes('aakhiri loan payment')) { const data = cache.recentLoanPayment; text = data ? `Aapka haal hi ka loan payment ₹${data.amount.toLocaleString('en-IN')} ka tha, jo aapne ${data.date} ko kiya tha.` : "Aapke loan payment ka koi record nahi mila."; } else if (lowerQuery.includes('pehla loan') || lowerQuery.includes('first loan')) { const data = cache.firstLoan; text = data ? `Aapne apna pehla loan (${data.daysAgo} din pehle) ${data.date} ko ₹${data.amount.toLocaleString('en-IN')} ka liya tha.` : "Aapke loan lene ka koi record nahi mila."; } if (text) { return { text, chartData }; } return null; }
+            function createSuggestionPill(text, type) { const pill = document.createElement('button'); pill.className = 'suggestion-pill px-3 py-1 rounded-full text-sm'; if (type === 'member') { pill.classList.add('bg-gray-200', 'text-gray-700'); pill.innerHTML = `<i class="fas fa-user mr-2"></i>${text}`; } else { pill.classList.add('bg-blue-100', 'text-blue-700'); pill.innerHTML = `<i class="fas fa-question-circle mr-2"></i>${text}`; } pill.onclick = () => { inputBox.value = text; handleSend(); }; return pill; }
             function showDefaultSuggestions() { suggestionsBox.innerHTML = ''; const suggestions = ['बैंक कम्युनिटी लोन क्या है?', 'SIP kab jama karna hota hai?', 'Capital Kings कौन हैं?', 'KYC ke liye kya documents chahiye?']; suggestions.forEach(text => { const pill = createSuggestionPill(text, 'faq'); suggestionsBox.appendChild(pill); }); }
             function showSuggestions(query) { suggestionsBox.innerHTML = ''; if (!query || query.length < 2 || lockMode.active) { if (!lockMode.active) showDefaultSuggestions(); return; } const memberSuggestions = findMatchingMembers(query).slice(0, 2); const faqSuggestions = findMatchingFaqs(query, 2); const allSuggestions = [...memberSuggestions, ...faqSuggestions]; if (allSuggestions.length === 0) { showDefaultSuggestions(); return; } allSuggestions.forEach(s => { const text = s.id ? s.name : s.questions[0]; const type = s.id ? 'member' : 'faq'; const pill = createSuggestionPill(text, type); suggestionsBox.appendChild(pill); }); }
-            function showPostAnswerSuggestions(answeredFaq) { let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3); if (relatedFaqs.length === 0) return; const container = document.createElement('div'); container.className = 'p-2'; container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">Aap yeh bhi pooch sakte hain:</p>'; const buttonContainer = document.createElement('div'); buttonContainer.className = 'flex flex-wrap justify-start -ml-1'; relatedFaqs.forEach(faq => { const btn = document.createElement('button'); btn.className = 'post-answer-suggestion'; btn.textContent = faq.questions[0]; btn.onclick = () => handleSend(faq.questions[0]); buttonContainer.appendChild(btn); }); container.appendChild(buttonContainer); appendRichMessage(container.outerHTML, 'bot'); }
+            function showPostAnswerSuggestions(answeredFaq) { let relatedFaqs = cachedFaqs.filter(f => f.answer !== answeredFaq.answer).slice(0, 3); if (relatedFaqs.length === 0) return; const container = document.createElement('div'); container.className = 'p-2'; container.innerHTML = '<p class="text-sm font-semibold text-gray-600 mb-2">Anya Sawaal:</p>'; const buttonContainer = document.createElement('div'); buttonContainer.className = 'flex flex-wrap justify-start'; relatedFaqs.forEach(faq => { const btn = document.createElement('button'); btn.className = 'post-answer-suggestion'; btn.textContent = faq.questions[0]; btn.onclick = () => handleSend(faq.questions[0]); buttonContainer.appendChild(btn); }); container.appendChild(buttonContainer); appendRichMessage(container.outerHTML, 'bot'); }
             function getWordMatchScore(query, text) { const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2)); const textWords = new Set(text.toLowerCase().split(/\s+/)); let score = 0; for (const word of queryWords) { if (textWords.has(word)) score++; } return score; }
             function findMatchingMembers(query) { if (!cachedMemberIndex) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 1) return []; return cachedMemberIndex.filter(m => m.name && m.name.toLowerCase().includes(lowerQuery)); }
             function findMatchingFaqs(query, limit) { if (!cachedFaqs) return []; const lowerQuery = String(query).toLowerCase().trim(); if (lowerQuery.length < 2) return []; return cachedFaqs.map(faq => { let searchText = ''; if (faq.type === 'image') { searchText = `${faq.imageTitle || ''} ${faq.questions.join(' ')} ${faq.answer || ''}`; } else { searchText = `${faq.answer || ''} ${faq.questions.join(' ')} ${faq.category || ''}`; } return { ...faq, score: getWordMatchScore(lowerQuery, searchText.toLowerCase()) }; }).filter(faq => faq.score > 0).sort((a, b) => b.score - a.score).slice(0, limit); }
-            function aggregateMemberData(data) { const transactions = data.transactions ? Object.values(data.transactions) : []; let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0; transactions.forEach(tx => { totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0; }); const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance; const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw; const sipStatus = getSipStatus(transactions, new Date()); return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, rawJoinDate: data.joiningDate, totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, totalDeposits, totalWithdrawals, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus }; }
+            function aggregateMemberData(data) { const transactions = data.transactions ? Object.values(data.transactions) : []; let totalSIP = 0, totalLoan = 0, totalLoanPayment = 0, totalPenalty = 0, totalReturn = 0, totalExtraWithdraw = 0, totalExtraBalance = 0; transactions.forEach(tx => { totalSIP += parseFloat(tx['SIP Payment']) || 0; totalLoan += parseFloat(tx.Loan) || 0; totalLoanPayment += parseFloat(tx['Loan Payment']) || 0; totalPenalty += parseFloat(tx['Penalty amount']) || 0; totalReturn += parseFloat(tx['Return amount']) || 0; totalExtraWithdraw += parseFloat(tx['Extra Withdraw']) || 0; totalExtraBalance += parseFloat(tx['Extra Balance']) || 0; }); const totalDeposits = totalSIP + totalLoanPayment + totalReturn + totalExtraBalance; const totalWithdrawals = totalLoan + totalPenalty + totalExtraWithdraw; const sipStatus = getSipStatus(transactions, new Date()); return { name: data.fullName, profilePicUrl: data.profilePicUrl, signatureUrl: data.signatureUrl, joinDate: new Date(data.joiningDate).toLocaleDateString('en-GB'), totalSIP, totalLoan, totalLoanPayment, totalPenalty, totalReturn, totalDeposits, totalWithdrawals, netBalance: totalDeposits - totalWithdrawals, netLoanOutstanding: Math.max(0, totalLoan - totalLoanPayment), sipStatus }; }
             function getSipStatus(transactions, date) { const currentMonth = date.getMonth(); const currentYear = date.getFullYear(); const currentMonthSipTx = transactions.find(tx => { if (!tx.Date) return false; const txDate = new Date(tx.Date); return (parseFloat(tx['SIP Payment']) || 0) > 0 && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear; }); if (currentMonthSipTx) return { text: 'Paid', class: 'text-green-600', amount: parseFloat(currentMonthSipTx['SIP Payment']) }; if (date.getDate() > 10) return { text: 'Pending', class: 'text-red-600', amount: 0 }; return { text: 'Due', class: 'text-yellow-600', amount: 0 }; }
             function findTopContributors() { let totalSipUser = { name: 'N/A', value: 0 }, totalLoanUser = { name: 'N/A', value: 0 }, totalReturnUser = { name: 'N/A', value: 0 }; if (!allMembersFullData) return { totalSipUser, totalLoanUser, totalReturnUser }; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; if(!member.fullName) continue; const summary = aggregateMemberData(member); if (summary.totalSIP > totalSipUser.value) totalSipUser = { name: member.fullName, value: summary.totalSIP }; if (summary.totalLoan > totalLoanUser.value) totalLoanUser = { name: member.fullName, value: summary.totalLoan }; if (summary.totalReturn > totalReturnUser.value) totalReturnUser = { name: member.fullName, value: summary.totalReturn }; } return { totalSipUser, totalLoanUser, totalReturnUser }; }
             function calculateAllTimeTotals() { let totalSIP = 0, totalLoan = 0, totalReturn = 0; if (!allMembersFullData) return { sip: 0, loan: 0, return: 0 }; for (const memberId in allMembersFullData) { const summary = aggregateMemberData(allMembersFullData[memberId]); totalSIP += summary.totalSIP; totalLoan += summary.totalLoan; totalReturn += summary.totalReturn; } return { sip: totalSIP, loan: totalLoan, return: totalReturn }; }
             function calculateCapitalScores() { const results = []; const today = new Date(); if (!allMembersFullData) return []; for (const memberId in allMembersFullData) { const member = allMembersFullData[memberId]; if (!member.transactions || !member.joiningDate || !member.fullName) continue; const finalCapital = aggregateMemberData(member).netBalance; if (finalCapital <= 0) continue; const transactions = Object.values(member.transactions).sort((a, b) => new Date(a.Date) - new Date(b.Date)); let capitalDays = 0; let currentCapital = 0; let lastDate = new Date(member.joiningDate); transactions.forEach(tx => { const txDate = new Date(tx.Date); const daysDifference = (txDate - lastDate) / (1000 * 3600 * 24); if (daysDifference > 0) { capitalDays += currentCapital * daysDifference; } const sip = parseFloat(tx['SIP Payment']) || 0; const payment = parseFloat(tx['Loan Payment']) || 0; const loan = parseFloat(tx.Loan) || 0; const ret = parseFloat(tx['Return amount']) || 0; currentCapital += sip + payment + ret - loan; lastDate = txDate; }); const daysSinceLastTx = (today - lastDate) / (1000 * 3600 * 24); capitalDays += currentCapital * daysSinceLastTx; const holdingDays = Math.floor((today - new Date(member.joiningDate)) / (1000 * 3600 * 24)); if (holdingDays > 0) { results.push({ id: memberId, name: member.fullName, capital: finalCapital, holdingDays, score: capitalDays }); } } return results; }
-            function preAnalyzeMemberData(memberId) { const memberData = allMembersFullData[memberId]; if (!memberData) return null; const transactions = memberData.transactions ? Object.values(memberData.transactions).filter(tx => tx.Date) : []; if (transactions.length === 0) { return { summary: aggregateMemberData(memberData), transactions: [] }; } const today = new Date(); const formatDate = (dateStr) => dateFns.format(new Date(dateStr), 'dd-MM-yyyy'); const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24))); const sortedTransactions = [...transactions].sort((a, b) => new Date(a.Date) - new Date(b.Date)); const sipPayments = sortedTransactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0); const loanPayments = sortedTransactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0); const loansTaken = sortedTransactions.filter(t => (parseFloat(t.Loan) || 0) > 0); let highestSip = null; if (sipPayments.length > 0) { const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]); highestSip = { amount: parseFloat(topSip['SIP Payment']), date: formatDate(topSip.Date) }; } let firstSip = null; if (sipPayments.length > 0) { firstSip = { amount: parseFloat(sipPayments[0]['SIP Payment']), date: formatDate(sipPayments[0].Date) }; } let recentLoanPayment = null; if (loanPayments.length > 0) { const lastLoanPayment = loanPayments[loanPayments.length - 1]; recentLoanPayment = { amount: parseFloat(lastLoanPayment['Loan Payment']), date: formatDate(lastLoanPayment.Date) }; } let firstLoan = null; if (loansTaken.length > 0) { const firstLoanTx = loansTaken[0]; firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) }; } return { summary: aggregateMemberData(memberData), transactions: sortedTransactions, highestSip, firstSip, recentLoanPayment, firstLoan }; }
+            function preAnalyzeMemberData(memberId) { const memberData = allMembersFullData[memberId]; if (!memberData) return null; const transactions = memberData.transactions ? Object.values(memberData.transactions).filter(tx => tx.Date) : []; if (transactions.length === 0) { return { summary: aggregateMemberData(memberData), transactions: [] }; } const today = new Date(); const formatDate = (dateStr) => { const d = new Date(dateStr); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}-${month}-${year}`; }; const daysBetween = (date1, date2) => Math.round(Math.abs((date1 - date2) / (1000 * 60 * 60 * 24))); const sortedTransactions = [...transactions].sort((a, b) => new Date(a.Date) - new Date(b.Date)); const sipPayments = sortedTransactions.filter(t => (parseFloat(t['SIP Payment']) || 0) > 0); const loanPayments = sortedTransactions.filter(t => (parseFloat(t['Loan Payment']) || 0) > 0); const loansTaken = sortedTransactions.filter(t => (parseFloat(t.Loan) || 0) > 0); let highestSip = null; if (sipPayments.length > 0) { const topSip = sipPayments.reduce((max, t) => (parseFloat(t['SIP Payment']) > parseFloat(max['SIP Payment'])) ? t : max, sipPayments[0]); highestSip = { amount: parseFloat(topSip['SIP Payment']), date: formatDate(topSip.Date) }; } let firstSip = null; if (sipPayments.length > 0) { firstSip = { amount: parseFloat(sipPayments[0]['SIP Payment']), date: formatDate(sipPayments[0].Date) }; } let recentLoanPayment = null; if (loanPayments.length > 0) { const lastLoanPayment = loanPayments[loanPayments.length - 1]; recentLoanPayment = { amount: parseFloat(lastLoanPayment['Loan Payment']), date: formatDate(lastLoanPayment.Date) }; } let firstLoan = null; if (loansTaken.length > 0) { const firstLoanTx = loansTaken[0]; firstLoan = { amount: parseFloat(firstLoanTx.Loan), date: formatDate(firstLoanTx.Date), daysAgo: daysBetween(today, new Date(firstLoanTx.Date)) }; } return { summary: aggregateMemberData(memberData), transactions: sortedTransactions, highestSip, firstSip, recentLoanPayment, firstLoan }; }
             
             function updateModalNav() {
                 prevBtn.disabled = currentImageIndex === 0;
                 nextBtn.disabled = currentImageIndex >= currentImageUrls.length - 1;
             }
 
-            // Global Jarvis Object with all functions
             window.jarvis = { 
-                activateLockMode: (member) => { 
-                    lockMode = { active: true, member }; 
-                    preAnalyzedCache = preAnalyzeMemberData(member.id); 
-                    chatHistory = []; 
-                    lockedMemberNameEl.textContent = `Focused on ${member.name}`; 
-                    lockBanner.classList.remove('hidden'); 
-                    appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); 
-                    suggestionsBox.innerHTML = ''; 
-                }, 
-                deactivateLockMode: () => { 
-                    appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); 
-                    lockMode = { active: false, member: null }; 
-                    preAnalyzedCache = null; 
-                    chatHistory = []; 
-                    lockBanner.classList.add('hidden'); 
-                    showDefaultSuggestions(); 
-                }, 
+                activateLockMode: (member) => { lockMode = { active: true, member }; preAnalyzedCache = preAnalyzeMemberData(member.id); chatHistory = []; lockedMemberNameEl.textContent = `Focused on ${member.name}`; lockBanner.classList.remove('hidden'); appendRichMessage(`🔒 Lock Mode activated for **${member.name}**. Ab aap inke data se jude koi bhi sawaal pooch sakte hain.`, "bot"); suggestionsBox.innerHTML = ''; }, 
+                deactivateLockMode: () => { appendRichMessage(`🔓 Lock Mode deactivated.`, "bot"); lockMode = { active: false, member: null }; preAnalyzedCache = null; chatHistory = []; lockBanner.classList.add('hidden'); showDefaultSuggestions(); }, 
                 
                 openImageModal: (urls, startIndex = 0) => { 
                     if (!urls || urls.length === 0 || (urls[0] && urls[0].includes('placehold.co'))) return;
@@ -791,16 +745,12 @@
                 closeCapitalDetailModal: () => document.getElementById('capitalDetailModal').classList.remove('active'), 
             };
             async function callGemini(prompt) { try { const response = await fetch('/api/getAiExplanation', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ promptText: prompt }) }); if (!response.ok) { const errorData = await response.json().catch(() => null); const statusText = response.statusText; const statusCode = response.status; console.error("AI Backend Error:", statusCode, statusText, errorData); return `AI se jawaab nahi mil pa raha hai. (Error: ${statusCode})`; } const data = await response.json(); return data.explanation; } catch (e) { console.error("Network error calling AI backend:", e); return "AI backend se connect nahi ho pa raha hai. Kripya apna internet connection jaanchein."; } }
-            
-            // Event Listeners
             sendBtn.addEventListener('click', () => handleSend(null));
             inputBox.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleSend(null); });
             inputBox.addEventListener('input', () => showSuggestions(inputBox.value));
             unlockBtn.addEventListener('click', window.jarvis.deactivateLockMode);
-            
             initializeBot();
         }
-        
         checkAuthAndInitialize();
     </script>
 </body>
