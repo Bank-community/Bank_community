@@ -71,7 +71,6 @@
         <option value="" disabled selected>Loading members...</option>
       </select>
       
-      <!-- NEW: Loan Category -->
       <label for="loanCategory" class="block mb-1 font-bold text-gray-600">Loan Category:</label>
       <select id="loanCategory" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base bg-white focus:outline-none">
         <option value="personal" selected>Personal Loan</option>
@@ -79,6 +78,12 @@
         <option value="gold">Gold Loan</option>
         <option value="guarantor">Guarantor Loan</option>
       </select>
+
+      <!-- Gold Loan Collateral Section -->
+      <div id="goldCollateralSection" style="display: none;">
+          <label for="goldCollateral" class="block mb-1 font-bold text-gray-600">Collateral Item Name (Girvi ka Samaan):</label>
+          <input type="text" id="goldCollateral" placeholder="Enter item name (e.g., Gold Chain)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base focus:outline-none">
+      </div>
 
       <!-- Guarantor section, visibility controlled by JS -->
       <div id="guarantorSection" style="display: none;">
@@ -111,15 +116,15 @@
       <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
       <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
       <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
-      <h2 class="text-lg text-gray-800">बैंक कम्युनिटी लोन</h2>
+      <h2 id="letterLoanCategory" class="text-xl font-semibold text-blue-600 mt-2"></h2>
       <div class="registration-number font-bold mt-4 text-base">Reg. No: <span id="regNumber"></span></div>
     </div>
 
     <div class="loan-details-container flex justify-between items-start my-5 p-4 border border-gray-200 rounded-lg bg-gray-50">
         <div class="details-text flex-grow pr-4">
-          <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-gavel w-5 text-center mr-2"></i>Loan Type: <span class="highlight font-bold ml-1" id="displayLoanType"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-user w-5 text-center mr-2"></i>Applicant Name: <span class="highlight font-bold ml-1" id="displayName"></span></p>
-          <p id="guarantorRow" class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-user-shield w-5 text-center mr-2"></i>Guarantor Name: <span class="guarantor-highlight font-bold ml-1" id="displayGuarantor"></span></p>
+          <p id="guarantorRow" class="my-2 text-sm text-gray-800 flex items-center" style="display: none;"><i class="fas fa-user-shield w-5 text-center mr-2"></i>Guarantor Name: <span class="guarantor-highlight font-bold ml-1" id="displayGuarantor"></span></p>
+          <p id="collateralRow" class="my-2 text-sm text-gray-800 flex items-center" style="display: none;"><i class="fas fa-gem w-5 text-center mr-2"></i>Collateral Item: <span class="highlight font-bold ml-1" id="displayCollateral"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-mobile-alt w-5 text-center mr-2"></i>Mobile Number: <span id="displayMobile" class="ml-1"></span></p>
           <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-rupee-sign w-5 text-center mr-2"></i>Loan Amount: ₹<span id="displayAmount" class="ml-1"></span></p>
           <p id="processingFeeRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-cogs w-5 text-center mr-2"></i>Processing Fee: ₹<span id="displayProcessingFee" class="ml-1"></span></p>
@@ -200,10 +205,12 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const guarantorSection = document.getElementById('guarantorSection');
         const guarantorSelect = document.getElementById('guarantorSelect');
+        const goldCollateralSection = document.getElementById('goldCollateralSection');
+        const goldCollateralInput = document.getElementById('goldCollateral');
 
         // Display elements
         const currentDateEl = document.getElementById('currentDate');
-        const displayLoanTypeEl = document.getElementById('displayLoanType');
+        const letterLoanCategoryEl = document.getElementById('letterLoanCategory');
         const displayNameEl = document.getElementById('displayName');
         const displayGuarantorEl = document.getElementById('displayGuarantor');
         const displayMobileEl = document.getElementById('displayMobile');
@@ -220,6 +227,9 @@
         const manualUploadSectionEl = document.getElementById('manualUploadSection');
         const manualApplicantPhotoEl = document.getElementById('manualApplicantPhoto');
         const guarantorRowEl = document.getElementById('guarantorRow');
+        const collateralRowEl = document.getElementById('collateralRow');
+        const displayCollateralEl = document.getElementById('displayCollateral');
+
 
         // Loan options definitions
         const loanOptions = {
@@ -247,12 +257,11 @@
                     { value: '3-12', text: '1 Year' }
                 ]
             },
-            guarantor: {
-                label: 'Interest Rate & Duration:',
-                options: [ // Same as personal for now
-                    { value: '1-1', text: '1% for 1 month' },
-                    { value: '3-2', text: '3% for 2 months' },
-                    { value: '5-3', text: '5% for 3 months' }
+            guarantor: { // Updated to match gold loan
+                label: 'Loan Duration (3% Monthly Interest):',
+                options: [
+                    { value: '3-6', text: '6 Months' },
+                    { value: '3-12', text: '1 Year' }
                 ]
             }
         };
@@ -270,6 +279,15 @@
                 option.textContent = opt.text;
                 durationRateSelect.appendChild(option);
             });
+            
+            // Show/hide Gold Collateral section
+            if (category === 'gold') {
+                goldCollateralSection.style.display = 'block';
+                goldCollateralInput.required = true;
+            } else {
+                goldCollateralSection.style.display = 'none';
+                goldCollateralInput.required = false;
+            }
             
             // Handle Guarantor section visibility
             const selectedApplicantText = nameSelect.options[nameSelect.selectedIndex]?.text || '';
@@ -310,7 +328,6 @@
                     guarantorSelect.appendChild(option.cloneNode(true));
                 });
                 
-                // Initialize form UI based on default category
                 updateFormUI();
 
             } catch (error) {
@@ -338,12 +355,6 @@
             return `${day} ${month} ${year}`;
         }
 
-        function generateRegistrationNumber() {
-            const timestamp = Date.now().toString();
-            const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-            return `BCL-${timestamp.slice(-6)}-${randomPart}`;
-        }
-
         loanForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -359,13 +370,15 @@
             const category = loanCategorySelect.value;
             const rateValue = durationRateSelect.value;
             const uploadedFile = imageUploadInput.files[0];
+            const collateralItem = goldCollateralInput.value;
 
             if (isNaN(amount) || !rateValue) {
                 alert('Please fill in all required fields.');
                 return;
             }
             
-            let guarantorName = member.guarantorName || 'N/A';
+            // Guarantor logic
+            let guarantorName = 'N/A';
             if (guarantorSection.style.display === 'block') {
                 const guarantorId = guarantorSelect.value;
                 if (!guarantorId) {
@@ -376,6 +389,14 @@
                 guarantorRowEl.style.display = 'flex';
             } else {
                  guarantorRowEl.style.display = 'none';
+            }
+            
+            // Collateral logic
+            if (category === 'gold' && collateralItem) {
+                displayCollateralEl.textContent = collateralItem;
+                collateralRowEl.style.display = 'flex';
+            } else {
+                collateralRowEl.style.display = 'none';
             }
 
 
@@ -388,22 +409,19 @@
             // Calculations based on category
             switch(category) {
                 case 'personal':
-                case 'guarantor':
                     rateText = durationRateSelect.options[durationRateSelect.selectedIndex].text;
                     totalAmount = amount + (amount * (interest / 100));
                     break;
                 case 'business':
-                    // Processing Fee
                     processingFee = amount * 0.015; // 1.5%
-                    if (amount > 10000) {
+                    if (amount > 9000) { // Updated from 10000
                         processingFee += 200;
                     }
-                    // Interest is monthly (18% annual / 12)
-                    totalAmount = amount * Math.pow(1 + (interest / 100), months);
+                    totalAmount = amount * Math.pow(1 + (18 / 12 / 100), months); // 18% annual interest
                     rateText = `18% Annually (1.5% Monthly) for ${months} months`;
                     break;
                 case 'gold':
-                    // Interest is monthly
+                case 'guarantor':
                     totalAmount = amount * Math.pow(1 + (interest / 100), months);
                     rateText = `${interest}% Monthly for ${months} months`;
                     break;
@@ -411,10 +429,8 @@
             
             const emi = totalAmount / months;
             
-            // Show/hide EMI and Processing Fee rows
             emiRowEl.style.display = (months > 1) ? 'flex' : 'none';
             processingFeeRowEl.style.display = (category === 'business') ? 'flex' : 'none';
-
 
             const today = new Date();
             const repaymentDate = new Date(today);
@@ -422,7 +438,7 @@
 
             // Update display elements
             currentDateEl.textContent = formatDate(today);
-            displayLoanTypeEl.textContent = loanCategorySelect.options[loanCategorySelect.selectedIndex].text;
+            letterLoanCategoryEl.textContent = loanCategorySelect.options[loanCategorySelect.selectedIndex].text;
             displayNameEl.textContent = member.fullName;
             displayGuarantorEl.textContent = guarantorName;
             displayMobileEl.textContent = member.mobileNumber || 'N/A';
@@ -431,7 +447,7 @@
             displayRateEl.textContent = rateText;
             displayTotalAmountEl.textContent = totalAmount.toFixed(2);
             repaymentDateEl.textContent = formatDate(repaymentDate);
-            regNumberEl.textContent = generateRegistrationNumber();
+            regNumberEl.textContent = ''; // Removed auto-generation
             displayEMIEl.textContent = emi.toFixed(2);
             
             apiApplicantPhotoEl.src = createProxyUrl(member.profilePicUrl);
@@ -503,11 +519,9 @@
             }
         });
 
-        // Data fetch karna shuru karein
         fetchMemberData();
     }
 
-    // App ko shuru karein
     checkAuthAndInitialize();
   </script>
 
