@@ -56,13 +56,6 @@
             transform: translateY(-3px) scale(1.02);
             box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
-        .dashboard-stat-card .icon-bg {
-            padding: 10px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
     </style>
 </head>
 <body class="bg-gray-100 antialiased">
@@ -129,6 +122,7 @@
     <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editPenaltyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="addPenaltyMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="dashboardButtonModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 scale-95">
@@ -338,11 +332,14 @@
                            }
                         </div>
                     </div>
-                    <div class="data-card p-6 flex flex-col justify-center items-center action-card" id="penalty-wallet-card">
-                        <i class="ph-shield-warning text-4xl text-orange-500"></i>
-                        <h2 class="font-medium text-gray-600 mt-2">Bank Penalty Wallet</h2>
-                        <p class="text-3xl font-bold text-orange-600 mt-1">₹${totalPenalty.toLocaleString('en-IN')}</p>
-                        <p class="text-xs text-gray-400 mt-1">Click to view history</p>
+                    <div class="data-card p-6">
+                        <div class="flex flex-col justify-center items-center action-card" id="penalty-wallet-card">
+                            <i class="ph-shield-warning text-4xl text-orange-500"></i>
+                            <h2 class="font-medium text-gray-600 mt-2">Bank Penalty Wallet</h2>
+                            <p class="text-3xl font-bold text-orange-600 mt-1">₹${totalPenalty.toLocaleString('en-IN')}</p>
+                            <p class="text-xs text-gray-400 mt-1">Click to view history</p>
+                        </div>
+                        <button id="add-penalty-money-btn" class="btn-primary w-full text-white font-bold py-2 px-4 rounded-lg mt-4">Add Money</button>
                     </div>
                 </div>
                 ${dashboardButtonsHTML}
@@ -445,9 +442,20 @@
                         <label for="sip-payment" class="block text-sm font-medium text-gray-700 mb-1">SIP Payment Amount</label>
                         <input type="number" id="sip-payment" placeholder="e.g., 500" class="form-input w-full p-3 rounded-lg" value="500">
                     </div>
-                    <div id="loan-fields" class="hidden">
-                         <label for="loan-amount" class="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
-                        <input type="number" id="loan-amount" placeholder="e.g., 10000" class="form-input w-full p-3 rounded-lg">
+                    <div id="loan-fields" class="hidden space-y-6">
+                        <div>
+                            <label for="loan-amount" class="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
+                            <input type="number" id="loan-amount" placeholder="e.g., 10000" class="form-input w-full p-3 rounded-lg">
+                        </div>
+                        <div id="loan-type-fields">
+                            <label for="loan-type" class="block text-sm font-medium text-gray-700 mb-1">Loan Type</label>
+                            <select id="loan-type" class="form-select w-full p-3 rounded-lg">
+                                <option value="Personal Loan">Personal Loan</option>
+                                <option value="Business Loan">Business Loan</option>
+                                <option value="Gold Loan">Gold Loan</option>
+                                <option value="Guarantor Loan">Guarantor Loan</option>
+                            </select>
+                        </div>
                     </div>
                     <div id="loan-payment-fields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -561,17 +569,20 @@
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Member Card Colors</h3>
                         <form id="card-colors-form" class="space-y-4">
-                            <div class="flex items-center gap-4">
-                                <label for="gold-color" class="block text-sm font-medium text-gray-700 w-20">Gold Card</label>
+                            <div class="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                                <label for="gold-color" class="block text-sm font-medium text-gray-700">Gold Card</label>
                                 <input type="color" id="gold-color" class="form-input h-10 w-16 p-1 rounded-lg" value="${colors.gold || '#FFD700'}">
+                                <input type="text" id="gold-color-text" class="form-input w-28 p-2 rounded-lg" value="${colors.gold || '#FFD700'}">
                             </div>
-                             <div class="flex items-center gap-4">
-                                <label for="silver-color" class="block text-sm font-medium text-gray-700 w-20">Silver Card</label>
+                             <div class="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                                <label for="silver-color" class="block text-sm font-medium text-gray-700">Silver Card</label>
                                 <input type="color" id="silver-color" class="form-input h-10 w-16 p-1 rounded-lg" value="${colors.silver || '#C0C0C0'}">
+                                <input type="text" id="silver-color-text" class="form-input w-28 p-2 rounded-lg" value="${colors.silver || '#C0C0C0'}">
                             </div>
-                             <div class="flex items-center gap-4">
-                                <label for="bronze-color" class="block text-sm font-medium text-gray-700 w-20">Bronze Card</label>
+                             <div class="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                                <label for="bronze-color" class="block text-sm font-medium text-gray-700">Bronze Card</label>
                                 <input type="color" id="bronze-color" class="form-input h-10 w-16 p-1 rounded-lg" value="${colors.bronze || '#CD7F32'}">
+                                <input type="text" id="bronze-color-text" class="form-input w-28 p-2 rounded-lg" value="${colors.bronze || '#CD7F32'}">
                             </div>
                             <div class="flex justify-end">
                                 <button type="submit" class="btn-primary text-white font-bold py-2 px-5 rounded-lg">Save Colors</button>
@@ -608,6 +619,37 @@
                     </div>
                 </div>
             `;
+        }
+        
+        function renderAddPenaltyMoneyModal() {
+            const modal = document.getElementById('addPenaltyMoneyModal');
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md scale-95">
+                    <form id="add-penalty-money-form">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-bold">Add Money to Penalty Wallet</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label for="penalty-add-name" class="block text-sm font-medium text-gray-700 mb-1">Member Name</label>
+                                <select id="penalty-add-name" class="form-select w-full p-2 rounded-lg" required>
+                                    <option value="">Select a member...</option>
+                                    ${approvedMemberObjects.map(m => `<option value="${m.name}">${m.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="penalty-add-amount" class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                <input type="number" id="penalty-add-amount" class="form-input w-full p-2 rounded-lg" placeholder="e.g., 100" required>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button type="submit" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Add to Wallet</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            openModal(modal);
         }
 
         function renderDashboardButtonModal(key = null) {
@@ -701,7 +743,7 @@
                     amountColor = 'text-green-600';
                     amountHtml = `<div class="font-bold text-lg">₹${parseFloat(tx['SIP Payment']).toLocaleString('en-IN')}</div>`;
                 } else if (tx['Loan']) {
-                    type = 'Loan';
+                    type = tx['Loan Type'] || 'Loan'; // Use Loan Type if available
                     amountColor = 'text-red-600';
                     amountHtml = `<div class="font-bold text-lg">₹${parseFloat(tx['Loan']).toLocaleString('en-IN')}</div>`;
                 } else if (tx['Loan Payment']) {
@@ -997,6 +1039,15 @@
                                 <input type="number" id="edit-tx-loan" class="form-input w-full p-2 rounded-lg" value="${transaction['Loan'] || ''}">
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Loan Type</label>
+                                <select id="edit-tx-loan-type" class="form-select w-full p-2 rounded-lg">
+                                    <option value="Personal Loan" ${transaction['Loan Type'] === 'Personal Loan' ? 'selected' : ''}>Personal Loan</option>
+                                    <option value="Business Loan" ${transaction['Loan Type'] === 'Business Loan' ? 'selected' : ''}>Business Loan</option>
+                                    <option value="Gold Loan" ${transaction['Loan Type'] === 'Gold Loan' ? 'selected' : ''}>Gold Loan</option>
+                                    <option value="Guarantor Loan" ${transaction['Loan Type'] === 'Guarantor Loan' ? 'selected' : ''}>Guarantor Loan</option>
+                                </select>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Loan Payment</label>
                                 <input type="number" id="edit-tx-loan-payment" class="form-input w-full p-2 rounded-lg" value="${transaction['Loan Payment'] || ''}">
                             </div>
@@ -1089,6 +1140,7 @@
                 Name: memberName,
                 "SIP Payment": document.getElementById('sip-payment').value || "",
                 "Loan": document.getElementById('loan-amount').value || "",
+                "Loan Type": entryType === 'loan' ? document.getElementById('loan-type').value : "",
                 "Loan Payment": document.getElementById('loan-payment-amount').value || "",
                 "Return amount": document.getElementById('return-amount').value || "",
                 "Extra Balance": document.getElementById('extra-balance-amount').value || "",
@@ -1203,6 +1255,17 @@
             if (e.target === explorerNameFilter || e.target === explorerTypeFilter || e.target === explorerDateFilter) {
                 applyExplorerFilters();
             }
+            
+            // Sync color text input with color picker
+            if (e.target.matches('#gold-color-text, #silver-color-text, #bronze-color-text')) {
+                const colorPickerId = e.target.id.replace('-text', '');
+                document.getElementById(colorPickerId).value = e.target.value;
+            }
+            // Sync color picker with text input
+            if (e.target.matches('#gold-color, #silver-color, #bronze-color')) {
+                const textInputId = e.target.id + '-text';
+                document.getElementById(textInputId).value = e.target.value;
+            }
         });
 
         document.body.addEventListener('change', e => {
@@ -1239,6 +1302,31 @@
             if (e.target.id === 'data-entry-form') {
                 handleFormSubmission(e);
             }
+            if (e.target.id === 'add-penalty-money-form') {
+                e.preventDefault();
+                const memberName = document.getElementById('penalty-add-name').value;
+                const amount = parseFloat(document.getElementById('penalty-add-amount').value);
+                if (!memberName || !amount || amount <= 0) {
+                    alert('Please select a member and enter a valid amount.');
+                    return;
+                }
+                const confirmed = await showConfirmation('Confirm Deposit', `Are you sure you want to add ₹${amount} from ${memberName} to the penalty wallet?`);
+                if (confirmed) {
+                    try {
+                        const penaltyIncomeRef = ref(db, 'penaltyWallet/incomes');
+                        await push(penaltyIncomeRef, {
+                            amount: amount,
+                            from: memberName,
+                            reason: "Direct Deposit",
+                            timestamp: serverTimestamp()
+                        });
+                        alert('Money added to penalty wallet successfully.');
+                        closeModal(document.getElementById('addPenaltyMoneyModal'));
+                    } catch (err) {
+                        alert('Failed to add money: ' + err.message);
+                    }
+                }
+            }
             if (e.target.id === 'burn-money-form') {
                 e.preventDefault();
                 const reason = document.getElementById('burn-reason').value;
@@ -1269,6 +1357,7 @@
                     Date: new Date(document.getElementById('edit-tx-date').value).toISOString(),
                     "SIP Payment": document.getElementById('edit-tx-sip').value || "",
                     "Loan": document.getElementById('edit-tx-loan').value || "",
+                    "Loan Type": document.getElementById('edit-tx-loan-type').value || "",
                     "Loan Payment": document.getElementById('edit-tx-loan-payment').value || "",
                     "Return amount": document.getElementById('edit-tx-return').value || "",
                     "Extra Balance": document.getElementById('edit-tx-extra').value || "",
@@ -1559,6 +1648,11 @@
             const penaltyCard = e.target.closest('#penalty-wallet-card');
             if (penaltyCard) {
                 renderPenaltyHistoryModal();
+            }
+
+            const addPenaltyMoneyBtn = e.target.closest('#add-penalty-money-btn');
+            if (addPenaltyMoneyBtn) {
+                renderAddPenaltyMoneyModal();
             }
 
             const burnMoneyBtn = e.target.closest('#burn-money-btn');
