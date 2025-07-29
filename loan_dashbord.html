@@ -8,10 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Firebase SDKs for backend connection -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 <style>
@@ -367,39 +363,48 @@ body {
 
     </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    
-    // CORRECTED AUTHORIZATION FUNCTION
-    async function checkAuthAndInitialize() {
+<!-- NEW: Updated Firebase SDKs and Auth Logic -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    async function initializeAndAuth() {
         const loader = document.getElementById('loader');
         try {
-            loader.innerHTML = '<div class="spinner"></div>Fetching configuration...';
-            const response = await fetch('/api/config');
-            if (!response.ok) throw new Error('Configuration could not be loaded. Please check network and API status.');
-            const config = await response.json();
+            if (typeof __firebase_config === 'undefined') {
+                throw new Error("Firebase config is not available.");
+            }
             
-            loader.innerHTML = '<div class="spinner"></div>Initializing application...';
-            firebase.initializeApp(config.firebase);
-            
-            loader.innerHTML = '<div class="spinner"></div>Authenticating user...';
-            firebase.auth().onAuthStateChanged(user => {
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getDatabase(app);
+
+            onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    console.log("User authenticated successfully. Running app logic.");
-                    runAppLogic();
+                    console.log("User authenticated:", user.uid);
+                    loader.innerHTML = '<div class="spinner"></div>Loading member data...';
+                    runAppLogic(db);
                 } else {
-                    console.log("User not authenticated. Redirecting to login page.");
-                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    console.log("No user signed in yet, attempting sign-in...");
                 }
             });
+            
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                console.warn("Custom auth token not found, signing in anonymously.");
+                await signInAnonymously(auth);
+            }
 
         } catch (error) {
-            console.error("Initialization Error:", error);
+            console.error("Authentication Error:", error);
             loader.innerHTML = `<p style="color: red; font-weight: bold;">Application Failed to Start</p><p style="color: red;">${error.message}</p>`;
         }
     }
 
-    function runAppLogic() {
+    function runAppLogic(db) {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
             money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
@@ -421,11 +426,9 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         async function fetchAndProcessData() {
-            state.ui.loader.innerHTML = '<div class="spinner"></div>Loading member data...';
             try {
-                const db = firebase.database();
-                const membersRef = db.ref('members');
-                const snapshot = await membersRef.once('value');
+                const membersRef = ref(db, 'members');
+                const snapshot = await get(membersRef);
                 if (!snapshot.exists()) throw new Error('No member data found.');
                 
                 const membersData = snapshot.val();
@@ -470,8 +473,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 .sort((a, b) => a.Date - b.Date);
         }
         
-        // --- LOAN CALCULATION LOGIC ---
-
         function calculatePersonalLoanDetails(loanAmount, loanDate, paymentsAfterLoan) {
             const today = new Date();
             const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
@@ -493,7 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function calculateBusinessLoanDetails(loanAmount, loanDate, paymentsAfterLoan) {
             const today = new Date();
-            const interestOnlyMonths = 3; // Assuming 9-month plan (3+6)
+            const interestOnlyMonths = 3;
             const emiMonths = 6;
             const monthlyInterestRate = 0.015;
 
@@ -591,8 +592,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
             return outstanding.sort((a, b) => b.loanDate - a.loanDate);
         }
-
-        // --- UI RENDERING ---
 
         function displayAllData() {
             displaySummary(state.allOutstandingLoans);
@@ -760,8 +759,8 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchAndProcessData();
     }
     
-    checkAuthAndInitialize();
-});
+    // Start the app
+    initializeAndAuth();
 </script>
 </body>
 </html>
