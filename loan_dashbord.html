@@ -365,6 +365,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Authorization check function - DO NOT REMOVE
     async function checkAuthAndInitialize() {
         try {
+            // This part is for a secure setup where config is fetched from a server endpoint.
+            // For local/demo purposes, you might replace this with hardcoded config.
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
@@ -373,8 +375,10 @@ document.addEventListener("DOMContentLoaded", () => {
             
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
+                    // User is signed in, start the main application logic
                     runAppLogic();
                 } else {
+                    // User is not signed in, redirect to login page
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
@@ -386,6 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Main application logic function
     function runAppLogic() {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
@@ -394,6 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
             download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
             star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`,
+            // NEW ICON for Loan Type
             tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`
         };
 
@@ -417,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!snapshot.exists()) throw new Error('No member data found.');
                 
                 const membersData = snapshot.val();
-                let allTransactions = [];
+                const allTransactions = [];
                 for (const memberId in membersData) {
                     const member = membersData[memberId];
                     if (member.transactions) {
@@ -427,11 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
                 
-                // Convert object to array if needed
-                if (typeof allTransactions[0] === 'object' && !Array.isArray(allTransactions[0])) {
-                    allTransactions = Object.values(allTransactions);
-                }
-
                 const processedData = processRawData(allTransactions);
                 state.allOutstandingLoans = findOutstandingLoans(processedData);
                 displayAllData();
@@ -444,29 +445,24 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
+        // UPDATED to handle Loan Type
         function processRawData(rawData) {
              return rawData
                 .map(row => {
                     const loanAmount = parseFloat(row.Loan || 0);
-                    // Normalize loan type text
-                    let loanType = row['Loan Type'] || (loanAmount > 0 ? 'Personal Loan' : null);
-                    if (loanType) {
-                        loanType = loanType.trim();
-                    }
                     return {
                         Name: String(row.fullName || 'Unknown').trim(),
                         Date: new Date(row.Date),
                         Loan: loanAmount,
                         Payment: parseFloat(row['Loan Payment'] || 0),
                         ImageUrl: row.profilePicUrl || null,
-                        LoanType: loanType
+                        // NEW LOGIC: Capture 'Loan Type'. If it doesn't exist but it is a loan transaction, default to 'Personal Loan'.
+                        LoanType: row['Loan Type'] || (loanAmount > 0 ? 'Personal Loan' : null)
                     };
                 })
                 .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
                 .sort((a, b) => a.Date - b.Date);
         }
-
-        // --- NEW CALCULATION LOGIC ---
 
         function calculateStandardPenalty(loanAmount, daysSinceLoan) {
             let percentage = 0;
@@ -475,33 +471,36 @@ document.addEventListener("DOMContentLoaded", () => {
             else if (daysSinceLoan >= 61 && daysSinceLoan <= 90) percentage = 5;
             else if (daysSinceLoan > 90)                   percentage = 6;
             const amount = Math.round((loanAmount * percentage) / 100);
-            return { type: 'penalty', label: 'Late Fee', percentage, amount };
+            return { type: 'penalty', percentage, amount };
         }
 
         function calculateSmartSlabInterest(loanAmount, paymentsMadeCount) {
             let percentage = 0;
             let slabName = "";
-            if (paymentsMadeCount === 0) { percentage = 1; slabName = "Month 1"; } 
-            else if (paymentsMadeCount === 1) { percentage = 2.5; slabName = "Month 2"; } 
-            else { percentage = 4.5; slabName = "Month 3+"; }
+            
+            if (paymentsMadeCount === 0) {
+                percentage = 1; 
+                slabName = "Month 1";
+            } else if (paymentsMadeCount === 1) {
+                percentage = 2.5; 
+                slabName = "Month 2";
+            } else {
+                percentage = 4.5; 
+                slabName = "Month 3+";
+            }
+
             const amount = Math.round((loanAmount * percentage) / 100);
-            return { type: 'smart-interest', label: `Smart Interest (${slabName})`, percentage, amount };
+            return { type: 'smart-interest', percentage, amount, slabName };
         }
         
-        function calculateMonthlyInterestPenalty(loanAmount, interestRate) {
-            const percentage = interestRate;
-            const amount = Math.round((loanAmount * percentage) / 100);
-            return { type: 'monthly-interest', label: 'Monthly Interest', percentage, amount };
-        }
-
-        // --- UPDATED CORE LOGIC ---
-
+        // UPDATED to pass Loan Type to final object
         function findOutstandingLoans(allData) {
             const outstanding = [];
             const members = [...new Set(allData.map(d => d.Name))];
 
             members.forEach(name => {
                 const memberData = allData.filter(r => r.Name === name);
+                
                 const lastLoan = memberData.filter(tx => tx.Loan > 0).pop();
                 if (!lastLoan) return;
 
@@ -519,57 +518,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 const today = new Date();
                 const loanDate = lastLoan.Date;
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
-                
+
+                let interestInfo;
+                let status = 'standard';
+
                 const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
-                const lastPayment = paymentsAfterLoan.pop();
-                const daysSinceLastPayment = lastPayment ? Math.floor((today.getTime() - lastPayment.Date.getTime()) / (1000 * 3600 * 24)) : daysSinceLoan;
+                const firstPaymentAfterLoan = paymentsAfterLoan[0];
+                let isSmartSlabEligible = false;
 
-                let interestInfo = { amount: 0 }; // Default no interest
-                let status = 'active'; // Default status
-
-                // Only calculate penalty if a payment is late (e.g., > 30 days since last payment)
-                if (daysSinceLastPayment > 30) {
-                    switch (lastLoan.LoanType) {
-                        case 'Business Loan':
-                            interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
-                            status = 'standard-penalty';
-                            break;
-
-                        case 'Gold Loan':
-                        case 'Guarantor Loan':
-                            interestInfo = calculateMonthlyInterestPenalty(currentBalance, 3); // 3% monthly interest
-                            status = 'monthly-penalty';
-                            break;
-                        
-                        case 'Personal Loan':
-                        default: // Handles old loans without a type
-                            const firstPaymentAfterLoan = transactionsAfterLoan.find(tx => tx.Payment > 0);
-                            let isSmartSlabEligible = false;
-                            if (firstPaymentAfterLoan) {
-                                const daysToFirstPayment = (firstPaymentAfterLoan.Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24);
-                                if (daysToFirstPayment <= 30) {
-                                    isSmartSlabEligible = true;
-                                }
-                            }
-
-                            if (isSmartSlabEligible) {
-                                status = 'smart-defaulted'; // If we are here, it means payment is late
-                                interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
-                            } else {
-                                status = 'standard-penalty';
-                                interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
-                            }
-                            break;
+                if (firstPaymentAfterLoan) {
+                    const daysToFirstPayment = (firstPaymentAfterLoan.Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24);
+                    if (daysToFirstPayment <= 30) {
+                        isSmartSlabEligible = true;
                     }
-                } else if (lastLoan.LoanType === 'Personal Loan') {
-                     // Check for active smart slab status even if not late
-                    const firstPaymentAfterLoan = transactionsAfterLoan.find(tx => tx.Payment > 0);
-                    if (firstPaymentAfterLoan) {
-                         const daysToFirstPayment = (firstPaymentAfterLoan.Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24);
-                         if (daysToFirstPayment <= 30) {
-                            status = 'smart-active';
-                         }
+                }
+
+                if (isSmartSlabEligible) {
+                    const lastPayment = paymentsAfterLoan[paymentsAfterLoan.length - 1];
+                    const daysSinceLastPayment = Math.floor((today.getTime() - lastPayment.Date.getTime()) / (1000 * 3600 * 24));
+                    
+                    if (daysSinceLastPayment > 30) {
+                        status = 'smart-defaulted';
+                        interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                    } else {
+                        status = 'smart-active';
+                        interestInfo = calculateSmartSlabInterest(currentBalance, paymentsAfterLoan.length);
                     }
+                } else {
+                    status = 'standard';
+                    interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
                 }
 
                 outstanding.push({
@@ -580,6 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     loanDate: loanDate,
                     interest: interestInfo,
                     status: status,
+                    // NEW: Pass the loan type from the last loan transaction
                     loanType: lastLoan.LoanType
                 });
             });
@@ -594,11 +572,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function displaySummary(loans) {
             const { totalCountEl, totalAmountEl } = state.ui;
-            const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount + loan.interest.amount, 0);
+            const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
             totalCountEl.textContent = loans.length;
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
         }
         
+        // UPDATED to display Loan Type in the card
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -625,9 +604,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 let interestHtml = '';
                 if (loan.interest.amount > 0) {
+                    const label = loan.status === 'smart-active' ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
                     interestHtml = `
                         <div class="detail-row">
-                            <span class="detail-label">${ICONS.penalty} ${loan.interest.label} (${loan.interest.percentage}%):</span>
+                            <span class="detail-label">${ICONS.penalty} ${label} (${loan.interest.percentage}%):</span>
                             <span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span>
                         </div>`;
                 }
@@ -661,6 +641,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
                                 <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
                             </div>
+                            <!-- NEW: Loan Type display -->
                             <div class="detail-row">
                                 <span class="detail-label">${ICONS.tag} Loan Type:</span>
                                 <span class="detail-value loan-type-value">${loan.loanType}</span>
@@ -716,6 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchAndProcessData();
     }
     
+    // Start the authentication check
     checkAuthAndInitialize();
 });
 </script>
