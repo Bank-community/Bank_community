@@ -18,13 +18,14 @@ export default function handler(request, response) {
       measurementId: process.env.FIREBASE_MEASUREMENT_ID,
     },
     imgbb: {
+      // एडमिन पैनल के लिए पुरानी API Key
       apiKey: process.env.IMGBB_API_KEY,
+      // लोन फॉर्म के लिए नई API Key
+      formApiKey: process.env.IMGBB_API_KEY_FORM,
     }
   };
 
   // हम कॉन्फ़िगरेशन को JSON रेस्पॉन्स के रूप में भेजते हैं।
-  // 'Cache-Control' हेडर ब्राउज़र को इस कॉन्फ़िग को 10 मिनट के लिए कैश करने के लिए कहता है,
-  // जिससे फंक्शन के बार-बार कॉल होने की संख्या कम हो जाती है।
   response.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate');
   response.status(200).json(config);
 }
