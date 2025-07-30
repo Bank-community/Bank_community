@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ii<!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
@@ -180,23 +180,21 @@
     </div>
   </div> 
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  
-  <script>
+    <script>
     // NEW: Variable to hold the ImgBB API Key
     let IMGBB_API_KEY_FORM = null;
 
     async function checkAuthAndInitialize() {
         try {
-            // NEW: Fetching config from a new endpoint for this form
-            const response = await fetch('/api/config-form.js');
+            // ✅ बदला हुआ: अब मुख्य config.js को कॉल कर रहे हैं
+            const response = await fetch('/api/config.js');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
             
-            // NEW: Storing the ImgBB API key from the config
-            IMGBB_API_KEY_FORM = config.imgbb.apiKey;
+            // ✅ बदला हुआ: अब config.imgbb.formApiKey से की (key) को पढ़ रहे हैं
+            IMGBB_API_KEY_FORM = config.imgbb.formApiKey;
             if (!IMGBB_API_KEY_FORM) {
-                throw new Error("ImgBB API Key is missing from config.");
+                throw new Error("IMGBB_API_KEY_FORM is missing from config. Please check Vercel environment variables.");
             }
 
             firebase.initializeApp(config.firebase);
@@ -213,7 +211,7 @@
 
         } catch (error) {
             console.error('Initialization Error:', error);
-            alert('Application failed to initialize. Please check console.');
+            alert('Application failed to initialize. ' + error.message);
             document.getElementById('main-form-container').innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
         }
     }
@@ -377,7 +375,6 @@
             return `${day} ${month} ${year}`;
         }
         
-        // NEW: Function to upload image to ImgBB
         async function uploadImageToImgBB(file) {
             if (!file) return null;
             const formData = new FormData();
@@ -548,16 +545,13 @@
                 manualUploadSectionEl.style.display = 'block';
             }
 
-            // Temporarily show the capture div to generate the image
             captureDiv.style.display = 'flex';
             
-            // Wait for images to load before capturing
             await waitForImages(captureDiv);
-            await new Promise(resolve => setTimeout(resolve, 500)); // Extra delay for rendering
+            await new Promise(resolve => setTimeout(resolve, 500)); 
 
-            // Generate canvas and upload
             const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
-            captureDiv.style.display = 'none'; // Hide it again
+            captureDiv.style.display = 'none'; 
             
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             const letterImageUrl = await uploadImageToImgBB(blob);
@@ -571,7 +565,6 @@
                 return;
             }
             
-            // Prepare data for Firebase
             const pendingLoanData = {
                 applicantId: selectedMemberId,
                 applicantName: member.fullName,
@@ -586,17 +579,15 @@
                 collateralItem: category === 'gold' ? collateralItem : null,
                 additionalDocUrl: additionalDocUrl,
                 letterImageUrl: letterImageUrl,
-                loanDetails: loanDetails, // Contains EMI, fees etc.
+                loanDetails: loanDetails, 
                 status: 'pending',
                 submittedAt: firebase.database.ServerValue.TIMESTAMP
             };
 
-            // Push to Firebase 'pendingLoans'
             try {
                 const db = firebase.database();
                 await db.ref('pendingLoans').push(pendingLoanData);
                 
-                // Show success message
                 mainFormContainer.style.display = 'none';
                 successMessage.style.display = 'block';
 
@@ -617,7 +608,7 @@
                         img.onload = resolve;
                         img.onerror = () => {
                             console.warn(`Image failed to load: ${img.src}`);
-                            resolve(); // Resolve even if an image fails to load
+                            resolve(); 
                         };
                     });
                 }
@@ -631,6 +622,7 @@
 
     checkAuthAndInitialize();
   </script>
+
 
 </body>
 </html>
