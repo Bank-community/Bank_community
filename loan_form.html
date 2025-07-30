@@ -33,6 +33,21 @@
       box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
       transform: translateY(-3px);
     }
+    .btn:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+    }
+    .loader {
+        border: 3px solid rgba(255,255,255,0.3);
+        border-top: 3px solid #fff;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-left: 8px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #capture {
       width: 210mm;
       min-height: 290mm;
@@ -60,7 +75,7 @@
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col justify-center items-center p-5">
-  <div class="form-container bg-white p-6 rounded-xl w-full max-w-md mb-8">
+  <div id="main-form-container" class="form-container bg-white p-6 rounded-xl w-full max-w-md mb-8">
     <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Smart Loan Application Form</h1>
     <form id="loanForm">
       <label for="nameSelect" class="block mb-1 font-bold text-gray-600">Applicant Name:</label>
@@ -100,11 +115,22 @@
       <label for="imageUpload" class="block mb-1 font-bold text-gray-600">Upload Additional Document (Optional):</label>
       <input type="file" id="imageUpload" accept="image/*" class="w-full p-2 mb-4 text-base border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
 
-      <button type="submit" class="btn w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-base cursor-pointer mt-5 hover:bg-blue-700">Generate Loan Letter</button>
+      <button type="submit" id="submitBtn" class="btn w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-base cursor-pointer mt-5 hover:bg-blue-700 flex items-center justify-center">
+        <span id="submitBtnText">Submit for Approval</span>
+        <div id="submitLoader" class="loader hidden"></div>
+      </button>
     </form>
   </div>
 
+  <div id="successMessage" class="hidden text-center bg-white p-8 rounded-xl shadow-lg">
+      <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+      <h2 class="text-2xl font-bold text-gray-800">Application Submitted!</h2>
+      <p class="text-gray-600 mt-2">Your loan application has been sent for approval. You will be notified shortly.</p>
+  </div>
+
+  <!-- This section is now only for generating the image, not for user display -->
   <div id="capture" class="bg-white p-[15mm] border border-gray-300 my-5 mx-auto flex flex-col relative">
+    <!-- Letter content is the same as before -->
     <div class="header text-center pb-4 mb-5 relative">
       <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
       <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
@@ -153,21 +179,26 @@
         </div>
     </div>
   </div> 
-  <div class="flex space-x-4 w-full max-w-md">
-    <button id="downloadBtn" class="btn hidden w-1/2 p-4 bg-green-600 text-white font-bold rounded-lg text-base cursor-pointer my-5 hover:bg-green-700">Download Letter</button>
-    <button id="shareBtn" class="btn hidden w-1/2 p-4 bg-green-500 text-white font-bold rounded-lg text-base cursor-pointer my-5 hover:bg-green-600">Share on WhatsApp</button>
-  </div>
-
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
   <script>
+    // NEW: Variable to hold the ImgBB API Key
+    let IMGBB_API_KEY_FORM = null;
+
     async function checkAuthAndInitialize() {
         try {
-            const response = await fetch('/api/config');
+            // NEW: Fetching config from a new endpoint for this form
+            const response = await fetch('/api/config-form.js');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
             
+            // NEW: Storing the ImgBB API key from the config
+            IMGBB_API_KEY_FORM = config.imgbb.apiKey;
+            if (!IMGBB_API_KEY_FORM) {
+                throw new Error("ImgBB API Key is missing from config.");
+            }
+
             firebase.initializeApp(config.firebase);
             
             firebase.auth().onAuthStateChanged(user => {
@@ -183,12 +214,15 @@
         } catch (error) {
             console.error('Initialization Error:', error);
             alert('Application failed to initialize. Please check console.');
+            document.getElementById('main-form-container').innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
         }
     }
 
     function runAppLogic() {
         let membersData = {};
 
+        const mainFormContainer = document.getElementById('main-form-container');
+        const successMessage = document.getElementById('successMessage');
         const nameSelect = document.getElementById('nameSelect');
         const loanCategorySelect = document.getElementById('loanCategory');
         const amountInput = document.getElementById('amount');
@@ -197,12 +231,13 @@
         const imageUploadInput = document.getElementById('imageUpload');
         const loanForm = document.getElementById('loanForm');
         const captureDiv = document.getElementById('capture');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const shareBtn = document.getElementById('shareBtn');
         const guarantorSection = document.getElementById('guarantorSection');
         const guarantorSelect = document.getElementById('guarantorSelect');
         const goldCollateralSection = document.getElementById('goldCollateralSection');
         const goldCollateralInput = document.getElementById('goldCollateral');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitBtnText = document.getElementById('submitBtnText');
+        const submitLoader = document.getElementById('submitLoader');
 
         const currentDateEl = document.getElementById('currentDate');
         const letterLoanCategoryEl = document.getElementById('letterLoanCategory');
@@ -281,7 +316,6 @@
             goldCollateralSection.style.display = (category === 'gold') ? 'block' : 'none';
             goldCollateralInput.required = (category === 'gold');
             
-            // NEW GUARANTOR LOGIC
             const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank');
             guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none';
             guarantorSelect.required = needsManualGuarantor;
@@ -342,15 +376,45 @@
             const year = date.getFullYear();
             return `${day} ${month} ${year}`;
         }
+        
+        // NEW: Function to upload image to ImgBB
+        async function uploadImageToImgBB(file) {
+            if (!file) return null;
+            const formData = new FormData();
+            formData.append('image', file);
 
-        loanForm.addEventListener('submit', function(e) {
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY_FORM}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const json = await res.json();
+                if (!json.success) {
+                    throw new Error(json.error.message || 'Unknown error during image upload.');
+                }
+                return json.data.url;
+            } catch (err) {
+                console.error('ImgBB upload failed:', err);
+                alert('Image upload failed: ' + err.message);
+                return null;
+            }
+        }
+
+        loanForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            submitBtn.disabled = true;
+            submitBtnText.textContent = 'Submitting...';
+            submitLoader.classList.remove('hidden');
+
             const selectedMemberId = nameSelect.value;
             const member = membersData[selectedMemberId];
 
             if (!member) {
                 alert('Please select a valid member.');
+                submitBtn.disabled = false;
+                submitBtnText.textContent = 'Submit for Approval';
+                submitLoader.classList.add('hidden');
                 return;
             }
             
@@ -362,12 +426,14 @@
 
             if (isNaN(amount) || !rateValue) {
                 alert('Please fill in all required fields.');
+                submitBtn.disabled = false;
+                submitBtnText.textContent = 'Submit for Approval';
+                submitLoader.classList.add('hidden');
                 return;
             }
             
             [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, collateralRowEl].forEach(el => el.style.display = 'none');
             
-            // NEW GUARANTOR LOGIC
             let guarantorName = 'N/A';
             const needsManualGuarantor = category === 'guarantor' || member.fullName.toLowerCase().includes('bank');
 
@@ -375,6 +441,9 @@
                 const guarantorId = guarantorSelect.value;
                 if (!guarantorId) {
                     alert('Please select a guarantor for this loan type.');
+                    submitBtn.disabled = false;
+                    submitBtnText.textContent = 'Submit for Approval';
+                    submitLoader.classList.add('hidden');
                     return;
                 }
                 guarantorName = membersData[guarantorId].fullName;
@@ -382,13 +451,14 @@
                 guarantorName = member.guarantorName || 'N/A';
             }
             displayGuarantorEl.textContent = guarantorName;
-            guarantorRowEl.style.display = 'flex'; // Always show guarantor row
+            guarantorRowEl.style.display = 'flex';
             
             if (category === 'gold' && collateralItem) {
                 displayCollateralEl.textContent = collateralItem;
                 collateralRowEl.style.display = 'flex';
             }
-
+            
+            let loanDetails = {};
             let interest = 0, totalMonths = 0, rateText = '', totalAmount = 0;
             
             switch(category) {
@@ -398,26 +468,28 @@
                     totalMonths = pMonths;
                     rateText = durationRateSelect.options[durationRateSelect.selectedIndex].text;
                     totalAmount = amount + (amount * (interest / 100));
-                    displayEMIEl.textContent = (totalAmount / totalMonths).toFixed(2);
+                    loanDetails.emi = (totalAmount / totalMonths).toFixed(2);
+                    displayEMIEl.textContent = loanDetails.emi;
                     emiRowEl.style.display = 'flex';
                     break;
                 case 'business':
                     const [interestOnlyMonths, emiMonths] = rateValue.split('-').map(Number);
                     const monthlyInterestRate = 1.5 / 100;
                     
-                    let processingFee = amount * 0.015;
-                    if (amount > 9000) processingFee += 200;
-                    displayProcessingFeeEl.textContent = processingFee.toFixed(2);
+                    loanDetails.processingFee = amount * 0.015;
+                    if (amount > 9000) loanDetails.processingFee += 200;
+                    displayProcessingFeeEl.textContent = loanDetails.processingFee.toFixed(2);
                     processingFeeRowEl.style.display = 'flex';
 
-                    const monthlyInterestPayment = amount * monthlyInterestRate;
+                    loanDetails.monthlyInterestPayment = amount * monthlyInterestRate;
                     const emiPayment = (amount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, emiMonths)) / (Math.pow(1 + monthlyInterestRate, emiMonths) - 1);
+                    loanDetails.emi = emiPayment.toFixed(2);
                     
-                    totalAmount = (monthlyInterestPayment * interestOnlyMonths) + (emiPayment * emiMonths);
+                    totalAmount = (loanDetails.monthlyInterestPayment * interestOnlyMonths) + (emiPayment * emiMonths);
                     totalMonths = interestOnlyMonths + emiMonths;
                     
-                    displayBusinessInterestEl.textContent = `${monthlyInterestPayment.toFixed(2)} (for first ${interestOnlyMonths} months)`;
-                    displayBusinessEMIEl.textContent = `${emiPayment.toFixed(2)} (for last ${emiMonths} months)`;
+                    displayBusinessInterestEl.textContent = `${loanDetails.monthlyInterestPayment.toFixed(2)} (for first ${interestOnlyMonths} months)`;
+                    displayBusinessEMIEl.textContent = `${loanDetails.emi} (for last ${emiMonths} months)`;
                     businessInterestRowEl.style.display = 'flex';
                     businessEmiRowEl.style.display = 'flex';
                     
@@ -430,14 +502,15 @@
                     totalMonths = gMonths;
                     const gMonthlyRate = interest / 100;
 
-                    const interestOnlyPayment = amount * gMonthlyRate;
-                    displayInterestOnlyPaymentEl.textContent = interestOnlyPayment.toFixed(2);
+                    loanDetails.interestOnlyPayment = amount * gMonthlyRate;
+                    displayInterestOnlyPaymentEl.textContent = loanDetails.interestOnlyPayment.toFixed(2);
                     interestOnlyPaymentRowEl.style.display = 'flex';
 
                     const fullEmi = (amount * gMonthlyRate * Math.pow(1 + gMonthlyRate, totalMonths)) / (Math.pow(1 + gMonthlyRate, totalMonths) - 1);
+                    loanDetails.emi = fullEmi.toFixed(2);
                     totalAmount = fullEmi * totalMonths;
                     
-                    displayEMIEl.textContent = fullEmi.toFixed(2);
+                    displayEMIEl.textContent = loanDetails.emi;
                     emiRowEl.style.display = 'flex';
                     
                     rateText = `${interest}% Monthly for ${totalMonths} months`;
@@ -475,23 +548,67 @@
                 manualUploadSectionEl.style.display = 'block';
             }
 
+            // Temporarily show the capture div to generate the image
             captureDiv.style.display = 'flex';
-            downloadBtn.style.display = 'block';
-            shareBtn.style.display = 'block';
-            captureDiv.scrollIntoView({ behavior: 'smooth' });
+            
+            // Wait for images to load before capturing
+            await waitForImages(captureDiv);
+            await new Promise(resolve => setTimeout(resolve, 500)); // Extra delay for rendering
+
+            // Generate canvas and upload
+            const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
+            captureDiv.style.display = 'none'; // Hide it again
+            
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const letterImageUrl = await uploadImageToImgBB(blob);
+            const additionalDocUrl = await uploadImageToImgBB(uploadedFile);
+
+            if (!letterImageUrl) {
+                alert('Failed to upload the generated loan letter. Cannot proceed.');
+                submitBtn.disabled = false;
+                submitBtnText.textContent = 'Submit for Approval';
+                submitLoader.classList.add('hidden');
+                return;
+            }
+            
+            // Prepare data for Firebase
+            const pendingLoanData = {
+                applicantId: selectedMemberId,
+                applicantName: member.fullName,
+                applicantPhotoUrl: member.profilePicUrl,
+                loanAmount: amount,
+                loanCategory: category,
+                loanCategoryText: categoryText,
+                rateText: rateText,
+                totalPayable: totalAmount,
+                repaymentEndDate: repaymentDate.toISOString(),
+                guarantorName: guarantorName,
+                collateralItem: category === 'gold' ? collateralItem : null,
+                additionalDocUrl: additionalDocUrl,
+                letterImageUrl: letterImageUrl,
+                loanDetails: loanDetails, // Contains EMI, fees etc.
+                status: 'pending',
+                submittedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            // Push to Firebase 'pendingLoans'
+            try {
+                const db = firebase.database();
+                await db.ref('pendingLoans').push(pendingLoanData);
+                
+                // Show success message
+                mainFormContainer.style.display = 'none';
+                successMessage.style.display = 'block';
+
+            } catch (error) {
+                console.error("Firebase submission error:", error);
+                alert("Failed to submit application to database. Error: " + error.message);
+                submitBtn.disabled = false;
+                submitBtnText.textContent = 'Submit for Approval';
+                submitLoader.classList.add('hidden');
+            }
         });
         
-        async function generateCanvas() {
-            downloadBtn.disabled = true;
-            shareBtn.disabled = true;
-            await waitForImages(captureDiv);
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
-            downloadBtn.disabled = false;
-            shareBtn.disabled = false;
-            return canvas;
-        }
-
         async function waitForImages(containerElement) {
             const images = Array.from(containerElement.getElementsByTagName('img'));
             const promises = images.map(img => {
@@ -500,7 +617,7 @@
                         img.onload = resolve;
                         img.onerror = () => {
                             console.warn(`Image failed to load: ${img.src}`);
-                            resolve();
+                            resolve(); // Resolve even if an image fails to load
                         };
                     });
                 }
@@ -508,23 +625,6 @@
             });
             return Promise.all(promises);
         }
-
-        downloadBtn.addEventListener('click', async function() {
-            downloadBtn.textContent = 'Preparing...';
-            const canvas = await generateCanvas();
-            const link = document.createElement('a');
-            const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
-            link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            link.remove();
-            downloadBtn.textContent = 'Download Letter';
-        });
-
-        shareBtn.addEventListener('click', function() {
-            const groupLink = 'https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ';
-            window.open(groupLink, '_blank');
-        });
 
         fetchMemberData();
     }
