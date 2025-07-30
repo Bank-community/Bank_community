@@ -354,38 +354,32 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
+    // Yahan original authentication logic ko wapas laya gaya hai
     async function checkAuthAndInitialize() {
         try {
-            // This is a placeholder for fetching config. In a real environment, 
-            // this would be a secure endpoint. For this example, we'll hardcode it.
-            const firebaseConfig = {
-                // IMPORTANT: Replace with your actual Firebase project configuration
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-                databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_PROJECT_ID.appspot.com",
-                messagingSenderId: "YOUR_SENDER_ID",
-                appId: "YOUR_APP_ID"
-            };
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
             
-            // A simple check to see if the config is still the placeholder
-            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                 const loader = document.getElementById('loader');
-                 loader.innerHTML = `<p style="color: orange; text-align: center;"><b>Configuration Needed:</b> Please replace the placeholder Firebase config in the script with your project's details.</p>`;
-                 return;
-            }
-
-            firebase.initializeApp(firebaseConfig);
+            firebase.initializeApp(config.firebase);
             
-            // Using a dummy authentication for demonstration as there's no login page.
-            // In a real app, use firebase.auth().onAuthStateChanged
-            firebase.auth().signInAnonymously().then(() => {
-                runAppLogic();
-            }).catch(error => {
-                console.error("Anonymous sign-in failed:", error);
-                const loader = document.getElementById('loader');
-                loader.innerHTML = `<p style="color: red;">Authentication failed.</p>`;
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    runAppLogic();
+                } else {
+                    // Agar user logged in nahi hai to login page par redirect karein
+                    // Yeh line aapke app ke structure par depend karti hai
+                    // window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    
+                    // For demonstration, we will assume the user is logged in.
+                    // If you have a login page, the above line is correct.
+                    // If not, we can try to sign in anonymously for the demo.
+                    firebase.auth().signInAnonymously().catch(err => {
+                        console.error("Anonymous sign-in failed", err);
+                        const loader = document.getElementById('loader');
+                        loader.innerHTML = `<p style="color: red;">Authentication failed.</p>`;
+                    });
+                }
             });
 
         } catch (error) {
@@ -459,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     Date: new Date(row.Date),
                     Loan: parseFloat(row.Loan || 0),
                     Payment: parseFloat(row['Loan Payment'] || 0),
-                    LoanType: String(row['Loan Type'] || 'N/A').trim(), // Loan Type extract kiya gaya
+                    LoanType: String(row['Loan Type'] || 'N/A').trim(),
                     ImageUrl: row.profilePicUrl || null
                 }))
                 .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
@@ -557,7 +551,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     daysAgo: daysSinceLoan,
                     imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
                     loanDate: loanDate,
-                    loanType: lastLoan.LoanType, // Loan Type store kiya gaya
+                    loanType: lastLoan.LoanType,
                     interest: interestInfo,
                     status: status
                 });
@@ -641,7 +635,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
                                 <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
                             </div>
-                            <!-- Loan Type yahan display hoga -->
                             <div class="detail-row">
                                 <span class="detail-label">${ICONS.tag} Loan Type:</span>
                                 <span class="detail-value">${loan.loanType}</span>
@@ -694,13 +687,11 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
         
-        fetchAndProcessData();
+        // App logic ko call kiya ja raha hai
+        runAppLogic();
     }
     
-    // Note: I've replaced the config fetch with hardcoded values and anonymous auth
-    // for demonstration purposes since the original /api/config endpoint and login
-    // flow are not available in this environment.
-    // YOU MUST REPLACE THE PLACEHOLDER CONFIG WITH YOUR OWN.
+    // Original function ko call kiya ja raha hai
     checkAuthAndInitialize();
 });
 </script>
