@@ -289,6 +289,14 @@ body {
 .detail-value.amount { 
     color: var(--text-dark); 
 }
+.detail-value.loan-type-value {
+    color: var(--primary-dark);
+    font-weight: 600;
+    background-color: #e0e7ff;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+}
 .detail-value.penalty-value { 
     color: var(--danger-color);
     font-weight: 700; 
@@ -354,9 +362,11 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    // Authentication logic ko original working state mein restore kiya gaya hai
+    // Authorization check function - DO NOT REMOVE
     async function checkAuthAndInitialize() {
         try {
+            // This part is for a secure setup where config is fetched from a server endpoint.
+            // For local/demo purposes, you might replace this with hardcoded config.
             const response = await fetch('/api/config');
             if (!response.ok) throw new Error('Configuration failed to load.');
             const config = await response.json();
@@ -365,11 +375,10 @@ document.addEventListener("DOMContentLoaded", () => {
             
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    // User logged in hai, app shuru karein
+                    // User is signed in, start the main application logic
                     runAppLogic();
                 } else {
-                    // User logged in nahi hai, login page par redirect karein
-                    // Yeh aapke original code ka logic hai
+                    // User is not signed in, redirect to login page
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
@@ -381,6 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Main application logic function
     function runAppLogic() {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
@@ -389,6 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
             download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
             star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`,
+            // NEW ICON for Loan Type
             tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`
         };
 
@@ -417,11 +428,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const member = membersData[memberId];
                     if (member.transactions) {
                         for (const txId in member.transactions) {
-                            allTransactions.push({ 
-                                ...member.transactions[txId], 
-                                fullName: member.fullName, 
-                                profilePicUrl: member.profilePicUrl 
-                            });
+                            allTransactions.push({ ...member.transactions[txId], fullName: member.fullName, profilePicUrl: member.profilePicUrl });
                         }
                     }
                 }
@@ -432,22 +439,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 setupEventListeners();
             } catch (error) {
                 console.error("Data fetch failed:", error);
-                state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded. Error: ${error.message}</p>`;
+                state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded.</p>`;
             } finally {
                 state.ui.loader.classList.add('hidden');
             }
         }
-
+        
+        // UPDATED to handle Loan Type
         function processRawData(rawData) {
              return rawData
-                .map(row => ({
-                    Name: String(row.fullName || 'Unknown').trim(),
-                    Date: new Date(row.Date),
-                    Loan: parseFloat(row.Loan || 0),
-                    Payment: parseFloat(row['Loan Payment'] || 0),
-                    LoanType: String(row['Loan Type'] || 'N/A').trim(),
-                    ImageUrl: row.profilePicUrl || null
-                }))
+                .map(row => {
+                    const loanAmount = parseFloat(row.Loan || 0);
+                    return {
+                        Name: String(row.fullName || 'Unknown').trim(),
+                        Date: new Date(row.Date),
+                        Loan: loanAmount,
+                        Payment: parseFloat(row['Loan Payment'] || 0),
+                        ImageUrl: row.profilePicUrl || null,
+                        // NEW LOGIC: Capture 'Loan Type'. If it doesn't exist but it is a loan transaction, default to 'Personal Loan'.
+                        LoanType: row['Loan Type'] || (loanAmount > 0 ? 'Personal Loan' : null)
+                    };
+                })
                 .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
                 .sort((a, b) => a.Date - b.Date);
         }
@@ -480,7 +492,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const amount = Math.round((loanAmount * percentage) / 100);
             return { type: 'smart-interest', percentage, amount, slabName };
         }
-
+        
+        // UPDATED to pass Loan Type to final object
         function findOutstandingLoans(allData) {
             const outstanding = [];
             const members = [...new Set(allData.map(d => d.Name))];
@@ -504,11 +517,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const today = new Date();
                 const loanDate = lastLoan.Date;
-                
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
 
                 let interestInfo;
-                let status = 'standard'; 
+                let status = 'standard';
 
                 const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
                 const firstPaymentAfterLoan = paymentsAfterLoan[0];
@@ -543,9 +555,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     daysAgo: daysSinceLoan,
                     imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
                     loanDate: loanDate,
-                    loanType: lastLoan.LoanType,
                     interest: interestInfo,
-                    status: status
+                    status: status,
+                    // NEW: Pass the loan type from the last loan transaction
+                    loanType: lastLoan.LoanType
                 });
             });
             
@@ -563,7 +576,8 @@ document.addEventListener("DOMContentLoaded", () => {
             totalCountEl.textContent = loans.length;
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
         }
-
+        
+        // UPDATED to display Loan Type in the card
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -627,9 +641,10 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <span class="detail-label">${ICONS.money} Outstanding Amount:</span>
                                 <span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span>
                             </div>
+                            <!-- NEW: Loan Type display -->
                             <div class="detail-row">
                                 <span class="detail-label">${ICONS.tag} Loan Type:</span>
-                                <span class="detail-value">${loan.loanType}</span>
+                                <span class="detail-value loan-type-value">${loan.loanType}</span>
                             </div>
                             ${interestHtml}
                         </div>
@@ -679,11 +694,10 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
         
-        // App logic ko call kiya ja raha hai
-        // Yeh function ab sirf tabhi call hoga jab user authenticated hoga
+        fetchAndProcessData();
     }
     
-    // Original function ko call kiya ja raha hai
+    // Start the authentication check
     checkAuthAndInitialize();
 });
 </script>
