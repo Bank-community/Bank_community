@@ -546,7 +546,7 @@
     }
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (V12 - Advanced Dynamic Buttons) ##
+    // ## MAIN APPLICATION LOGIC (V13 - Updated Ranking, Notifs, Graph) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -558,7 +558,6 @@
         const memberContainer = document.getElementById('memberContainer');
         const headerActionsContainer = document.getElementById('headerActionsContainer');
         const staticHeaderButtonsContainer = document.getElementById('staticHeaderButtons');
-        // ... (rest of the element cache remains the same)
         const customCardsContainer = document.getElementById('customCardsContainer');
         const communityLetterSlides = document.getElementById('communityLetterSlides');
         const totalMembersValueElement = document.getElementById('totalMembersValue');
@@ -710,12 +709,12 @@
                 if (btnData.icon_svg) innerHTML += btnData.icon_svg;
                 if (btnData.name) innerHTML += `<b>${btnData.name}</b>`;
                 
+                // *** NOTIFICATION DOT UPDATE: Changed ID to be more specific ***
                 if (btnData.id === 'notificationBtn') {
-                    innerHTML += '<span id="notificationDot" class="notification-dot"></span>';
+                    innerHTML += '<span id="notificationIconDot" class="notification-dot"></span>';
                 }
                 element.innerHTML = innerHTML;
 
-                // Apply dynamic styles
                 element.style.backgroundColor = btnData.transparent ? 'transparent' : btnData.color;
                 element.style.color = btnData.textColor;
                 element.style.width = btnData.width;
@@ -725,12 +724,10 @@
                 element.style.borderWidth = btnData.borderWidth;
                 element.style.borderStyle = (parseFloat(btnData.borderWidth) > 0 || btnData.style_preset === 'btn-outline') ? 'solid' : 'none';
 
-                // Specific logic for glossy preset
                 if (btnData.style_preset === 'btn-glossy' && !btnData.transparent) {
                     element.style.backgroundImage = `linear-gradient(to top, ${btnData.color}, #ffffff)`;
                 }
 
-                // Decide where to append the button
                 if (['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
                     if (staticHeaderButtonsContainer) staticHeaderButtonsContainer.appendChild(element);
                 } else {
@@ -754,7 +751,8 @@
                 notificationBtn.addEventListener('click', () => {
                     displayNotifications();
                     notificationModal.classList.add('show');
-                    const dot = document.getElementById('notificationDot');
+                    // *** NOTIFICATION DOT UPDATE: Hides the dot on click ***
+                    const dot = document.getElementById('notificationIconDot');
                     if(dot) dot.style.display = 'none';
                     sessionStorage.setItem('notificationsViewed', 'true');
                 });
@@ -778,6 +776,10 @@
             let totalLoanDisbursed = 0;
             let totalGrossReturn = 0;
             let allTransactions = [];
+            
+            // *** RANKING UPDATE: Get today's date (ignoring time) for comparison ***
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
             totalPenaltyAmount = Object.values(penaltyIncomes)
                 .filter(income => income.reason && income.reason.includes("10% of Return"))
@@ -789,6 +791,8 @@
 
                 let balance = 0, loanCount = 0, memberReturn = 0, extraBalance = 0;
                 let memberTransactions = [];
+                // *** RANKING UPDATE: Initialize cumulative SIP amount for ranking ***
+                let cumulativeSipToDate = 0;
 
                 if (member.transactions) {
                     memberTransactions = Object.values(member.transactions);
@@ -798,6 +802,7 @@
                     const totalLoan = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx.Loan || 0), 0);
                     memberReturn = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Return amount'] || 0), 0);
                     
+                    // This is the total account balance, kept for modals/details
                     balance = (totalSip + totalLoanPayment + totalExtraPayment) - totalLoan;
                     loanCount = memberTransactions.filter(tx => parseFloat(tx.Loan || 0) > 0).length;
                     extraBalance = totalExtraPayment;
@@ -806,7 +811,12 @@
                     totalGrossReturn += memberReturn;
 
                     memberTransactions.forEach(tx => {
-                        allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: new Date(tx.Date) });
+                        const txDate = new Date(tx.Date);
+                         // *** RANKING UPDATE: Calculate cumulative SIP up to today ***
+                        if (parseFloat(tx['SIP Payment'] || 0) > 0 && txDate <= today) {
+                            cumulativeSipToDate += parseFloat(tx['SIP Payment']);
+                        }
+                        allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: txDate });
                     });
                 }
 
@@ -820,6 +830,8 @@
                 processedMembers[memberId] = {
                     id: memberId, name: member.fullName, balance: balance, totalReturn: memberReturn,
                     loanCount: loanCount, extraBalance: extraBalance,
+                    // *** RANKING UPDATE: Add the new SIP amount to the member object ***
+                    cumulativeSipToDate: cumulativeSipToDate,
                     joiningDate: member.joiningDate || (memberTransactions.length > 0 ? memberTransactions[0].Date : null),
                     displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
                     isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
@@ -828,10 +840,19 @@
             }
             
             netReturnAmount = totalGrossReturn;
-            const memberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
+            // *** RANKING UPDATE: Sort the member list by cumulativeSipToDate instead of balance ***
+            const memberList = Object.values(processedMembers).sort((a, b) => b.cumulativeSipToDate - a.cumulativeSipToDate);
             
-            adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
-            adData.topThreeMembers = memberList.slice(0, 3);
+            const memberListByBalance = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
+            adData.topBalanceMember = memberListByBalance.length > 0 ? memberListByBalance[0] : null;
+            
+            // The top 3 for the header ad will be based on SIP ranking now
+            adData.topThreeMembers = memberList.slice(0, 3).map(m => ({
+                name: m.name,
+                displayImageUrl: m.displayImageUrl,
+                amount: m.cumulativeSipToDate // Show SIP amount in the ad
+            }));
+            
             adData.bankStats = { totalMembers: memberList.length, totalLoan: totalLoanDisbursed };
             
             const currentMonthSips = allTransactions.filter(tx => tx['SIP Payment'] > 0 && tx.Date.getMonth() === new Date().getMonth() && tx.Date.getFullYear() === new Date().getFullYear());
@@ -847,7 +868,7 @@
             const monthlySipData = processMonthlySipData(allTransactions);
 
             displayMembers(memberList);
-            updateTotalBalanceDisplay(memberList);
+            updateTotalBalanceDisplay(Object.values(processedMembers));
             updateInfoCards(memberList.length, totalLoanDisbursed);
             startHeaderDisplayRotator();
             buildInfoSlider();
@@ -866,9 +887,8 @@
             const silverMedalURL = "https://www.svgrepo.com/show/452101/silver-medal.svg";
             const bronzeMedalURL = "https://www.svgrepo.com/show/452174/bronze-medal.svg";
             
-            const memberList = Object.values(members).sort((a, b) => b.balance - a.balance);
-
-            memberList.forEach((member, index) => {
+            // The list is already sorted by cumulativeSipToDate from the previous function
+            members.forEach((member, index) => {
                 const card = document.createElement('div');
                 card.className = 'member-card animate-on-scroll';
                 let rankHTML = '';
@@ -895,6 +915,7 @@
                     }
                 }
                 
+                // *** RANKING UPDATE: Display cumulativeSipToDate instead of balance ***
                 card.innerHTML = `
                     ${rankHTML}
                     <div class="member-photo-container">
@@ -902,7 +923,7 @@
                         ${member.isPrime ? '<div class="prime-tag">Prime</div>' : ''}
                     </div>
                     <p class="member-name" title="${member.name}">${member.name}</p>
-                    <p class="member-balance">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
+                    <p class="member-balance">${member.cumulativeSipToDate.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
                 `;
                 card.onclick = () => showMemberProfileModal(member);
                 memberContainer.appendChild(card);
@@ -910,90 +931,19 @@
             observeElements(document.querySelectorAll('.animate-on-scroll'));
         }
 
-        function displayCustomCards(cards) {
-            if (!customCardsContainer) return;
-            customCardsContainer.innerHTML = '';
+        // ... other functions like displayCustomCards, displayCommunityLetters, etc. remain unchanged ...
+        function displayCustomCards(cards) { if (!customCardsContainer) return; customCardsContainer.innerHTML = ''; const cardArray = Object.values(cards); if (cardArray.length === 0) { document.getElementById('customCardsSection').style.display = 'none'; return; } document.getElementById('customCardsSection').style.display = 'block'; cardArray.forEach(cardData => { const cardElement = document.createElement('div'); cardElement.className = 'custom-card'; cardElement.innerHTML = ` <div class="custom-card-img-wrapper"> <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || 'Card Image'}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"> <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}" target="_blank" rel="noopener noreferrer"> ${cardData.buttonText || 'Learn More'} </a> </div> <div class="custom-card-content"> <h3 class="custom-card-title">${cardData.title || 'Untitled Card'}</h3> <p class="custom-card-desc">${cardData.description || ''}</p> </div> `; customCardsContainer.appendChild(cardElement); }); initializeCustomCardSlider(cardArray); }
+        function displayCommunityLetters(letters) { if (!communityLetterSlides) return; communityLetterSlides.innerHTML = ''; const letterArray = Object.values(letters); if (letterArray.length === 0) { communityLetterSlides.innerHTML = `<div class="slide"><p class="p-8 text-center text-gray-500">No letters available.</p></div>`; initializeLetterSlider(); return; } letterArray.forEach(letter => { const slide = document.createElement('div'); slide.className = 'slide'; slide.innerHTML = `<img src="${letter.imageUrl}" alt="${letter.altText || 'Community Letter'}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">`; communityLetterSlides.appendChild(slide); }); initializeLetterSlider(); }
+        function handlePasswordCheck() { const enteredPassword = passwordInput.value; if (!enteredPassword) { alert('Please enter a password.'); return; } const correctPassword = allMembersData[currentMemberForFullView]?.password; if (enteredPassword === correctPassword) { window.location.href = `view.html?memberId=${currentMemberForFullView}`; } else { alert('Incorrect password. Please try again.'); passwordInput.value = ''; } }
+        function updateInfoCards(memberCount, totalLoan) { if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount; if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'}); }
+        function updateTotalBalanceDisplay(memberList) { netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0); }
 
-            const cardArray = Object.values(cards);
-
-            if (cardArray.length === 0) {
-                document.getElementById('customCardsSection').style.display = 'none';
-                return;
-            }
-            document.getElementById('customCardsSection').style.display = 'block';
-
-            cardArray.forEach(cardData => {
-                const cardElement = document.createElement('div');
-                cardElement.className = 'custom-card';
-
-                cardElement.innerHTML = `
-                    <div class="custom-card-img-wrapper">
-                        <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || 'Card Image'}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                        <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}" target="_blank" rel="noopener noreferrer">
-                            ${cardData.buttonText || 'Learn More'}
-                        </a>
-                    </div>
-                    <div class="custom-card-content">
-                        <h3 class="custom-card-title">${cardData.title || 'Untitled Card'}</h3>
-                        <p class="custom-card-desc">${cardData.description || ''}</p>
-                    </div>
-                `;
-                customCardsContainer.appendChild(cardElement);
-            });
-            initializeCustomCardSlider(cardArray);
-        }
-        
-        function displayCommunityLetters(letters) {
-            if (!communityLetterSlides) return;
-            communityLetterSlides.innerHTML = '';
-            
-            const letterArray = Object.values(letters);
-
-            if (letterArray.length === 0) {
-                communityLetterSlides.innerHTML = `<div class="slide"><p class="p-8 text-center text-gray-500">No letters available.</p></div>`;
-                initializeLetterSlider();
-                return;
-            }
-
-            letterArray.forEach(letter => {
-                const slide = document.createElement('div');
-                slide.className = 'slide';
-                slide.innerHTML = `<img src="${letter.imageUrl}" alt="${letter.altText || 'Community Letter'}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">`;
-                communityLetterSlides.appendChild(slide);
-            });
-
-            initializeLetterSlider();
-        }
-        
-        function handlePasswordCheck() {
-            const enteredPassword = passwordInput.value;
-            if (!enteredPassword) {
-                alert('Please enter a password.');
-                return;
-            }
-            const correctPassword = allMembersData[currentMemberForFullView]?.password;
-            
-            if (enteredPassword === correctPassword) {
-                window.location.href = `view.html?memberId=${currentMemberForFullView}`;
-            } else {
-                alert('Incorrect password. Please try again.');
-                passwordInput.value = '';
-            }
-        }
-
-        function updateInfoCards(memberCount, totalLoan) {
-            if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
-            if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'});
-        }
-        function updateTotalBalanceDisplay(memberList) {
-            netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
-        }
         function showMemberProfileModal(member) {
             currentMemberForFullView = member.id;
             profileModalImage.src = member.displayImageUrl;
             profileModalName.textContent = member.name;
             profileModalJoiningDate.textContent = formatDate(member.joiningDate);
-            profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+            profileModalBalance.textContent = member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }); // Shows overall balance
             profileModalReturn.textContent = member.totalReturn.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
             profileModalLoanCount.textContent = member.loanCount;
             if (member.sipStatus.paid) { profileModalSipStatus.innerHTML = `<span class="sip-status-icon paid">✔</span><span class="sip-status-text">Paid: ${member.sipStatus.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>`; } 
@@ -1004,147 +954,25 @@
             profileModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
-        function showBalanceModal() {
-            if (!balanceModalElement) return;
-            const netReturnAfterPenalty = netReturnAmount - totalPenaltyAmount;
-            const combinedBalance = netCommunityBalance + netReturnAfterPenalty;
-            balanceModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-            animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
-            animateValue(returnBalanceElement, 0, netReturnAfterPenalty, 1200);
-            animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
-        }
-        function showSipStatusModal() {
-            if (!sipStatusListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
-            sipStatusListContainer.innerHTML = '';
-            const memberList = Object.values(allMembersData).filter(m => m.status === 'Approved' && m.fullName);
-            const sortedMembers = memberList.map(member => {
-                const now = new Date();
-                const currentMonthSip = Object.values(member.transactions || {}).find(tx => 
-                    parseFloat(tx['SIP Payment'] || 0) > 0 &&
-                    new Date(tx.Date).getMonth() === now.getMonth() &&
-                    new Date(tx.Date).getFullYear() === now.getFullYear()
-                );
-                return {
-                    name: member.fullName,
-                    displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
-                    sipPaid: !!currentMonthSip
-                }
-            }).sort((a, b) => (b.sipPaid ? 1 : 0) - (a.sipPaid ? 1 : 0) || a.name.localeCompare(b.name));
-            sortedMembers.forEach(member => {
-                const item = document.createElement('div');
-                item.className = 'sip-status-item';
-                const statusClass = member.sipPaid ? 'paid' : 'not-paid';
-                const statusText = member.sipPaid ? 'Paid' : 'Not Paid';
-                item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`;
-                sipStatusListContainer.appendChild(item);
-            });
-            sipStatusModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function showAllMembersModal() {
-            if (!allMembersListContainer || Object.keys(allMembersData).length === 0) {
-                alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.');
-                return;
-            }
-            allMembersListContainer.innerHTML = '';
-            const memberList = Object.values(allMembersData)
-                .filter(m => m.status === 'Approved' && m.fullName)
-                .sort((a, b) => a.fullName.localeCompare(b.fullName));
-
-            memberList.forEach(member => {
-                const item = document.createElement('div');
-                item.className = 'sip-status-item'; // Reusing class for consistent styling
-                item.innerHTML = `
-                    <img src="${member.profilePicUrl || DEFAULT_IMAGE}" alt="${member.fullName}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                    <span class="sip-status-name">${member.fullName}</span>
-                `;
-                allMembersListContainer.appendChild(item);
-            });
-
-            allMembersModal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function showPenaltyWalletModal() {
-            if (!penaltyWalletModal) return;
-
-            const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
-            const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
-            const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-            const totalIncomes = incomes.reduce((sum, i) => sum + i.amount, 0);
-            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-            const currentBalance = totalIncomes - totalExpenses;
-
-            penaltyBalanceElement.textContent = `₹${currentBalance.toLocaleString('en-IN')}`;
-            penaltyHistoryList.innerHTML = '';
-            penaltyHistoryList.classList.remove('visible'); // Hide history initially
-            viewHistoryBtn.textContent = 'View History';
-
-            if (history.length === 0) {
-                penaltyHistoryList.innerHTML = `<li class="no-penalty-history">No penalty records found.</li>`;
-            } else {
-                history.forEach(tx => {
-                    const li = document.createElement('li');
-                    li.className = 'penalty-history-item';
-                    const isIncome = tx.type === 'income';
-                    li.innerHTML = `
-                        <div class="penalty-details">
-                            <p class="penalty-text"><strong>${isIncome ? tx.from : tx.reason}</strong></p>
-                            <div class="penalty-time">${tx.reason || ''} &middot; ${new Date(tx.timestamp).toLocaleString('en-GB')}</div>
-                        </div>
-                        <span class="penalty-amount ${isIncome ? 'income' : 'expense'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</span>
-                    `;
-                    penaltyHistoryList.appendChild(li);
-                });
-            }
-            penaltyWalletModal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeModal(modalElement) {
-            if (modalElement) modalElement.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-        function showFullImage(imageUrl, altText) {
-            if (!imageModalElement || !fullImageSrcElement) return;
-            fullImageSrcElement.src = imageUrl;
-            fullImageSrcElement.alt = altText;
-            imageModalElement.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-        function animateValue(element, start, end, duration) {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const currentValue = Math.floor(progress * (end - start) + start);
-                element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
-                if (progress < 1) { window.requestAnimationFrame(step); } 
-                else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); }
-            };
-            window.requestAnimationFrame(step);
-        }
-        const scrollObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
-        function observeElements(elements) {
-            elements.forEach(el => { if (el) scrollObserver.observe(el); });
-        }
+        // ... other modal functions remain the same ...
+        function showBalanceModal() { if (!balanceModalElement) return; const netReturnAfterPenalty = netReturnAmount - totalPenaltyAmount; const combinedBalance = netCommunityBalance + netReturnAfterPenalty; balanceModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; animateValue(totalBalanceElement, 0, netCommunityBalance, 1200); animateValue(returnBalanceElement, 0, netReturnAfterPenalty, 1200); animateValue(combinedBalanceElement, 0, combinedBalance, 1200); }
+        function showSipStatusModal() { if (!sipStatusListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; } sipStatusListContainer.innerHTML = ''; const memberList = Object.values(allMembersData).filter(m => m.status === 'Approved' && m.fullName); const sortedMembers = memberList.map(member => { const now = new Date(); const currentMonthSip = Object.values(member.transactions || {}).find(tx => parseFloat(tx['SIP Payment'] || 0) > 0 && new Date(tx.Date).getMonth() === now.getMonth() && new Date(tx.Date).getFullYear() === now.getFullYear() ); return { name: member.fullName, displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE, sipPaid: !!currentMonthSip } }).sort((a, b) => (b.sipPaid ? 1 : 0) - (a.sipPaid ? 1 : 0) || a.name.localeCompare(b.name)); sortedMembers.forEach(member => { const item = document.createElement('div'); item.className = 'sip-status-item'; const statusClass = member.sipPaid ? 'paid' : 'not-paid'; const statusText = member.sipPaid ? 'Paid' : 'Not Paid'; item.innerHTML = `<img src="${member.displayImageUrl}" alt="${member.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><span class="sip-status-name">${member.name}</span><span class="sip-status-badge ${statusClass}">${statusText}</span>`; sipStatusListContainer.appendChild(item); }); sipStatusModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function showAllMembersModal() { if (!allMembersListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; } allMembersListContainer.innerHTML = ''; const memberList = Object.values(allMembersData) .filter(m => m.status === 'Approved' && m.fullName) .sort((a, b) => a.fullName.localeCompare(b.fullName)); memberList.forEach(member => { const item = document.createElement('div'); item.className = 'sip-status-item'; item.innerHTML = ` <img src="${member.profilePicUrl || DEFAULT_IMAGE}" alt="${member.fullName}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"> <span class="sip-status-name">${member.fullName}</span> `; allMembersListContainer.appendChild(item); }); allMembersModal.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function showPenaltyWalletModal() { if (!penaltyWalletModal) return; const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'})); const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'})); const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); const totalIncomes = incomes.reduce((sum, i) => sum + i.amount, 0); const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0); const currentBalance = totalIncomes - totalExpenses; penaltyBalanceElement.textContent = `₹${currentBalance.toLocaleString('en-IN')}`; penaltyHistoryList.innerHTML = ''; penaltyHistoryList.classList.remove('visible'); viewHistoryBtn.textContent = 'View History'; if (history.length === 0) { penaltyHistoryList.innerHTML = `<li class="no-penalty-history">No penalty records found.</li>`; } else { history.forEach(tx => { const li = document.createElement('li'); li.className = 'penalty-history-item'; const isIncome = tx.type === 'income'; li.innerHTML = ` <div class="penalty-details"> <p class="penalty-text"><strong>${isIncome ? tx.from : tx.reason}</strong></p> <div class="penalty-time">${tx.reason || ''} · ${new Date(tx.timestamp).toLocaleString('en-GB')}</div> </div> <span class="penalty-amount ${isIncome ? 'income' : 'expense'}">${isIncome ? '+' : '-'} ₹${tx.amount.toLocaleString('en-IN')}</span> `; penaltyHistoryList.appendChild(li); }); } penaltyWalletModal.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function closeModal(modalElement) { if (modalElement) modalElement.classList.remove('show'); document.body.style.overflow = ''; }
+        function showFullImage(imageUrl, altText) { if (!imageModalElement || !fullImageSrcElement) return; fullImageSrcElement.src = imageUrl; fullImageSrcElement.alt = altText; imageModalElement.classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function animateValue(element, start, end, duration) { let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); const currentValue = Math.floor(progress * (end - start) + start); element.textContent = currentValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); if (progress < 1) { window.requestAnimationFrame(step); } else { element.textContent = end.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); } }; window.requestAnimationFrame(step); }
+        const scrollObserver = new IntersectionObserver((entries, observer) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); } }); }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 });
+        function observeElements(elements) { elements.forEach(el => { if (el) scrollObserver.observe(el); }); }
+        
         function startHeaderDisplayRotator() {
             if (!headerDisplay) return;
             const adContainer = headerDisplay.querySelector('.ad-content');
             const ads = [];
      
-            if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => `<div class="ad-top-three-member"><img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="ad-top-three-name">${member.name}</p><p class="ad-top-three-amount">${member.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p></div>`).join(''); return `<div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div>`; }); }
+            if (adData.topThreeMembers.length >= 3) { ads.push(() => { let topThreeHtml = adData.topThreeMembers.map(member => `<div class="ad-top-three-member"><img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><p class="ad-top-three-name">${member.name}</p><p class="ad-top-three-amount">${member.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p></div>`).join(''); return `<div class="ad-headline">🚀 Top 3 SIP Contributors 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div>`; }); }
             if (adData.topSipMember) { ads.push(() => `<div class="ad-headline">🏆 Member of the SIP Month 🏆</div><div class="ad-member-info"><img src="${adData.topSipMember.imageUrl}" class="ad-member-img" alt="${adData.topSipMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topSipMember.name}</p><p class="ad-member-amount">${adData.topSipMember.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
-            if (adData.topBalanceMember) { ads.push(() => `<div class="ad-headline">✨ Our Top Community Member ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
+            if (adData.topBalanceMember) { ads.push(() => `<div class="ad-headline">✨ Top Community Balance ✨</div><div class="ad-member-info"><img src="${adData.topBalanceMember.displayImageUrl}" class="ad-member-img" alt="${adData.topBalanceMember.name}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"><div class="ad-member-details"><p class="ad-member-name">${adData.topBalanceMember.name}</p><p class="ad-member-amount">${adData.topBalanceMember.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p></div></div>`); }
             if (adData.bankStats) { ads.push(() => `<div class="ad-bank-stats-container"><img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo"><ul class="ad-bank-stats"><li>Established: <strong>23 June 2024</strong></li><li>Total Members: <strong>${adData.bankStats.totalMembers}</strong></li><li>Loan Disbursed: <strong>${adData.bankStats.totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</strong></li></ul></div>`); }
 
             if (ads.length === 0) { adContainer.innerHTML = `<p class="ad-headline">Welcome to Bank Community Loan!</p>`; return; }
@@ -1159,72 +987,38 @@
             showNextAd();
             setInterval(showNextAd, 6000);
         }
-        function initializeLetterSlider() {
-            const slidesContainer = document.getElementById('communityLetterSlides');
-            const slideIndicator = document.getElementById('slideIndicator');
-            const prevBtn = document.getElementById('prevSlideBtn');
-            const nextBtn = document.getElementById('nextSlideBtn');
-
-            if (!slidesContainer || !slideIndicator) return;
-            
-            const slides = slidesContainer.children;
-            const totalSlides = slides.length;
-            if (totalSlides === 0) return;
-
-            slidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); });
-            slideIndicator.innerHTML = '';
-            for (let i = 0; i < totalSlides; i++) {
-                const dot = document.createElement('span');
-                dot.classList.add('indicator-dot');
-                dot.onclick = () => showSlide(i);
-                slideIndicator.appendChild(dot);
-            }
-            let currentSlideIndex = 0;
-            const showSlide = (index) => {
-                currentSlideIndex = (index + totalSlides) % totalSlides;
-                slidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`;
-                slideIndicator.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); });
-            };
-            if(prevBtn) prevBtn.onclick = () => showSlide(currentSlideIndex - 1);
-            if(nextBtn) nextBtn.onclick = () => showSlide(currentSlideIndex + 1);
-            showSlide(0);
-        }
-        function buildInfoSlider() {
-            if (!infoSlider) return;
-            infoSlider.innerHTML = '';
-            const infoCards = [
-                { icon: 'dollar-sign', title: 'Fund Deposit', text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.' },
-                { icon: 'gift', title: 'Loan Provision', text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.' },
-                { icon: 'calendar', title: 'Loan Duration', text: 'Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).' },
-                { icon: 'percent', title: 'Interest Rate', text: 'Avadhi aur rashi ke anusaar byaj darein badal sakti hain.' }
-            ];
-            PRIME_MEMBERS.forEach(name => {
-                infoCards.push({ icon: 'star', title: name, text: 'Is one of our valued Prime Members.', isPrime: true });
-            });
-            infoCards.forEach(card => {
-                const cardEl = document.createElement('div');
-                cardEl.className = `info-card-slide ${card.isPrime ? 'prime' : ''}`;
-                cardEl.innerHTML = `<h3><i data-feather="${card.icon}"></i> ${card.title}</h3><p>${card.text}</p>`;
-                infoSlider.appendChild(cardEl);
-            });
-            feather.replace();
-        }
+        function initializeLetterSlider() { const slidesContainer = document.getElementById('communityLetterSlides'); const slideIndicator = document.getElementById('slideIndicator'); const prevBtn = document.getElementById('prevSlideBtn'); const nextBtn = document.getElementById('nextSlideBtn'); if (!slidesContainer || !slideIndicator) return; const slides = slidesContainer.children; const totalSlides = slides.length; if (totalSlides === 0) return; slidesContainer.querySelectorAll('.slide img').forEach(img => { img.onclick = () => showFullImage(img.src, img.alt); }); slideIndicator.innerHTML = ''; for (let i = 0; i < totalSlides; i++) { const dot = document.createElement('span'); dot.classList.add('indicator-dot'); dot.onclick = () => showSlide(i); slideIndicator.appendChild(dot); } let currentSlideIndex = 0; const showSlide = (index) => { currentSlideIndex = (index + totalSlides) % totalSlides; slidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`; slideIndicator.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlideIndex); }); }; if(prevBtn) prevBtn.onclick = () => showSlide(currentSlideIndex - 1); if(nextBtn) nextBtn.onclick = () => showSlide(currentSlideIndex + 1); showSlide(0); }
+        function buildInfoSlider() { if (!infoSlider) return; infoSlider.innerHTML = ''; const infoCards = [ { icon: 'dollar-sign', title: 'Fund Deposit', text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.' }, { icon: 'gift', title: 'Loan Provision', text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.' }, { icon: 'calendar', title: 'Loan Duration', text: 'Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).' }, { icon: 'percent', title: 'Interest Rate', text: 'Avadhi aur rashi ke anusaar byaj darein badal sakti hain.' } ]; PRIME_MEMBERS.forEach(name => { infoCards.push({ icon: 'star', title: name, text: 'Is one of our valued Prime Members.', isPrime: true }); }); infoCards.forEach(card => { const cardEl = document.createElement('div'); cardEl.className = `info-card-slide ${card.isPrime ? 'prime' : ''}`; cardEl.innerHTML = `<h3><i data-feather="${card.icon}"></i> ${card.title}</h3><p>${card.text}</p>`; infoSlider.appendChild(cardEl); }); feather.replace(); }
+        
+        // *** GRAPH UPDATE: Function to process and sort SIP data chronologically ***
         function processMonthlySipData(transactions) {
-            const monthlyData = {};
-            transactions.forEach(tx => {
-                if (tx['SIP Payment'] > 0) {
-                    const monthYear = `${tx.Date.toLocaleString('default', { month: 'short' })} '${tx.Date.getFullYear().toString().slice(-2)}`;
-                    monthlyData[monthYear] = (monthlyData[monthYear] || 0) + parseFloat(tx['SIP Payment']);
-                }
+            const sipTransactions = transactions
+                .filter(tx => tx['SIP Payment'] > 0 && tx.Date)
+                .map(tx => ({ date: new Date(tx.Date), amount: parseFloat(tx['SIP Payment']) }))
+                .sort((a, b) => a.date - b.date); // Sort by date
+
+            const monthlyData = new Map(); // Use Map to preserve insertion order
+
+            sipTransactions.forEach(tx => {
+                const monthYear = `${tx.date.toLocaleString('default', { month: 'short' })} '${tx.date.getFullYear().toString().slice(-2)}`;
+                monthlyData.set(monthYear, (monthlyData.get(monthYear) || 0) + tx.amount);
             });
-            const labels = Object.keys(monthlyData);
-            const data = Object.values(monthlyData);
+
+            const labels = Array.from(monthlyData.keys());
+            const data = Array.from(monthlyData.values());
             return { labels, data };
         }
+        
+        // *** GRAPH UPDATE: Function to render a more attractive chart ***
         function renderSipChart({ labels, data }) {
             if (!sipChartCanvas) return;
             if (sipChartInstance) sipChartInstance.destroy();
             const ctx = sipChartCanvas.getContext('2d');
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(0, 123, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 123, 255, 0.2)');
+
             sipChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1232,21 +1026,55 @@
                     datasets: [{
                         label: 'Total SIP Collection',
                         data: data,
-                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        backgroundColor: gradient,
                         borderColor: 'rgba(0, 123, 255, 1)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        hoverBackgroundColor: 'rgba(0, 123, 255, 1)'
                     }]
                 },
                 options: {
                     responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { callback: value => `₹${value/1000}k` } },
-                        x: { grid: { display: false } }
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeInOutQuart'
                     },
-                    plugins: { legend: { display: false } }
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { callback: value => `₹${value/1000}k` },
+                            grid: { color: '#e9ecef' }
+                        },
+                        x: { 
+                            grid: { display: false } 
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 12 },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
+        
+        // *** NOTIFICATION UPDATE: Process more transaction types ***
         function processTodaysTransactions(transactions) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -1255,16 +1083,24 @@
                 const txDate = new Date(tx.Date);
                 txDate.setHours(0, 0, 0, 0);
                 const isToday = txDate.getTime() === today.getTime();
-                const hasAmount = parseFloat(tx['SIP Payment'] || 0) > 0 || parseFloat(tx.Loan || 0) > 0 || parseFloat(tx['Loan Payment'] || 0) > 0;
+                
+                // Check for any valid amount
+                const hasAmount = parseFloat(tx['SIP Payment'] || 0) > 0 || 
+                                  parseFloat(tx.Loan || 0) > 0 || 
+                                  parseFloat(tx['Loan Payment'] || 0) > 0 ||
+                                  parseFloat(tx['Extra Balance'] || 0) !== 0; // Includes deposits and withdrawals
+
                 return isToday && hasAmount;
             }).sort((a,b) => b.Date - a.Date);
             
-            const notificationDot = document.getElementById('notificationDot');
-            if (notificationDot && todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed')) {
+            // *** NOTIFICATION DOT UPDATE: Logic to show the dot ***
+            const notificationDot = document.getElementById('notificationIconDot');
+            if (notificationDot && todaysTransactions.length > 0 && sessionStorage.getItem('notificationsViewed') !== 'true') {
                 notificationDot.style.display = 'block';
             }
         }
         
+        // *** NOTIFICATION UPDATE: Display more transaction types ***
         function displayNotifications() {
             notificationList.innerHTML = '';
             if (todaysTransactions.length === 0) {
@@ -1292,7 +1128,16 @@
                      if (tx['Return amount'] > 0) {
                         text += ` (Return: ₹${parseFloat(tx['Return amount']).toLocaleString()})`;
                     }
+                } else if (tx['Extra Balance'] > 0) {
+                    text = `<strong>${tx.fullName}</strong> added extra funds.`;
+                    amount = `+ ₹${parseFloat(tx['Extra Balance']).toLocaleString()}`;
+                    typeClass = 'sip'; // Green color for deposits
+                } else if (tx['Extra Balance'] < 0) {
+                    text = `<strong>${tx.fullName}</strong> withdrew extra funds.`;
+                    amount = `- ₹${Math.abs(parseFloat(tx['Extra Balance'])).toLocaleString()}`;
+                    typeClass = 'loan'; // Red color for withdrawals
                 }
+
 
                 li.innerHTML = `
                     <img src="${tx.profilePicUrl}" alt="${tx.fullName}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
@@ -1306,71 +1151,8 @@
             });
         }
         
-        function showFullProfileViewModal(memberId) {
-            const member = allMembersData[memberId];
-            const processedMember = Object.values(allMembersData).find(m => m.id === memberId);
-
-            document.getElementById('fullProfileName').textContent = member.fullName;
-            document.getElementById('fullProfileMemberId').textContent = member.membershipId || 'N/A';
-            document.getElementById('fullProfileMobile').textContent = member.mobileNumber || 'N/A';
-            document.getElementById('fullProfileDob').textContent = formatDate(member.dob);
-            document.getElementById('fullProfileAadhaar').textContent = member.aadhaar || 'N/A';
-            document.getElementById('fullProfileAddress').textContent = member.address || 'N/A';
-            document.getElementById('fullProfileExtraAmount').textContent = (processedMember.extraBalance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
-            
-            const profilePic = document.getElementById('fullProfilePic');
-            profilePic.src = member.profilePicUrl || DEFAULT_IMAGE;
-            profilePic.onclick = () => showFullImage(profilePic.src, 'Profile Photo');
-
-            const docPic = document.getElementById('fullProfileDoc');
-            docPic.src = member.documentUrl || DEFAULT_IMAGE;
-            docPic.onclick = () => showFullImage(docPic.src, 'Document');
-
-            const signPic = document.getElementById('fullProfileSign');
-            signPic.src = member.signatureUrl || DEFAULT_IMAGE;
-            signPic.onclick = () => showFullImage(signPic.src, 'Signature');
-
-            fullProfileViewModal.classList.add('show');
-        }
-
-        function initializeCustomCardSlider(cards) {
-            const container = document.getElementById('customCardsContainer');
-            const indicator = document.getElementById('custom-cards-indicator');
-            if (!container || !indicator || cards.length <= 1) {
-                if(indicator) indicator.style.display = 'none';
-                return;
-            };
-            
-            indicator.style.display = 'block';
-            indicator.innerHTML = '';
-
-            cards.forEach((card, index) => {
-                const dot = document.createElement('span');
-                dot.className = 'indicator-dot';
-                dot.style.backgroundImage = `url(${card.imageUrl})`;
-                dot.onclick = () => {
-                    const cardElement = container.children[index];
-                    container.scrollTo({
-                        left: cardElement.offsetLeft - container.offsetLeft,
-                        behavior: 'smooth'
-                    });
-                };
-                indicator.appendChild(dot);
-            });
-
-            const updateActiveDot = () => {
-                const scrollLeft = container.scrollLeft;
-                const containerWidth = container.offsetWidth;
-                let activeIndex = Math.round(scrollLeft / container.children[0].offsetWidth);
-                
-                indicator.childNodes.forEach((dot, idx) => {
-                    dot.classList.toggle('active', idx === activeIndex);
-                });
-            };
-
-            container.addEventListener('scroll', updateActiveDot);
-            updateActiveDot();
-        }
+        function showFullProfileViewModal(memberId) { const member = allMembersData[memberId]; const processedMember = Object.values(allMembersData).find(m => m.id === memberId); document.getElementById('fullProfileName').textContent = member.fullName; document.getElementById('fullProfileMemberId').textContent = member.membershipId || 'N/A'; document.getElementById('fullProfileMobile').textContent = member.mobileNumber || 'N/A'; document.getElementById('fullProfileDob').textContent = formatDate(member.dob); document.getElementById('fullProfileAadhaar').textContent = member.aadhaar || 'N/A'; document.getElementById('fullProfileAddress').textContent = member.address || 'N/A'; document.getElementById('fullProfileExtraAmount').textContent = (processedMember.extraBalance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }); const profilePic = document.getElementById('fullProfilePic'); profilePic.src = member.profilePicUrl || DEFAULT_IMAGE; profilePic.onclick = () => showFullImage(profilePic.src, 'Profile Photo'); const docPic = document.getElementById('fullProfileDoc'); docPic.src = member.documentUrl || DEFAULT_IMAGE; docPic.onclick = () => showFullImage(docPic.src, 'Document'); const signPic = document.getElementById('fullProfileSign'); signPic.src = member.signatureUrl || DEFAULT_IMAGE; signPic.onclick = () => showFullImage(signPic.src, 'Signature'); fullProfileViewModal.classList.add('show'); }
+        function initializeCustomCardSlider(cards) { const container = document.getElementById('customCardsContainer'); const indicator = document.getElementById('custom-cards-indicator'); if (!container || !indicator || cards.length <= 1) { if(indicator) indicator.style.display = 'none'; return; }; indicator.style.display = 'block'; indicator.innerHTML = ''; cards.forEach((card, index) => { const dot = document.createElement('span'); dot.className = 'indicator-dot'; dot.style.backgroundImage = `url(${card.imageUrl})`; dot.onclick = () => { const cardElement = container.children[index]; container.scrollTo({ left: cardElement.offsetLeft - container.offsetLeft, behavior: 'smooth' }); }; indicator.appendChild(dot); }); const updateActiveDot = () => { const scrollLeft = container.scrollLeft; const containerWidth = container.offsetWidth; let activeIndex = Math.round(scrollLeft / container.children[0].offsetWidth); indicator.childNodes.forEach((dot, idx) => { dot.classList.toggle('active', idx === activeIndex); }); }; container.addEventListener('scroll', updateActiveDot); updateActiveDot(); }
 
         function setupEventListeners() {
             if (currentYearElement) currentYearElement.textContent = new Date().getFullYear();
@@ -1431,4 +1213,3 @@
 
 </body>
 </html>
-
