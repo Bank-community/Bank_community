@@ -63,8 +63,12 @@
 <body class="bg-gray-100 antialiased">
 
     <main class="container mx-auto p-4 sm:p-6 md:p-8">
-        <header class="mb-8">
+        <header class="mb-8 relative">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
+            <!-- ✅ Home Icon Button Added -->
+            <a href="index.html" class="absolute top-0 right-0 text-gray-500 hover:text-indigo-600 transition-colors" title="Go to Home Page">
+                <i class="ph-house text-4xl"></i>
+            </a>
             <div id="dashboard-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Stat cards will be rendered here by JS -->
                 <div class="stat-card p-6 flex items-center justify-center text-gray-400">Loading Stats...</div>
@@ -299,14 +303,56 @@
             });
         }
 
-        // --- Existing Functions (Card and Letter Management) ---
-        function renderCustomCardsList(cards) { /* ... No changes ... */ }
-        function renderCommunityLettersList(letters) { /* ... No changes ... */ }
-        function renderCustomCardModal(key = null) { /* ... No changes ... */ }
-        function renderCommunityLetterModal(key = null) { /* ... No changes ... */ }
-        function attachModalImageUploadListeners() { /* ... No changes ... */ }
+        function renderCustomCardsList(cards) {
+            const container = document.getElementById('custom-cards-list');
+            container.innerHTML = '';
+            if (Object.keys(cards).length === 0) { container.innerHTML = `<p class="text-center text-gray-500 col-span-full py-10">No custom cards added yet.</p>`; return; }
+            for (const [key, card] of Object.entries(cards)) {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col';
+                cardElement.innerHTML = `<img src="${card.imageUrl}" class="w-full h-32 object-cover" onerror="this.src='https://placehold.co/300x200/E0E7FF/4F46E5?text=Image'"><div class="p-3 flex-grow flex flex-col text-center"><h3 class="text-md font-bold text-gray-800">${card.title}</h3></div><div class="bg-gray-50 p-2 flex justify-center gap-3 border-t"><button class="edit-card-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button><button class="delete-card-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button></div>`;
+                container.appendChild(cardElement);
+            }
+        }
+        function renderCommunityLettersList(letters) {
+            const container = document.getElementById('community-letters-list');
+            container.innerHTML = '';
+            if (Object.keys(letters).length === 0) { container.innerHTML = `<p class="text-center text-gray-500 col-span-full py-10">No letters added yet.</p>`; return; }
+            for (const [key, letter] of Object.entries(letters)) {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col';
+                cardElement.innerHTML = `<img src="${letter.imageUrl}" class="w-full h-32 object-contain bg-gray-200 p-2" onerror="this.src='https://placehold.co/300x200/E0E7FF/4F46E5?text=Letter'"><div class="p-3 flex-grow flex flex-col text-center"><h3 class="text-md font-bold text-gray-800">${letter.altText || 'Community Letter'}</h3></div><div class="bg-gray-50 p-2 flex justify-center gap-3 border-t"><button class="edit-letter-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button><button class="delete-letter-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button></div>`;
+                container.appendChild(cardElement);
+            }
+        }
+        function renderCustomCardModal(key = null) {
+            const modal = document.getElementById('customCardModal');
+            const isEditing = key !== null;
+            const cardData = isEditing ? adminSettings.custom_cards[key] : {};
+            modal.innerHTML = `<div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95"><form id="custom-card-form" data-key="${isEditing ? key : ''}"><div class="p-4 border-b"><h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Custom Card</h3></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><div><label for="card-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label><input type="text" id="card-title" class="form-input w-full p-2 rounded-lg" value="${cardData.title || ''}" required></div><div><label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label><input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Image</label><div class="mt-1 flex items-center gap-4"><img id="image-preview" src="${cardData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-cover rounded-md bg-gray-200"><input type="file" id="card-img" class="hidden" accept="image/*"><input type="hidden" id="existing-image-url" value="${cardData.imageUrl || ''}"><button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Change</button></div></div><div><label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label><input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required></div><div><label for="card-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label><input type="url" id="card-btn-url" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonLink || ''}" required></div><div><label for="card-btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label><input type="color" id="card-btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${cardData.buttonColor || '#4f46e5'}"></div></div><div class="p-4 bg-gray-50 flex justify-end gap-3"><button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md"><span id="save-btn-text">Save Card</span><div id="save-loader" class="loader ml-2"></div></button></div></form></div>`;
+            openModal(modal);
+            attachModalImageUploadListeners();
+        }
+        function renderCommunityLetterModal(key = null) {
+            const modal = document.getElementById('communityLetterModal');
+            const isEditing = key !== null;
+            const letterData = isEditing ? adminSettings.community_letters[key] : {};
+            modal.innerHTML = `<div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95"><form id="community-letter-form" data-key="${isEditing ? key : ''}"><div class="p-4 border-b"><h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Community Letter</h3></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><div><label for="letter-alt-text" class="block text-sm font-medium text-gray-700 mb-1">Image Description (Alt Text)</label><input type="text" id="letter-alt-text" class="form-input w-full p-2 rounded-lg" value="${letterData.altText || ''}" placeholder="e.g., Joining Letter"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Image</label><div class="mt-1 flex items-center gap-4"><img id="image-preview" src="${letterData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-contain bg-gray-200 rounded-md"><input type="file" id="card-img" class="hidden" accept="image/*" ${!isEditing ? 'required' : ''}><input type="hidden" id="existing-image-url" value="${letterData.imageUrl || ''}"><button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Choose Image</button></div></div></div><div class="p-4 bg-gray-50 flex justify-end gap-3"><button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md"><span id="save-btn-text">Save Letter</span><div id="save-loader" class="loader ml-2"></div></button></div></form></div>`;
+            openModal(modal);
+            attachModalImageUploadListeners();
+        }
+        function attachModalImageUploadListeners() {
+            document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('card-img').click());
+            document.getElementById('card-img').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => document.getElementById('image-preview').src = event.target.result;
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
         function uploadImage(file) { /* ... No changes ... */ }
-        // --- End of Existing Functions ---
 
         function openModal(modal) { modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }, 10); }
         function closeModal(modal) { if(modal) { modal.querySelector('.modal-content').classList.add('scale-95'); modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); } }
@@ -324,11 +370,9 @@
                 Name: loan.applicantName,
                 Loan: loan.loanAmount,
                 "Loan Type": loan.loanCategoryText,
-                // Add other relevant fields from loan object if needed
-                // e.g., "Return amount", "Penalty amount" can be calculated or set to 0
                 "Return amount": "",
                 "Penalty amount": "",
-                imageUrl: loan.additionalDocUrl || "" // Or letterImageUrl
+                imageUrl: loan.additionalDocUrl || ""
             };
 
             try {
@@ -377,19 +421,37 @@
 
                 const rejectLoanBtn = e.target.closest('.reject-loan-btn');
                 if (rejectLoanBtn) handleRejectLoan(rejectLoanBtn.dataset.key);
-
-                // --- Existing Click Handlers ---
+                
                 const editCardBtn = e.target.closest('.edit-card-btn');
                 if (editCardBtn) renderCustomCardModal(editCardBtn.dataset.key);
                 
                 const deleteCardBtn = e.target.closest('.delete-card-btn');
-                if (deleteCardBtn) { /* ... No changes ... */ }
-                
+                if (deleteCardBtn) {
+                    const key = deleteCardBtn.dataset.key;
+                    const cardTitle = adminSettings.custom_cards[key]?.title || 'this card';
+                    const confirmed = await showConfirmation('Delete Custom Card?', `Are you sure you want to delete "${cardTitle}"?`);
+                    if (confirmed) {
+                        try {
+                            await remove(ref(db, `admin/custom_cards/${key}`));
+                            alert('Card deleted successfully.');
+                        } catch (err) { alert('Error deleting card: ' + err.message); }
+                    }
+                }
                 const editLetterBtn = e.target.closest('.edit-letter-btn');
                 if (editLetterBtn) renderCommunityLetterModal(editLetterBtn.dataset.key);
 
                 const deleteLetterBtn = e.target.closest('.delete-letter-btn');
-                if (deleteLetterBtn) { /* ... No changes ... */ }
+                if (deleteLetterBtn) {
+                    const key = deleteLetterBtn.dataset.key;
+                    const letterTitle = adminSettings.community_letters[key]?.altText || 'this letter';
+                    const confirmed = await showConfirmation('Delete Letter?', `Are you sure you want to delete "${letterTitle}"?`);
+                    if (confirmed) {
+                        try {
+                            await remove(ref(db, `admin/community_letters/${key}`));
+                            alert('Letter deleted successfully.');
+                        } catch (err) { alert('Error deleting letter: ' + err.message); }
+                    }
+                }
                 
                 const closeBtn = e.target.closest('.close-modal-btn');
                 if (closeBtn) closeModal(closeBtn.closest('.modal-overlay'));
@@ -397,61 +459,57 @@
 
             document.body.addEventListener('submit', async (e) => {
                 if (e.target.id === 'custom-card-form' || e.target.id === 'community-letter-form') {
-                    // ... No changes to this submit logic ...
-                }
-            });
-        }
+                    e.preventDefault();
+                    const form = e.target;
+                    const isLetterForm = form.id === 'community-letter-form';
+                    const saveBtn = form.querySelector('#save-card-btn');
+                    const btnText = form.querySelector('#save-btn-text');
+                    const loader = form.querySelector('#save-loader');
+                    
+                    saveBtn.disabled = true;
+                    btnText.textContent = 'Saving...';
+                    loader.style.display = 'inline-block';
 
-        // Re-pasting existing functions to avoid removal
-        renderCustomCardsList = function(cards) {
-            const container = document.getElementById('custom-cards-list');
-            container.innerHTML = '';
-            if (Object.keys(cards).length === 0) { container.innerHTML = `<p class="text-center text-gray-500 col-span-full py-10">No custom cards added yet.</p>`; return; }
-            for (const [key, card] of Object.entries(cards)) {
-                const cardElement = document.createElement('div');
-                cardElement.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col';
-                cardElement.innerHTML = `<img src="${card.imageUrl}" class="w-full h-32 object-cover" onerror="this.src='https://placehold.co/300x200/E0E7FF/4F46E5?text=Image'"><div class="p-3 flex-grow flex flex-col text-center"><h3 class="text-md font-bold text-gray-800">${card.title}</h3></div><div class="bg-gray-50 p-2 flex justify-center gap-3 border-t"><button class="edit-card-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button><button class="delete-card-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button></div>`;
-                container.appendChild(cardElement);
-            }
-        }
-        renderCommunityLettersList = function(letters) {
-            const container = document.getElementById('community-letters-list');
-            container.innerHTML = '';
-            if (Object.keys(letters).length === 0) { container.innerHTML = `<p class="text-center text-gray-500 col-span-full py-10">No letters added yet.</p>`; return; }
-            for (const [key, letter] of Object.entries(letters)) {
-                const cardElement = document.createElement('div');
-                cardElement.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col';
-                cardElement.innerHTML = `<img src="${letter.imageUrl}" class="w-full h-32 object-contain bg-gray-200 p-2" onerror="this.src='https://placehold.co/300x200/E0E7FF/4F46E5?text=Letter'"><div class="p-3 flex-grow flex flex-col text-center"><h3 class="text-md font-bold text-gray-800">${letter.altText || 'Community Letter'}</h3></div><div class="bg-gray-50 p-2 flex justify-center gap-3 border-t"><button class="edit-letter-btn text-blue-600 hover:text-blue-800" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button><button class="delete-letter-btn text-red-600 hover:text-red-800" data-key="${key}"><i class="ph-trash text-xl"></i></button></div>`;
-                container.appendChild(cardElement);
-            }
-        }
-        renderCustomCardModal = function(key = null) {
-            const modal = document.getElementById('customCardModal');
-            const isEditing = key !== null;
-            const cardData = isEditing ? adminSettings.custom_cards[key] : {};
-            modal.innerHTML = `<div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95"><form id="custom-card-form" data-key="${isEditing ? key : ''}"><div class="p-4 border-b"><h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Custom Card</h3></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><div><label for="card-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label><input type="text" id="card-title" class="form-input w-full p-2 rounded-lg" value="${cardData.title || ''}" required></div><div><label for="card-desc" class="block text-sm font-medium text-gray-700 mb-1">Description</label><input type="text" id="card-desc" class="form-input w-full p-2 rounded-lg" value="${cardData.description || ''}"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Image</label><div class="mt-1 flex items-center gap-4"><img id="image-preview" src="${cardData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-cover rounded-md bg-gray-200"><input type="file" id="card-img" class="hidden" accept="image/*"><input type="hidden" id="existing-image-url" value="${cardData.imageUrl || ''}"><button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Change</button></div></div><div><label for="card-btn-text" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label><input type="text" id="card-btn-text" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonText || ''}" required></div><div><label for="card-btn-url" class="block text-sm font-medium text-gray-700 mb-1">Button URL</label><input type="url" id="card-btn-url" class="form-input w-full p-2 rounded-lg" value="${cardData.buttonLink || ''}" required></div><div><label for="card-btn-color" class="block text-sm font-medium text-gray-700 mb-1">Button Color</label><input type="color" id="card-btn-color" class="form-input w-full p-1 h-10 rounded-lg" value="${cardData.buttonColor || '#4f46e5'}"></div></div><div class="p-4 bg-gray-50 flex justify-end gap-3"><button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md"><span id="save-btn-text">Save Card</span><div id="save-loader" class="loader ml-2"></div></button></div></form></div>`;
-            openModal(modal);
-            attachModalImageUploadListeners();
-        }
-        renderCommunityLetterModal = function(key = null) {
-            const modal = document.getElementById('communityLetterModal');
-            const isEditing = key !== null;
-            const letterData = isEditing ? adminSettings.community_letters[key] : {};
-            modal.innerHTML = `<div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95"><form id="community-letter-form" data-key="${isEditing ? key : ''}"><div class="p-4 border-b"><h3 class="text-lg font-bold">${isEditing ? 'Edit' : 'Add'} Community Letter</h3></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><div><label for="letter-alt-text" class="block text-sm font-medium text-gray-700 mb-1">Image Description (Alt Text)</label><input type="text" id="letter-alt-text" class="form-input w-full p-2 rounded-lg" value="${letterData.altText || ''}" placeholder="e.g., Joining Letter"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Image</label><div class="mt-1 flex items-center gap-4"><img id="image-preview" src="${letterData.imageUrl || 'https://placehold.co/128x128/E0E7FF/4F46E5?text=Preview'}" class="w-24 h-24 object-contain bg-gray-200 rounded-md"><input type="file" id="card-img" class="hidden" accept="image/*" ${!isEditing ? 'required' : ''}><input type="hidden" id="existing-image-url" value="${letterData.imageUrl || ''}"><button type="button" id="upload-btn" class="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Choose Image</button></div></div></div><div class="p-4 bg-gray-50 flex justify-end gap-3"><button type="button" class="close-modal-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-card-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md"><span id="save-btn-text">Save Letter</span><div id="save-loader" class="loader ml-2"></div></button></div></form></div>`;
-            openModal(modal);
-            attachModalImageUploadListeners();
-        }
-        attachModalImageUploadListeners = function() {
-            document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('card-img').click());
-            document.getElementById('card-img').addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => document.getElementById('image-preview').src = event.target.result;
-                    reader.readAsDataURL(file);
+                    try {
+                        let key = form.dataset.key;
+                        const file = form.querySelector('#card-img').files[0];
+                        let imageUrl = form.querySelector('#existing-image-url').value;
+
+                        if (file) { imageUrl = await uploadImage(file); }
+                        if (!imageUrl) { throw new Error('Please select an image to upload.'); }
+
+                        let dataToSave, dbPath, modalToClose, successMessage;
+
+                        if (isLetterForm) {
+                            dataToSave = { imageUrl, altText: form.querySelector('#letter-alt-text').value };
+                            dbPath = 'admin/community_letters';
+                            modalToClose = document.getElementById('communityLetterModal');
+                            successMessage = `Letter ${key ? 'updated' : 'added'} successfully!`;
+                        } else {
+                            dataToSave = { title: form.querySelector('#card-title').value, description: form.querySelector('#card-desc').value, imageUrl, buttonText: form.querySelector('#card-btn-text').value, buttonLink: form.querySelector('#card-btn-url').value, buttonColor: form.querySelector('#card-btn-color').value };
+                            dbPath = 'admin/custom_cards';
+                            modalToClose = document.getElementById('customCardModal');
+                            successMessage = `Custom card ${key ? 'updated' : 'added'} successfully!`;
+                        }
+                        
+                        if (!key) { key = push(ref(db, dbPath)).key; }
+                        const dbRef = ref(db, `${dbPath}/${key}`);
+                        await set(dbRef, dataToSave);
+                        
+                        alert(successMessage);
+                        closeModal(modalToClose);
+
+                    } catch (err) {
+                        alert('Error saving data: ' + err.message);
+                    } finally {
+                        saveBtn.disabled = false;
+                        btnText.textContent = isLetterForm ? 'Save Letter' : 'Save Card';
+                        loader.style.display = 'none';
+                    }
                 }
             });
         }
+        
         uploadImage = async function(file) {
             const formData = new FormData();
             formData.append('image', file);
