@@ -47,7 +47,7 @@
         .albums-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
         .album-card { border-radius: var(--border-radius); background-color: var(--card-bg-color); cursor: pointer; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid var(--border-color);}
         .album-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); }
-        .album-image { width: 100%; background-color: #eee; background-size: cover; background-position: center; aspect-ratio: 4 / 5; }
+        .album-image { width: 100%; background-color: #eee; background-size: contain; background-repeat: no-repeat; background-position: center; aspect-ratio: 4 / 5; }
         .album-info { padding: 12px; text-align: center; border-top: 1px solid var(--border-color); }
         .album-title { font-weight: 600; font-size: 14px; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .status-message { padding: 40px 15px; text-align: center; color: var(--light-text-color); font-size: 16px; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 15px; }
@@ -63,10 +63,6 @@
         .lightbox-nav.next { right: 10px; }
         .lightbox-close:hover, .lightbox-nav:hover { opacity: 0.7; }
         .lightbox-details { position: absolute; bottom: 30px; color: #e0e0e0; font-size: 16px; text-align: center; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 20px; backdrop-filter: blur(5px); }
-        .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 25px; border-radius: 10px; color: white; font-weight: 500; transition: all 0.5s ease; z-index: 2000; opacity: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
-        .toast.show { bottom: 80px; opacity: 1;}
-        .toast.success { background: var(--success-color); }
-        .toast.error { background: var(--danger-color); }
     </style>
 </head>
 <body>
@@ -92,7 +88,7 @@
         <section class="section">
             <div class="section-title">
                 <h3 id="albumsTitle">All Loan Records</h3>
-                <span id="photoCount" class="view-all">0 records</span>
+                <span id="recordCount" class="view-all">0 records</span>
             </div>
             <div id="albumsGrid" class="albums-grid">
                  <p class="status-message">Loading records...</p>
@@ -111,25 +107,21 @@
         </div>
     </div>
     
-    <div id="toast" class="toast"></div>
-
     <script>
     // --- Global State ---
     const state = {
-        allLoanLetters: [],
+        allLoanRecords: [],
         allMembers: [],
-        currentlyVisibleLetters: [],
+        currentlyVisibleRecords: [],
         lightboxCurrentIndex: 0,
     };
     
     // --- DOM Elements ---
     const getEl = (id) => document.getElementById(id);
-    const appContainer = getEl('appContainer');
     const nameGrid = getEl('nameGrid');
     const albumsGrid = getEl('albumsGrid');
     const albumsTitle = getEl('albumsTitle');
-    const photoCount = getEl('photoCount');
-    const toast = getEl('toast');
+    const recordCount = getEl('recordCount');
     const lightboxModal = getEl('lightboxModal');
     const lightboxImage = getEl('lightboxImage');
     const lightboxDetails = getEl('lightboxDetails');
@@ -139,19 +131,14 @@
     const viewAllBtn = getEl('viewAllBtn');
 
     // --- Utility Functions ---
-    const showToast = (message, type = 'success') => {
-        toast.textContent = message;
-        toast.className = `toast show ${type}`;
-        setTimeout(() => { toast.className = 'toast'; }, 3000);
-    };
     const openModal = (modal) => modal.classList.add('show');
     const closeModal = (modal) => modal.classList.remove('show');
     
     // --- Main Rendering Logic ---
-    function renderGallery() {
+    function renderContent() {
         renderMemberFilter();
         const currentFilter = albumsTitle.textContent.endsWith("'s Records") ? albumsTitle.textContent.replace("'s Records", "") : null;
-        renderLoanLetters(currentFilter);
+        renderLoanRecords(currentFilter);
     }
 
     function renderMemberFilter() {
@@ -177,28 +164,28 @@
         return nameDiv;
     }
     
-    function renderLoanLetters(filterName = null) {
+    function renderLoanRecords(filterName = null) {
         const nameToFilter = filterName ? state.allMembers.find(m => m.fullName === filterName)?.fullName : null;
-        state.currentlyVisibleLetters = nameToFilter ? state.allLoanLetters.filter(letter => letter.applicantName === nameToFilter) : state.allLoanLetters;
+        state.currentlyVisibleRecords = nameToFilter ? state.allLoanRecords.filter(record => record.applicantName === nameToFilter) : state.allLoanRecords;
 
         albumsGrid.innerHTML = ''; 
-        if (state.currentlyVisibleLetters.length === 0) {
+        if (state.currentlyVisibleRecords.length === 0) {
             albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">📄</span><span>${nameToFilter ? 'Is sadasya ka koi loan record nahi hai.' : 'Abhi tak koi loan record nahi hai.'}</span></div>`;
         }
         
-        photoCount.textContent = `${state.currentlyVisibleLetters.length} record${state.currentlyVisibleLetters.length === 1 ? '' : 's'}`;
+        recordCount.textContent = `${state.currentlyVisibleRecords.length} record${state.currentlyVisibleRecords.length === 1 ? '' : 's'}`;
         albumsTitle.textContent = nameToFilter ? `${nameToFilter.split(' ')[0]}'s Records` : 'All Loan Records';
         viewAllBtn.classList.toggle('active', !nameToFilter);
 
-        state.currentlyVisibleLetters.forEach((letter, index) => {
+        state.currentlyVisibleRecords.forEach((record, index) => {
             const cardDiv = document.createElement('div');
             cardDiv.className = 'album-card';
             cardDiv.onclick = () => openLightbox(index);
 
             cardDiv.innerHTML = `
-                <div class="album-image" style="background-image: url(${letter.letterImageUrl})"></div>
+                <div class="album-image" style="background-image: url(${record.letterImageUrl})"></div>
                 <div class="album-info">
-                    <h4 class="album-title">${letter.loanType || 'Loan Record'}</h4>
+                    <h4 class="album-title">${record.loanCategoryText || 'Loan Record'}</h4>
                 </div>
             `;
             albumsGrid.appendChild(cardDiv);
@@ -215,11 +202,11 @@
                 break;
             }
         }
-        renderLoanLetters(fullName);
+        renderLoanRecords(fullName);
     }
     const showAllRecords = () => {
         document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
-        renderLoanLetters();
+        renderLoanRecords();
     };
 
     // --- Lightbox Functions ---
@@ -231,27 +218,27 @@
     const closeLightbox = () => closeModal(lightboxModal);
     
     function updateLightboxImage() {
-        if (state.currentlyVisibleLetters.length === 0) { closeLightbox(); return; }
-        state.lightboxCurrentIndex = Math.max(0, Math.min(state.currentlyVisibleLetters.length - 1, state.lightboxCurrentIndex));
-        const letter = state.currentlyVisibleLetters[state.lightboxCurrentIndex];
-        if(!letter) { closeLightbox(); return; }
+        if (state.currentlyVisibleRecords.length === 0) { closeLightbox(); return; }
+        state.lightboxCurrentIndex = Math.max(0, Math.min(state.currentlyVisibleRecords.length - 1, state.lightboxCurrentIndex));
+        const record = state.currentlyVisibleRecords[state.lightboxCurrentIndex];
+        if(!record) { closeLightbox(); return; }
         
-        lightboxImage.src = letter.letterImageUrl;
+        lightboxImage.src = record.letterImageUrl;
         
-        const loanDate = new Date(letter.date).toLocaleDateString('en-GB');
-        lightboxDetails.innerHTML = `<strong>${letter.loanType}</strong> for <strong>₹${letter.loanAmount.toLocaleString('en-IN')}</strong> on ${loanDate}`;
+        const loanDate = new Date(record.approvedAt || record.submittedAt).toLocaleDateString('en-GB');
+        lightboxDetails.innerHTML = `<strong>${record.loanCategoryText}</strong> for <strong>₹${record.loanAmount.toLocaleString('en-IN')}</strong> on ${loanDate}`;
 
-        lightboxPrevBtn.style.display = state.currentlyVisibleLetters.length > 1 ? 'block' : 'none';
-        lightboxNextBtn.style.display = state.currentlyVisibleLetters.length > 1 ? 'block' : 'none';
+        lightboxPrevBtn.style.display = state.currentlyVisibleRecords.length > 1 ? 'block' : 'none';
+        lightboxNextBtn.style.display = state.currentlyVisibleRecords.length > 1 ? 'block' : 'none';
     }
     const showNextImage = () => {
-        if (state.currentlyVisibleLetters.length === 0) return;
-        state.lightboxCurrentIndex = (state.lightboxCurrentIndex + 1) % state.currentlyVisibleLetters.length;
+        if (state.currentlyVisibleRecords.length === 0) return;
+        state.lightboxCurrentIndex = (state.lightboxCurrentIndex + 1) % state.currentlyVisibleRecords.length;
         updateLightboxImage();
     };
     const showPrevImage = () => {
-        if (state.currentlyVisibleLetters.length === 0) return;
-        state.lightboxCurrentIndex = (state.lightboxCurrentIndex - 1 + state.currentlyVisibleLetters.length) % state.currentlyVisibleLetters.length;
+        if (state.currentlyVisibleRecords.length === 0) return;
+        state.lightboxCurrentIndex = (state.lightboxCurrentIndex - 1 + state.currentlyVisibleRecords.length) % state.currentlyVisibleRecords.length;
         updateLightboxImage();
     };
     
@@ -268,7 +255,6 @@
                 if (user) {
                     runMainApp(firebase.database());
                 } else {
-                    // Redirect to login if not authenticated
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
@@ -278,52 +264,34 @@
     }
 
     function runMainApp(database) {
+        // Fetch members for filtering
         const membersRef = database.ref('members');
         membersRef.on('value', (snapshot) => {
             const membersData = snapshot.val() || {};
             const memberList = [];
-            const loanLetters = [];
-
             for (const memberId in membersData) {
                 const member = membersData[memberId];
                 if (member.status === 'Approved' && member.fullName) {
-                    // Add member to the list for filtering
                     memberList.push({ 
                         id: memberId, 
                         fullName: member.fullName, 
                         profilePicUrl: member.profilePicUrl 
                     });
-                    
-                    // Check for transactions and extract loan letters
-                    if (member.transactions) {
-                        for (const txId in member.transactions) {
-                            const tx = member.transactions[txId];
-                            // IMPORTANT: Check for letterImageUrl from the approved loan
-                            // Fallback to imageUrl if not present for older data
-                            const letterUrl = tx.letterImageUrl || tx.imageUrl;
-                            
-                            // We only want to show approved loans that have a letter
-                            if (tx.Loan && letterUrl) {
-                                loanLetters.push({
-                                    id: txId,
-                                    url: letterUrl,
-                                    letterImageUrl: letterUrl,
-                                    applicantName: member.fullName,
-                                    loanType: tx['Loan Type'] || 'Loan',
-                                    loanAmount: tx.Loan,
-                                    date: tx.Date,
-                                    memberId: memberId
-                                });
-                            }
-                        }
-                    }
                 }
             }
-            
             state.allMembers = memberList.sort((a, b) => a.fullName.localeCompare(b.fullName));
-            state.allLoanLetters = loanLetters.sort((a, b) => new Date(b.date) - new Date(a.date));
+            renderContent();
+        });
+
+        // Fetch approved loan records from the new location
+        const loanHistoryRef = database.ref('loanPreviewHistory');
+        loanHistoryRef.on('value', (snapshot) => {
+            const historyData = snapshot.val() || {};
+            const records = Object.values(historyData);
             
-            renderGallery();
+            state.allLoanRecords = records.sort((a, b) => (b.approvedAt || b.submittedAt) - (a.approvedAt || a.submittedAt));
+            
+            renderContent();
             if(lightboxModal.classList.contains('show')) updateLightboxImage();
         });
     }
