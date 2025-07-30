@@ -354,7 +354,7 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    // Yahan original authentication logic ko wapas laya gaya hai
+    // Authentication logic ko original working state mein restore kiya gaya hai
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -365,20 +365,12 @@ document.addEventListener("DOMContentLoaded", () => {
             
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
+                    // User logged in hai, app shuru karein
                     runAppLogic();
                 } else {
-                    // Agar user logged in nahi hai to login page par redirect karein
-                    // Yeh line aapke app ke structure par depend karti hai
-                    // window.location.href = `/login.html?redirect=${window.location.pathname}`;
-                    
-                    // For demonstration, we will assume the user is logged in.
-                    // If you have a login page, the above line is correct.
-                    // If not, we can try to sign in anonymously for the demo.
-                    firebase.auth().signInAnonymously().catch(err => {
-                        console.error("Anonymous sign-in failed", err);
-                        const loader = document.getElementById('loader');
-                        loader.innerHTML = `<p style="color: red;">Authentication failed.</p>`;
-                    });
+                    // User logged in nahi hai, login page par redirect karein
+                    // Yeh aapke original code ka logic hai
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
 
@@ -688,7 +680,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         // App logic ko call kiya ja raha hai
-        runAppLogic();
+        // Yeh function ab sirf tabhi call hoga jab user authenticated hoga
     }
     
     // Original function ko call kiya ja raha hai
