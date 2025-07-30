@@ -183,7 +183,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
-  <script>
+    <script>
     let IMGBB_API_KEY_FORM = null;
 
     async function checkAuthAndInitialize() {
@@ -215,8 +215,9 @@
 
     function runAppLogic() {
         let membersData = {};
-        let pendingLoanDataForSubmit = {}; // Store data for submission
+        let pendingLoanDataForSubmit = {};
 
+        // All element selectors
         const mainFormContainer = document.getElementById('main-form-container');
         const successMessage = document.getElementById('successMessage');
         const letterPreviewSection = document.getElementById('letter-preview-section');
@@ -232,15 +233,11 @@
         const guarantorSelect = document.getElementById('guarantorSelect');
         const goldCollateralSection = document.getElementById('goldCollateralSection');
         const goldCollateralInput = document.getElementById('goldCollateral');
-        
-        // Action Buttons
         const downloadBtn = document.getElementById('downloadBtn');
         const shareBtn = document.getElementById('shareBtn');
         const submitForApprovalBtn = document.getElementById('submitForApprovalBtn');
         const submitBtnText = document.getElementById('submitBtnText');
         const submitLoader = document.getElementById('submitLoader');
-
-        // Letter Display Elements
         const currentDateEl = document.getElementById('currentDate');
         const letterLoanCategoryEl = document.getElementById('letterLoanCategory');
         const displayNameEl = document.getElementById('displayName');
@@ -267,16 +264,108 @@
         const businessEmiRowEl = document.getElementById('businessEmiRow');
         const displayBusinessEMIEl = document.getElementById('displayBusinessEMI');
 
-        const loanOptions = { /* ... No changes here ... */ };
+        const loanOptions = {
+            personal: { label: 'Interest Rate & Duration:', options: [ { value: '1-1', text: '1% for 1 month' }, { value: '3-2', text: '3% for 2 months' }, { value: '5-3', text: '5% for 3 months' }, { value: '2-1-2x', text: '2% for 1 month (2x loan)' } ] },
+            business: { label: 'Loan Duration (18% Annual Interest):', options: [ { value: '3-6', text: '9 Months (3 months interest + 6 months EMI)' }, { value: '6-6', text: '12 Months (6 months interest + 6 months EMI)' } ] },
+            gold: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] },
+            guarantor: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] }
+        };
 
-        function updateFormUI() { /* ... No changes here ... */ }
-        async function fetchMemberData() { /* ... No changes here ... */ }
-        function createProxyUrl(url) { /* ... No changes here ... */ }
-        function formatDate(date) { /* ... No changes here ... */ }
-        async function uploadImageToImgBB(file) { /* ... No changes here ... */ }
-        async function waitForImages(containerElement) { /* ... No changes here ... */ }
+        function updateFormUI() {
+            const category = loanCategorySelect.value;
+            const selectedOptions = loanOptions[category];
+            const selectedApplicantText = nameSelect.options[nameSelect.selectedIndex]?.text || '';
+            durationRateLabel.textContent = selectedOptions.label;
+            durationRateSelect.innerHTML = '';
+            selectedOptions.options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                durationRateSelect.appendChild(option);
+            });
+            goldCollateralSection.style.display = (category === 'gold') ? 'block' : 'none';
+            goldCollateralInput.required = (category === 'gold');
+            const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank');
+            guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none';
+            guarantorSelect.required = needsManualGuarantor;
+        }
 
-        // ✅ Updated Form Submission Logic
+        async function fetchMemberData() {
+            try {
+                const db = firebase.database();
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
+                if (!snapshot.exists()) throw new Error('No member data found.');
+                membersData = snapshot.val();
+                const approvedMembers = Object.entries(membersData)
+                    .filter(([id, member]) => member.status === 'Approved' && member.fullName)
+                    .map(([id, member]) => ({ id, ...member }))
+                    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+                nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>';
+                guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor</option>';
+                approvedMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = member.fullName;
+                    nameSelect.appendChild(option.cloneNode(true));
+                    const guarantorOption = document.createElement('option');
+                    guarantorOption.value = member.id;
+                    guarantorOption.textContent = member.fullName;
+                    guarantorSelect.appendChild(guarantorOption);
+                });
+                updateFormUI();
+            } catch (error) {
+                console.error('Error fetching member data:', error);
+                nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>';
+                alert('Failed to load member data. Please check console.');
+            }
+        }
+
+        function createProxyUrl(url) {
+            if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+                return 'https://placehold.co/100x120/EFEFEF/AAAAAA&text=No+Image';
+            }
+            const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
+            return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
+        }
+
+        function formatDate(date) {
+            const day = date.getDate();
+            const month = date.toLocaleString('default', { month: 'long' });
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
+        async function uploadImageToImgBB(file) {
+            if (!file) return null;
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY_FORM}`, { method: 'POST', body: formData });
+                const json = await res.json();
+                if (!json.success) { throw new Error(json.error.message || 'Unknown error during image upload.'); }
+                return json.data.url;
+            } catch (err) {
+                console.error('ImgBB upload failed:', err);
+                alert('Image upload failed: ' + err.message);
+                return null;
+            }
+        }
+
+        async function waitForImages(containerElement) {
+            const images = Array.from(containerElement.getElementsByTagName('img'));
+            const promises = images.map(img => {
+                if (img.src && !img.complete) {
+                    return new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = () => { console.warn(`Image failed to load: ${img.src}`); resolve(); };
+                    });
+                }
+                return Promise.resolve();
+            });
+            return Promise.all(promises);
+        }
+
         loanForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -315,13 +404,58 @@
             let loanDetails = {};
             let interest = 0, totalMonths = 0, rateText = '', totalAmount = 0;
             
-            switch(category) { /* ... No changes to calculation logic ... */ }
+            // ✅✅✅ CORRECTED: The switch logic is now inside the event listener
+            switch(category) {
+                case 'personal':
+                    const [pRate, pMonths] = rateValue.split('-').map(Number);
+                    interest = pRate;
+                    totalMonths = pMonths;
+                    rateText = durationRateSelect.options[durationRateSelect.selectedIndex].text;
+                    totalAmount = amount + (amount * (interest / 100));
+                    loanDetails.emi = (totalAmount / totalMonths).toFixed(2);
+                    displayEMIEl.textContent = loanDetails.emi;
+                    emiRowEl.style.display = 'flex';
+                    break;
+                case 'business':
+                    const [interestOnlyMonths, emiMonths] = rateValue.split('-').map(Number);
+                    const monthlyInterestRate = 1.5 / 100;
+                    loanDetails.processingFee = amount * 0.015;
+                    if (amount > 9000) loanDetails.processingFee += 200;
+                    displayProcessingFeeEl.textContent = loanDetails.processingFee.toFixed(2);
+                    processingFeeRowEl.style.display = 'flex';
+                    loanDetails.monthlyInterestPayment = amount * monthlyInterestRate;
+                    const emiPayment = (amount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, emiMonths)) / (Math.pow(1 + monthlyInterestRate, emiMonths) - 1);
+                    loanDetails.emi = emiPayment.toFixed(2);
+                    totalAmount = (loanDetails.monthlyInterestPayment * interestOnlyMonths) + (emiPayment * emiMonths);
+                    totalMonths = interestOnlyMonths + emiMonths;
+                    displayBusinessInterestEl.textContent = `${loanDetails.monthlyInterestPayment.toFixed(2)} (for first ${interestOnlyMonths} months)`;
+                    displayBusinessEMIEl.textContent = `${loanDetails.emi} (for last ${emiMonths} months)`;
+                    businessInterestRowEl.style.display = 'flex';
+                    businessEmiRowEl.style.display = 'flex';
+                    rateText = `18% Annually`;
+                    break;
+                case 'gold':
+                case 'guarantor':
+                    const [gRate, gMonths] = rateValue.split('-').map(Number);
+                    interest = gRate;
+                    totalMonths = gMonths;
+                    const gMonthlyRate = interest / 100;
+                    loanDetails.interestOnlyPayment = amount * gMonthlyRate;
+                    displayInterestOnlyPaymentEl.textContent = loanDetails.interestOnlyPayment.toFixed(2);
+                    interestOnlyPaymentRowEl.style.display = 'flex';
+                    const fullEmi = (amount * gMonthlyRate * Math.pow(1 + gMonthlyRate, totalMonths)) / (Math.pow(1 + gMonthlyRate, totalMonths) - 1);
+                    loanDetails.emi = fullEmi.toFixed(2);
+                    totalAmount = fullEmi * totalMonths;
+                    displayEMIEl.textContent = loanDetails.emi;
+                    emiRowEl.style.display = 'flex';
+                    rateText = `${interest}% Monthly for ${totalMonths} months`;
+                    break;
+            }
             
             const today = new Date();
             const repaymentDate = new Date(today);
             repaymentDate.setMonth(repaymentDate.getMonth() + totalMonths);
 
-            // Populate the letter
             currentDateEl.textContent = formatDate(today);
             let categoryText = loanCategorySelect.options[loanCategorySelect.selectedIndex].text.split('(')[0].trim();
             letterLoanCategoryEl.textContent = categoryText.replace(/LOAN/i, '').trim() + ' LOAN';
@@ -348,7 +482,6 @@
                 manualUploadSectionEl.style.display = 'block';
             }
 
-            // Store data for the final submission
             pendingLoanDataForSubmit = {
                 applicantId: selectedMemberId, applicantName: member.fullName, applicantPhotoUrl: member.profilePicUrl,
                 loanAmount: amount, loanCategory: category, loanCategoryText: categoryText, rateText: rateText,
@@ -357,12 +490,10 @@
                 loanDetails: loanDetails, status: 'pending'
             };
 
-            // Show the preview section
             letterPreviewSection.classList.remove('hidden');
             letterPreviewSection.scrollIntoView({ behavior: 'smooth' });
         });
         
-        // ✅ Logic for Download and Share buttons
         async function generateCanvas() {
             downloadBtn.disabled = true;
             await waitForImages(captureDiv);
@@ -389,18 +520,15 @@
             window.open(groupLink, '_blank');
         });
 
-        // ✅ Logic for the final submission button
         submitForApprovalBtn.addEventListener('click', async function() {
             submitForApprovalBtn.disabled = true;
             submitBtnText.textContent = 'Submitting...';
             submitLoader.classList.remove('hidden');
 
             try {
-                // Generate canvas for the letter image
                 const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 
-                // Upload letter image and additional document
                 const letterImageUrl = await uploadImageToImgBB(blob);
                 const additionalDocUrl = await uploadImageToImgBB(pendingLoanDataForSubmit.additionalDocFile);
 
@@ -408,20 +536,17 @@
                     throw new Error('Failed to upload the generated loan letter. Cannot proceed.');
                 }
                 
-                // Finalize data for Firebase
                 const finalData = {
                     ...pendingLoanDataForSubmit,
                     letterImageUrl: letterImageUrl,
                     additionalDocUrl: additionalDocUrl,
                     submittedAt: firebase.database.ServerValue.TIMESTAMP
                 };
-                delete finalData.additionalDocFile; // Remove the file object before sending to DB
+                delete finalData.additionalDocFile;
 
-                // Push to Firebase 'pendingLoans'
                 const db = firebase.database();
                 await db.ref('pendingLoans').push(finalData);
                 
-                // Show success message and hide the form/preview
                 mainFormContainer.style.display = 'none';
                 letterPreviewSection.style.display = 'none';
                 successMessage.style.display = 'block';
@@ -435,22 +560,6 @@
             }
         });
 
-        // Re-pasting functions that had no changes
-        loanOptions = { personal: { label: 'Interest Rate & Duration:', options: [ { value: '1-1', text: '1% for 1 month' }, { value: '3-2', text: '3% for 2 months' }, { value: '5-3', text: '5% for 3 months' }, { value: '2-1-2x', text: '2% for 1 month (2x loan)' } ] }, business: { label: 'Loan Duration (18% Annual Interest):', options: [ { value: '3-6', text: '9 Months (3 months interest + 6 months EMI)' }, { value: '6-6', text: '12 Months (6 months interest + 6 months EMI)' } ] }, gold: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] }, guarantor: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] } };
-        updateFormUI = function() { const category = loanCategorySelect.value; const selectedOptions = loanOptions[category]; const selectedApplicantText = nameSelect.options[nameSelect.selectedIndex]?.text || ''; durationRateLabel.textContent = selectedOptions.label; durationRateSelect.innerHTML = ''; selectedOptions.options.forEach(opt => { const option = document.createElement('option'); option.value = opt.value; option.textContent = opt.text; durationRateSelect.appendChild(option); }); goldCollateralSection.style.display = (category === 'gold') ? 'block' : 'none'; goldCollateralInput.required = (category === 'gold'); const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank'); guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none'; guarantorSelect.required = needsManualGuarantor; };
-        fetchMemberData = async function() { try { const db = firebase.database(); const membersRef = db.ref('members'); const snapshot = await membersRef.once('value'); if (!snapshot.exists()) throw new Error('No member data found.'); membersData = snapshot.val(); const approvedMembers = Object.entries(membersData).filter(([id, member]) => member.status === 'Approved' && member.fullName).map(([id, member]) => ({ id, ...member })).sort((a, b) => a.fullName.localeCompare(b.fullName)); nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant Name</option>'; guarantorSelect.innerHTML = '<option value="" disabled selected>Select Guarantor</option>'; approvedMembers.forEach(member => { const option = document.createElement('option'); option.value = member.id; option.textContent = member.fullName; nameSelect.appendChild(option.cloneNode(true)); const guarantorOption = document.createElement('option'); guarantorOption.value = member.id; guarantorOption.textContent = member.fullName; guarantorSelect.appendChild(guarantorOption); }); updateFormUI(); } catch (error) { console.error('Error fetching member data:', error); nameSelect.innerHTML = '<option value="" disabled selected>Error loading members</option>'; alert('Failed to load member data. Please check console.'); } };
-        createProxyUrl = function(url) { if (!url || typeof url !== 'string' || !url.startsWith('http')) { return 'https://placehold.co/100x120/EFEFEF/AAAAAA&text=No+Image'; } const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, ''); return `https://images.weserv.nl/?url=${urlWithoutProtocol}`; };
-        formatDate = function(date) { const day = date.getDate(); const month = date.toLocaleString('default', { month: 'long' }); const year = date.getFullYear(); return `${day} ${month} ${year}`; };
-        uploadImageToImgBB = async function(file) { if (!file) return null; const formData = new FormData(); formData.append('image', file); try { const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY_FORM}`, { method: 'POST', body: formData }); const json = await res.json(); if (!json.success) { throw new Error(json.error.message || 'Unknown error during image upload.'); } return json.data.url; } catch (err) { console.error('ImgBB upload failed:', err); alert('Image upload failed: ' + err.message); return null; } };
-        waitForImages = async function(containerElement) { const images = Array.from(containerElement.getElementsByTagName('img')); const promises = images.map(img => { if (img.src && !img.complete) { return new Promise((resolve) => { img.onload = resolve; img.onerror = () => { console.warn(`Image failed to load: ${img.src}`); resolve(); }; }); } return Promise.resolve(); }); return Promise.all(promises); };
-        const switchContent = (category) => { switch(category) { case 'personal': const [pRate, pMonths] = rateValue.split('-').map(Number); interest = pRate; totalMonths = pMonths; rateText = durationRateSelect.options[durationRateSelect.selectedIndex].text; totalAmount = amount + (amount * (interest / 100)); loanDetails.emi = (totalAmount / totalMonths).toFixed(2); displayEMIEl.textContent = loanDetails.emi; emiRowEl.style.display = 'flex'; break; case 'business': const [interestOnlyMonths, emiMonths] = rateValue.split('-').map(Number); const monthlyInterestRate = 1.5 / 100; loanDetails.processingFee = amount * 0.015; if (amount > 9000) loanDetails.processingFee += 200; displayProcessingFeeEl.textContent = loanDetails.processingFee.toFixed(2); processingFeeRowEl.style.display = 'flex'; loanDetails.monthlyInterestPayment = amount * monthlyInterestRate; const emiPayment = (amount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, emiMonths)) / (Math.pow(1 + monthlyInterestRate, emiMonths) - 1); loanDetails.emi = emiPayment.toFixed(2); totalAmount = (loanDetails.monthlyInterestPayment * interestOnlyMonths) + (emiPayment * emiMonths); totalMonths = interestOnlyMonths + emiMonths; displayBusinessInterestEl.textContent = `${loanDetails.monthlyInterestPayment.toFixed(2)} (for first ${interestOnlyMonths} months)`; displayBusinessEMIEl.textContent = `${loanDetails.emi} (for last ${emiMonths} months)`; businessInterestRowEl.style.display = 'flex'; businessEmiRowEl.style.display = 'flex'; rateText = `18% Annually`; break; case 'gold': case 'guarantor': const [gRate, gMonths] = rateValue.split('-').map(Number); interest = gRate; totalMonths = gMonths; const gMonthlyRate = interest / 100; loanDetails.interestOnlyPayment = amount * gMonthlyRate; displayInterestOnlyPaymentEl.textContent = loanDetails.interestOnlyPayment.toFixed(2); interestOnlyPaymentRowEl.style.display = 'flex'; const fullEmi = (amount * gMonthlyRate * Math.pow(1 + gMonthlyRate, totalMonths)) / (Math.pow(1 + gMonthlyRate, totalMonths) - 1); loanDetails.emi = fullEmi.toFixed(2); totalAmount = fullEmi * totalMonths; displayEMIEl.textContent = loanDetails.emi; emiRowEl.style.display = 'flex'; rateText = `${interest}% Monthly for ${totalMonths} months`; break; }};
-
-        loanForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const category = loanCategorySelect.value;
-            switchContent(category);
-        });
-
         loanCategorySelect.addEventListener('change', updateFormUI);
         nameSelect.addEventListener('change', updateFormUI);
         fetchMemberData();
@@ -458,7 +567,4 @@
 
     checkAuthAndInitialize();
   </script>
-
-</body>
-</html>
 
