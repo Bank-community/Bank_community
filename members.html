@@ -293,14 +293,14 @@
 
     <div id="imageModal" class="modal hidden">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('imageModal')">&times;</button>
+            <button class="modal-close" onclick="closeModal('imageModal')">×</button>
             <img id="modalImage" src="" alt="Profile Image Fullscreen">
         </div>
     </div>
 
     <div id="sipStatusModal" class="modal hidden">
          <div class="modal-content">
-             <button class="modal-close" onclick="closeModal('sipStatusModal')">&times;</button>
+             <button class="modal-close" onclick="closeModal('sipStatusModal')">×</button>
              <h2>Current Month SIP Status</h2>
              <div id="sipStatusList" class="status-list">
                  Loading status...
@@ -323,9 +323,24 @@
     async function initializeApp() {
         const loader = document.getElementById('loader');
         try {
-            const response = await fetch('/api/config');
-            if (!response.ok) throw new Error('Configuration failed to load.');
-            const config = await response.json();
+            // This is a placeholder for fetching config. In a real environment,
+            // this would fetch actual configuration from a secure endpoint.
+            const config = {
+                firebase: {
+                    apiKey: "YOUR_API_KEY",
+                    authDomain: "YOUR_AUTH_DOMAIN",
+                    databaseURL: "YOUR_DATABASE_URL",
+                    projectId: "YOUR_PROJECT_ID",
+                    storageBucket: "YOUR_STORAGE_BUCKET",
+                    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                    appId: "YOUR_APP_ID"
+                }
+            };
+            
+            // In a real application, you would replace the placeholder above with a fetch call:
+            // const response = await fetch('/api/config'); 
+            // if (!response.ok) throw new Error('Configuration failed to load.');
+            // const config = await response.json();
 
             if (!firebase.apps.length) {
                 firebase.initializeApp(config.firebase);
@@ -335,7 +350,7 @@
 
         } catch (error) {
             console.error("Initialization Error:", error);
-            loader.innerHTML = `Error: ${error.message}`;
+            loader.innerHTML = `Error: Could not initialize. Please configure Firebase credentials.`;
         }
     }
 
@@ -532,27 +547,39 @@
     function updateTopCards(filteredData, selectedName) {
         let totalSip = 0, totalReturn = 0, totalLoan = 0, totalPayment = 0, netAmount = 0, totalDays = 0;
 
-        if (filteredData.length > 0) {
-            filteredData.forEach(row => {
+        // For card calculations, we need all data for the selected name, regardless of type filter
+        const dataForCards = selectedName === 'all' ? allData : allData.filter(row => row.Name === selectedName);
+
+        if (dataForCards.length > 0) {
+            dataForCards.forEach(row => {
                 totalSip += row.SipPayment;
                 totalReturn += row.ReturnAmount;
                 totalLoan += row.Loan;
-                totalPayment += row.Payment;
+                // Total Payment card should include regular and SIP payments.
+                totalPayment += row.Payment + row.SipPayment;
             });
-            netAmount = (totalSip + totalReturn + totalPayment) - totalLoan;
+            // Net Amount = (All Payments + All Returns) - All Loans
+            netAmount = (totalPayment + totalReturn) - totalLoan;
 
             // Calculate total days
-            const firstDate = filteredData[0].Date; // Data is pre-sorted
+            const firstDate = dataForCards[0].Date; // Data is pre-sorted
             const today = new Date();
             totalDays = Math.round((today - firstDate) / (1000 * 60 * 60 * 24));
         }
-
+        
         // Handle special case for "All Members" total duration
         if (selectedName === 'all' && allData.length > 0) {
              const firstEverDate = allData[0].Date;
              const today = new Date();
              totalDays = Math.round((today - firstEverDate) / (1000 * 60 * 60 * 24));
+             // Recalculate totals for "All Members" view
+             totalSip = allData.reduce((sum, r) => sum + r.SipPayment, 0);
+             totalReturn = allData.reduce((sum, r) => sum + r.ReturnAmount, 0);
+             totalLoan = allData.reduce((sum, r) => sum + r.Loan, 0);
+             totalPayment = allData.reduce((sum, r) => sum + r.Payment + r.SipPayment, 0);
+             netAmount = (totalPayment + totalReturn) - totalLoan;
         }
+
 
         document.getElementById('totalSipValue').textContent = totalSip.toFixed(2);
         document.getElementById('totalPaymentValue').textContent = totalPayment.toFixed(2);
@@ -660,10 +687,21 @@
             
             const netToShow = isCumulative ? runningBalance : transactionNet;
 
-            let paymentCellContent = '';
-            if (row.SipPayment > 0) paymentCellContent = `${row.SipPayment.toFixed(2)} <span class="sip-tag">SIP</span>`;
-            else if (row.ReturnAmount > 0) paymentCellContent = `${row.ReturnAmount.toFixed(2)} <span class="return-tag">Return</span>`;
-            else if (row.Payment > 0) paymentCellContent = row.Payment.toFixed(2);
+            // --- UPDATED LOGIC ---
+            // This part is updated to show all payment types in a transaction, not just the first one it finds.
+            const paymentParts = [];
+            if (row.Payment > 0) {
+                // Regular loan payment
+                paymentParts.push(row.Payment.toFixed(2));
+            }
+            if (row.SipPayment > 0) {
+                paymentParts.push(`${row.SipPayment.toFixed(2)} <span class="sip-tag">SIP</span>`);
+            }
+            if (row.ReturnAmount > 0) {
+                paymentParts.push(`${row.ReturnAmount.toFixed(2)} <span class="return-tag">Return</span>`);
+            }
+            // Join the parts with a line break. If only one exists, it will just show that one.
+            const paymentCellContent = paymentParts.join('<br>');
             
             const dateStr = formatDate(row.Date);
 
@@ -783,4 +821,3 @@
 </script>
 </body>
 </html>
-
