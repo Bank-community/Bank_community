@@ -71,6 +71,30 @@
     .footer-section {
         border-top: 1px solid #eee;
     }
+    /* Styles for the new notification box */
+    #loanInfoNotification h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e40af;
+        margin-bottom: 0.75rem;
+    }
+    #loanInfoNotification p, #loanInfoNotification li {
+        font-size: 0.875rem;
+        color: #374151;
+    }
+    #loanInfoNotification .table {
+        width: 100%;
+        margin-top: 0.75rem;
+        border-collapse: collapse;
+    }
+    #loanInfoNotification .table th, #loanInfoNotification .table td {
+        border: 1px solid #d1d5db;
+        padding: 0.5rem;
+        text-align: left;
+    }
+    #loanInfoNotification .table th {
+        background-color: #eef2ff;
+    }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col justify-center items-center p-5">
@@ -115,6 +139,11 @@
       <input type="file" id="imageUpload" accept="image/*" class="w-full p-2 mb-4 text-base border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
 
       <button type="submit" class="btn w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-base cursor-pointer mt-5 hover:bg-blue-700">Generate & Preview Letter</button>
+      
+      <!-- Notification Box - Content is dynamically added here -->
+      <div id="loanInfoNotification" class="mt-6 p-4 border border-indigo-200 bg-indigo-50 rounded-lg">
+          <!-- JS will populate this area -->
+      </div>
     </form>
   </div>
 
@@ -129,7 +158,7 @@
         <!-- Letter content is the same as before -->
         <div class="header text-center pb-4 mb-5 relative">
           <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
-          <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
+          <img src="https://i.ibb.co/bQ7JkY2/smart-bank-logo.png" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
           <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
           <h2 id="letterLoanCategory" class="text-2xl font-bold text-green-600 mt-3"></h2>
         </div>
@@ -206,7 +235,8 @@
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
-        } catch (error) {
+        } catch (error)
+        {
             console.error('Initialization Error:', error);
             alert('Application failed to initialize. ' + error.message);
             document.getElementById('main-form-container').innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
@@ -263,6 +293,7 @@
         const displayBusinessInterestEl = document.getElementById('displayBusinessInterest');
         const businessEmiRowEl = document.getElementById('businessEmiRow');
         const displayBusinessEMIEl = document.getElementById('displayBusinessEMI');
+        const loanInfoNotification = document.getElementById('loanInfoNotification'); // New element
 
         const loanOptions = {
             personal: { label: 'Interest Rate & Duration:', options: [ { value: '1-1', text: '1% for 1 month' }, { value: '3-2', text: '3% for 2 months' }, { value: '5-3', text: '5% for 3 months' }, { value: '2-1-2x', text: '2% for 1 month (2x loan)' } ] },
@@ -270,6 +301,66 @@
             gold: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] },
             guarantor: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] }
         };
+
+        // --- NEW: Content for the notification box ---
+        const notificationContent = {
+            personal: `
+                <h3><i class="fas fa-info-circle"></i> Personal Loan - नियम और शर्तें</h3>
+                <p class="font-bold mt-2">💼 लोन पात्रता (Loan Eligibility)</p>
+                <ul class="list-disc list-inside ml-2">
+                    <li>हर सदस्य को अपने जमा कुल योगदान का 1.5 गुना (Dedh Guna) तक लोन लेने की पात्रता है।</li>
+                    <li>सदस्य बनने के कम-से-कम 60 दिन बाद ही लोन लिया जा सकता है।</li>
+                </ul>
+                <p class="font-bold mt-3">📆 लोन अवधि और ब्याज (Loan Duration & Interest)</p>
+                <p>सदस्य लोन के लिए निम्नलिखित अवधि में से किसी एक का चयन कर सकते हैं:</p>
+                <table class="table">
+                    <thead><tr><th>अवधि (Period)</th><th>ब्याज दर</th><th>विवरण</th></tr></thead>
+                    <tbody>
+                        <tr><td>1 महीना</td><td>1%</td><td>कम अवधि के लिए</td></tr>
+                        <tr><td>2 महीने</td><td>3%</td><td>मध्यम अवधि</td></tr>
+                        <tr><td>3 महीने</td><td>5%</td><td>अधिकतम सामान्य अवधि</td></tr>
+                        <tr><td>90+ दिन + 10 दिन</td><td>5.5%</td><td>डेडलाइन से थोड़ी देरी</td></tr>
+                        <tr><td>100+ दिन (Delay)</td><td>6% + Penalty</td><td>विलंब शुल्क और सजा</td></tr>
+                        <tr><td>100 दिन से अधिक + 60 दिन तक</td><td class="font-bold">No Loan</td><td>भविष्य में 60 दिनों तक कोई लोन नहीं मिलेगा</td></tr>
+                    </tbody>
+                </table>`,
+            business: `
+                <h3><i class="fas fa-briefcase"></i> Business Loan - ब्याज की जानकारी</h3>
+                <p>बिजनेस लोन पर <strong>18% वार्षिक (1.5% मासिक)</strong> की दर से ब्याज लगता है।</p>
+                <ul class="list-disc list-inside ml-2 mt-2">
+                    <li><strong>पहला चरण:</strong> शुरुआती कुछ महीनों (जैसे 3 या 6) के लिए आपको केवल मूलधन पर मासिक ब्याज चुकाना होता है।</li>
+                    <li><strong>दूसरा चरण:</strong> इसके बाद, शेष अवधि के लिए आपको मूलधन और ब्याज दोनों को मिलाकर पूरी EMI चुकानी होगी।</li>
+                    <li>इस लोन पर 1.5% का प्रोसेसिंग शुल्क भी लागू होता है।</li>
+                </ul>`,
+            gold: `
+                <h3><i class="fas fa-gem"></i> Gold Loan - आवश्यक जानकारी</h3>
+                <p>यह एक सुरक्षित लोन है जो आपके द्वारा जमा किए गए सोने के सामान (Collateral) के बदले दिया जाता है।</p>
+                <ul class="list-disc list-inside ml-2 mt-2">
+                    <li>इस पर <strong>3% प्रति माह</strong> की निश्चित ब्याज दर लागू होती है।</li>
+                    <li>आपको हर महीने केवल ब्याज (Interest Only) चुकाने का विकल्प मिलता है।</li>
+                    <li>अवधि के अंत में आप पूरी मूल राशि चुका सकते हैं।</li>
+                    <li>सुनिश्चित करें कि 'Collateral Item Name' फ़ील्ड में गिरवी रखे गए सामान का सही विवरण दर्ज करें।</li>
+                </ul>`,
+            guarantor: `
+                <h3><i class="fas fa-user-shield"></i> Guarantor Loan - मुख्य बातें</h3>
+                <p>इस लोन के लिए समुदाय के एक 'Approved' सदस्य को आपके गारंटर के रूप में कार्य करना होता है।</p>
+                 <ul class="list-disc list-inside ml-2 mt-2">
+                    <li>गारंटर उस स्थिति में लोन चुकाने के लिए कानूनी रूप से जिम्मेदार होता है जब आवेदक भुगतान करने में विफल रहता है।</li>
+                    <li>इस लोन पर <strong>3% प्रति माह</strong> की ब्याज दर लागू होती है।</li>
+                    <li>आवेदक और गारंटर दोनों को समुदाय के नियमों और शर्तों का पालन करना होगा।</li>
+                </ul>`
+        };
+
+        // --- NEW: Function to update the notification box ---
+        function updateLoanNotification() {
+            const category = loanCategorySelect.value;
+            if (notificationContent[category]) {
+                loanInfoNotification.innerHTML = notificationContent[category];
+                loanInfoNotification.style.display = 'block';
+            } else {
+                loanInfoNotification.style.display = 'none';
+            }
+        }
 
         function updateFormUI() {
             const category = loanCategorySelect.value;
@@ -288,8 +379,10 @@
             const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank');
             guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none';
             guarantorSelect.required = needsManualGuarantor;
+            
+            updateLoanNotification(); // <-- Call the new function here
         }
-
+        
         async function fetchMemberData() {
             try {
                 const db = firebase.database();
@@ -404,7 +497,6 @@
             let loanDetails = {};
             let interest = 0, totalMonths = 0, rateText = '', totalAmount = 0;
             
-            // ✅✅✅ CORRECTED: The switch logic is now inside the event listener
             switch(category) {
                 case 'personal':
                     const [pRate, pMonths] = rateValue.split('-').map(Number);
