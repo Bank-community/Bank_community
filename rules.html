@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Rules Certificate Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=Roboto:wght@400;500;700&display=swap');
+
+        :root { --primary-color: #1e3a56; --secondary-color: #34495e; --accent-color: #b8860b; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #eef2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .form-container {
+            background: white; padding: 30px; border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            width: 100%; max-width: 500px;
+        }
+
+        .form-container h1, .form-container h3 {
+            text-align: center; color: var(--primary-color);
+            margin-bottom: 25px; font-family: 'Tiro Devanagari Hindi', serif;
+        }
+
+        .form-group { margin-bottom: 20px; position: relative; }
+
+        .form-container label {
+            display: block; margin-bottom: 8px; font-weight: 500;
+            color: #334e68; font-size: 15px;
+        }
+        
+        .label-with-button { display: flex; justify-content: space-between; align-items: center; }
+        .open-editor-btn {
+            font-size: 12px; padding: 6px 12px; border-radius: 6px;
+            background-color: var(--secondary-color); color: white;
+            border: none; cursor: pointer; transition: background-color 0.3s;
+        }
+        .open-editor-btn:hover { background-color: var(--primary-color); }
+
+        .form-container input[type="text"], .form-container input[type="date"],
+        .form-container input[type="color"], .form-container input[type="range"],
+        .form-container textarea {
+            width: 100%; padding: 12px; border: 1px solid #dcdcdc; border-radius: 8px;
+            font-size: 14px; box-sizing: border-box; font-family: 'Roboto', sans-serif;
+        }
+        
+        #detailsPreview {
+            width: 100%; min-height: 100px; padding: 12px; border: 1px solid #dcdcdc;
+            border-radius: 8px; background-color: #f9f9f9; overflow-y: auto;
+        }
+
+        .form-container input[type="range"] { padding: 0; }
+        .form-container input[type="color"] { padding: 5px; height: 45px; }
+        .form-container textarea { min-height: 100px; resize: vertical; }
+
+        .style-controls, .table-editor {
+            border: 1px dashed #ccc; padding: 20px; margin-top: 20px;
+            border-radius: 8px; background-color: #fafafa;
+        }
+        .table-editor { display: none; }
+        
+        .toggle-button {
+            display: block; width: 100%; background-color: #5c677d; color: white;
+            font-size: 16px; font-weight: bold; border: none; cursor: pointer;
+            padding: 14px; margin-top: 20px; border-radius: 8px; transition: background-color 0.3s;
+        }
+        .toggle-button:hover { background-color: #4a5467; }
+
+        .action-buttons-container { display: flex; gap: 10px; margin-top: 20px; }
+        .action-button {
+            flex-grow: 1; background: var(--secondary-color); color: white; font-size: 16px;
+            font-weight: bold; border: none; cursor: pointer; padding: 14px;
+            border-radius: 8px; transition: all 0.3s; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .action-button:hover { background-color: var(--primary-color); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); transform: translateY(-2px); }
+        #downloadBtn { background: #27ae60; display: none; }
+        #downloadBtn:hover { background-color: #229954; }
+
+        /* --- Full Screen Editor Modal --- */
+        #editorModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none; justify-content: center; align-items: center;
+            z-index: 2000; backdrop-filter: blur(5px);
+        }
+        .editor-content {
+            background: white; width: 90%; max-width: 900px; height: 90vh;
+            border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column;
+        }
+        .editor-toolbar {
+            padding: 10px; background-color: #f1f1f1; border-bottom: 1px solid #ddd;
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+        }
+        .editor-toolbar button, .editor-toolbar select, .editor-toolbar input {
+            padding: 8px 12px; border-radius: 5px; border: 1px solid #ccc;
+            background-color: #fff; cursor: pointer;
+        }
+        .editor-toolbar input[type="color"] { padding: 2px; width: 40px; height: 35px; }
+        .editor-main { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        #richTextArea {
+            width: 100%; height: 100%; border: none; outline: none;
+            font-size: 16px; line-height: 1.7;
+        }
+        .editor-footer {
+            padding: 10px; text-align: right; background-color: #f1f1f1;
+            border-top: 1px solid #ddd;
+        }
+        #saveEditorContent {
+            background-color: #27ae60; color: white; padding: 10px 20px;
+            border: none; border-radius: 5px; font-weight: bold; cursor: pointer;
+        }
+
+        /* --- Certificate Styles --- */
+        #certificateContainer { width: 100%; max-width: 850px; }
+        #certificateCapture {
+            position: relative; overflow: hidden; width: 210mm; height: 297mm;
+            background-color: #ffffff; padding: 15mm; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            box-sizing: border-box; margin: 0 auto; display: none; flex-direction: column;
+            color: #333; font-family: 'Tiro Devanagari Hindi', serif; border: 1px solid #e0e0e0;
+        }
+        #certificateCapture::before {
+            content: ''; position: absolute; top: 2mm; left: 2mm; right: 2mm; bottom: 2mm;
+            border: 3px double #d4af37; z-index: 1; pointer-events: none;
+        }
+        #certificateCapture::after {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 140mm; height: 140mm; background-image: url('https://i.ibb.co/pjB1bQ7J/1752978674430.jpg');
+            background-repeat: no-repeat; background-position: center; background-size: contain;
+            opacity: 0.04; z-index: 0;
+        }
+        #certificateCapture > * { position: relative; z-index: 2; }
+        #displayDate { text-align: right; font-size: 15px; color: #444; width: 100%; height: 20px; margin-bottom: 0; }
+        .cert-header { text-align: center; margin-bottom: 5px; }
+        .cert-header .top-logo { width: 80px; height: 80px; object-fit: contain; margin-bottom: 5px; }
+        .cert-header .bank-name { font-size: 32px; font-weight: bold; color: var(--primary-color); margin: 0; }
+        .cert-header .address { font-size: 14px; color: #555; margin: 3px 0 0 0; }
+        .cert-body { flex-grow: 1; padding: 0 5mm; overflow-y: auto; min-height: 0; }
+        .cert-title-container { text-align: center; margin-top: 10px; margin-bottom: 15px; }
+        #displayRuleName {
+            font-size: 26px; font-weight: bold; color: var(--accent-color); padding-bottom: 8px;
+            display: inline-block; border-bottom: 2px solid #e0c67a;
+        }
+        #displayDetails { line-height: 1.8; text-align: justify; white-space: pre-wrap; word-break: break-word; }
+        #displayDetails h1 { font-size: 1.5em; font-weight: bold; margin: 0.8em 0; }
+        #displayDetails h2 { font-size: 1.3em; font-weight: bold; margin: 0.7em 0; }
+        #tableContainer { margin-top: 20px; }
+        #displayTableTitle { font-size: 20px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        #generatedTable { width: 100%; border-collapse: collapse; font-size: 14px; font-family: 'Roboto', sans-serif; }
+        #generatedTable th, #generatedTable td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        #generatedTable th { background-color: #f2f2f2; color: #333; font-weight: bold; }
+        .cert-footer { margin-top: auto; padding-top: 15px; display: flex; justify-content: space-between; align-items: flex-end; height: 140px; }
+        .signature-area { text-align: center; font-size: 15px; color: #333; width: 200px; position: relative; }
+        .signature-area .signature-text { border-top: 1px solid #555; padding-top: 8px; display: inline-block; }
+        .signature-area .stamp-img { width: 120px; height: auto; margin-bottom: 5px; }
+        .signature-area .signature-img { width: 140px; height: auto; margin-bottom: -15px; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Rules Certificate Generator</h1>
+        <form id="certificateForm">
+            <div class="form-group">
+                <label for="ruleName">Rules Name / Title:</label>
+                <input type="text" id="ruleName" value="मासिक बचत योजना नियम" required>
+            </div>
+            <div class="form-group">
+                <label for="ruleDate">Date:</label>
+                <input type="date" id="ruleDate" required>
+            </div>
+            <div class="form-group">
+                <div class="label-with-button">
+                    <label for="detailsPreview">Details:</label>
+                    <button type="button" class="open-editor-btn" id="openEditorBtn"><i class="fas fa-edit"></i> Open Full Editor</button>
+                </div>
+                <div id="detailsPreview"></div>
+                <input type="hidden" id="ruleDetailsHidden">
+            </div>
+            
+            <div class="style-controls">
+                <h3>Global Styling Controls</h3>
+                <div class="form-group">
+                    <label for="titleColor">Certificate Title Color:</label>
+                    <input type="color" id="titleColor" value="#b8860b">
+                </div>
+                <div class="form-group">
+                    <label for="detailsFontSize">Base Details Font Size: <span id="fontSizeValue">16</span>px</label>
+                    <input type="range" id="detailsFontSize" min="8" max="24" value="16">
+                </div>
+            </div>
+
+            <button type="button" class="toggle-button" id="toggleTableBtn"><i class="fas fa-table"></i> Add/Edit Table</button>
+
+            <div class="table-editor" id="tableEditor">
+                <h3>Dynamic Table Editor</h3>
+                <div class="form-group"><label for="tableTitle">Table Headline:</label><input type="text" id="tableTitle" placeholder="e.g., Contribution List"></div>
+                <div class="form-group"><label for="tableHeadlineColor">Headline Color:</label><input type="color" id="tableHeadlineColor" value="#b8860b"></div>
+                <div class="form-group"><label for="tableHeaders">Table Columns (comma separated):</label><input type="text" id="tableHeaders" placeholder="e.g., Sr. No., Name, Amount"></div>
+                <div class="form-group"><label for="tableData">Table Rows (each row on a new line):</label><textarea id="tableData" placeholder="e.g.,&#10;1, Amit Kumar, 500&#10;2, Prince Rama, 500"></textarea></div>
+            </div>
+            
+            <div class="action-buttons-container">
+                <button type="submit" class="action-button"><i class="fas fa-file-invoice"></i> Generate</button>
+                <button type="button" id="downloadBtn" class="action-button"><i class="fas fa-download"></i> Download</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Full Screen Editor Modal -->
+    <div id="editorModal">
+        <div class="editor-content">
+            <div class="editor-toolbar">
+                <select id="formatBlock">
+                    <option value="p">Paragraph</option>
+                    <option value="h1">Headline 1</option>
+                    <option value="h2">Headline 2</option>
+                </select>
+                <button id="boldBtn" title="Bold"><i class="fas fa-bold"></i></button>
+                <input type="color" id="colorInput" title="Text Color" value="#000000">
+                <select id="fontSizeSelect">
+                    <option value="12px">12px</option>
+                    <option value="16px" selected>16px</option>
+                    <option value="20px">20px</option>
+                    <option value="24px">24px</option>
+                    <option value="32px">32px</option>
+                </select>
+            </div>
+            <div class="editor-main"><div id="richTextArea" contenteditable="true"></div></div>
+            <div class="editor-footer"><button id="saveEditorContent">Save & Close</button></div>
+        </div>
+    </div>
+
+    <div id="certificateContainer">
+        <div id="certificateCapture">
+            <p id="displayDate"></p> 
+            <div class="cert-header">
+                <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" alt="Bank Logo" class="top-logo" crossorigin="anonymous">
+                <p class="bank-name">Bank Community Loan</p>
+                <p class="address">Lalunagar, Begusarai, Bihar</p>
+            </div>
+            <div class="cert-body">
+                <div class="cert-title-container"><h2 id="displayRuleName"></h2></div>
+                <div id="displayDetails"></div>
+                <div id="tableContainer"><h3 id="displayTableTitle"></h3><table id="generatedTable"></table></div>
+            </div>
+            <div class="cert-footer">
+                <div class="signature-area">
+                    <!-- FIXED: User-provided stamp image URL -->
+                    <img src="https://images.weserv.nl/?url=i.imgur.com/w9J5t2N.png" alt="Bank Stamp" class="stamp-img" crossorigin="anonymous">
+                    <span class="signature-text">Bank Stamp</span>
+                </div>
+                <div class="signature-area">
+                    <img src="https://images.weserv.nl/?url=i.imgur.com/kkg2glD.png" alt="Prime Member Signature" class="signature-img" crossorigin="anonymous">
+                    <span class="signature-text">Prime Member Signature</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. SELECT ALL ELEMENTS ---
+        const form = document.getElementById('certificateForm');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const certificateCapture = document.getElementById('certificateCapture');
+        
+        // Editor Elements
+        const editorModal = document.getElementById('editorModal');
+        const openEditorBtn = document.getElementById('openEditorBtn');
+        const saveEditorContentBtn = document.getElementById('saveEditorContent');
+        const richTextArea = document.getElementById('richTextArea');
+        const detailsPreview = document.getElementById('detailsPreview');
+        const ruleDetailsHidden = document.getElementById('ruleDetailsHidden');
+
+        // Editor Toolbar Elements
+        const formatBlockSelect = document.getElementById('formatBlock');
+        const boldBtn = document.getElementById('boldBtn');
+        const colorInput = document.getElementById('colorInput');
+        const fontSizeSelect = document.getElementById('fontSizeSelect');
+
+        // Certificate Display Elements
+        const displayDetails = document.getElementById('displayDetails');
+        const displayRuleName = document.getElementById('displayRuleName');
+        const titleColorInput = document.getElementById('titleColor');
+        const detailsFontSizeInput = document.getElementById('detailsFontSize');
+        const fontSizeValueSpan = document.getElementById('fontSizeValue');
+        
+        // Table Elements
+        const toggleTableBtn = document.getElementById('toggleTableBtn');
+        const tableEditor = document.getElementById('tableEditor');
+
+        // --- 2. INITIAL SETUP ---
+        document.getElementById('ruleDate').valueAsDate = new Date();
+        const initialContent = `<h1>यह एक मुख्य शीर्षक है</h1><p>यह नियम सभी सदस्यों के लिए <b>अनिवार्य</b> है।</p><p>1. प्रत्येक सदस्य को महीने की 10 तारीख तक अपनी बचत जमा करनी होगी।</p><p>2. देर से जमा करने पर 2% का जुर्माना लगेगा।</p><p>3. किसी भी सदस्य को लगातार तीन बार देर होने पर सदस्यता रद्द की जा सकती है।</p>`;
+        ruleDetailsHidden.value = initialContent;
+        detailsPreview.innerHTML = initialContent;
+        applyGlobalStyles();
+
+        // --- 3. FULL SCREEN EDITOR LOGIC (REBUILT FOR RELIABILITY) ---
+        openEditorBtn.addEventListener('click', () => {
+            richTextArea.innerHTML = ruleDetailsHidden.value;
+            editorModal.style.display = 'flex';
+        });
+
+        saveEditorContentBtn.addEventListener('click', () => {
+            ruleDetailsHidden.value = richTextArea.innerHTML;
+            detailsPreview.innerHTML = richTextArea.innerHTML;
+            editorModal.style.display = 'none';
+        });
+
+        // Toolbar actions
+        formatBlockSelect.addEventListener('change', () => {
+            richTextArea.focus();
+            document.execCommand('formatBlock', false, formatBlockSelect.value);
+        });
+        boldBtn.addEventListener('click', () => {
+            richTextArea.focus();
+            document.execCommand('bold');
+        });
+        colorInput.addEventListener('input', () => {
+            richTextArea.focus();
+            document.execCommand('foreColor', false, colorInput.value);
+        });
+        fontSizeSelect.addEventListener('change', () => {
+            richTextArea.focus();
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const span = document.createElement('span');
+                span.style.fontSize = fontSizeSelect.value;
+                if (selection.getRangeAt(0).toString().length > 0) {
+                    span.innerHTML = selection.toString();
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(span);
+                }
+            }
+        });
+
+        // --- 4. GLOBAL STYLES LOGIC ---
+        function applyGlobalStyles() {
+            displayRuleName.style.color = titleColorInput.value;
+            const baseFontSize = detailsFontSizeInput.value;
+            displayDetails.style.fontSize = `${baseFontSize}px`;
+            fontSizeValueSpan.textContent = baseFontSize;
+        }
+        titleColorInput.addEventListener('input', applyGlobalStyles);
+        detailsFontSizeInput.addEventListener('input', applyGlobalStyles);
+
+        // --- 5. TABLE EDITOR TOGGLE LOGIC ---
+        toggleTableBtn.addEventListener('click', () => {
+            const isHidden = tableEditor.style.display === 'none' || tableEditor.style.display === '';
+            tableEditor.style.display = isHidden ? 'block' : 'none';
+            toggleTableBtn.innerHTML = isHidden ? '<i class="fas fa-minus-circle"></i> Hide Table' : '<i class="fas fa-table"></i> Add/Edit Table';
+        });
+
+        // --- 6. MAIN FORM SUBMISSION LOGIC ---
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            displayRuleName.innerText = `${document.getElementById('ruleName').value} Certificate`;
+            document.getElementById('displayDate').innerText = `Date: ${formatDisplayDate(document.getElementById('ruleDate').value)}`;
+            displayDetails.innerHTML = ruleDetailsHidden.value;
+            applyGlobalStyles();
+            generateTable();
+            certificateCapture.style.display = 'flex';
+            downloadBtn.style.display = 'block';
+            certificateCapture.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        function generateTable() {
+            const tableContainer = document.getElementById('tableContainer');
+            const displayTableTitle = document.getElementById('displayTableTitle');
+            const generatedTable = document.getElementById('generatedTable');
+            const tableHeaders = document.getElementById('tableHeaders').value;
+            const tableData = document.getElementById('tableData').value;
+            
+            generatedTable.innerHTML = '';
+            displayTableTitle.innerText = '';
+            
+            if (tableHeaders.trim() !== '' && tableData.trim() !== '') {
+                tableContainer.style.display = 'block';
+                displayTableTitle.innerText = document.getElementById('tableTitle').value;
+                displayTableTitle.style.color = document.getElementById('tableHeadlineColor').value;
+                const headers = tableHeaders.split(',').map(h => h.trim());
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                headers.forEach(h => { const th = document.createElement('th'); th.innerText = h; headerRow.appendChild(th); });
+                thead.appendChild(headerRow);
+                generatedTable.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                tableData.split('\n').filter(r => r.trim() !== '').forEach(rowData => {
+                    const cells = rowData.split(',').map(c => c.trim());
+                    const tr = document.createElement('tr');
+                    cells.forEach(c => { const td = document.createElement('td'); td.innerText = c; tr.appendChild(td); });
+                    tbody.appendChild(tr);
+                });
+                generatedTable.appendChild(tbody);
+            } else {
+                tableContainer.style.display = 'none';
+            }
+        }
+
+        // --- 7. HELPER FUNCTIONS ---
+        downloadBtn.addEventListener('click', async () => {
+            if (certificateCapture.style.display === 'none') return alert('Please generate the certificate first!');
+            downloadBtn.textContent = 'Preparing...';
+            downloadBtn.disabled = true;
+            try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const canvas = await html2canvas(certificateCapture, {
+                    scale: 3, useCORS: true, logging: false, backgroundColor: '#ffffff',
+                    onclone: (doc) => { doc.querySelector('.cert-body').scrollTop = 0; }
+                });
+                const link = document.createElement('a');
+                link.download = `Rules_Certificate_${document.getElementById('ruleName').value.replace(/\s+/g, '_') || 'Untitled'}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Failed to generate download.');
+            } finally {
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download';
+                downloadBtn.disabled = false;
+            }
+        });
+
+        function formatDisplayDate(dateString) {
+            if (!dateString) return "N/A";
+            return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+    });
+    </script>
+</body>
+</html>
+
