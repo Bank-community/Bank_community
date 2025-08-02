@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Payment System</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QR Code generation library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple animation for elements appearing */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom slider styles */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d1d5db; /* gray-300 */
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type=range]:hover {
+            opacity: 1;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #4f46e5; /* indigo-600 */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: #4f46e5; /* indigo-600 */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen py-8">
+
+    <div class="w-full max-w-md mx-4 bg-white rounded-xl shadow-lg p-6 md:p-8">
+        
+        <div class="text-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Secure UPI Payment</h1>
+            <p class="text-gray-500 mt-2">Prince Kumar ko Payment Karein</p>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="mt-8">
+            <label for="amount" class="block text-sm font-medium text-gray-700">Amount (₹)</label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                    <span class="text-gray-500 sm:text-sm">₹</span>
+                </div>
+                <input type="number" id="amount" class="block w-full rounded-md border-gray-300 pl-7 pr-12 py-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg" placeholder="0.00">
+            </div>
+        </div>
+        
+        <!-- Amount Slider -->
+        <div class="mt-4">
+             <input type="range" id="amount-slider" min="0" max="3000" step="100" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+             <div class="flex justify-between text-xs text-gray-500 mt-1">
+                 <span>₹0</span>
+                 <span>₹3000</span>
+             </div>
+        </div>
+
+
+        <!-- Action Buttons -->
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button id="sip-btn" class="w-full bg-orange-500 text-white font-semibold py-3 px-4 rounded-lg hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300 ease-in-out">
+                SIP ₹500
+            </button>
+            <button id="generate-btn" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 ease-in-out">
+                Generate QR Code
+            </button>
+        </div>
+        
+        <!-- Download Generic QR Button -->
+        <div class="mt-4">
+            <button id="download-btn" class="w-full bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Download Generic QR</span>
+            </button>
+        </div>
+
+
+        <!-- Payment Details Section (Initially Hidden) -->
+        <div id="payment-details" class="mt-8 text-center hidden">
+            <p class="text-gray-600 fade-in">Scan QR to Pay</p>
+            
+            <!-- QR Code Container -->
+            <div id="qrcode" class="flex justify-center mt-4 p-4 bg-gray-50 rounded-lg fade-in"></div>
+            
+            <p class="text-gray-600 mt-6 fade-in">Payment ke baad, neeche click karke confirm karein.</p>
+
+            <!-- WhatsApp Confirmation Card -->
+            <a id="whatsapp-confirm-link" href="#" target="_blank" class="mt-4 inline-block w-full bg-green-500 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-600 transition-colors duration-300 fade-in flex items-center justify-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <span>Send WhatsApp Confirmation</span>
+            </a>
+            
+            <!-- Success Note -->
+            <p id="success-note" class="mt-4 text-sm text-gray-500 fade-in">Maine payment successfully kar diya hai, please check.</p>
+        </div>
+        
+        <!-- Message/Error Display -->
+        <div id="message" class="mt-4 text-center text-red-500 font-medium"></div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const upiId = 'princekumar954684-1@okicici';
+        const payeeName = 'Prince Kumar';
+        const whatsappNumber = '919876543210'; // Example: '919999988888'
+        
+        // --- ELEMENT REFERENCES ---
+        const generateBtn = document.getElementById('generate-btn');
+        const sipBtn = document.getElementById('sip-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const amountInput = document.getElementById('amount');
+        const amountSlider = document.getElementById('amount-slider');
+        const paymentDetails = document.getElementById('payment-details');
+        const qrCodeContainer = document.getElementById('qrcode');
+        const whatsappConfirmLink = document.getElementById('whatsapp-confirm-link');
+        const messageDiv = document.getElementById('message');
+
+        let currentAmount = 0;
+
+        // --- EVENT LISTENERS ---
+        generateBtn.addEventListener('click', handleGeneration);
+        
+        sipBtn.addEventListener('click', () => {
+            amountInput.value = 500;
+            amountSlider.value = 500; // Sync slider
+            handleGeneration();
+        });
+
+        downloadBtn.addEventListener('click', handleDownloadFormattedQR);
+
+        amountSlider.addEventListener('input', (e) => {
+            amountInput.value = e.target.value;
+        });
+
+        amountInput.addEventListener('input', (e) => {
+            const value = Math.min(e.target.value, 3000);
+            if (value >= 0) {
+                amountSlider.value = value;
+            }
+        });
+
+        // --- FUNCTIONS ---
+        function handleGeneration() {
+            const amount = parseFloat(amountInput.value).toFixed(2);
+            messageDiv.textContent = ''; // Clear previous messages
+
+            if (isNaN(amount) || amount <= 0) {
+                messageDiv.textContent = 'Please enter a valid amount.';
+                paymentDetails.classList.add('hidden');
+                return;
+            }
+            
+            currentAmount = amount;
+            amountSlider.value = amount; // Sync slider with final amount
+            
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+            
+            generateAndDisplayQR(upiUrl);
+            
+            paymentDetails.classList.remove('hidden');
+            updateWhatsAppLink();
+        }
+
+        function generateAndDisplayQR(url) {
+            qrCodeContainer.innerHTML = ''; // Clear old QR code
+            new QRCode(qrCodeContainer, {
+                text: url,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        
+        function updateWhatsAppLink() {
+            const message = `Maine ₹${currentAmount} ka payment successfully kar diya hai, please check.`;
+            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+            whatsappConfirmLink.href = whatsappUrl;
+        }
+
+        function handleDownloadFormattedQR() {
+            messageDiv.textContent = ''; // Clear previous messages
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&cu=INR`;
+
+            // --- Canvas and Image creation logic ---
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const canvasSize = 400;
+            const qrCodeSize = 280; // Smaller QR code for more padding
+            const padding = (canvasSize - qrCodeSize) / 2;
+            const headlineText = 'Bank Community Loan';
+            const headlineHeight = 60;
+
+            canvas.width = canvasSize;
+            canvas.height = canvasSize + headlineHeight;
+
+            // 1. Draw background and border
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#4A5568'; // gray-700
+            ctx.lineWidth = 8;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Draw headline
+            ctx.fillStyle = '#1A202C'; // gray-800
+            ctx.font = 'bold 28px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(headlineText, canvas.width / 2, 40);
+
+            // 3. Generate QR code in a temporary element
+            const tempQrContainer = document.createElement('div');
+            new QRCode(tempQrContainer, {
+                text: upiUrl,
+                width: qrCodeSize,
+                height: qrCodeSize,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // 4. Draw the QR code onto the main canvas
+            setTimeout(() => {
+                const qrCanvas = tempQrContainer.querySelector('canvas');
+                if (qrCanvas) {
+                    const qrYPosition = headlineHeight + padding / 2;
+                    ctx.drawImage(qrCanvas, padding, qrYPosition);
+                    
+                    // 5. Trigger download
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = `Bank-Community-Loan-UPI-QR.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    messageDiv.textContent = "QR Download failed. Please try again.";
+                }
+            }, 100);
+        }
+
+    </script>
+
+</body>
+</html>
+
