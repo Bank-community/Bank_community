@@ -18,7 +18,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
     body {
       font-family: 'Poppins', sans-serif;
       background-color: #f0f2f5;
@@ -29,94 +29,18 @@
     .stat-card {
         background-color: white;
         border-radius: 1rem;
-        box-shadow: 0 4px 25px -8px rgba(0,0,0,0.08);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 4px 15px -5px rgba(0,0,0,0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.15);
+        box-shadow: 0 10px 25px -10px rgba(0,0,0,0.15);
     }
     .info-item {
         border-bottom: 1px solid #e5e7eb;
-        padding: 0.85rem 0;
+        padding: 0.75rem 0;
     }
     .info-item:last-child { border-bottom: none; }
-    
-    /* --- Skeleton Loader --- */
-    #loader-container.active .skeleton {
-        background-color: #e2e8f0;
-        border-radius: 0.5rem;
-        position: relative;
-        overflow: hidden;
-    }
-    #loader-container.active .skeleton::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -150%;
-        height: 100%;
-        width: 150%;
-        background: linear-gradient(90deg, transparent, #f3f4f6, transparent);
-        animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer {
-        0% { left: -150%; }
-        100% { left: 150%; }
-    }
-
-    /* --- Modal Animations --- */
-    .modal-overlay {
-        background-color: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(5px);
-        transition: opacity 0.3s ease-in-out;
-    }
-    .modal-content {
-        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    }
-    .modal-overlay.hidden .modal-content {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-    .hidden { display: none; }
-
-    /* --- Performance Score Gauge --- */
-    .gauge {
-        position: relative;
-        width: 120px;
-        height: 120px;
-    }
-    .gauge-bg, .gauge-fg {
-        fill: none;
-        stroke-width: 12;
-        transform: rotate(-90deg 60px 60px);
-    }
-    .gauge-bg { stroke: #e5e7eb; }
-    .gauge-fg {
-        stroke: #4f46e5;
-        stroke-linecap: round;
-        transition: stroke-dashoffset 1s ease-out;
-    }
-    .gauge-text {
-        font-size: 1.75rem;
-        font-weight: 800;
-        fill: #374151;
-    }
-
-    /* Withdrawal Card */
-    .withdrawal-card-container {
-        width: 100%;
-        max-width: 380px;
-    }
-    .withdrawal-card {
-        font-family: 'Poppins', sans-serif;
-        border-radius: 1rem;
-        border: 1px solid #e5e7eb;
-        background-color: white;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        aspect-ratio: 16 / 10.5;
-        display: flex;
-        flex-direction: column;
-    }
     .document-thumbnail {
         cursor: pointer;
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
@@ -127,52 +51,52 @@
         box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         border-color: #4f46e5;
     }
+    .loader-container {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f2f5;
+        z-index: 100;
+    }
+    .loader {
+        border: 5px solid #e5e7eb;
+        border-top: 5px solid #4f46e5;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .hidden { display: none; }
+    .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+    }
+    .info-icon { color: #4f46e5; }
+    /* New Withdrawal Card Style */
+    .withdrawal-card-container {
+        width: 100%;
+        max-width: 380px; /* 16:10 aspect ratio approx */
+    }
+    .withdrawal-card {
+        font-family: 'Poppins', sans-serif;
+        border-radius: 1rem;
+        border: 1px solid #e5e7eb;
+        background-color: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        aspect-ratio: 16 / 10.5; /* Aspect ratio control */
+        display: flex;
+        flex-direction: column;
+    }
   </style>
 </head>
 <body class="min-h-screen">
   
-  <div id="loader-container" class="active">
-    <!-- Skeleton Loader UI -->
-    <div class="profile-header h-36 p-6 rounded-b-3xl"></div>
-    <main class="max-w-5xl mx-auto p-4 -mt-16">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1 space-y-6">
-                <div class="relative">
-                    <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full skeleton mx-auto border-4 border-white/50 shadow-lg"></div>
-                </div>
-                <div class="stat-card p-6">
-                    <div class="skeleton h-6 w-3/4 mb-4 mx-auto"></div>
-                    <div class="flex justify-center items-center my-4">
-                        <div class="skeleton w-32 h-32 rounded-full"></div>
-                    </div>
-                    <div class="skeleton h-5 w-full mt-2"></div>
-                </div>
-                <div class="stat-card p-6">
-                    <div class="skeleton h-6 w-1/2 mb-4"></div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="skeleton h-20 w-full"></div>
-                        <div class="skeleton h-20 w-full"></div>
-                        <div class="skeleton h-20 w-full"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="lg:col-span-2 space-y-6">
-                 <div class="stat-card p-6 mt-10 md:mt-0">
-                    <div class="skeleton h-6 w-1/3 mb-2"></div>
-                    <div class="skeleton h-4 w-1/2 mb-4"></div>
-                    <div class="skeleton h-12 w-1/2 mx-auto my-4"></div>
-                    <div class="skeleton h-12 w-full mt-2"></div>
-                </div>
-                <div class="stat-card p-6">
-                    <div class="skeleton h-6 w-1/2 mb-4"></div>
-                    <div class="skeleton h-5 w-full mt-3"></div>
-                    <div class="skeleton h-5 w-full mt-3"></div>
-                    <div class="skeleton h-5 w-full mt-3"></div>
-                    <div class="skeleton h-5 w-4/5 mt-3"></div>
-                </div>
-            </div>
-        </div>
-    </main>
+  <div id="loader-container" class="loader-container">
+      <div class="loader"></div>
   </div>
 
   <div id="error-message" class="hidden text-center text-red-600 font-semibold bg-white p-8 rounded-xl shadow-lg max-w-md mx-auto mt-10">
@@ -183,8 +107,8 @@
   <div id="profile-content" class="w-full hidden">
     <!-- Header -->
     <div class="profile-header text-white p-6 rounded-b-3xl shadow-lg">
-        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-            <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg -mt-16 sm:-mt-0">
+        <div class="max-w-5xl mx-auto flex items-center gap-6">
+            <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg">
             <div class="flex-grow">
                 <h1 id="profile-name" class="text-2xl sm:text-4xl font-bold"></h1>
                 <p id="membership-id" class="text-indigo-200 text-sm"></p>
@@ -192,24 +116,21 @@
         </div>
     </div>
 
-    <main class="max-w-5xl mx-auto p-4 sm:-mt-10">
+    <main class="max-w-5xl mx-auto p-4 -mt-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left Column -->
             <div class="lg:col-span-1 space-y-6">
                 <!-- Financial Health Card -->
-                <div class="stat-card p-6 text-center">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Financial Health</h3>
-                     <div class="flex justify-center my-4">
-                        <svg class="gauge" viewBox="0 0 120 120">
-                            <circle class="gauge-bg" cx="60" cy="60" r="54"></circle>
-                            <circle id="gauge-fg" class="gauge-fg" cx="60" cy="60" r="54" pathLength="100"></circle>
-                            <text id="performance-score" class="gauge-text" x="60" y="65" text-anchor="middle">0</text>
-                        </svg>
-                     </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center text-sm">
+                <div class="stat-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-heart-pulse text-indigo-500"></i> Financial Health</h3>
+                     <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">Performance Score</span>
+                            <span id="performance-score" class="font-bold text-lg text-indigo-600">Calculating...</span>
+                        </div>
+                        <div class="flex justify-between items-center">
                             <span class="text-gray-500">Loan Eligibility</span>
-                            <span id="loan-eligibility" class="font-bold px-3 py-1 rounded-full text-xs">Calculating...</span>
+                            <span id="loan-eligibility" class="font-bold text-lg text-green-600">Calculating...</span>
                         </div>
                     </div>
                 </div>
@@ -235,42 +156,35 @@
 
             <!-- Right Column -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Extra Balance Card -->
-                <div class="stat-card p-6 bg-gradient-to-br from-green-50 to-cyan-50">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-700">Extra Balance</h3>
-                            <p class="text-sm text-gray-500">Available for withdrawal</p>
-                        </div>
-                        <button id="view-history-btn" class="text-xs text-indigo-600 font-semibold hover:underline">View History</button>
-                    </div>
-                    <div class="text-center my-4">
-                        <p id="extra-balance" class="font-extrabold text-5xl text-green-600"></p>
-                    </div>
-                    <button id="withdraw-btn" class="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 transform hover:-translate-y-0.5">
-                        <i class="fas fa-hand-holding-usd"></i>Withdraw
-                    </button>
-                </div>
-                <!-- Details Card -->
                 <div class="stat-card p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Personal Details -->
                         <div>
-                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-2 flex items-center gap-3"><i class="fas fa-user-circle text-indigo-500"></i> Personal Details</h3>
+                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-user-circle text-indigo-500"></i> Personal Details</h3>
                             <div class="space-y-2 text-sm">
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-phone-alt text-indigo-500 w-5 text-center"></i><span id="mobile-number" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-birthday-cake text-indigo-500 w-5 text-center"></i><span id="dob" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-id-card text-indigo-500 w-5 text-center"></i><span id="aadhaar" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-map-marker-alt text-indigo-500 w-5 text-center"></i><span id="address" class="font-semibold text-gray-800 text-left"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-phone-alt info-icon w-5 text-center"></i><span id="mobile-number" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-birthday-cake info-icon w-5 text-center"></i><span id="dob" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-id-card info-icon w-5 text-center"></i><span id="aadhaar" class="font-semibold text-gray-800"></span></div>
+                                <div class="info-item flex items-center gap-4"><i class="fas fa-map-marker-alt info-icon w-5 text-center"></i><span id="address" class="font-semibold text-gray-800 text-left"></span></div>
                             </div>
                         </div>
                         <!-- Financial Details -->
-                        <div class="mt-6 md:mt-0">
-                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-2 flex items-center gap-3"><i class="fas fa-wallet text-indigo-500"></i> Financial Details</h3>
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-wallet text-indigo-500"></i> Financial Details</h3>
                             <div class="space-y-2 text-sm">
                                 <div class="info-item flex justify-between items-center"><span class="text-gray-500">Joining Date</span><span id="joining-date" class="font-semibold text-gray-800"></span></div>
                                 <div class="info-item flex justify-between items-center"><span class="text-gray-500">Guarantor</span><span id="guarantor-name" class="font-semibold text-gray-800"></span></div>
                                 <div class="info-item flex justify-between items-center"><span class="text-gray-500">Total SIP</span><span id="total-sip" class="font-bold text-lg text-indigo-600"></span></div>
+                            </div>
+                            <div class="mt-6 p-4 bg-indigo-50 rounded-lg text-center">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-sm text-gray-500">Extra Balance</p>
+                                    <button id="view-history-btn" class="text-xs text-indigo-600 font-semibold hover:underline">View History</button>
+                                </div>
+                                <p id="extra-balance" class="font-bold text-4xl text-green-600 my-2"></p>
+                                <button id="withdraw-btn" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400">
+                                    <i class="fas fa-hand-holding-usd mr-2"></i>Withdraw
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -281,15 +195,13 @@
   </div>
 
   <!-- Modals -->
-  <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4" onclick="this.classList.add('hidden')">
-      <div class="modal-content">
-        <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()">
-        <button onclick="document.getElementById('imageViewerModal').classList.add('hidden')" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
-      </div>
+  <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
+      <button id="closeImageViewer" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
   </div>
 
   <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="modal-content bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
           <h3 class="text-xl font-bold text-center mb-4">Withdraw Extra Balance</h3>
           <p class="text-center text-sm text-gray-500 mb-1">Available to withdraw:</p>
           <p id="modal-available-balance" class="text-center text-2xl font-bold text-green-600 mb-4"></p>
@@ -299,14 +211,14 @@
               <p id="withdrawal-error" class="text-red-500 text-sm mt-1 hidden"></p>
           </div>
           <div class="mt-6 flex gap-4">
-              <button id="close-withdrawal-modal" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
-              <button id="submit-withdrawal" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors">Confirm</button>
+              <button id="close-withdrawal-modal" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg">Cancel</button>
+              <button id="submit-withdrawal" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Confirm</button>
           </div>
       </div>
   </div>
   
   <div id="historyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="modal-content bg-white rounded-xl shadow-2xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
+      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
           <h3 class="text-xl font-bold text-center mb-4">Extra Balance History</h3>
           <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
               <!-- History items will be injected here -->
@@ -316,40 +228,38 @@
   </div>
 
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="modal-content">
-        <div class="withdrawal-card-container">
-            <!-- Card to be downloaded -->
-            <div id="withdrawalCard" class="withdrawal-card p-4 flex flex-col justify-between">
-                <div class="flex items-center space-x-3">
-                    <img id="card-profile-pic" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-100" src="">
-                    <div>
-                        <h2 id="card-name" class="text-gray-800 font-bold text-base leading-tight"></h2>
-                        <p class="text-gray-500 text-xs font-medium">Extra Balance Withdrawal</p>
-                    </div>
-                </div>
-                <div class="text-center my-2">
-                     <p class="text-gray-500 text-sm">Withdrawal Amount</p>
-                     <p id="card-amount" class="text-green-600 font-extrabold text-5xl"></p>
-                </div>
-                <div class="flex justify-between items-end">
-                    <div class="text-xs text-gray-400">
-                        <p>Date: <span id="card-date"></span></p>
-                    </div>
-                    <img id="card-signature" src="" alt="Signature" class="h-10 object-contain">
+      <div class="withdrawal-card-container">
+        <!-- Card to be downloaded -->
+        <div id="withdrawalCard" class="withdrawal-card p-4 flex flex-col justify-between">
+            <div class="flex items-center space-x-3">
+                <img id="card-profile-pic" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-100" src="">
+                <div>
+                    <h2 id="card-name" class="text-gray-800 font-bold text-base leading-tight"></h2>
+                    <p class="text-gray-500 text-xs font-medium">Extra Balance Withdrawal</p>
                 </div>
             </div>
-            <!-- Action Buttons -->
-            <div class="mt-4 flex gap-4">
-                <button id="download-card-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"><i class="fas fa-download"></i>Download</button>
-                <button id="share-card-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hidden hover:bg-blue-600 transition-colors"><i class="fab fa-whatsapp"></i>Share</button>
+            <div class="text-center my-2">
+                 <p class="text-gray-500 text-sm">Withdrawal Amount</p>
+                 <p id="card-amount" class="text-green-600 font-extrabold text-5xl"></p>
             </div>
-             <button id="close-card-modal" class="mt-2 w-full bg-gray-200 text-gray-700 font-bold py-2 rounded-lg hover:bg-gray-300 transition-colors">Close</button>
+            <div class="flex justify-between items-end">
+                <div class="text-xs text-gray-400">
+                    <p>Date: <span id="card-date"></span></p>
+                </div>
+                <img id="card-signature" src="" alt="Signature" class="h-10 object-contain">
+            </div>
         </div>
+        <!-- Action Buttons -->
+        <div class="mt-4 flex gap-4">
+            <button id="download-card-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-download"></i>Download</button>
+            <button id="share-card-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hidden"><i class="fab fa-whatsapp"></i>Share</button>
+        </div>
+         <button id="close-card-modal" class="mt-2 w-full bg-gray-200 text-gray-700 font-bold py-2 rounded-lg">Close</button>
       </div>
   </div>
 
   <script type="module">
-    // --- CONFIGURATION FOR FINANCIAL CALCULATOR (UNCHANGED) ---
+    // --- CONFIGURATION FOR FINANCIAL CALCULATOR ---
     const CALC_CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
         LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
@@ -364,7 +274,7 @@
     let allMemberTransactions = [];
     let balanceHistory = [];
 
-    // --- AUTHENTICATION & APP INITIALIZATION (USER'S ORIGINAL LOGIC) ---
+    // --- AUTHENTICATION & APP INITIALIZATION ---
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -385,7 +295,6 @@
         }
     }
 
-    // --- MAIN APP LOGIC (USER'S ORIGINAL LOGIC) ---
     function runAppLogic() {
         const loaderContainer = document.getElementById('loader-container');
         const profileContent = document.getElementById('profile-content');
@@ -393,7 +302,7 @@
         const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
         function showError(message) {
-            loaderContainer.classList.remove('active');
+            loaderContainer.classList.add('hidden');
             errorMessageEl.querySelector('p').textContent = message;
             errorMessageEl.classList.remove('hidden');
         }
@@ -440,13 +349,14 @@
                     sipPayment: parseFloat(row["SIP Payment"]) || 0,
                     returnAmount: parseFloat(row["Return amount"] || 0),
                     extraBalance: parseFloat(row["Extra Balance"] || 0),
+                    // ✅ BUG FIX: Read the new withdrawal field
                     extraWithdraw: parseFloat(row["Extra Withdraw"] || 0),
                 })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
                 
                 populateProfileData(currentMemberData);
 
-                loaderContainer.classList.remove('active');
+                loaderContainer.classList.add('hidden');
                 profileContent.classList.remove('hidden');
 
             } catch (error) {
@@ -455,7 +365,6 @@
             }
         }
 
-        // --- UI POPULATION (WITH NEW UI ELEMENTS) ---
         function populateProfileData(data) {
             const balanceResult = calculateTotalExtraBalance(data.membershipId);
             const extraBalance = balanceResult.total;
@@ -494,32 +403,19 @@
             document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
 
-            // --- Calculate and Display Financial Health (NEW UI) ---
             const scoreResult = calculatePerformanceScore(data.fullName, new Date());
             const eligibilityResult = getLoanEligibility(data.fullName, scoreResult.totalScore);
-            
-            // Update Gauge
-            const score = scoreResult.totalScore;
-            const gaugeFg = document.getElementById('gauge-fg');
-            const scoreText = document.getElementById('performance-score'); // This is the <text> element inside SVG
-            const circumference = 100;
-            const offset = circumference - score;
-            gaugeFg.style.strokeDasharray = circumference;
-            gaugeFg.style.strokeDashoffset = offset;
-            scoreText.textContent = score.toFixed(0);
-
-            // Update Eligibility Badge
-            const eligibilityBadge = document.getElementById('loan-eligibility');
+            document.getElementById('performance-score').textContent = scoreResult.totalScore.toFixed(2);
             if (eligibilityResult.eligible) {
-                eligibilityBadge.textContent = `${eligibilityResult.multiplier.toFixed(1)}x Eligible`;
-                eligibilityBadge.className = 'font-bold px-3 py-1 rounded-full text-xs bg-green-100 text-green-800';
+                document.getElementById('loan-eligibility').textContent = `${eligibilityResult.multiplier.toFixed(2)}x`;
+                document.getElementById('loan-eligibility').className = 'font-bold text-lg text-green-600';
             } else {
-                eligibilityBadge.textContent = eligibilityResult.reason;
-                eligibilityBadge.className = 'font-bold px-3 py-1 rounded-full text-xs bg-red-100 text-red-800';
+                document.getElementById('loan-eligibility').textContent = eligibilityResult.reason;
+                document.getElementById('loan-eligibility').className = 'font-bold text-sm text-red-600';
             }
         }
 
-        // --- EVENT LISTENERS (UNCHANGED LOGIC, MINOR UI CLASS CHANGES) ---
+        // --- Event Listeners ---
         const imageViewerModal = document.getElementById('imageViewerModal');
         document.querySelectorAll('.document-thumbnail').forEach(img => {
             img.addEventListener('click', () => {
@@ -527,7 +423,9 @@
                 imageViewerModal.classList.remove('hidden');
             });
         });
-        
+        document.getElementById('closeImageViewer').addEventListener('click', () => imageViewerModal.classList.add('hidden'));
+        imageViewerModal.addEventListener('click', (e) => { if (e.target === imageViewerModal) imageViewerModal.classList.add('hidden'); });
+
         const withdrawalModal = document.getElementById('withdrawalModal');
         document.getElementById('withdraw-btn').addEventListener('click', () => {
             document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -558,10 +456,7 @@
             const historyList = document.getElementById('history-list');
             historyList.innerHTML = '';
             if (balanceHistory.length === 0) {
-                historyList.innerHTML = `<div class="text-center text-gray-500 py-8">
-                    <i class="fas fa-receipt text-4xl text-gray-300 mb-2"></i>
-                    <p>No history found.</p>
-                </div>`;
+                historyList.innerHTML = '<p class="text-center text-gray-500">No history found.</p>';
             } else {
                 [...balanceHistory].reverse().forEach(item => {
                     const div = document.createElement('div');
@@ -612,11 +507,11 @@
             cardResultModal.classList.remove('hidden');
         }
         
+        // --- IMAGE & SHARING FUNCTIONS ---
         function toDataURL(url) {
+            // Use a CORS proxy for Firebase Storage URLs
             const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-            const targetUrl = url && url.includes('firebasestorage') ? proxyUrl + url : url;
-
-            if (!targetUrl) return Promise.resolve('');
+            const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
 
             return fetch(targetUrl)
                 .then(response => {
@@ -631,7 +526,7 @@
                 }))
                 .catch((error) => {
                     console.warn(`Could not fetch image via proxy: ${error}. Falling back to original URL.`);
-                    return url;
+                    return url; // Fallback to original url if fetch fails
                 });
         }
 
@@ -673,23 +568,28 @@
             }
         }
 
-        // --- FINANCIAL CALCULATOR LOGIC (UNCHANGED) ---
+        // --- FINANCIAL CALCULATOR LOGIC (WITH BUG FIX) ---
         function calculateTotalExtraBalance(memberId) {
             let total = 0;
             const history = [];
             const memberFullName = currentMemberData.fullName;
 
+            // 1. Calculate profit from loan distributions
             const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
             profitEvents.forEach(paymentRecord => {
                 const profit = paymentRecord.returnAmount * 0.90;
                 if (profit <= 0) return;
+
                 const userLoansBeforePayment = allMemberTransactions.filter(r => r.fullName === paymentRecord.fullName && r.loan > 0 && r.date < paymentRecord.date);
                 if (userLoansBeforePayment.length === 0) return;
+                
                 const relevantLoan = userLoansBeforePayment.pop();
                 const loanDate = relevantLoan.date;
+                
                 let totalScoreInSnapshot = 0;
                 const snapshotScores = {};
                 const membersInSystemAtLoanDate = [...new Set(allMemberTransactions.filter(r => r.date <= loanDate).map(r => r.fullName))];
+                
                 membersInSystemAtLoanDate.forEach(name => {
                     const scoreObject = calculatePerformanceScore(name, loanDate);
                     if (scoreObject.totalScore > 0) {
@@ -697,27 +597,40 @@
                         totalScoreInSnapshot += scoreObject.totalScore;
                     }
                 });
+
                 if (totalScoreInSnapshot > 0 && snapshotScores[memberFullName]) {
                     let memberShare = (snapshotScores[memberFullName] / totalScoreInSnapshot) * profit;
+                    
                     const lastLoanDate = allMemberTransactions.filter(r => r.fullName === memberFullName && r.loan > 0 && r.date <= loanDate).pop()?.date;
-                    const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
+                    const daysSinceLastLoan = lastLoanDate ? (loanDate - loanDate) / (1000 * 3600 * 24) : Infinity;
+                    
                     if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_MEMBER_DAYS_LIMIT) {
                         memberShare *= CALC_CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER;
                     }
+                    
                     if (memberShare > 0) {
                         history.push({ type: 'profit', from: paymentRecord.fullName, date: paymentRecord.date, amount: memberShare });
                     }
                 }
             });
 
+            // 2. Process manual adjustments (credit and withdrawal) for the current member
             const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && (tx.extraBalance !== 0 || tx.extraWithdraw !== 0));
             manualAdjustments.forEach(tx => {
-                if (tx.extraBalance > 0) history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
-                if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
+                if (tx.extraBalance > 0) {
+                    history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+                }
+                if (tx.extraWithdraw > 0) {
+                    // Make the amount negative for withdrawal
+                    history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
+                }
             });
             
             history.sort((a,b) => a.date - b.date);
+            
+            // Calculate final total from sorted history
             total = history.reduce((acc, item) => acc + item.amount, 0);
+
             return { total, history };
         }
 
@@ -760,7 +673,7 @@
             });
             const creditScore = memberLoans.length > 0 ? Math.max(0, (creditPoints / (memberLoans.length * 20)) * 100) : 70;
             const totalScore = (normalizedCapitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
-            return { totalScore: isNaN(totalScore) ? 0 : Math.min(100, Math.max(0, totalScore)) };
+            return { totalScore: isNaN(totalScore) ? 0 : totalScore };
         }
 
         function getLoanEligibility(memberName, score) {
@@ -784,9 +697,10 @@
             return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, isNaN(multiplier) ? 1.0 : multiplier) };
         }
 
-        // --- Start the App ---
-        checkAuthAndInitialize();
+        loadAllData();
     }
+
+    checkAuthAndInitialize();
   </script>
 </body>
 </html>
