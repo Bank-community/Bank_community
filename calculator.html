@@ -1,255 +1,474 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>मोबाइल EMI कैलकुलेटर</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        /* Custom styles for the slider thumb for a better look */
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            cursor: pointer;
-            border-radius: 50%;
-            border: 4px solid #4f46e5;
-            margin-top: -9px;
-            transition: transform 0.2s ease;
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 16px; /* Adjusted for moz */
-            height: 16px; /* Adjusted for moz */
-            background: #ffffff;
-            cursor: pointer;
-            border-radius: 50%;
-            border: 4px solid #4f46e5;
-        }
-        input[type="range"]:active::-webkit-slider-thumb {
-            transform: scale(1.2);
-        }
-        /* Custom radio button style */
-        .tenure-radio:checked + label {
-            background-color: #4f46e5;
-            color: white;
-            border-color: #4f46e5;
-            font-weight: 700;
-            box-shadow: 0 4px 14px 0 rgb(0 0 0 / 10%);
-        }
-        /* Animation for result update */
-        .result-value {
-            transition: all 0.3s ease-in-out;
-        }
-        .result-value.updating {
-            transform: translateY(10px);
-            opacity: 0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bank Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #007aff;
+      --primary-hover: #0056b3;
+      --bg-light: #f8f9fa;
+      --bg-white: #ffffff;
+      --text-dark: #212529;
+      --text-muted: #6c757d;
+      --border-color: #dee2e6;
+    }
+    body { 
+      font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif;
+      background-color: var(--bg-light);
+    }
+    .calculator-body {
+      background-color: var(--bg-white);
+      color: var(--text-dark);
+    }
+    .header {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; height: 24px; width: 24px;
+      background: var(--primary); border-radius: 50%; border: 4px solid var(--bg-white);
+      cursor: pointer; margin-top: -8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      height: 24px; width: 24px; background: var(--primary); border-radius: 50%;
+      border: 4px solid var(--bg-white); cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input[type="range"] {
+        background: #e9ecef;
+    }
+    .tenureRadio:checked + label {
+      background-color: var(--primary); color: white; border-color: var(--primary);
+      font-weight: 700; box-shadow: 0 4px 14px 0 rgba(0, 123, 255, 0.3);
+    }
+    .tenureRadio + label {
+        background-color: #e9ecef;
+        border-color: var(--border-color);
+        color: var(--text-dark);
+    }
+    .calculator-switch { 
+        background-color: #e9ecef;
+        color: var(--text-muted);
+        transition: all 0.3s ease-in-out; 
+    }
+    .calculator-switch.active {
+      background-color: var(--primary); color: white; font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .calculator-switch .icon {
+        transition: transform 0.3s ease;
+    }
+    .calculator-switch.active .icon {
+        transform: scale(1.1);
+        color: white;
+    }
+    .progressCircle {
+        stroke: var(--primary);
+    }
+  </style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100">
 
-    <div class="w-full max-w-lg mx-auto">
-        <div class="bg-white rounded-2xl shadow-2xl shadow-slate-300/60 overflow-hidden">
-            <!-- Header Section -->
-            <div class="p-6 bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
-                <h1 class="text-2xl sm:text-3xl font-bold text-center">मोबाइल EMI कैलकुलेटर</h1>
-                <p class="text-center mt-2 text-indigo-200 text-sm sm:text-base">अपने नए मोबाइल के लिए आसानी से EMI की गणना करें।</p>
-            </div>
-
-            <div class="p-6 md:p-8 space-y-8">
-                <!-- Input Section -->
-                <div class="space-y-6">
-                    <!-- Mobile Price Input -->
-                    <div>
-                        <label for="priceInput" class="block text-base font-semibold text-gray-700 mb-2">मोबाइल की कीमत</label>
-                        <div class="flex items-center bg-slate-100 rounded-lg p-2">
-                            <span class="text-xl font-bold text-slate-500 px-3">₹</span>
-                            <input type="number" id="priceInput" value="15000" class="w-full text-2xl font-bold text-slate-800 bg-transparent focus:outline-none">
-                        </div>
-                        <input type="range" id="priceSlider" min="5000" max="30000" value="15000" step="500" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-4">
-                    </div>
-
-                    <!-- Tenure Input -->
-                    <div>
-                        <label class="block text-base font-semibold text-gray-700 mb-3">अवधि (महीने)</label>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div>
-                                <input type="radio" id="tenure3" name="tenure" value="3" class="hidden tenure-radio" checked>
-                                <label for="tenure3" class="block text-center py-3 px-2 rounded-lg border-2 border-slate-200 cursor-pointer transition-all duration-300 font-medium hover:border-indigo-400">3 महीने</label>
-                            </div>
-                            <div>
-                                <input type="radio" id="tenure6" name="tenure" value="6" class="hidden tenure-radio">
-                                <label for="tenure6" class="block text-center py-3 px-2 rounded-lg border-2 border-slate-200 cursor-pointer transition-all duration-300 font-medium hover:border-indigo-400">6 महीने</label>
-                            </div>
-                            <div>
-                                <input type="radio" id="tenure9" name="tenure" value="9" class="hidden tenure-radio">
-                                <label for="tenure9" class="block text-center py-3 px-2 rounded-lg border-2 border-slate-200 cursor-pointer transition-all duration-300 font-medium hover:border-indigo-400">9 महीने</label>
-                            </div>
-                            <div>
-                                <input type="radio" id="tenure12" name="tenure" value="12" class="hidden tenure-radio">
-                                <label for="tenure12" class="block text-center py-3 px-2 rounded-lg border-2 border-slate-200 cursor-pointer transition-all duration-300 font-medium hover:border-indigo-400">12 महीने</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Results Section -->
-                <div class="pt-6 border-t-2 border-dashed border-slate-200">
-                    <!-- Main EMI Result -->
-                    <div class="text-center">
-                        <p class="text-base text-slate-600 font-medium">आपकी मासिक किस्त (EMI)</p>
-                        <p id="emiResult" class="text-4xl sm:text-5xl font-bold text-indigo-600 mt-1 result-value">₹0</p>
-                    </div>
-                    
-                    <!-- Detailed Results -->
-                    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <p class="text-sm text-slate-500 font-medium">कुल ब्याज</p>
-                            <p id="totalInterestResult" class="text-xl font-bold text-slate-800 mt-1 result-value">₹0</p>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <p class="text-sm text-slate-500 font-medium">कुल भुगतान</p>
-                            <p id="totalPaymentResult" class="text-xl font-bold text-slate-800 mt-1 result-value">₹0</p>
-                        </div>
-                         <div class="bg-slate-50 p-4 rounded-xl">
-                            <p class="text-sm text-slate-500 font-medium">ब्याज दर</p>
-                            <p id="annualRateResult" class="text-xl font-bold text-slate-800 mt-1 result-value">0%</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <footer class="text-center mt-6 text-slate-500 text-xs">
-            <p>Zero (0) Processing fee.</p>
-        </footer>
+  <div class="calculator-body w-full min-h-screen sm:min-h-0 sm:max-w-md sm:mx-auto sm:my-8 sm:rounded-2xl shadow-lg overflow-hidden">
+    
+    <div class="header p-4 text-white">
+      <div class="flex justify-between items-center mb-3">
+        <a href="loan_form.html" class="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 px-3 rounded-full transition">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+          <span data-translate-key="apply_now">Apply Now</span>
+        </a>
+        <button id="langSwitch" class="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 px-3 rounded-full transition">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/><path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm4 0a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4z"/></svg>
+          <span id="langLabel">हिन्दी</span>
+        </button>
+      </div>
+      <div class="text-center">
+        <h1 class="text-3xl font-bold" data-translate-key="main_title">🏦 Bank Calculator</h1>
+        <p id="headerSubtitle" class="text-sm opacity-90 mt-1" data-translate-key="subtitle_personal">पर्सनल लोन की आसान किश्तों की गणना करें</p>
+      </div>
     </div>
 
-    <script>
-        // --- DOM Element Selection ---
-        const priceSlider = document.getElementById('priceSlider');
-        const priceInput = document.getElementById('priceInput');
-        const tenureRadios = document.querySelectorAll('input[name="tenure"]');
-        
-        const emiResultEl = document.getElementById('emiResult');
-        const totalPaymentResultEl = document.getElementById('totalPaymentResult');
-        const totalInterestResultEl = document.getElementById('totalInterestResult');
-        const annualRateResultEl = document.getElementById('annualRateResult');
-        const resultValues = document.querySelectorAll('.result-value');
+    <div class="p-2 bg-gray-100 grid grid-cols-4 gap-2 m-4 rounded-xl">
+      <button id="switchToPersonal" class="calculator-switch py-2 px-2 text-sm rounded-lg flex flex-col items-center gap-1.5">
+        <svg class="icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+        <span class="font-semibold" data-translate-key="btn_personal">पर्सनल</span>
+      </button>
+      <button id="switchToBusiness" class="calculator-switch py-2 px-2 text-sm rounded-lg flex flex-col items-center gap-1.5">
+        <!-- UPDATED BUSINESS ICON -->
+        <svg viewBox="0 0 1024 1024" class="icon w-5 h-5" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M326.5625 301.0625l-1.21875-93.28125c-0.1875-14.25 11.34375-25.875 25.59375-25.875h322.125c14.15625 0 25.59375 11.4375 25.59375 25.59375v93.1875h-65.625v-53.15625H391.53125l0.65625 52.78125-65.625 0.75z" fill="#8E6620"></path><path d="M404.09375 335.75h-91.59375c-1.59375 0-3-1.3125-3-3v-30.1875c0-1.59375 1.3125-3 3-3h91.59375c1.59375 0 3 1.3125 3 3v30.1875c0 1.6875-1.40625 3-3 3zM711.40625 335.75h-91.125c-1.78125 0-3.1875-1.40625-3.1875-3.1875V302.9375c0-1.78125 1.40625-3.1875 3.1875-3.1875h91.125c1.78125 0 3.1875 1.40625 3.1875 3.1875v29.625c0.09375 1.78125-1.40625 3.1875-3.1875 3.1875z" fill="#FFB000"></path><path d="M862.90625 932.1875H162.96875c-38.71875 0-70.125-31.40625-70.125-70.125V402.3125c0-38.71875 31.40625-70.125 70.125-70.125h699.84375c38.71875 0 70.125 31.40625 70.125 70.125v459.75c0.09375 38.71875-31.3125 70.125-70.03125 70.125z" fill="#8E6620"></path><path d="M234.575 332.298125l75-0.215625 1.726875 599.34375-75 0.215625zM714.670625 332.298125l75-0.215625 1.726875 599.34375-75 0.215625z" fill="#FFB000"></path></g></svg>
+        <span class="font-semibold" data-translate-key="btn_business">बिजनेस</span>
+      </button>
+      <button id="switchToMobile" class="calculator-switch py-2 px-2 text-sm rounded-lg flex flex-col items-center gap-1.5">
+        <svg class="icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H5z"/><path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+        <span class="font-semibold" data-translate-key="btn_mobile">मोबाइल</span>
+      </button>
+       <button id="switchToGold" class="calculator-switch py-2 px-2 text-sm rounded-lg flex flex-col items-center gap-1.5 leading-tight">
+        <!-- UPDATED GOLD ICON -->
+        <div class="icon w-5 h-5 flex items-center justify-center">
+            <svg viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M959.849 634.644c-1.641-76.786-201.052-97.358-319.152-97.358s-317.509 20.572-319.152 97.358h-0.151v99.162c0 77.374 200.715 98.006 319.303 98.006 118.59 0 319.303-20.75 319.303-98.464v-98.703h-0.151z" fill="#FCB814"></path><path d="M959.849 634.644c-1.641-76.786-201.052-97.358-319.152-97.358s-317.509 20.572-319.152 97.358h-0.151v99.162c0 77.374 200.715 98.006 319.303 98.006 118.59 0 319.303-20.75 319.303-98.464v-98.703h-0.151z" fill=""></path><path d="M640.697 733.78c-118.588 0-319.303-20.675-319.303-98.222 0-77.571 200.715-98.272 319.303-98.272S960 557.987 960 635.558c0 77.547-200.715 98.222-319.303 98.222z" fill="#FCB814"></path><path d="M837.826 455.421c-1.641-76.786-201.052-97.356-319.152-97.356s-317.51 20.57-319.152 97.356h-0.151v99.162c0 77.376 200.714 98.006 319.303 98.006 118.588 0 319.303-20.75 319.303-98.463v-98.705h-0.151z" fill="#FCB814"></path><path d="M837.826 455.421c-1.641-76.786-201.052-97.356-319.152-97.356s-317.51 20.57-319.152 97.356h-0.151v99.162c0 77.376 200.714 98.006 319.303 98.006 118.588 0 319.303-20.75 319.303-98.463v-98.705h-0.151z" fill=""></path><path d="M518.674 554.559c-118.59 0-319.303-20.677-319.303-98.223 0-77.571 200.713-98.272 319.303-98.272 118.588 0 319.303 20.701 319.303 98.272 0 77.547-200.715 98.223-319.303 98.223z" fill="#FCB814"></path><path d="M702.457 289.547c-1.642-76.786-201.052-97.358-319.152-97.358S65.794 212.761 64.153 289.547h-0.15v99.162c0 77.374 200.713 98.006 319.303 98.006 118.589 0 319.303-20.75 319.303-98.464v-98.703h-0.152z" fill="#FCB814"></path><path d="M702.457 289.547c-1.642-76.786-201.052-97.358-319.152-97.358S65.794 212.761 64.153 289.547h-0.15v99.162c0 77.374 200.713 98.006 319.303 98.006 118.589 0 319.303-20.75 319.303-98.464v-98.703h-0.152z" fill=""></path><path d="M383.303 388.683C264.715 388.683 64 368.007 64 290.46c0-77.571 200.715-98.272 319.303-98.272 118.59 0 319.304 20.701 319.304 98.272 0.001 77.547-200.714 98.223-319.304 98.223z" fill="#FCB814"></path><path d="M143.75 327.758c-8.246 0-14.933-6.687-14.933-14.933 0-84.948 213.581-89.25 256.398-89.25 8.246 0 14.933 6.686 14.933 14.933 0 8.246-6.687 14.933-14.933 14.933-111.352 0-226.531 22.21-226.531 59.384-0.001 8.246-6.686 14.933-14.934 14.933z" fill="#EEEEEE"></path></g></svg>
+        </div>
+        <div class="flex flex-col items-center">
+            <span class="font-semibold -mb-0.5" data-translate-key="btn_gold">Gold</span>
+            <span class="text-xs" data-translate-key="btn_garentor">Garentor</span>
+        </div>
+      </button>
+    </div>
 
-        // --- Formatting Function ---
-        function formatCurrency(num) {
-            // Formats number to Indian Rupee without decimal points
-            return new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: 'INR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-            }).format(num);
+    <!-- Rest of the body remains the same -->
+    <div class="p-5 pt-2 space-y-6">
+      <div>
+        <label for="amountInput" id="amountLabel" class="block font-semibold text-gray-600 mb-2" data-translate-key="amount_label_personal">लोन राशि (₹)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xl text-gray-400">₹</span>
+          <input type="number" id="amountInput" value="10000" min="1000" max="30000" step="500" class="w-full bg-gray-100 border-2 border-gray-300 text-gray-900 text-xl font-bold rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition" />
+        </div>
+        <input type="range" id="amountSlider" min="1000" max="30000" value="10000" step="500" class="w-full mt-4 h-2 rounded-lg appearance-none cursor-pointer" />
+      </div>
+
+      <div id="tenureSection">
+        <label class="block font-semibold text-gray-600 mb-3" data-translate-key="tenure_label">अवधि चुनें (महीनों में)</label>
+        <div id="personalTenureOptions" class="hidden grid grid-cols-3 gap-3 text-sm"></div>
+        <div id="businessTenureDisplay" class="hidden"><div class="text-center border-2 border-primary bg-blue-50 text-primary font-bold py-2.5 rounded-lg" data-translate-key="fixed_tenure">9 महीने (फिक्स्ड)</div></div>
+        <div id="mobileTenureOptions" class="hidden grid grid-cols-4 gap-3 text-sm"></div>
+        <div id="goldTenureOptions" class="hidden grid grid-cols-4 gap-3 text-sm"></div>
+        <div id="goldInterestRateDisplay" class="hidden text-center mt-3 font-semibold text-primary bg-blue-50 p-2 rounded-lg"></div>
+      </div>
+      
+      <div id="standardResults" class="hidden">
+        <div class="bg-gray-50 p-5 rounded-xl space-y-4 text-center border border-gray-200">
+            <div><h2 id="emiLabel" class="text-base font-medium text-gray-500" data-translate-key="emi_label_personal">आपकी मासिक किश्त</h2><p id="emiResult" class="text-4xl font-bold text-gray-900">₹0</p></div>
+            <div class="grid grid-cols-2 gap-4 text-sm pt-2">
+                <div class="bg-white p-3 rounded-lg shadow-sm border"><p class="text-gray-500" data-translate-key="total_payment">कुल भुगतान</p><p id="totalPayment" class="font-semibold text-lg text-gray-800">₹0</p></div>
+                <div class="bg-white p-3 rounded-lg shadow-sm border"><p class="text-gray-500" data-translate-key="total_interest">कुल ब्याज</p><p id="totalInterest" class="font-semibold text-lg text-gray-800">₹0</p></div>
+            </div>
+        </div>
+      </div>
+      
+      <div id="businessResults" class="hidden">
+        <div class="bg-gray-50 p-5 rounded-xl space-y-3 border border-gray-200">
+            <div class="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                <div class="font-semibold" data-translate-key="processing_fee">प्रोसेसिंग शुल्क:</div><div id="processingFeeResult" class="text-right font-bold text-gray-900">₹0</div>
+                <div class="font-semibold" data-translate-key="monthly_interest_rate">मासिक ब्याज (Interest):</div><div id="monthlyInterestResult" class="text-right font-bold text-gray-900">₹0</div>
+                <div class="font-semibold" data-translate-key="interest_only_emi">पहले 3 महीने की किश्त:</div><div id="interestOnlyEmiResult" class="text-right font-bold text-gray-900">₹0 /माह</div>
+                <div class="font-semibold" data-translate-key="full_emi">अगले 6 महीने की EMI:</div><div id="fullEmiResult" class="text-right font-bold text-gray-900">₹0 /माह</div>
+            </div>
+            <hr class="my-2 border-gray-200">
+            <div class="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                <div class="font-semibold" data-translate-key="total_interest">कुल ब्याज:</div><div id="businessTotalInterest" class="text-right font-bold text-gray-900">₹0</div>
+                <div class="font-semibold" data-translate-key="total_payment">कुल भुगतान:</div><div id="businessTotalPayment" class="text-right font-bold text-lg text-gray-900">₹0</div>
+            </div>
+        </div>
+      </div>
+      
+      <div id="goldAnalysisSection" class="hidden space-y-2">
+        <label for="distributionSlider" class="block font-semibold text-gray-600" data-translate-key="interest_analysis">ब्याज का विश्लेषण (<span id="distributionMonthLabel" class="font-bold text-primary">1</span> <span data-translate-key="month_unit">महीने</span>)</label>
+        <input type="range" id="distributionSlider" min="1" max="12" value="1" step="1" class="w-full h-2 rounded-lg appearance-none cursor-pointer" />
+      </div>
+
+      <div id="chartsArea" class="pt-2">
+        <div id="personalChartsContainer" class="hidden grid grid-cols-2 gap-4 items-center"></div>
+        <div id="mobileChartsContainer" class="hidden grid grid-cols-2 gap-4 items-center"></div>
+        <div id="goldChartsContainer" class="hidden grid grid-cols-2 gap-4 items-center"></div>
+      </div>
+    </div>
+    
+    <div id="footer" class="text-center text-xs text-gray-500 p-4 bg-gray-100 border-t border-gray-200"></div>
+  </div>
+
+  <!-- The script part remains unchanged -->
+  <script>
+    const translations = {
+      hi: {
+        apply_now: "ऋण फॉर्म", lang_switch: "English", main_title: "🏦 बैंक कैलकुलेटर",
+        subtitle_personal: "पर्सनल लोन की आसान किश्तों की गणना करें", subtitle_business: "बिजनेस लोन की विस्तृत गणना देखें",
+        subtitle_mobile: "अपने नए मोबाइल के लिए आसान EMI की गणना करें", subtitle_gold: "अपने गोल्ड/गारंटर लोन की EMI की गणना करें",
+        btn_personal: "पर्सनल", btn_business: "बिजनेस", btn_mobile: "मोबाइल", btn_gold: "Gold", btn_garentor: "Garentor",
+        amount_label_personal: "लोन राशि (₹)", amount_label_mobile: "मोबाइल की कीमत (₹)", amount_label_business: "बिजनेस लोन राशि (₹)", amount_label_gold: "लोन राशि (₹)",
+        tenure_label: "अवधि चुनें (महीनों में)", month_unit: "महीने", month_unit_plural: "महीने", fixed_tenure: "9 महीने (फिक्स्ड)",
+        emi_label_personal: "आपकी मासिक किश्त", emi_label_mobile: "आपकी मासिक EMI", emi_label_gold: "आपकी मासिक किश्त",
+        total_payment: "कुल भुगतान", total_interest: "कुल ब्याज", processing_fee: "प्रोसेसिंग शुल्क:", monthly_interest_rate: "मासिक ब्याज (Interest):",
+        interest_only_emi: "पहले 3 महीने की किश्त:", full_emi: "अगले 6 महीने की EMI:", interest_analysis: "ब्याज का विश्लेषण",
+        interest_share: "कुल ब्याज का हिस्सा", smart_loan_title: "स्मार्ट लोन", smart_loan_emi: (n) => `${n} महीने की EMI`,
+        distribution_title: "ब्याज का बँटवारा", dist_wallet: "बैंक वॉलेट (33.3%)", dist_members: "सभी सदस्य (33.3%)", dist_guarantor: "गारंटर (33.3%)",
+        mobile_noti_title: "कम समय, कम ब्याज", mobile_noti_desc: "सबसे अच्छी डील पाने के लिए छोटी अवधि चुनें।",
+        footer_personal: "किश्तों की गणना फ्लैट ब्याज दर पर आधारित है।", footer_business: "बिजनेस लोन की गणना 1.5% मासिक साधारण ब्याज पर आधारित है।",
+        footer_mobile: "EMI की गणना साधारण ब्याज पर आधारित है।", footer_gold: `<p class="font-semibold text-blue-800 bg-blue-100 border-l-4 border-blue-500 p-3 rounded-r-lg text-left"><strong>सूचना:</strong> गोल्ड लोन लेने पर गोल्ड को गिरवी रखा जाएगा, और गारंटर लोन लेने पर गारंटर के SIP अमाउंट को होल्ड कर दी जाएगी जितनी अमाउंट को लोन अप्लाई होगा।</p>`,
+        interest_rate_display: (rate) => `ब्याज दर: ${rate}% मासिक`
+      },
+      en: {
+        apply_now: "Loan Form", lang_switch: "हिन्दी", main_title: "🏦 Bank Calculator",
+        subtitle_personal: "Calculate easy installments for your Personal Loan", subtitle_business: "View detailed calculation for Business Loan",
+        subtitle_mobile: "Calculate easy EMI for your new Mobile", subtitle_gold: "Calculate EMI for your Gold/Garentor Loan",
+        btn_personal: "Personal", btn_business: "Business", btn_mobile: "Mobile", btn_gold: "Gold", btn_garentor: "Garentor",
+        amount_label_personal: "Loan Amount (₹)", amount_label_mobile: "Mobile Price (₹)", amount_label_business: "Business Loan Amount (₹)", amount_label_gold: "Loan Amount (₹)",
+        tenure_label: "Choose Tenure (in months)", month_unit: "Month", month_unit_plural: "Months", fixed_tenure: "9 Months (Fixed)",
+        emi_label_personal: "Your Monthly Installment", emi_label_mobile: "Your Monthly EMI", emi_label_gold: "Your Monthly Installment",
+        total_payment: "Total Payment", total_interest: "Total Interest", processing_fee: "Processing Fee:", monthly_interest_rate: "Monthly Interest:",
+        interest_only_emi: "First 3 Months Installment:", full_emi: "Next 6 Months EMI:", interest_analysis: "Interest Analysis",
+        interest_share: "Share of Total Interest", smart_loan_title: "Smart Loan", smart_loan_emi: (n) => `${n} Month EMI`,
+        distribution_title: "Interest Distribution", dist_wallet: "Bank Wallet (33.3%)", dist_members: "All Members (33.3%)", dist_guarantor: "Guarantor (33.3%)",
+        mobile_noti_title: "Less Time, Less Interest", mobile_noti_desc: "Choose a shorter tenure for the best deal.",
+        footer_personal: "Installments are based on a flat interest rate.", footer_business: "Business loan is based on 1.5% monthly simple interest.",
+        footer_mobile: "EMI is based on simple interest.", footer_gold: `<p class="font-semibold text-blue-800 bg-blue-100 border-l-4 border-blue-500 p-3 rounded-r-lg text-left"><strong>Note:</strong> For a gold loan, the gold will be mortgaged. For a guarantor loan, the guarantor's SIP amount will be held for the loan amount.</p>`,
+        interest_rate_display: (rate) => `Interest Rate: ${rate}% monthly`
+      }
+    };
+
+    let calculatorType = 'personal';
+    let currentLang = 'hi';
+
+    const DOM = {
+        langSwitch: document.getElementById("langSwitch"), langLabel: document.getElementById("langLabel"),
+        amountInput: document.getElementById("amountInput"), amountSlider: document.getElementById("amountSlider"),
+        emiResult: document.getElementById("emiResult"), totalPayment: document.getElementById("totalPayment"),
+        totalInterest: document.getElementById("totalInterest"),
+        buttons: { personal: document.getElementById("switchToPersonal"), business: document.getElementById("switchToBusiness"), mobile: document.getElementById("switchToMobile"), gold: document.getElementById("switchToGold") },
+        tenure: { personal: document.getElementById("personalTenureOptions"), business: document.getElementById("businessTenureDisplay"), mobile: document.getElementById("mobileTenureOptions"), gold: document.getElementById("goldTenureOptions"), section: document.getElementById("tenureSection") },
+        results: { standard: document.getElementById("standardResults"), business: document.getElementById("businessResults") },
+        businessResults: { processingFee: document.getElementById("processingFeeResult"), monthlyInterest: document.getElementById("monthlyInterestResult"), interestOnlyEmi: document.getElementById("interestOnlyEmiResult"), fullEmi: document.getElementById("fullEmiResult"), totalInterest: document.getElementById("businessTotalInterest"), totalPayment: document.getElementById("businessTotalPayment"), },
+        chartsArea: document.getElementById("chartsArea"),
+        personalCharts: { container: document.getElementById("personalChartsContainer") },
+        mobileCharts: { container: document.getElementById("mobileChartsContainer") },
+        goldCharts: { container: document.getElementById("goldChartsContainer") },
+        gold: { interestRateDisplay: document.getElementById("goldInterestRateDisplay"), analysisSection: document.getElementById("goldAnalysisSection") },
+        footer: document.getElementById("footer")
+    };
+
+    const tenures = { personal: { values: [1, 2, 3], default: 2 }, mobile: { values: [3, 6, 9, 12], default: 6 }, gold: { values: [3, 6, 9, 12], default: 6 } };
+    
+    function getChartHTML(type) {
+        const lang = translations[currentLang];
+        const pie = `<div id="${type}PieChart" class="flex flex-col items-center justify-center"><div class="relative w-32 h-32"><svg class="w-full h-full" viewBox="0 0 120 120"><circle r="50" cx="60" cy="60" stroke="#e9ecef" stroke-width="20" fill="transparent" /><circle class="progressCircle" r="50" cx="60" cy="60" stroke-dasharray="314" stroke-dashoffset="314" fill="transparent" style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.5s ease-out; stroke-width: 20;" /></svg><div class="interestPercentage absolute inset-0 flex items-center justify-center text-center text-xl font-bold text-gray-800">0%</div></div><p class="mt-2 text-sm text-gray-500 text-center" data-translate-key="interest_share">${lang.interest_share}</p></div>`;
+        switch(type) {
+            case 'personal': return pie + `<div class="space-y-2 p-3 bg-gray-50 rounded-lg border"><h3 class="font-bold text-center text-base text-gray-800 mb-2" data-translate-key="smart_loan_title">${lang.smart_loan_title}</h3><div class="space-y-2"><div><div class="flex justify-between text-xs font-semibold"><span class="text-gray-600">${lang.smart_loan_emi(1)} (1%)</span><span class="smartEmi1 text-cyan-600 font-bold">₹0</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-cyan-500 h-2 rounded-full" style="width: 20%;"></div></div></div><div><div class="flex justify-between text-xs font-semibold"><span class="text-gray-600">${lang.smart_loan_emi(2)} (2.5%)</span><span class="smartEmi2 text-teal-600 font-bold">₹0</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-teal-500 h-2 rounded-full" style="width: 50%;"></div></div></div><div><div class="flex justify-between text-xs font-semibold"><span class="text-gray-600">${lang.smart_loan_emi(3)} (4.5%)</span><span class="smartEmi3 text-emerald-600 font-bold">₹0</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: 100%;"></div></div></div></div></div>`;
+            case 'mobile': return pie + `<div class="flex items-center justify-center p-4 bg-gray-50 rounded-lg border h-full"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="text-primary mr-3 flex-shrink-0" viewBox="0 0 16 16"><path d="M3 2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V2zm6 11a1 1 0 1 0-2 0 1 1 0 0 0 2 0z"/></svg><div class="text-left"><p class="font-bold text-gray-800 text-sm" data-translate-key="mobile_noti_title">${lang.mobile_noti_title}</p><p class="text-xs text-gray-600" data-translate-key="mobile_noti_desc">${lang.mobile_noti_desc}</p></div></div>`;
+            case 'gold': return pie + `<div id="distributionChart" class="space-y-2 p-3 bg-gray-50 rounded-lg border"><h3 class="font-bold text-center text-sm text-gray-800 mb-2" data-translate-key="distribution_title">${lang.distribution_title}</h3><div><div class="flex justify-between text-xs"><span class="font-semibold text-gray-600" data-translate-key="dist_wallet">${lang.dist_wallet}</span><span class="distWallet font-bold text-gray-900">₹0</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-sky-500 h-2.5 rounded-full" style="width: 33.33%"></div></div></div><div><div class="flex justify-between text-xs"><span class="font-semibold text-gray-600" data-translate-key="dist_members">${lang.dist_members}</span><span class="distMembers font-bold text-gray-900">₹0</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-amber-500 h-2.5 rounded-full" style="width: 33.33%"></div></div></div><div><div class="flex justify-between text-xs"><span class="font-semibold text-gray-600" data-translate-key="dist_guarantor">${lang.dist_guarantor}</span><span class="distGuarantor font-bold text-gray-900">₹0</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-red-500 h-2.5 rounded-full" style="width: 33.33%"></div></div></div></div>`;
+            default: return '';
+        }
+    }
+
+    function formatINR(num) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0, minimumFractionDigits: 0 }).format(num); }
+
+    function createTenureRadios(type) {
+        if (!tenures[type]) return;
+        const container = DOM.tenure[type];
+        const { values, default: defaultValue } = tenures[type];
+        const monthText = translations[currentLang].month_unit_plural;
+        container.innerHTML = '';
+        values.forEach(month => {
+            const isChecked = (month === defaultValue);
+            container.innerHTML += `<div><input hidden id="tenure${type}${month}" type="radio" name="tenure" value="${month}" class="tenureRadio" ${isChecked ? 'checked' : ''}><label for="tenure${type}${month}" class="block text-center cursor-pointer border-2 py-2.5 rounded-lg transition-all duration-200 hover:border-primary">${month} ${monthText}</label></div>`;
+        });
+    }
+
+    function updatePieChart(chartContainerSelector, interestRatio) {
+      const container = document.querySelector(chartContainerSelector);
+      if (!container) return; 
+
+      const circle = container.querySelector('.progressCircle');
+      const percentageText = container.querySelector('.interestPercentage');
+
+      if (!circle || !percentageText) return;
+
+      const offset = 314 - (interestRatio * 314);
+      circle.style.strokeDashoffset = offset.toFixed(2);
+      percentageText.textContent = `${Math.round(interestRatio * 100)}%`;
+    }
+    
+    function updateSmartLoanChart(principal) {
+        const smartEmi1El = document.querySelector('.smartEmi1');
+        if (smartEmi1El) { 
+            const emi1 = (principal + principal * 0.01) / 1;
+            const emi2 = (principal + principal * 0.025) / 2;
+            const emi3 = (principal + principal * 0.045) / 3;
+            smartEmi1El.textContent = formatINR(emi1);
+            document.querySelector('.smartEmi2').textContent = formatINR(emi2);
+            document.querySelector('.smartEmi3').textContent = formatINR(emi3);
+        }
+    }
+
+    function updateDistributionChart() {
+        if (calculatorType !== 'gold') return;
+        const principal = parseFloat(DOM.amountInput.value) || 0;
+        const tenureRadio = document.querySelector('input[name="tenure"]:checked');
+        if (!tenureRadio) return;
+        const tenure = parseInt(tenureRadio.value);
+        const monthlyRate = (tenure === 3) ? 0.025 : 0.03;
+        const slider = document.getElementById('distributionSlider');
+        if (!slider) return;
+
+        const selectedMonths = parseInt(slider.value);
+        const cumulativeInterest = principal * monthlyRate * selectedMonths;
+        const part = cumulativeInterest / 3;
+        
+        const distWalletEl = document.querySelector('.distWallet');
+        const distMembersEl = document.querySelector('.distMembers');
+        const distGuarantorEl = document.querySelector('.distGuarantor');
+        const monthLabelEl = document.getElementById('distributionMonthLabel');
+
+        if (distWalletEl) distWalletEl.textContent = formatINR(part);
+        if (distMembersEl) distMembersEl.textContent = formatINR(part);
+        if (distGuarantorEl) distGuarantorEl.textContent = formatINR(part);
+        if (monthLabelEl) monthLabelEl.textContent = selectedMonths;
+    }
+
+    function setCalculatorUI(type) {
+        calculatorType = type;
+        Object.values(DOM.buttons).forEach(btn => btn.classList.remove('active'));
+        Object.values(DOM.tenure).forEach(el => el.classList.add('hidden'));
+        DOM.results.standard.classList.add('hidden');
+        DOM.results.business.classList.add('hidden');
+        DOM.chartsArea.classList.add('hidden');
+        DOM.personalCharts.container.classList.add('hidden');
+        DOM.mobileCharts.container.classList.add('hidden');
+        DOM.goldCharts.container.classList.add('hidden');
+        DOM.gold.analysisSection.classList.add('hidden');
+        DOM.tenure.section.classList.remove('hidden');
+        DOM.buttons[type].classList.add('active');
+        
+        let minAmount = 5000, maxAmount = 30000;
+        
+        if (type === 'personal') {
+            minAmount = 1000;
+            DOM.tenure.personal.classList.remove('hidden');
+            DOM.results.standard.classList.remove('hidden');
+            DOM.chartsArea.classList.remove('hidden');
+            DOM.personalCharts.container.classList.remove('hidden');
+            DOM.personalCharts.container.innerHTML = getChartHTML('personal');
+        } else if (type === 'mobile') {
+            DOM.tenure.mobile.classList.remove('hidden');
+            DOM.results.standard.classList.remove('hidden');
+            DOM.chartsArea.classList.remove('hidden');
+            DOM.mobileCharts.container.classList.remove('hidden');
+            DOM.mobileCharts.container.innerHTML = getChartHTML('mobile');
+        } else if (type === 'business') {
+            DOM.tenure.business.classList.remove('hidden');
+            DOM.results.business.classList.remove('hidden');
+        } else if (type === 'gold') {
+            DOM.tenure.gold.classList.remove('hidden');
+            DOM.results.standard.classList.remove('hidden');
+            DOM.chartsArea.classList.remove('hidden');
+            DOM.goldCharts.container.classList.remove('hidden');
+            DOM.goldCharts.container.innerHTML = getChartHTML('gold');
+            DOM.gold.analysisSection.classList.remove('hidden');
+            DOM.gold.interestRateDisplay.classList.remove('hidden');
         }
         
-        // --- UI Update Function ---
-        function updateResultDisplay(elements, values) {
-            elements.forEach(el => el.classList.add('updating'));
-
-            setTimeout(() => {
-                emiResultEl.textContent = formatCurrency(Math.round(values.emi));
-                totalPaymentResultEl.textContent = formatCurrency(Math.round(values.totalPayment));
-                totalInterestResultEl.textContent = formatCurrency(Math.round(values.totalInterest));
-                annualRateResultEl.textContent = `${(values.annualRate * 100).toFixed(1)}%`;
-                
-                elements.forEach(el => {
-                    el.classList.remove('updating');
-                });
-            }, 150); // Delay matches the CSS transition
+        translatePage(currentLang, true);
+        DOM.amountInput.min = minAmount; DOM.amountSlider.min = minAmount;
+        DOM.amountInput.max = maxAmount; DOM.amountSlider.max = maxAmount;
+        if (Number(DOM.amountInput.value) > maxAmount) DOM.amountInput.value = maxAmount;
+        if (Number(DOM.amountInput.value) < minAmount) DOM.amountInput.value = minAmount;
+        DOM.amountSlider.value = DOM.amountInput.value;
+        if (tenures[type]) {
+            createTenureRadios(type);
+            const defaultRadio = document.getElementById(`tenure${type}${tenures[type].default}`);
+            if(defaultRadio) defaultRadio.checked = true;
         }
+        updateCalculation();
+    }
 
+    function calculateBusinessLoan() {
+        const principal = parseFloat(DOM.amountInput.value) || 0;
+        const monthlyInterestRate = 0.015;
+        let processingFee = principal * 0.015;
+        if (principal > 9000) processingFee += 200;
+        const interestOnlyEmi = principal * monthlyInterestRate;
+        const fullEmi = (principal / 6) + interestOnlyEmi;
+        const totalInterest = interestOnlyEmi * 9;
+        const totalPayment = principal + totalInterest + processingFee;
+        DOM.businessResults.processingFee.textContent = formatINR(processingFee);
+        DOM.businessResults.monthlyInterest.textContent = formatINR(interestOnlyEmi);
+        DOM.businessResults.interestOnlyEmi.textContent = `${formatINR(interestOnlyEmi)} /${translations[currentLang].month_unit}`;
+        DOM.businessResults.fullEmi.textContent = `${formatINR(fullEmi)} /${translations[currentLang].month_unit}`;
+        DOM.businessResults.totalInterest.textContent = formatINR(totalInterest);
+        DOM.businessResults.totalPayment.textContent = formatINR(totalPayment);
+    }
 
-        // --- Core Calculation Logic ---
-        function calculateEMI() {
-            // 1. Get user inputs
-            const principal = parseFloat(priceInput.value) || 0;
-            const tenure = parseInt(document.querySelector('input[name="tenure"]:checked').value);
-
-            // 2. Determine annual interest rate based on tenure
-            // These rates are based on the original script's logic
-            let annualRate;
-            switch (tenure) {
-                case 3:
-                    annualRate = 0.16; // 16%
-                    break;
-                case 6:
-                    annualRate = 0.14; // 14%
-                    break;
-                case 9:
-                    annualRate = 0.125; // 12.5%
-                    break;
-                case 12:
-                    annualRate = 0.14; // 14%
-                    break;
-                default:
-                    annualRate = 0;
-            }
-
-            // 3. Perform calculations using a simple interest model
-            const totalInterest = principal * annualRate * (tenure / 12);
-            const totalPayment = principal + totalInterest;
-            const emi = tenure > 0 ? totalPayment / tenure : 0;
-
-            // 4. Display results with a smooth animation
-            updateResultDisplay(resultValues, {
-                emi,
-                totalPayment,
-                totalInterest,
-                annualRate
-            });
+    function updateCalculation() {
+        if (calculatorType === 'business') { calculateBusinessLoan(); return; }
+        const principal = parseFloat(DOM.amountInput.value) || 0;
+        const tenureRadio = document.querySelector('input[name="tenure"]:checked');
+        if (!tenureRadio) return;
+        const tenure = parseInt(tenureRadio.value);
+        let totalInterestAmt = 0;
+        if (calculatorType === 'personal') {
+            const rates = { 1: 0.01, 2: 0.03, 3: 0.05 };
+            totalInterestAmt = principal * (rates[tenure] || 0.01);
+        } else if (calculatorType === 'mobile') {
+            const rates = { 3: 0.16, 6: 0.14, 9: 0.125, 12: 0.14 };
+            totalInterestAmt = principal * (rates[tenure] || 0.14) * (tenure / 12);
+        } else if (calculatorType === 'gold') {
+            const monthlyRate = (tenure === 3) ? 0.025 : 0.03;
+            totalInterestAmt = principal * monthlyRate * tenure;
+            DOM.gold.interestRateDisplay.textContent = translations[currentLang].interest_rate_display(monthlyRate * 100);
+            updateDistributionChart();
         }
-
-        // --- Event Listeners ---
-        // Sync slider and text input
-        priceSlider.addEventListener('input', (e) => {
-            priceInput.value = e.target.value;
-            calculateEMI();
-        });
-
-        priceInput.addEventListener('input', (e) => {
-            // Prevent non-numeric input and handle empty value
-            let value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
-            if (value > parseInt(priceSlider.max)) {
-                value = parseInt(priceSlider.max);
-            }
-            priceSlider.value = value;
-            // Debounce calculation for better performance on fast typing
-            setTimeout(calculateEMI, 200);
-        });
-        
-        priceInput.addEventListener('blur', (e) => {
-            // Ensure a valid number on blur
-             if (e.target.value === '' || parseInt(e.target.value) < parseInt(priceSlider.min)) {
-                e.target.value = priceSlider.min;
-                priceSlider.value = priceSlider.min;
-                calculateEMI();
+        const totalPay = principal + totalInterestAmt;
+        const emi = tenure > 0 ? totalPay / tenure : 0;
+        const interestRatio = totalPay > 0 ? totalInterestAmt / totalPay : 0;
+        DOM.emiResult.textContent = formatINR(emi);
+        DOM.totalPayment.textContent = formatINR(totalPay);
+        DOM.totalInterest.textContent = formatINR(totalInterestAmt);
+        if (calculatorType === 'personal') {
+            updatePieChart('#personalPieChart', interestRatio);
+            updateSmartLoanChart(principal);
+        } else if (calculatorType === 'mobile') {
+            updatePieChart('#mobilePieChart', interestRatio);
+        } else if (calculatorType === 'gold') {
+            updatePieChart('#goldPieChart', interestRatio);
+        }
+    }
+    
+    function translatePage(lang, isUiUpdate = false) {
+        document.querySelectorAll('[data-translate-key]').forEach(el => {
+            const key = el.dataset.translateKey;
+            if (translations[lang][key] && typeof translations[lang][key] === 'string') {
+                el.innerHTML = translations[lang][key];
             }
         });
+        const langPack = translations[lang];
+        document.getElementById('headerSubtitle').textContent = langPack[`subtitle_${calculatorType}`];
+        document.getElementById('amountLabel').textContent = langPack[`amount_label_${calculatorType}`];
+        const emiLabel = document.getElementById('emiLabel');
+        if (emiLabel) emiLabel.textContent = langPack[`emi_label_${calculatorType}`];
+        const footerText = langPack[`footer_${calculatorType}`];
+        DOM.footer.innerHTML = footerText;
+        if(!isUiUpdate) {
+            createTenureRadios(calculatorType);
+            const tenure = tenures[calculatorType];
+            if (tenure) {
+                const defaultRadio = document.getElementById(`tenure${type}${tenure.default}`);
+                if (defaultRadio) defaultRadio.checked = true;
+            }
+        }
+    }
 
-        // Recalculate when tenure changes
-        tenureRadios.forEach(radio => {
-            radio.addEventListener('change', calculateEMI);
+    function toggleLanguage() {
+        currentLang = (currentLang === 'hi') ? 'en' : 'hi';
+        DOM.langLabel.textContent = translations[currentLang].lang_switch;
+        translatePage(currentLang);
+        updateCalculation();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        DOM.langSwitch.addEventListener("click", toggleLanguage);
+        Object.keys(DOM.buttons).forEach(type => {
+            DOM.buttons[type].addEventListener('click', () => setCalculatorUI(type));
         });
-
-        // Initial calculation on page load
-        document.addEventListener('DOMContentLoaded', calculateEMI);
-
-    </script>
+        DOM.amountSlider.addEventListener("input", e => { DOM.amountInput.value = e.target.value; updateCalculation(); });
+        DOM.amountInput.addEventListener("input", e => { DOM.amountSlider.value = e.target.value; updateCalculation(); });
+        document.body.addEventListener("input", e => {
+            if (e.target.id === 'distributionSlider') updateDistributionChart();
+        });
+        document.body.addEventListener("change", e => {
+            if (e.target.name === "tenure") updateCalculation();
+        });
+        setCalculatorUI('personal');
+    });
+  </script>
 </body>
 </html>
 
