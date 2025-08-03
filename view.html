@@ -16,7 +16,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <!-- NEW: Added Firebase Storage SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
   <style>
@@ -78,10 +77,9 @@
         backdrop-filter: blur(4px);
     }
     .info-icon { color: #4f46e5; }
-    /* New Withdrawal Card Style */
     .withdrawal-card-container {
         width: 100%;
-        max-width: 380px; /* 16:10 aspect ratio approx */
+        max-width: 380px;
     }
     .withdrawal-card {
         font-family: 'Poppins', sans-serif;
@@ -89,14 +87,12 @@
         border: 1px solid #e5e7eb;
         background-color: white;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        aspect-ratio: 16 / 10.5; /* Aspect ratio control */
+        aspect-ratio: 16 / 10.5;
         display: flex;
         flex-direction: column;
     }
-    /* NEW: Styles for new features */
     .profile-pic-container {
         position: relative;
-        cursor: pointer;
     }
     .profile-pic-overlay {
         position: absolute;
@@ -159,7 +155,6 @@
     <!-- Header -->
     <div class="profile-header text-white p-6 rounded-b-3xl shadow-lg">
         <div class="max-w-5xl mx-auto flex items-center gap-6">
-            <!-- NEW: Profile picture container for upload -->
             <div id="profile-pic-wrapper" class="profile-pic-container">
                 <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg">
                 <div class="profile-pic-overlay">
@@ -170,7 +165,6 @@
             <div class="flex-grow">
                 <h1 id="profile-name" class="text-2xl sm:text-4xl font-bold"></h1>
                 <p id="membership-id" class="text-indigo-200 text-sm"></p>
-                <!-- NEW: Change Password Button -->
                 <button id="change-password-btn" class="mt-2 bg-white/20 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-white/40 transition-colors">
                     <i class="fas fa-key mr-1"></i> Change Password
                 </button>
@@ -182,7 +176,6 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left Column -->
             <div class="lg:col-span-1 space-y-6">
-                <!-- Financial Health Card -->
                 <div class="stat-card p-6">
                     <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-heart-pulse text-indigo-500"></i> Financial Health</h3>
                      <div class="space-y-4">
@@ -196,7 +189,6 @@
                         </div>
                     </div>
                 </div>
-                 <!-- Documents Card -->
                 <div class="stat-card p-6">
                      <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-folder-open text-indigo-500"></i> Documents</h3>
                      <div class="grid grid-cols-3 gap-4">
@@ -220,7 +212,6 @@
             <div class="lg:col-span-2 space-y-6">
                 <div class="stat-card p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Personal Details -->
                         <div>
                             <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-user-circle text-indigo-500"></i> Personal Details</h3>
                             <div class="space-y-2 text-sm">
@@ -230,7 +221,6 @@
                                 <div class="info-item flex items-center gap-4"><i class="fas fa-map-marker-alt info-icon w-5 text-center"></i><span id="address" class="font-semibold text-gray-800 text-left"></span></div>
                             </div>
                         </div>
-                        <!-- Financial Details -->
                         <div>
                             <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-wallet text-indigo-500"></i> Financial Details</h3>
                             <div class="space-y-2 text-sm">
@@ -282,16 +272,13 @@
   <div id="historyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
           <h3 class="text-xl font-bold text-center mb-4">Extra Balance History</h3>
-          <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
-              <!-- History items will be injected here -->
-          </div>
+          <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2"></div>
           <button id="close-history-modal" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Close</button>
       </div>
   </div>
 
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="withdrawal-card-container">
-        <!-- Card to be downloaded -->
         <div id="withdrawalCard" class="withdrawal-card p-4 flex flex-col justify-between">
             <div class="flex items-center space-x-3">
                 <img id="card-profile-pic" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-100" src="">
@@ -311,7 +298,6 @@
                 <img id="card-signature" src="" alt="Signature" class="h-10 object-contain">
             </div>
         </div>
-        <!-- Action Buttons -->
         <div class="mt-4 flex gap-4">
             <button id="download-card-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-download"></i>Download</button>
             <button id="share-card-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hidden"><i class="fab fa-whatsapp"></i>Share</button>
@@ -320,7 +306,6 @@
       </div>
   </div>
 
-  <!-- NEW: Change Password Modal -->
   <div id="passwordModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
           <h3 class="text-xl font-bold text-center mb-6">Change Password</h3>
@@ -346,7 +331,6 @@
       </div>
   </div>
 
-  <!-- NEW: Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
   <script type="module">
@@ -364,58 +348,47 @@
     let currentMemberData = {};
     let allMemberTransactions = [];
     let balanceHistory = [];
-    let memberId; // Make memberId globally accessible in this script
+    let memberId; 
 
-    // --- NEW: TOAST NOTIFICATION FUNCTION ---
     function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.textContent = message;
         container.appendChild(toast);
-
-        // Animate in
         setTimeout(() => {
             toast.classList.add('show');
         }, 100);
-
-        // Animate out and remove
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => {
                 container.removeChild(toast);
             }, 300);
-        }, 3000); // Toast visible for 3 seconds
+        }, 3000);
     }
 
-    // --- AUTHENTICATION & APP INITIALIZATION ---
+    // --- UPDATED: AUTHENTICATION & APP INITIALIZATION ---
     async function checkAuthAndInitialize() {
         try {
-            // NOTE: Replace with your actual config fetching mechanism
-            // For demonstration, using placeholder config.
-            // In a real app, this might be an API call: const response = await fetch('/api/config');
-            const config = {
-                firebase: {
-                    // REPLACE WITH YOUR FIREBASE CONFIG
-                    apiKey: "AIzaSy...",
-                    authDomain: "your-project-id.firebaseapp.com",
-                    databaseURL: "https://your-project-id.firebaseio.com",
-                    projectId: "your-project-id",
-                    storageBucket: "your-project-id.appspot.com",
-                    messagingSenderId: "...",
-                    appId: "..."
-                }
-            };
+            // Fetch configuration from the serverless function at /api/config
+            const response = await fetch('/api/config');
+            if (!response.ok) {
+                throw new Error(`Configuration failed to load. Server responded with ${response.status}.`);
+            }
+            const config = await response.json();
             
+            // Initialize Firebase only if it hasn't been initialized yet
             if (!firebase.apps.length) {
                 firebase.initializeApp(config.firebase);
             }
             
+            // Listen for authentication state changes
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    // Check if the logged-in user is the one being viewed
                     const urlParams = new URLSearchParams(window.location.search);
                     memberId = urlParams.get('memberId');
+                    
+                    // Show/hide features based on if the user is viewing their own profile
                     if (user.uid === memberId) {
                         document.getElementById('change-password-btn').classList.remove('hidden');
                         document.getElementById('profile-pic-wrapper').style.cursor = 'pointer';
@@ -426,11 +399,12 @@
                     }
                     runAppLogic();
                 } else {
+                    // If not logged in, redirect to login page
                     window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
                 }
             });
         } catch (error) {
-            showError("Initialization failed. Please check your configuration.");
+            showError(error.message || "Initialization failed. Check network or server logs.");
             console.error(error);
         }
     }
@@ -464,7 +438,7 @@
                 currentMemberData = allMembersData[memberId];
 
                 if (!currentMemberData) throw new Error(`Member with ID "${memberId}" not found.`);
-                currentMemberData.uid = memberId; // Add uid to the object
+                currentMemberData.uid = memberId;
 
                 allMemberTransactions = [];
                 for (const id in allMembersData) {
@@ -486,7 +460,7 @@
                     payment: parseFloat(row["Loan Payment"]) || 0,
                     sipPayment: parseFloat(row["SIP Payment"]) || 0,
                     returnAmount: parseFloat(row["Return amount"] || 0),
-                    extraBalance: parseFloat(row["Extra Balance"] || 0,
+                    extraBalance: parseFloat(row["Extra Balance"] || 0),
                     extraWithdraw: parseFloat(row["Extra Withdraw"] || 0),
                 })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
@@ -664,10 +638,8 @@
             cardResultModal.classList.add('flex');
         }
 
-        // --- NEW: EVENT LISTENERS FOR NEW FEATURES ---
         const profilePicUploadInput = document.getElementById('profile-pic-upload');
         document.getElementById('profile-pic-wrapper').addEventListener('click', () => {
-            // Only allow upload if the logged-in user is viewing their own profile
             if (firebase.auth().currentUser.uid === memberId) {
                 profilePicUploadInput.click();
             }
@@ -685,13 +657,10 @@
         });
         document.getElementById('submit-password-change').addEventListener('click', handleChangePassword);
 
-
-        // --- NEW: PROFILE PICTURE UPLOAD FUNCTION ---
         async function handleProfilePicUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Simple validation
             if (!file.type.startsWith('image/')) {
                 showToast('Please select an image file.', 'error');
                 return;
@@ -702,7 +671,7 @@
             }
 
             const loader = document.querySelector('.profile-pic-overlay i');
-            loader.className = 'fas fa-spinner fa-spin'; // Show spinner
+            loader.className = 'fas fa-spinner fa-spin';
 
             const storage = firebase.storage();
             const storageRef = storage.ref(`profile_pictures/${memberId}/${file.name}`);
@@ -711,26 +680,23 @@
                 const snapshot = await storageRef.put(file);
                 const downloadURL = await snapshot.ref.getDownloadURL();
 
-                // Update Realtime Database
                 const db = firebase.database();
                 await db.ref(`members/${memberId}/profilePicUrl`).set(downloadURL);
 
-                // Update UI
                 document.getElementById('profile-pic').src = downloadURL;
                 document.getElementById('doc-profile-pic').src = downloadURL;
-                currentMemberData.profilePicUrl = downloadURL; // Update local data
+                currentMemberData.profilePicUrl = downloadURL;
 
                 showToast('Profile picture updated successfully!');
             } catch (error) {
                 console.error("Upload failed:", error);
                 showToast('Upload failed. Please try again.', 'error');
             } finally {
-                loader.className = 'fas fa-camera'; // Revert to camera icon
-                profilePicUploadInput.value = ''; // Reset file input
+                loader.className = 'fas fa-camera';
+                profilePicUploadInput.value = '';
             }
         }
 
-        // --- NEW: CHANGE PASSWORD FUNCTION ---
         async function handleChangePassword() {
             const currentPassword = document.getElementById('current-password').value;
             const newPassword = document.getElementById('new-password').value;
@@ -772,7 +738,6 @@
                 showToast('Password updated successfully!');
                 passwordModal.classList.add('hidden');
                 passwordModal.classList.remove('flex');
-                 // Clear fields
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
@@ -790,10 +755,8 @@
             }
         }
         
-        // --- IMAGE & SHARING FUNCTIONS ---
         function toDataURL(url) {
             if (!url) return Promise.resolve('');
-            // Use a CORS proxy for Firebase Storage URLs
             const proxyUrl = 'https://cors-proxy.fringe.workers.dev/';
             const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
 
@@ -810,7 +773,7 @@
                 }))
                 .catch((error) => {
                     console.warn(`Could not fetch image via proxy: ${error}. Falling back to original URL.`);
-                    return url; // Fallback to original url if fetch fails
+                    return url;
                 });
         }
 
@@ -852,27 +815,22 @@
             }
         }
 
-        // --- FINANCIAL CALCULATOR LOGIC (NO CHANGES HERE) ---
+        // --- FINANCIAL CALCULATOR LOGIC (UNCHANGED) ---
         function calculateTotalExtraBalance(memberId) {
             let total = 0;
             const history = [];
             const memberFullName = currentMemberData.fullName;
-
             const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
             profitEvents.forEach(paymentRecord => {
                 const profit = paymentRecord.returnAmount * 0.90;
                 if (profit <= 0) return;
-
                 const userLoansBeforePayment = allMemberTransactions.filter(r => r.fullName === paymentRecord.fullName && r.loan > 0 && r.date < paymentRecord.date);
                 if (userLoansBeforePayment.length === 0) return;
-                
                 const relevantLoan = userLoansBeforePayment.pop();
                 const loanDate = relevantLoan.date;
-                
                 let totalScoreInSnapshot = 0;
                 const snapshotScores = {};
                 const membersInSystemAtLoanDate = [...new Set(allMemberTransactions.filter(r => r.date <= loanDate).map(r => r.fullName))];
-                
                 membersInSystemAtLoanDate.forEach(name => {
                     const scoreObject = calculatePerformanceScore(name, loanDate);
                     if (scoreObject.totalScore > 0) {
@@ -880,23 +838,18 @@
                         totalScoreInSnapshot += scoreObject.totalScore;
                     }
                 });
-
                 if (totalScoreInSnapshot > 0 && snapshotScores[memberFullName]) {
                     let memberShare = (snapshotScores[memberFullName] / totalScoreInSnapshot) * profit;
-                    
                     const lastLoanDate = allMemberTransactions.filter(r => r.fullName === memberFullName && r.loan > 0 && r.date <= loanDate).pop()?.date;
-                    const daysSinceLastLoan = lastLoanDate ? (loanDate - loanDate) / (1000 * 3600 * 24) : Infinity;
-                    
+                    const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
                     if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_MEMBER_DAYS_LIMIT) {
                         memberShare *= CALC_CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER;
                     }
-                    
                     if (memberShare > 0) {
                         history.push({ type: 'profit', from: paymentRecord.fullName, date: paymentRecord.date, amount: memberShare });
                     }
                 }
             });
-
             const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && (tx.extraBalance !== 0 || tx.extraWithdraw !== 0));
             manualAdjustments.forEach(tx => {
                 if (tx.extraBalance > 0) {
@@ -906,14 +859,10 @@
                     history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
                 }
             });
-            
             history.sort((a,b) => a.date - b.date);
-            
             total = history.reduce((acc, item) => acc + item.amount, 0);
-
             return { total, history };
         }
-
         function calculatePerformanceScore(memberName, untilDate) {
             const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
             if (memberData.length === 0) return { totalScore: 0 };
@@ -955,7 +904,6 @@
             const totalScore = (normalizedCapitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
             return { totalScore: isNaN(totalScore) ? 0 : totalScore };
         }
-
         function getLoanEligibility(memberName, score) {
             const memberData = allMemberTransactions.filter(r => r.fullName === memberName);
             const totalLoan = memberData.reduce((sum, r) => sum + r.loan, 0);
@@ -977,10 +925,8 @@
             return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, isNaN(multiplier) ? 1.0 : multiplier) };
         }
 
-        loadAllData();
-    }
-
-    checkAuthAndInitialize();
+        // Start the application
+        checkAuthAndInitialize();
   </script>
 </body>
 </html>
