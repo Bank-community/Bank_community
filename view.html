@@ -102,45 +102,11 @@
         fill: #374151;
     }
 
-    /* --- Tooltip --- */
-    .tooltip-container {
-        position: relative;
-        display: inline-block;
-    }
-    .tooltip-text {
-        visibility: hidden;
-        width: 200px;
-        background-color: #1f2937;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 8px;
-        position: absolute;
-        z-index: 1;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -100px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        font-size: 0.75rem;
-        font-weight: normal;
-    }
-    .tooltip-text::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -5px;
-        border-width: 5px;
-        border-style: solid;
-        border-color: #1f2937 transparent transparent transparent;
-    }
-    .tooltip-container:hover .tooltip-text {
-        visibility: visible;
-        opacity: 1;
-    }
-
     /* Withdrawal Card */
+    .withdrawal-card-container {
+        width: 100%;
+        max-width: 380px;
+    }
     .withdrawal-card {
         font-family: 'Poppins', sans-serif;
         border-radius: 1rem;
@@ -150,6 +116,16 @@
         aspect-ratio: 16 / 10.5;
         display: flex;
         flex-direction: column;
+    }
+    .document-thumbnail {
+        cursor: pointer;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: 2px solid transparent;
+    }
+    .document-thumbnail:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-color: #4f46e5;
     }
   </style>
 </head>
@@ -161,11 +137,9 @@
     <main class="max-w-5xl mx-auto p-4 -mt-16">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-1 space-y-6">
-                <!-- Profile Pic Skeleton -->
                 <div class="relative">
                     <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full skeleton mx-auto border-4 border-white/50 shadow-lg"></div>
                 </div>
-                <!-- Financial Health Skeleton -->
                 <div class="stat-card p-6">
                     <div class="skeleton h-6 w-3/4 mb-4 mx-auto"></div>
                     <div class="flex justify-center items-center my-4">
@@ -173,7 +147,6 @@
                     </div>
                     <div class="skeleton h-5 w-full mt-2"></div>
                 </div>
-                 <!-- Documents Skeleton -->
                 <div class="stat-card p-6">
                     <div class="skeleton h-6 w-1/2 mb-4"></div>
                     <div class="grid grid-cols-3 gap-4">
@@ -184,14 +157,12 @@
                 </div>
             </div>
             <div class="lg:col-span-2 space-y-6">
-                 <!-- Extra Balance Skeleton -->
-                 <div class="stat-card p-6">
+                 <div class="stat-card p-6 mt-10 md:mt-0">
                     <div class="skeleton h-6 w-1/3 mb-2"></div>
                     <div class="skeleton h-4 w-1/2 mb-4"></div>
                     <div class="skeleton h-12 w-1/2 mx-auto my-4"></div>
                     <div class="skeleton h-12 w-full mt-2"></div>
                 </div>
-                <!-- Details Skeleton -->
                 <div class="stat-card p-6">
                     <div class="skeleton h-6 w-1/2 mb-4"></div>
                     <div class="skeleton h-5 w-full mt-3"></div>
@@ -227,24 +198,18 @@
             <div class="lg:col-span-1 space-y-6">
                 <!-- Financial Health Card -->
                 <div class="stat-card p-6 text-center">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center justify-center gap-2">
-                        Financial Health
-                        <div class="tooltip-container">
-                            <i class="fas fa-info-circle text-gray-400 text-sm cursor-pointer"></i>
-                            <span class="tooltip-text">Based on your capital, SIP consistency, and loan repayment behavior.</span>
-                        </div>
-                    </h3>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Financial Health</h3>
                      <div class="flex justify-center my-4">
                         <svg class="gauge" viewBox="0 0 120 120">
                             <circle class="gauge-bg" cx="60" cy="60" r="54"></circle>
                             <circle id="gauge-fg" class="gauge-fg" cx="60" cy="60" r="54" pathLength="100"></circle>
-                            <text id="gauge-text" class="gauge-text" x="60" y="65" text-anchor="middle">0</text>
+                            <text id="performance-score" class="gauge-text" x="60" y="65" text-anchor="middle">0</text>
                         </svg>
                      </div>
                     <div class="space-y-3">
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-gray-500">Loan Eligibility</span>
-                            <span id="loan-eligibility-badge" class="font-bold px-3 py-1 rounded-full text-xs"></span>
+                            <span id="loan-eligibility" class="font-bold px-3 py-1 rounded-full text-xs">Calculating...</span>
                         </div>
                     </div>
                 </div>
@@ -253,15 +218,15 @@
                      <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-folder-open text-indigo-500"></i> Documents</h3>
                      <div class="grid grid-cols-3 gap-4">
                          <div class="text-center">
-                            <img id="doc-profile-pic" src="" alt="Profile" class="document-thumbnail w-full h-20 object-cover rounded-lg bg-gray-100 cursor-pointer transition-transform hover:scale-105">
+                            <img id="doc-profile-pic" src="" alt="Profile" class="document-thumbnail w-full h-20 object-cover rounded-lg bg-gray-100">
                             <p class="text-xs mt-1 text-gray-500">Profile</p>
                          </div>
                          <div class="text-center">
-                            <img id="doc-document" src="" alt="Document" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1 cursor-pointer transition-transform hover:scale-105">
+                            <img id="doc-document" src="" alt="Document" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1">
                             <p class="text-xs mt-1 text-gray-500">Document</p>
                          </div>
                          <div class="text-center">
-                            <img id="doc-signature" src="" alt="Signature" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1 cursor-pointer transition-transform hover:scale-105">
+                            <img id="doc-signature" src="" alt="Signature" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1">
                              <p class="text-xs mt-1 text-gray-500">Signature</p>
                          </div>
                      </div>
@@ -317,8 +282,10 @@
 
   <!-- Modals -->
   <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4" onclick="this.classList.add('hidden')">
-      <img id="fullImageView" src="" class="modal-content max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()">
-      <button id="closeImageViewer" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+      <div class="modal-content">
+        <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()">
+        <button onclick="document.getElementById('imageViewerModal').classList.add('hidden')" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+      </div>
   </div>
 
   <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
@@ -382,7 +349,7 @@
   </div>
 
   <script type="module">
-    // --- CONFIGURATION FOR FINANCIAL CALCULATOR ---
+    // --- CONFIGURATION FOR FINANCIAL CALCULATOR (UNCHANGED) ---
     const CALC_CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
         LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
@@ -397,7 +364,7 @@
     let allMemberTransactions = [];
     let balanceHistory = [];
 
-    // --- AUTHENTICATION & APP INITIALIZATION (CORRECTED & RESTORED) ---
+    // --- AUTHENTICATION & APP INITIALIZATION (USER'S ORIGINAL LOGIC) ---
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -418,6 +385,7 @@
         }
     }
 
+    // --- MAIN APP LOGIC (USER'S ORIGINAL LOGIC) ---
     function runAppLogic() {
         const loaderContainer = document.getElementById('loader-container');
         const profileContent = document.getElementById('profile-content');
@@ -487,6 +455,7 @@
             }
         }
 
+        // --- UI POPULATION (WITH NEW UI ELEMENTS) ---
         function populateProfileData(data) {
             const balanceResult = calculateTotalExtraBalance(data.membershipId);
             const extraBalance = balanceResult.total;
@@ -525,21 +494,22 @@
             document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
 
+            // --- Calculate and Display Financial Health (NEW UI) ---
             const scoreResult = calculatePerformanceScore(data.fullName, new Date());
             const eligibilityResult = getLoanEligibility(data.fullName, scoreResult.totalScore);
-
+            
             // Update Gauge
             const score = scoreResult.totalScore;
             const gaugeFg = document.getElementById('gauge-fg');
-            const gaugeText = document.getElementById('gauge-text');
+            const scoreText = document.getElementById('performance-score'); // This is the <text> element inside SVG
             const circumference = 100;
             const offset = circumference - score;
             gaugeFg.style.strokeDasharray = circumference;
             gaugeFg.style.strokeDashoffset = offset;
-            gaugeText.textContent = score.toFixed(0);
+            scoreText.textContent = score.toFixed(0);
 
             // Update Eligibility Badge
-            const eligibilityBadge = document.getElementById('loan-eligibility-badge');
+            const eligibilityBadge = document.getElementById('loan-eligibility');
             if (eligibilityResult.eligible) {
                 eligibilityBadge.textContent = `${eligibilityResult.multiplier.toFixed(1)}x Eligible`;
                 eligibilityBadge.className = 'font-bold px-3 py-1 rounded-full text-xs bg-green-100 text-green-800';
@@ -549,7 +519,7 @@
             }
         }
 
-        // --- Event Listeners ---
+        // --- EVENT LISTENERS (UNCHANGED LOGIC, MINOR UI CLASS CHANGES) ---
         const imageViewerModal = document.getElementById('imageViewerModal');
         document.querySelectorAll('.document-thumbnail').forEach(img => {
             img.addEventListener('click', () => {
@@ -557,8 +527,7 @@
                 imageViewerModal.classList.remove('hidden');
             });
         });
-        document.getElementById('closeImageViewer').addEventListener('click', () => imageViewerModal.classList.add('hidden'));
-
+        
         const withdrawalModal = document.getElementById('withdrawalModal');
         document.getElementById('withdraw-btn').addEventListener('click', () => {
             document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
