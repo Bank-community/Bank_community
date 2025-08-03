@@ -29,7 +29,7 @@
     .stat-card {
         background-color: white;
         border-radius: 1rem;
-        box-shadow: 0 4px 25px -8px rgba(0,0,0,0.08);
+        box-shadow: 0 4px_25px -8px rgba(0,0,0,0.08);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .stat-card:hover {
@@ -43,13 +43,13 @@
     .info-item:last-child { border-bottom: none; }
     
     /* --- Skeleton Loader --- */
-    .skeleton {
+    .skeleton-wrapper.active .skeleton {
         background-color: #e2e8f0;
         border-radius: 0.5rem;
         position: relative;
         overflow: hidden;
     }
-    .skeleton::after {
+    .skeleton-wrapper.active .skeleton::after {
         content: '';
         position: absolute;
         top: 0;
@@ -155,7 +155,7 @@
 </head>
 <body class="min-h-screen">
   
-  <div id="loader-container">
+  <div id="loader-container" class="skeleton-wrapper active">
     <!-- Skeleton Loader UI -->
     <div class="profile-header h-36 p-6 rounded-b-3xl"></div>
     <main class="max-w-5xl mx-auto p-4 -mt-16">
@@ -167,17 +167,32 @@
                 </div>
                 <!-- Financial Health Skeleton -->
                 <div class="stat-card p-6">
-                    <div class="skeleton h-6 w-3/4 mb-4"></div>
+                    <div class="skeleton h-6 w-3/4 mb-4 mx-auto"></div>
                     <div class="flex justify-center items-center my-4">
                         <div class="skeleton w-32 h-32 rounded-full"></div>
                     </div>
                     <div class="skeleton h-5 w-full mt-2"></div>
-                    <div class="skeleton h-5 w-full mt-2"></div>
+                </div>
+                 <!-- Documents Skeleton -->
+                <div class="stat-card p-6">
+                    <div class="skeleton h-6 w-1/2 mb-4"></div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="skeleton h-20 w-full"></div>
+                        <div class="skeleton h-20 w-full"></div>
+                        <div class="skeleton h-20 w-full"></div>
+                    </div>
                 </div>
             </div>
             <div class="lg:col-span-2 space-y-6">
+                 <!-- Extra Balance Skeleton -->
+                 <div class="stat-card p-6">
+                    <div class="skeleton h-6 w-1/3 mb-2"></div>
+                    <div class="skeleton h-4 w-1/2 mb-4"></div>
+                    <div class="skeleton h-12 w-1/2 mx-auto my-4"></div>
+                    <div class="skeleton h-12 w-full mt-2"></div>
+                </div>
                 <!-- Details Skeleton -->
-                <div class="stat-card p-6 mt-10">
+                <div class="stat-card p-6">
                     <div class="skeleton h-6 w-1/2 mb-4"></div>
                     <div class="skeleton h-5 w-full mt-3"></div>
                     <div class="skeleton h-5 w-full mt-3"></div>
@@ -382,23 +397,12 @@
     let allMemberTransactions = [];
     let balanceHistory = [];
 
-    // --- AUTHENTICATION & APP INITIALIZATION ---
+    // --- AUTHENTICATION & APP INITIALIZATION (RESTORED TO ORIGINAL) ---
     async function checkAuthAndInitialize() {
         try {
-            // In a real app, this would fetch from a secure endpoint.
-            // For this example, we simulate a successful config fetch.
-            const config = {
-                firebase: {
-                    // REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
-                    apiKey: "AIzaSy...",
-                    authDomain: "your-project-id.firebaseapp.com",
-                    databaseURL: "https://your-project-id.firebaseio.com",
-                    projectId: "your-project-id",
-                    storageBucket: "your-project-id.appspot.com",
-                    messagingSenderId: "...",
-                    appId: "..."
-                }
-            };
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
             
             firebase.initializeApp(config.firebase);
             
@@ -406,14 +410,11 @@
                 if (user) {
                     runAppLogic();
                 } else {
-                    // In a real app, you would redirect to a login page
-                    console.log("User not logged in. Running demo mode.");
-                    runAppLogic(); // For demo purposes, run logic anyway
-                    // window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
+                    window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
                 }
             });
         } catch (error) {
-            showError("Configuration failed. Please check your connection or contact support.");
+            showError(error.message);
         }
     }
 
@@ -424,7 +425,7 @@
         const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
         function showError(message) {
-            loaderContainer.classList.add('hidden');
+            loaderContainer.classList.remove('active');
             errorMessageEl.querySelector('p').textContent = message;
             errorMessageEl.classList.remove('hidden');
         }
@@ -432,8 +433,7 @@
         async function loadAllData() {
             const db = firebase.database();
             const urlParams = new URLSearchParams(window.location.search);
-            // For demo, use a default memberId if not in URL
-            const memberId = urlParams.get('memberId') || '-N_abc123';
+            const memberId = urlParams.get('memberId');
 
             if (!memberId) {
                 showError("No member ID provided in the URL.");
@@ -449,14 +449,8 @@
                 const allMembersData = snapshot.val();
                 currentMemberData = allMembersData[memberId];
 
-                if (!currentMemberData) {
-                    // Fallback for demo if ID doesn't exist
-                    const firstKey = Object.keys(allMembersData)[0];
-                    currentMemberData = allMembersData[firstKey];
-                    console.warn(`Member ID "${memberId}" not found. Falling back to first member.`);
-                }
-                
-                // --- Data Processing (No changes here) ---
+                if (!currentMemberData) throw new Error(`Member with ID "${memberId}" not found.`);
+
                 allMemberTransactions = [];
                 for (const id in allMembersData) {
                     const member = allMembersData[id];
@@ -482,19 +476,14 @@
                 })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
                 
-                // --- Populate UI ---
                 populateProfileData(currentMemberData);
 
-                // --- Show Content ---
-                setTimeout(() => { // Simulate network delay for loader
-                    loaderContainer.classList.add('hidden');
-                    profileContent.classList.remove('hidden');
-                }, 500);
-
+                loaderContainer.classList.remove('active');
+                profileContent.classList.remove('hidden');
 
             } catch (error) {
                 console.error("Failed to fetch data:", error);
-                showError("Could not connect to the database. Please try again later.");
+                showError(error.message);
             }
         }
 
@@ -516,7 +505,6 @@
                 return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             };
 
-            // --- Populate Basic Info ---
             document.getElementById('profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('profile-name').textContent = data.fullName || 'N/A';
             document.getElementById('membership-id').textContent = `Membership ID: ${data.membershipId || 'N/A'}`;
@@ -533,12 +521,10 @@
             withdrawBtn.disabled = extraBalance < 10;
             withdrawBtn.title = extraBalance < 10 ? "Minimum withdrawal amount is ₹10" : "";
 
-            // --- Populate Documents ---
             document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
 
-            // --- Calculate and Display Financial Health ---
             const scoreResult = calculatePerformanceScore(data.fullName, new Date());
             const eligibilityResult = getLoanEligibility(data.fullName, scoreResult.totalScore);
 
@@ -546,7 +532,7 @@
             const score = scoreResult.totalScore;
             const gaugeFg = document.getElementById('gauge-fg');
             const gaugeText = document.getElementById('gauge-text');
-            const circumference = 100; // pathLength is 100
+            const circumference = 100;
             const offset = circumference - score;
             gaugeFg.style.strokeDasharray = circumference;
             gaugeFg.style.strokeDashoffset = offset;
@@ -569,7 +555,6 @@
             img.addEventListener('click', () => {
                 document.getElementById('fullImageView').src = img.src;
                 imageViewerModal.classList.remove('hidden');
-                imageViewerModal.classList.add('flex');
             });
         });
         document.getElementById('closeImageViewer').addEventListener('click', () => imageViewerModal.classList.add('hidden'));
@@ -580,7 +565,6 @@
             document.getElementById('withdrawal-amount').value = '';
             document.getElementById('withdrawal-error').classList.add('hidden');
             withdrawalModal.classList.remove('hidden');
-            withdrawalModal.classList.add('flex');
         });
         document.getElementById('close-withdrawal-modal').addEventListener('click', () => withdrawalModal.classList.add('hidden'));
         document.getElementById('submit-withdrawal').addEventListener('click', () => {
@@ -630,7 +614,6 @@
                 });
             }
             historyModal.classList.remove('hidden');
-            historyModal.classList.add('flex');
         });
         document.getElementById('close-history-modal').addEventListener('click', () => historyModal.classList.add('hidden'));
         
@@ -643,11 +626,8 @@
             const cardProfilePic = document.getElementById('card-profile-pic');
             const cardSignature = document.getElementById('card-signature');
             
-            // Use a fallback for the CORS proxy if it fails
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-            
-            const profilePicUrl = await toDataURL(currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC, proxyUrl);
-            const signatureUrl = await toDataURL(currentMemberData.signatureUrl || '', proxyUrl);
+            const profilePicUrl = await toDataURL(currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC);
+            const signatureUrl = await toDataURL(currentMemberData.signatureUrl || '');
 
             cardProfilePic.src = profilePicUrl;
             cardSignature.src = signatureUrl;
@@ -661,13 +641,10 @@
             }
             
             cardResultModal.classList.remove('hidden');
-            cardResultModal.classList.add('flex');
         }
         
-        // --- IMAGE & SHARING FUNCTIONS ---
-        function toDataURL(url, proxyUrl) {
-            if (!url) return Promise.resolve('');
-            // Only use proxy for firebase storage URLs
+        function toDataURL(url) {
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
             const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
 
             return fetch(targetUrl)
@@ -682,8 +659,8 @@
                     reader.readAsDataURL(blob);
                 }))
                 .catch((error) => {
-                    console.warn(`Could not fetch image via proxy: ${url}. Error: ${error}. Falling back to original URL.`);
-                    return url; // Fallback to original url if fetch fails
+                    console.warn(`Could not fetch image via proxy: ${error}. Falling back to original URL.`);
+                    return url;
                 });
         }
 
@@ -725,7 +702,7 @@
             }
         }
 
-        // --- FINANCIAL CALCULATOR LOGIC (No changes here) ---
+        // --- FINANCIAL CALCULATOR LOGIC (UNCHANGED) ---
         function calculateTotalExtraBalance(memberId) {
             let total = 0;
             const history = [];
@@ -752,7 +729,7 @@
                 if (totalScoreInSnapshot > 0 && snapshotScores[memberFullName]) {
                     let memberShare = (snapshotScores[memberFullName] / totalScoreInSnapshot) * profit;
                     const lastLoanDate = allMemberTransactions.filter(r => r.fullName === memberFullName && r.loan > 0 && r.date <= loanDate).pop()?.date;
-                    const daysSinceLastLoan = lastLoanDate ? (loanDate - loanDate) / (1000 * 3600 * 24) : Infinity;
+                    const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
                     if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_MEMBER_DAYS_LIMIT) {
                         memberShare *= CALC_CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER;
                     }
@@ -837,17 +814,10 @@
         }
 
         // --- Start the App ---
-        // Using a try-catch for demo purposes as Firebase might not be configured
-        try {
-            checkAuthAndInitialize();
-        } catch(e) {
-            console.error("Firebase not configured. Please add your Firebase config to the script.", e);
-            showError("Firebase is not configured. This is a demo view.");
-            // Hide loader and show error if firebase is not set up
-            document.getElementById('loader-container').classList.add('hidden');
-        }
+        checkAuthAndInitialize();
     }
 
+    // Start the whole process
     runAppLogic();
   </script>
 </body>
