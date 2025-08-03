@@ -29,7 +29,7 @@
     .stat-card {
         background-color: white;
         border-radius: 1rem;
-        box-shadow: 0 4px_25px -8px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 25px -8px rgba(0,0,0,0.08);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .stat-card:hover {
@@ -43,13 +43,13 @@
     .info-item:last-child { border-bottom: none; }
     
     /* --- Skeleton Loader --- */
-    .skeleton-wrapper.active .skeleton {
+    #loader-container.active .skeleton {
         background-color: #e2e8f0;
         border-radius: 0.5rem;
         position: relative;
         overflow: hidden;
     }
-    .skeleton-wrapper.active .skeleton::after {
+    #loader-container.active .skeleton::after {
         content: '';
         position: absolute;
         top: 0;
@@ -155,7 +155,7 @@
 </head>
 <body class="min-h-screen">
   
-  <div id="loader-container" class="skeleton-wrapper active">
+  <div id="loader-container" class="active">
     <!-- Skeleton Loader UI -->
     <div class="profile-header h-36 p-6 rounded-b-3xl"></div>
     <main class="max-w-5xl mx-auto p-4 -mt-16">
@@ -397,7 +397,7 @@
     let allMemberTransactions = [];
     let balanceHistory = [];
 
-    // --- AUTHENTICATION & APP INITIALIZATION (RESTORED TO ORIGINAL) ---
+    // --- AUTHENTICATION & APP INITIALIZATION (CORRECTED & RESTORED) ---
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -645,7 +645,9 @@
         
         function toDataURL(url) {
             const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-            const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
+            const targetUrl = url && url.includes('firebasestorage') ? proxyUrl + url : url;
+
+            if (!targetUrl) return Promise.resolve('');
 
             return fetch(targetUrl)
                 .then(response => {
@@ -816,9 +818,6 @@
         // --- Start the App ---
         checkAuthAndInitialize();
     }
-
-    // Start the whole process
-    runAppLogic();
   </script>
 </body>
 </html>
