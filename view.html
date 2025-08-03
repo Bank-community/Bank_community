@@ -16,6 +16,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- NEW: Added Firebase Storage SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -91,6 +93,55 @@
         display: flex;
         flex-direction: column;
     }
+    /* NEW: Styles for new features */
+    .profile-pic-container {
+        position: relative;
+        cursor: pointer;
+    }
+    .profile-pic-overlay {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background-color: rgba(0,0,0,0.6);
+        color: white;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        transition: background-color 0.2s ease;
+    }
+    .profile-pic-container:hover .profile-pic-overlay {
+        background-color: #4f46e5;
+    }
+    .toast-container {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .toast {
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease-out;
+    }
+    .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .toast.success { background-color: #28a745; }
+    .toast.error { background-color: #dc3545; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -108,10 +159,21 @@
     <!-- Header -->
     <div class="profile-header text-white p-6 rounded-b-3xl shadow-lg">
         <div class="max-w-5xl mx-auto flex items-center gap-6">
-            <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg">
+            <!-- NEW: Profile picture container for upload -->
+            <div id="profile-pic-wrapper" class="profile-pic-container">
+                <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg">
+                <div class="profile-pic-overlay">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <input type="file" id="profile-pic-upload" class="hidden" accept="image/*">
+            </div>
             <div class="flex-grow">
                 <h1 id="profile-name" class="text-2xl sm:text-4xl font-bold"></h1>
                 <p id="membership-id" class="text-indigo-200 text-sm"></p>
+                <!-- NEW: Change Password Button -->
+                <button id="change-password-btn" class="mt-2 bg-white/20 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-white/40 transition-colors">
+                    <i class="fas fa-key mr-1"></i> Change Password
+                </button>
             </div>
         </div>
     </div>
@@ -258,6 +320,35 @@
       </div>
   </div>
 
+  <!-- NEW: Change Password Modal -->
+  <div id="passwordModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+          <h3 class="text-xl font-bold text-center mb-6">Change Password</h3>
+          <div class="space-y-4">
+              <div>
+                  <label for="current-password" class="font-semibold text-gray-700 text-sm">Current Password</label>
+                  <input type="password" id="current-password" class="w-full border-2 border-gray-300 rounded-lg p-2 mt-1 focus:border-indigo-500 focus:ring-indigo-500">
+              </div>
+              <div>
+                  <label for="new-password" class="font-semibold text-gray-700 text-sm">New Password</label>
+                  <input type="password" id="new-password" class="w-full border-2 border-gray-300 rounded-lg p-2 mt-1 focus:border-indigo-500 focus:ring-indigo-500">
+              </div>
+              <div>
+                  <label for="confirm-password" class="font-semibold text-gray-700 text-sm">Confirm New Password</label>
+                  <input type="password" id="confirm-password" class="w-full border-2 border-gray-300 rounded-lg p-2 mt-1 focus:border-indigo-500 focus:ring-indigo-500">
+              </div>
+              <p id="password-error" class="text-red-500 text-sm hidden"></p>
+          </div>
+          <div class="mt-6 flex gap-4">
+              <button id="close-password-modal" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg">Cancel</button>
+              <button id="submit-password-change" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Update Password</button>
+          </div>
+      </div>
+  </div>
+
+  <!-- NEW: Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
   <script type="module">
     // --- CONFIGURATION FOR FINANCIAL CALCULATOR ---
     const CALC_CONFIG = {
@@ -273,25 +364,74 @@
     let currentMemberData = {};
     let allMemberTransactions = [];
     let balanceHistory = [];
+    let memberId; // Make memberId globally accessible in this script
+
+    // --- NEW: TOAST NOTIFICATION FUNCTION ---
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Animate in
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 100);
+
+        // Animate out and remove
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                container.removeChild(toast);
+            }, 300);
+        }, 3000); // Toast visible for 3 seconds
+    }
 
     // --- AUTHENTICATION & APP INITIALIZATION ---
     async function checkAuthAndInitialize() {
         try {
-            const response = await fetch('/api/config');
-            if (!response.ok) throw new Error('Configuration failed to load.');
-            const config = await response.json();
+            // NOTE: Replace with your actual config fetching mechanism
+            // For demonstration, using placeholder config.
+            // In a real app, this might be an API call: const response = await fetch('/api/config');
+            const config = {
+                firebase: {
+                    // REPLACE WITH YOUR FIREBASE CONFIG
+                    apiKey: "AIzaSy...",
+                    authDomain: "your-project-id.firebaseapp.com",
+                    databaseURL: "https://your-project-id.firebaseio.com",
+                    projectId: "your-project-id",
+                    storageBucket: "your-project-id.appspot.com",
+                    messagingSenderId: "...",
+                    appId: "..."
+                }
+            };
             
-            firebase.initializeApp(config.firebase);
+            if (!firebase.apps.length) {
+                firebase.initializeApp(config.firebase);
+            }
             
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
+                    // Check if the logged-in user is the one being viewed
+                    const urlParams = new URLSearchParams(window.location.search);
+                    memberId = urlParams.get('memberId');
+                    if (user.uid === memberId) {
+                        document.getElementById('change-password-btn').classList.remove('hidden');
+                        document.getElementById('profile-pic-wrapper').style.cursor = 'pointer';
+                    } else {
+                        document.getElementById('change-password-btn').classList.add('hidden');
+                        document.getElementById('profile-pic-wrapper').style.cursor = 'default';
+                        document.querySelector('.profile-pic-overlay').classList.add('hidden');
+                    }
                     runAppLogic();
                 } else {
                     window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
                 }
             });
         } catch (error) {
-            showError(error.message);
+            showError("Initialization failed. Please check your configuration.");
+            console.error(error);
         }
     }
 
@@ -309,9 +449,6 @@
 
         async function loadAllData() {
             const db = firebase.database();
-            const urlParams = new URLSearchParams(window.location.search);
-            const memberId = urlParams.get('memberId');
-
             if (!memberId) {
                 showError("No member ID provided in the URL.");
                 return;
@@ -327,6 +464,7 @@
                 currentMemberData = allMembersData[memberId];
 
                 if (!currentMemberData) throw new Error(`Member with ID "${memberId}" not found.`);
+                currentMemberData.uid = memberId; // Add uid to the object
 
                 allMemberTransactions = [];
                 for (const id in allMembersData) {
@@ -348,8 +486,7 @@
                     payment: parseFloat(row["Loan Payment"]) || 0,
                     sipPayment: parseFloat(row["SIP Payment"]) || 0,
                     returnAmount: parseFloat(row["Return amount"] || 0),
-                    extraBalance: parseFloat(row["Extra Balance"] || 0),
-                    // ✅ BUG FIX: Read the new withdrawal field
+                    extraBalance: parseFloat(row["Extra Balance"] || 0,
                     extraWithdraw: parseFloat(row["Extra Withdraw"] || 0),
                 })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
@@ -366,7 +503,7 @@
         }
 
         function populateProfileData(data) {
-            const balanceResult = calculateTotalExtraBalance(data.membershipId);
+            const balanceResult = calculateTotalExtraBalance(data.uid);
             const extraBalance = balanceResult.total;
             balanceHistory = balanceResult.history;
             
@@ -421,10 +558,17 @@
             img.addEventListener('click', () => {
                 document.getElementById('fullImageView').src = img.src;
                 imageViewerModal.classList.remove('hidden');
+                imageViewerModal.classList.add('flex');
             });
         });
-        document.getElementById('closeImageViewer').addEventListener('click', () => imageViewerModal.classList.add('hidden'));
-        imageViewerModal.addEventListener('click', (e) => { if (e.target === imageViewerModal) imageViewerModal.classList.add('hidden'); });
+        document.getElementById('closeImageViewer').addEventListener('click', () => {
+            imageViewerModal.classList.add('hidden');
+            imageViewerModal.classList.remove('flex');
+        });
+        imageViewerModal.addEventListener('click', (e) => { if (e.target === imageViewerModal) {
+            imageViewerModal.classList.add('hidden');
+            imageViewerModal.classList.remove('flex');
+        }});
 
         const withdrawalModal = document.getElementById('withdrawalModal');
         document.getElementById('withdraw-btn').addEventListener('click', () => {
@@ -432,8 +576,12 @@
             document.getElementById('withdrawal-amount').value = '';
             document.getElementById('withdrawal-error').classList.add('hidden');
             withdrawalModal.classList.remove('hidden');
+            withdrawalModal.classList.add('flex');
         });
-        document.getElementById('close-withdrawal-modal').addEventListener('click', () => withdrawalModal.classList.add('hidden'));
+        document.getElementById('close-withdrawal-modal').addEventListener('click', () => {
+            withdrawalModal.classList.add('hidden');
+            withdrawalModal.classList.remove('flex');
+        });
         document.getElementById('submit-withdrawal').addEventListener('click', () => {
             const amountInput = document.getElementById('withdrawal-amount');
             const errorMsg = document.getElementById('withdrawal-error');
@@ -448,6 +596,7 @@
             }
             errorMsg.classList.add('hidden');
             withdrawalModal.classList.add('hidden');
+            withdrawalModal.classList.remove('flex');
             showWithdrawalCard(amount);
         });
 
@@ -478,11 +627,18 @@
                 });
             }
             historyModal.classList.remove('hidden');
+            historyModal.classList.add('flex');
         });
-        document.getElementById('close-history-modal').addEventListener('click', () => historyModal.classList.add('hidden'));
+        document.getElementById('close-history-modal').addEventListener('click', () => {
+            historyModal.classList.add('hidden');
+            historyModal.classList.remove('flex');
+        });
         
         const cardResultModal = document.getElementById('cardResultModal');
-        document.getElementById('close-card-modal').addEventListener('click', () => cardResultModal.classList.add('hidden'));
+        document.getElementById('close-card-modal').addEventListener('click', () => {
+            cardResultModal.classList.add('hidden');
+            cardResultModal.classList.remove('flex');
+        });
         document.getElementById('download-card-btn').addEventListener('click', downloadCard);
         document.getElementById('share-card-btn').addEventListener('click', shareCard);
 
@@ -505,12 +661,140 @@
             }
             
             cardResultModal.classList.remove('hidden');
+            cardResultModal.classList.add('flex');
+        }
+
+        // --- NEW: EVENT LISTENERS FOR NEW FEATURES ---
+        const profilePicUploadInput = document.getElementById('profile-pic-upload');
+        document.getElementById('profile-pic-wrapper').addEventListener('click', () => {
+            // Only allow upload if the logged-in user is viewing their own profile
+            if (firebase.auth().currentUser.uid === memberId) {
+                profilePicUploadInput.click();
+            }
+        });
+        profilePicUploadInput.addEventListener('change', handleProfilePicUpload);
+
+        const passwordModal = document.getElementById('passwordModal');
+        document.getElementById('change-password-btn').addEventListener('click', () => {
+            passwordModal.classList.remove('hidden');
+            passwordModal.classList.add('flex');
+        });
+        document.getElementById('close-password-modal').addEventListener('click', () => {
+            passwordModal.classList.add('hidden');
+            passwordModal.classList.remove('flex');
+        });
+        document.getElementById('submit-password-change').addEventListener('click', handleChangePassword);
+
+
+        // --- NEW: PROFILE PICTURE UPLOAD FUNCTION ---
+        async function handleProfilePicUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Simple validation
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file.', 'error');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                showToast('File size should be less than 5MB.', 'error');
+                return;
+            }
+
+            const loader = document.querySelector('.profile-pic-overlay i');
+            loader.className = 'fas fa-spinner fa-spin'; // Show spinner
+
+            const storage = firebase.storage();
+            const storageRef = storage.ref(`profile_pictures/${memberId}/${file.name}`);
+
+            try {
+                const snapshot = await storageRef.put(file);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+
+                // Update Realtime Database
+                const db = firebase.database();
+                await db.ref(`members/${memberId}/profilePicUrl`).set(downloadURL);
+
+                // Update UI
+                document.getElementById('profile-pic').src = downloadURL;
+                document.getElementById('doc-profile-pic').src = downloadURL;
+                currentMemberData.profilePicUrl = downloadURL; // Update local data
+
+                showToast('Profile picture updated successfully!');
+            } catch (error) {
+                console.error("Upload failed:", error);
+                showToast('Upload failed. Please try again.', 'error');
+            } finally {
+                loader.className = 'fas fa-camera'; // Revert to camera icon
+                profilePicUploadInput.value = ''; // Reset file input
+            }
+        }
+
+        // --- NEW: CHANGE PASSWORD FUNCTION ---
+        async function handleChangePassword() {
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorEl = document.getElementById('password-error');
+
+            errorEl.classList.add('hidden');
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                errorEl.textContent = 'All fields are required.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            if (newPassword.length < 6) {
+                errorEl.textContent = 'New password must be at least 6 characters.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = 'New passwords do not match.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            const user = firebase.auth().currentUser;
+            if (!user.email) {
+                 showToast('Could not find user email for re-authentication.', 'error');
+                 return;
+            }
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+            
+            const submitBtn = document.getElementById('submit-password-change');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+
+            try {
+                await user.reauthenticateWithCredential(credential);
+                await user.updatePassword(newPassword);
+                showToast('Password updated successfully!');
+                passwordModal.classList.add('hidden');
+                passwordModal.classList.remove('flex');
+                 // Clear fields
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            } catch (error) {
+                console.error("Password change failed:", error);
+                if (error.code === 'auth/wrong-password') {
+                    errorEl.textContent = 'Incorrect current password.';
+                    errorEl.classList.remove('hidden');
+                } else {
+                    showToast('An error occurred. Please try again.', 'error');
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update Password';
+            }
         }
         
         // --- IMAGE & SHARING FUNCTIONS ---
         function toDataURL(url) {
+            if (!url) return Promise.resolve('');
             // Use a CORS proxy for Firebase Storage URLs
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+            const proxyUrl = 'https://cors-proxy.fringe.workers.dev/';
             const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
 
             return fetch(targetUrl)
@@ -561,20 +845,19 @@
                     });
                 } catch (error) {
                     console.error('Share failed:', error);
-                    alert('Could not share the image.');
+                    showToast('Could not share the image.', 'error');
                 }
             } else {
-                alert("Sharing is not supported on this browser.");
+                showToast("Sharing is not supported on this browser.", 'error');
             }
         }
 
-        // --- FINANCIAL CALCULATOR LOGIC (WITH BUG FIX) ---
+        // --- FINANCIAL CALCULATOR LOGIC (NO CHANGES HERE) ---
         function calculateTotalExtraBalance(memberId) {
             let total = 0;
             const history = [];
             const memberFullName = currentMemberData.fullName;
 
-            // 1. Calculate profit from loan distributions
             const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
             profitEvents.forEach(paymentRecord => {
                 const profit = paymentRecord.returnAmount * 0.90;
@@ -614,21 +897,18 @@
                 }
             });
 
-            // 2. Process manual adjustments (credit and withdrawal) for the current member
             const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && (tx.extraBalance !== 0 || tx.extraWithdraw !== 0));
             manualAdjustments.forEach(tx => {
                 if (tx.extraBalance > 0) {
                     history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
                 }
                 if (tx.extraWithdraw > 0) {
-                    // Make the amount negative for withdrawal
                     history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
                 }
             });
             
             history.sort((a,b) => a.date - b.date);
             
-            // Calculate final total from sorted history
             total = history.reduce((acc, item) => acc + item.amount, 0);
 
             return { total, history };
