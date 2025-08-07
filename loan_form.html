@@ -147,17 +147,20 @@
 
       <button type="submit" class="btn w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-base cursor-pointer mt-5 hover:bg-blue-700">Generate & Preview Letter</button>
       
-      <!-- Notification Box - Content is dynamically added here -->
       <div id="loanInfoNotification" class="mt-6 p-4 border border-indigo-200 bg-indigo-50 rounded-lg">
-          <!-- JS will populate this area -->
       </div>
     </form>
   </div>
 
-  <div id="successMessage" class="hidden text-center bg-white p-8 rounded-xl shadow-lg">
+  <div id="successMessage" class="hidden text-center bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
       <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
       <h2 class="text-2xl font-bold text-gray-800">Application Submitted!</h2>
       <p class="text-gray-600 mt-2">Your loan application has been sent for approval. You will be notified shortly.</p>
+      <!-- UPDATED: Action buttons moved here for the new flow -->
+      <div id="success-action-buttons" class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full mt-6">
+        <button id="successDownloadBtn" class="btn hidden w-full sm:w-1/2 p-3 bg-green-600 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-green-700">Download Letter</button>
+        <button id="successShareBtn" class="btn hidden w-full sm:w-1/2 p-3 bg-blue-500 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-blue-600">Share on WhatsApp</button>
+      </div>
   </div>
   
   <div id="letter-preview-section" class="hidden w-full flex flex-col items-center">
@@ -165,7 +168,6 @@
         <!-- Letter content is the same as before -->
         <div class="header text-center pb-4 mb-5 relative">
           <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
-          <!-- LOGO FIX: Updated the src from a broken ibb.co link to a working imgur.com link -->
           <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
           <h1 class="text-2xl font-bold my-2">BANK COMMUNITY LOAN FORM</h1>
           <h2 id="letterLoanCategory" class="text-2xl font-bold text-green-600 mt-3"></h2>
@@ -208,10 +210,9 @@
             </div>
         </div>
       </div> 
-      <div id="action-buttons" class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full max-w-md mt-4">
-        <button id="downloadBtn" class="btn w-full sm:w-1/3 p-3 bg-green-600 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-green-700">Download</button>
-        <button id="shareBtn" class="btn w-full sm:w-1/3 p-3 bg-green-500 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-green-600">Share</button>
-        <button id="submitForApprovalBtn" class="btn w-full sm:w-1/3 p-3 bg-indigo-600 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-indigo-700 flex items-center justify-center">
+      <!-- UPDATED: Only the submit button is here now -->
+      <div id="action-buttons" class="hidden w-full max-w-md mt-4">
+        <button id="submitForApprovalBtn" class="btn w-full p-3 bg-indigo-600 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-indigo-700 flex items-center justify-center">
             <span id="submitBtnText">Submit for Approval</span>
             <div id="submitLoader" class="loader hidden"></div>
         </button>
@@ -254,6 +255,7 @@
     function runAppLogic() {
         let membersData = {};
         let pendingLoanDataForSubmit = {};
+        let generatedCanvas = null; // To store the generated canvas for later use
 
         // All element selectors
         const mainFormContainer = document.getElementById('main-form-container');
@@ -271,9 +273,13 @@
         const guarantorSelect = document.getElementById('guarantorSelect');
         const goldCollateralSection = document.getElementById('goldCollateralSection');
         const goldCollateralInput = document.getElementById('goldCollateral');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const shareBtn = document.getElementById('shareBtn');
+        
+        // UPDATED: Selectors for the new button flow
+        const actionButtonsContainer = document.getElementById('action-buttons');
         const submitForApprovalBtn = document.getElementById('submitForApprovalBtn');
+        const successDownloadBtn = document.getElementById('successDownloadBtn');
+        const successShareBtn = document.getElementById('successShareBtn');
+
         const submitBtnText = document.getElementById('submitBtnText');
         const submitLoader = document.getElementById('submitLoader');
         const currentDateEl = document.getElementById('currentDate');
@@ -310,74 +316,17 @@
             guarantor: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] }
         };
 
-        // --- UPDATED: Content for the notification box ---
         const notificationContent = {
-            personal: `
-                <h3><i class="fas fa-info-circle"></i> Personal Loan - नियम और शर्तें</h3>
-                <p class="font-bold mt-2">💼 लोन पात्रता (Loan Eligibility)</p>
-                <ul class="list-disc list-inside ml-2">
-                    <li>हर सदस्य को अपने जमा कुल योगदान का 1.5 गुना (Dedh Guna) तक लोन लेने की पात्रता है।</li>
-                    <li>सदस्य बनने के कम-से-कम 60 दिन बाद ही लोन लिया जा सकता है।</li>
-                </ul>
-                <p class="font-bold mt-3">📆 लोन अवधि और ब्याज (Loan Duration & Interest)</p>
-                <p>सदस्य लोन के लिए निम्नलिखित अवधि में से किसी एक का चयन कर सकते हैं:</p>
-                <table class="table">
-                    <thead><tr><th>अवधि (Period)</th><th>ब्याज दर</th><th>विवरण</th></tr></thead>
-                    <tbody>
-                        <tr><td>1 महीना</td><td>1%</td><td>कम अवधि के लिए</td></tr>
-                        <tr><td>2 महीने</td><td>3%</td><td>मध्यम अवधि</td></tr>
-                        <tr><td>3 महीने</td><td>5%</td><td>अधिकतम सामान्य अवधि</td></tr>
-                        <tr><td>90+ दिन + 10 दिन</td><td>5.5%</td><td>डेडलाइन से थोड़ी देरी</td></tr>
-                        <tr><td>100+ दिन (Delay)</td><td>6% + Penalty</td><td>विलंब शुल्क और सजा</td></tr>
-                        <tr><td>100 दिन से अधिक + 60 दिन तक</td><td class="font-bold">No Loan</td><td>भविष्य में 60 दिनों तक कोई लोन नहीं मिलेगा</td></tr>
-                    </tbody>
-                </table>`,
-            business: `
-                <h3><i class="fas fa-briefcase"></i> Business Loan - ब्याज और शुल्क</h3>
-                <p>बिजनेस लोन पर <strong>18% वार्षिक (1.5% मासिक)</strong> की दर से ब्याज लगता है।</p>
-                <ul class="list-disc list-inside ml-2 mt-2">
-                    <li><strong>प्रोसेसिंग शुल्क:</strong> लोन राशि का 1.5%। अगर लोन राशि ₹9000 से अधिक है, तो ₹200 का अतिरिक्त शुल्क लागू होगा।</li>
-                    <li><strong>भुगतान संरचना:</strong> पहले 3 महीनों के लिए केवल मासिक ब्याज का भुगतान करना होगा। उसके बाद पूरी EMI (मूलधन + ब्याज) शुरू हो जाएगी।</li>
-                </ul>`,
-            gold: `
-                <h3><i class="fas fa-gem"></i> Gold Loan - आवश्यक जानकारी</h3>
-                <p>यह लोन आपके द्वारा जमा किए गए सोने के सामान (Collateral) के बदले <strong>3% प्रति माह</strong> की दर पर दिया जाता है।</p>
-                <p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p>
-                <p>प्राप्त ब्याज को तीन भागों में बांटा जाएगा:</p>
-                <ul class="list-disc list-inside ml-2">
-                    <li>पहला भाग: बैंक वॉलेट में</li>
-                    <li>दूसरा भाग: सभी सदस्यों में</li>
-                    <li>तीसरा भाग: गारंटर को</li>
-                </ul>
-                <div class="note">
-                  <p class="font-bold">📝 कृपया ध्यान दें:</p>
-                  <ul class="list-disc list-inside ml-2">
-                     <li>लोन की अवधि 6 से 12 महीने तक की होती है।</li>
-                     <li>प्रत्येक माह नियमित रूप से ब्याज या पूरी EMI का भुगतान करना अनिवार्य है।</li>
-                  </ul>
-                </div>`,
-            guarantor: `
-                <h3><i class="fas fa-user-shield"></i> Guarantor Loan - मुख्य बातें</h3>
-                <p>इस लोन के लिए एक गारंटर की आवश्यकता होती है और इस पर <strong>3% प्रति माह</strong> की ब्याज दर लागू होती है।</p>
-                <p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p>
-                 <p>गोल्ड लोन की तरह ही, प्राप्त ब्याज को तीन भागों में बांटा जाएगा (बैंक वॉलेट, सभी सदस्य, और गारंटर)।</p>
-                <div class="note" style="border-left-color: #f87171; background-color: #fef2f2;">
-                  <p class="font-bold text-red-700">⚠️ महत्वपूर्ण नोट:</p>
-                  <ul class="list-disc list-inside ml-2">
-                    <li><strong>गारंटर की राशि होल्ड:</strong> इस लोन में, गारंटर के खाते से लोन राशि के बराबर की राशि होल्ड कर दी जाएगी। यह होल्ड तब तक रहेगा जब तक कि लोन पूरी तरह से चुका नहीं दिया जाता।</li>
-                    <li><strong>मासिक भुगतान:</strong> प्रत्येक माह नियमित रूप से ब्याज या पूरी EMI का भुगतान करना अनिवार्य है।</li>
-                  </ul>
-                </div>`
+            personal: `<h3><i class="fas fa-info-circle"></i> Personal Loan - नियम और शर्तें</h3><p class="font-bold mt-2">💼 लोन पात्रता (Loan Eligibility)</p><ul class="list-disc list-inside ml-2"><li>हर सदस्य को अपने जमा कुल योगदान का 1.5 गुना (Dedh Guna) तक लोन लेने की पात्रता है।</li><li>सदस्य बनने के कम-से-कम 60 दिन बाद ही लोन लिया जा सकता है।</li></ul><p class="font-bold mt-3">📆 लोन अवधि और ब्याज (Loan Duration & Interest)</p><p>सदस्य लोन के लिए निम्नलिखित अवधि में से किसी एक का चयन कर सकते हैं:</p><table class="table"><thead><tr><th>अवधि (Period)</th><th>ब्याज दर</th><th>विवरण</th></tr></thead><tbody><tr><td>1 महीना</td><td>1%</td><td>कम अवधि के लिए</td></tr><tr><td>2 महीने</td><td>3%</td><td>मध्यम अवधि</td></tr><tr><td>3 महीने</td><td>5%</td><td>अधिकतम सामान्य अवधि</td></tr><tr><td>90+ दिन + 10 दिन</td><td>5.5%</td><td>डेडलाइन से थोड़ी देरी</td></tr><tr><td>100+ दिन (Delay)</td><td>6% + Penalty</td><td>विलंब शुल्क और सजा</td></tr><tr><td>100 दिन से अधिक + 60 दिन तक</td><td class="font-bold">No Loan</td><td>भविष्य में 60 दिनों तक कोई लोन नहीं मिलेगा</td></tr></tbody></table>`,
+            business: `<h3><i class="fas fa-briefcase"></i> Business Loan - ब्याज और शुल्क</h3><p>बिजनेस लोन पर <strong>18% वार्षिक (1.5% मासिक)</strong> की दर से ब्याज लगता है।</p><ul class="list-disc list-inside ml-2 mt-2"><li><strong>प्रोसेसिंग शुल्क:</strong> लोन राशि का 1.5%। अगर लोन राशि ₹9000 से अधिक है, तो ₹200 का अतिरिक्त शुल्क लागू होगा।</li><li><strong>भुगतान संरचना:</strong> पहले 3 महीनों के लिए केवल मासिक ब्याज का भुगतान करना होगा। उसके बाद पूरी EMI (मूलधन + ब्याज) शुरू हो जाएगी।</li></ul>`,
+            gold: `<h3><i class="fas fa-gem"></i> Gold Loan - आवश्यक जानकारी</h3><p>यह लोन आपके द्वारा जमा किए गए सोने के सामान (Collateral) के बदले <strong>3% प्रति माह</strong> की दर पर दिया जाता है।</p><p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p><p>प्राप्त ब्याज को तीन भागों में बांटा जाएगा:</p><ul class="list-disc list-inside ml-2"><li>पहला भाग: बैंक वॉलेट में</li><li>दूसरा भाग: सभी सदस्यों में</li><li>तीसरा भाग: गारंटर को</li></ul><div class="note"><p class="font-bold">📝 कृपया ध्यान दें:</p><ul class="list-disc list-inside ml-2"><li>लोन की अवधि 6 से 12 महीने तक की होती है।</li><li>प्रत्येक माह नियमित रूप से ब्याज या पूरी EMI का भुगतान करना अनिवार्य है।</li></ul></div>`,
+            guarantor: `<h3><i class="fas fa-user-shield"></i> Guarantor Loan - मुख्य बातें</h3><p>इस लोन के लिए एक गारंटर की आवश्यकता होती है और इस पर <strong>3% प्रति माह</strong> की ब्याज दर लागू होती है।</p><p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p><p>गोल्ड लोन की तरह ही, प्राप्त ब्याज को तीन भागों में बांटा जाएगा (बैंक वॉलेट, सभी सदस्य, और गारंटर)।</p><div class="note" style="border-left-color: #f87171; background-color: #fef2f2;"><p class="font-bold text-red-700">⚠️ महत्वपूर्ण नोट:</p><ul class="list-disc list-inside ml-2"><li><strong>गारंटर की राशि होल्ड:</strong> इस लोन में, गारंटर के खाते से लोन राशि के बराबर की राशि होल्ड कर दी जाएगी। यह होल्ड तब तक रहेगा जब तक कि लोन पूरी तरह से चुका नहीं दिया जाता।</li><li><strong>मासिक भुगतान:</strong> प्रत्येक माह नियमित रूप से ब्याज या पूरी EMI का भुगतान करना अनिवार्य है।</li></ul></div>`
         };
         
         function updateLoanNotification() {
             const category = loanCategorySelect.value;
-            if (notificationContent[category]) {
-                loanInfoNotification.innerHTML = notificationContent[category];
-                loanInfoNotification.style.display = 'block';
-            } else {
-                loanInfoNotification.style.display = 'none';
-            }
+            loanInfoNotification.innerHTML = notificationContent[category] || '';
+            loanInfoNotification.style.display = notificationContent[category] ? 'block' : 'none';
         }
 
         function updateFormUI() {
@@ -397,7 +346,6 @@
             const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank');
             guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none';
             guarantorSelect.required = needsManualGuarantor;
-            
             updateLoanNotification(); 
         }
         
@@ -601,33 +549,8 @@
             };
 
             letterPreviewSection.classList.remove('hidden');
+            actionButtonsContainer.classList.remove('hidden'); // Show the submit button
             letterPreviewSection.scrollIntoView({ behavior: 'smooth' });
-        });
-        
-        async function generateCanvas() {
-            downloadBtn.disabled = true;
-            await waitForImages(captureDiv);
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
-            downloadBtn.disabled = false;
-            return canvas;
-        }
-
-        downloadBtn.addEventListener('click', async function() {
-            downloadBtn.textContent = 'Preparing...';
-            const canvas = await generateCanvas();
-            const link = document.createElement('a');
-            const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
-            link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            link.remove();
-            downloadBtn.textContent = 'Download';
-        });
-
-        shareBtn.addEventListener('click', function() {
-            const groupLink = 'https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ';
-            window.open(groupLink, '_blank');
         });
 
         submitForApprovalBtn.addEventListener('click', async function() {
@@ -636,9 +559,12 @@
             submitLoader.classList.remove('hidden');
 
             try {
+                await waitForImages(captureDiv);
+                await new Promise(resolve => setTimeout(resolve, 500));
                 const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
+                generatedCanvas = canvas; // Save canvas for later download
+
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                
                 const letterImageUrl = await uploadImageToImgBB(blob);
                 const additionalDocUrl = await uploadImageToImgBB(pendingLoanDataForSubmit.additionalDocFile);
 
@@ -659,7 +585,9 @@
                 
                 mainFormContainer.style.display = 'none';
                 letterPreviewSection.style.display = 'none';
-                successMessage.style.display = 'block';
+                actionButtonsContainer.style.display = 'none';
+                successMessage.classList.remove('hidden');
+                successDownloadBtn.classList.remove('hidden'); // Show download button on success
 
             } catch (error) {
                 console.error("Submission error:", error);
@@ -668,6 +596,31 @@
                 submitBtnText.textContent = 'Submit for Approval';
                 submitLoader.classList.add('hidden');
             }
+        });
+
+        // --- NEW EVENT LISTENERS FOR THE SUCCESS BUTTONS ---
+        successDownloadBtn.addEventListener('click', function() {
+            if (!generatedCanvas) {
+                alert('Could not find the letter to download. Please try generating again.');
+                return;
+            }
+            successDownloadBtn.disabled = true;
+            successDownloadBtn.textContent = 'Downloading...';
+            
+            const link = document.createElement('a');
+            const fileName = `Loan_${displayNameEl.textContent.replace(/\s+/g, '_') || 'Form'}_${Date.now()}.png`;
+            link.download = fileName;
+            link.href = generatedCanvas.toDataURL('image/png');
+            link.click();
+            link.remove();
+            
+            successDownloadBtn.textContent = 'Downloaded!';
+            successShareBtn.classList.remove('hidden'); // Show share button after download
+        });
+
+        successShareBtn.addEventListener('click', function() {
+            const groupLink = 'https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ';
+            window.open(groupLink, '_blank');
         });
 
         loanCategorySelect.addEventListener('change', updateFormUI);
