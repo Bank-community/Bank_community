@@ -642,7 +642,7 @@
     }
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (V14 - Added Pop-up Notifications) ##
+    // ## MAIN APPLICATION LOGIC (V15 - Fixed Pop-up Logic) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -719,6 +719,7 @@
         let customCardsData = {};
         let communityLettersData = {};
         let headerButtonsData = {};
+        let popupsHaveBeenShown = false; // Flag to ensure popups show only once per page load
 
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -851,7 +852,7 @@
                     notificationModal.classList.add('show');
                     const dot = document.getElementById('notificationDot');
                     if(dot) dot.style.display = 'none';
-                    // Mark notifications for today as viewed
+                    // Mark notifications for today as viewed in the modal
                     sessionStorage.setItem('notificationsViewed_' + getTodayDateString(), 'true');
                 });
             }
@@ -1374,7 +1375,7 @@
             container.appendChild(popup);
         }
 
-        // UPDATED: This function now also triggers pop-up notifications
+        // UPDATED: This function now also triggers pop-up notifications with corrected logic
         function processTodaysTransactions(transactions) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -1392,17 +1393,22 @@
             }).sort((a,b) => b.Date - a.Date);
             
             const notificationDot = document.getElementById('notificationDot');
-            const viewedToday = sessionStorage.getItem('notificationsViewed_' + getTodayDateString());
+            const viewedTodayInModal = sessionStorage.getItem('notificationsViewed_' + getTodayDateString());
 
-            if (notificationDot && todaysTransactions.length > 0 && !viewedToday) {
+            // Logic for the red dot on the bell icon
+            if (notificationDot && todaysTransactions.length > 0 && !viewedTodayInModal) {
                 notificationDot.style.display = 'block';
-                
+            }
+
+            // NEW LOGIC FOR POP-UPS: Show only once per page load
+            if (todaysTransactions.length > 0 && !popupsHaveBeenShown) {
                 // Show staggered pop-up notifications
                 todaysTransactions.forEach((tx, index) => {
                     setTimeout(() => {
                         showPopupNotification(tx);
-                    }, index * 2000); // 2-second delay between each notification
+                    }, index * 1500); // 1.5-second delay between each notification
                 });
+                popupsHaveBeenShown = true; // Set the flag so they don't show again on this page load
             }
         }
         
