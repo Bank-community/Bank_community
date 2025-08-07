@@ -347,6 +347,100 @@
         .full-profile-images img { width: 100%; height: 120px; object-fit: contain; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; background: #f0f0f0; }
         .full-profile-images strong { font-size: 0.9em; margin-top: 5px; display: block; }
 
+        /* NEW: Notification Pop-up Styles */
+        #notification-popup-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none; /* Allow clicks to go through the container */
+        }
+        .notification-popup {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            width: 100%;
+            max-width: 350px;
+            border-left: 5px solid var(--primary-color);
+            opacity: 0;
+            transform: translateX(100%);
+            animation: slideInNotification 0.5s forwards, fadeOutNotification 0.5s 6.5s forwards;
+            pointer-events: all; /* Make individual popups clickable */
+        }
+        .notification-popup.closing {
+            animation: slideOutNotification 0.4s forwards;
+        }
+        .notification-popup-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .notification-popup-content {
+            flex-grow: 1;
+            font-size: 0.9em;
+        }
+        .notification-popup-content p {
+            margin: 0;
+            line-height: 1.4;
+            color: var(--text-color);
+        }
+        .notification-popup-content p strong {
+            color: var(--primary-darker);
+        }
+        .notification-popup-amount {
+            font-weight: 700;
+            font-size: 0.95em;
+        }
+        .notification-popup-amount.sip { color: var(--success-color); }
+        .notification-popup-amount.loan { color: var(--danger-color); }
+        .notification-popup-amount.payment { color: var(--info-color); }
+        .notification-popup-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 10px;
+            padding: 0 5px;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        .notification-popup-close:hover {
+            color: #333;
+        }
+        @keyframes slideInNotification {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @keyframes fadeOutNotification {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: translateX(110%);
+            }
+        }
+        @keyframes slideOutNotification {
+            to {
+                opacity: 0;
+                transform: translateX(110%);
+            }
+        }
+
+
         @media (min-width: 576px) { 
             header h1 { font-size: 2.4em; } 
             .member-card { flex: 0 0 30%; max-width: 180px; }
@@ -507,6 +601,9 @@
     </div>
 </div>
 
+<!-- NEW: Notification Pop-up Container -->
+<div id="notification-popup-container"></div>
+
 
 <script>
     // ##################################################################
@@ -545,7 +642,7 @@
     }
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (V13 - Updated Balance & Notification) ##
+    // ## MAIN APPLICATION LOGIC (V15 - Fixed Pop-up Logic) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -622,6 +719,7 @@
         let customCardsData = {};
         let communityLettersData = {};
         let headerButtonsData = {};
+        let popupsHaveBeenShown = false; // Flag to ensure popups show only once per page load
 
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -754,7 +852,7 @@
                     notificationModal.classList.add('show');
                     const dot = document.getElementById('notificationDot');
                     if(dot) dot.style.display = 'none';
-                    // Mark notifications for today as viewed
+                    // Mark notifications for today as viewed in the modal
                     sessionStorage.setItem('notificationsViewed_' + getTodayDateString(), 'true');
                 });
             }
@@ -1221,6 +1319,63 @@
             feather.replace();
         }
         
+        // NEW: Function to show a single pop-up notification
+        function showPopupNotification(tx) {
+            const container = document.getElementById('notification-popup-container');
+            if (!container) return;
+
+            const popup = document.createElement('div');
+            popup.className = 'notification-popup';
+
+            let text = '', amount = '', typeClass = '';
+            if (tx['SIP Payment'] > 0) {
+                text = `<p><strong>${tx.fullName}</strong> paid their SIP.</p>`;
+                amount = `+ ₹${parseFloat(tx['SIP Payment']).toLocaleString()}`;
+                typeClass = 'sip';
+            } else if (tx.Loan > 0) {
+                text = `<p>A loan was disbursed to <strong>${tx.fullName}</strong>.</p>`;
+                amount = `- ₹${parseFloat(tx.Loan).toLocaleString()}`;
+                typeClass = 'loan';
+            } else if (tx['Loan Payment'] > 0) {
+                text = `<p><strong>${tx.fullName}</strong> made a loan payment.</p>`;
+                amount = `+ ₹${parseFloat(tx['Loan Payment']).toLocaleString()}`;
+                typeClass = 'payment';
+            } else if (tx['Extra Balance'] > 0) {
+                text = `<p><strong>${tx.fullName}</strong> made an extra deposit.</p>`;
+                amount = `+ ₹${parseFloat(tx['Extra Balance']).toLocaleString()}`;
+                typeClass = 'sip';
+            } else if (tx['Extra Withdraw'] > 0) {
+                text = `<p><strong>${tx.fullName}</strong> made an extra withdrawal.</p>`;
+                amount = `- ₹${parseFloat(tx['Extra Withdraw']).toLocaleString()}`;
+                typeClass = 'loan';
+            }
+
+            popup.innerHTML = `
+                <img src="${tx.profilePicUrl}" alt="${tx.fullName}" class="notification-popup-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                <div class="notification-popup-content">
+                    ${text}
+                    <p class="notification-popup-amount ${typeClass}">${amount}</p>
+                </div>
+                <button class="notification-popup-close">&times;</button>
+            `;
+
+            const closeBtn = popup.querySelector('.notification-popup-close');
+            closeBtn.onclick = () => {
+                popup.classList.add('closing');
+                popup.addEventListener('animationend', () => popup.remove(), { once: true });
+            };
+            
+            // Auto-remove after animation finishes
+            popup.addEventListener('animationend', (e) => {
+                if (e.animationName === 'fadeOutNotification') {
+                    popup.remove();
+                }
+            }, { once: true });
+
+            container.appendChild(popup);
+        }
+
+        // UPDATED: This function now also triggers pop-up notifications with corrected logic
         function processTodaysTransactions(transactions) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -1229,7 +1384,6 @@
                 const txDate = new Date(tx.Date);
                 txDate.setHours(0, 0, 0, 0);
                 const isToday = txDate.getTime() === today.getTime();
-                // Include all relevant transaction types for notifications
                 const hasAmount = parseFloat(tx['SIP Payment'] || 0) > 0 || 
                                   parseFloat(tx.Loan || 0) > 0 || 
                                   parseFloat(tx['Loan Payment'] || 0) > 0 ||
@@ -1239,9 +1393,22 @@
             }).sort((a,b) => b.Date - a.Date);
             
             const notificationDot = document.getElementById('notificationDot');
-            // Show dot if there are new transactions and they haven't been viewed today
-            if (notificationDot && todaysTransactions.length > 0 && !sessionStorage.getItem('notificationsViewed_' + getTodayDateString())) {
+            const viewedTodayInModal = sessionStorage.getItem('notificationsViewed_' + getTodayDateString());
+
+            // Logic for the red dot on the bell icon
+            if (notificationDot && todaysTransactions.length > 0 && !viewedTodayInModal) {
                 notificationDot.style.display = 'block';
+            }
+
+            // NEW LOGIC FOR POP-UPS: Show only once per page load
+            if (todaysTransactions.length > 0 && !popupsHaveBeenShown) {
+                // Show staggered pop-up notifications
+                todaysTransactions.forEach((tx, index) => {
+                    setTimeout(() => {
+                        showPopupNotification(tx);
+                    }, index * 1500); // 1.5-second delay between each notification
+                });
+                popupsHaveBeenShown = true; // Set the flag so they don't show again on this page load
             }
         }
         
@@ -1423,3 +1590,4 @@
 
 </body>
 </html>
+
