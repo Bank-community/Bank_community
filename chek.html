@@ -517,7 +517,7 @@ function calculateConsistencyScore(memberData) {
     return (consistencyPoints / (monthsConsidered * 10)) * 100;
 }
 
-// 3. NEW CREDIT BEHAVIOR SCORE (UPDATED with 40 as base)
+// 3. NEW CREDIT BEHAVIOR SCORE (FINAL UPDATE)
 function calculateCreditBehaviorScore(memberName, untilDate) {
     const data = allData.filter(r => r.date <= untilDate);
     const memberData = data.filter(r => r.name === memberName);
@@ -530,15 +530,21 @@ function calculateCreditBehaviorScore(memberName, untilDate) {
 
     // Case 1: No loans taken
     if (memberLoans.length === 0) {
-        if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; // UPDATED: Neutral score for very new members
+        if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; 
         
-        // Score based on SIP discipline for members without loans
         const sipData = memberData.filter(r => r.sipPayment > 0);
-        if (sipData.length === 0) return 40; // UPDATED: No SIPs yet, but member for a while
         
-        const avgSipDay = sipData.reduce((sum, r) => sum + r.date.getDate(), 0) / sipData.length;
-        // Lower day is better. Score is higher if avg day is < 15
-        const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40); // UPDATED: Scale from 0 to 100
+        // Agar koi SIP nahi hai, to base score do
+        if (sipData.length === 0) return 40; 
+        
+        // FINAL UPDATE: Agar sirf ek SIP hai, to date ki parwah kiye bina ek accha score do
+        if (sipData.length === 1) return 60; // Aadat shuru karne ke liye reward
+
+        // Agar ek se zyada SIP hain, to dusre SIP se average nikalo
+        const sipsForAvg = sipData.slice(1); // Pehle SIP ko chhod do
+        const avgSipDay = sipsForAvg.reduce((sum, r) => sum + r.date.getDate(), 0) / sipsForAvg.length;
+        
+        const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40);
         return Math.min(100, dayScore);
     }
 
@@ -566,31 +572,26 @@ function calculateCreditBehaviorScore(memberName, untilDate) {
         if (repaymentDate) {
             const daysToRepay = (repaymentDate - loanRecord.date) / (1000 * 3600 * 24);
             
-            // Penalty/Bonus based on formality
             if (daysToRepay < CONFIG.LOAN_FORMALITY_DAYS_LIMIT) {
-                totalPoints += 5; // Low score for formality loan
+                totalPoints += 5; 
             } else {
-                // Score based on repayment speed
-                if (daysToRepay <= CONFIG.LOAN_TERM_BEST) totalPoints += 25; // Best
-                else if (daysToRepay <= CONFIG.LOAN_TERM_BETTER) totalPoints += 20; // Better
-                else if (daysToRepay <= CONFIG.LOAN_TERM_GOOD) totalPoints += 15; // Good
-                else if (daysToRepay <= CONFIG.LOAN_TERM_LATE_FEE) totalPoints -= 5; // Late
-                else totalPoints -= 20; // Very Late
+                if (daysToRepay <= CONFIG.LOAN_TERM_BEST) totalPoints += 25; 
+                else if (daysToRepay <= CONFIG.LOAN_TERM_BETTER) totalPoints += 20;
+                else if (daysToRepay <= CONFIG.LOAN_TERM_GOOD) totalPoints += 15;
+                else if (daysToRepay <= CONFIG.LOAN_TERM_LATE_FEE) totalPoints -= 5;
+                else totalPoints -= 20;
             }
-            // Bonus for larger loan amounts
             if(loanAmount > 5000) totalPoints += 5;
             if(loanAmount > 10000) totalPoints += 5;
 
         } else {
-            // Heavy penalty for outstanding loans
             totalPoints -= 40;
         }
     }
 
-    if (loansProcessed === 0) return 40; // UPDATED: Safeguard
+    if (loansProcessed === 0) return 40;
     
-    // Normalize score to a 0-100 scale
-    const maxPossiblePoints = loansProcessed * 35; // (25 for speed + 10 for amount)
+    const maxPossiblePoints = loansProcessed * 35; 
     const normalizedScore = (totalPoints / maxPossiblePoints) * 100;
     
     return Math.max(0, Math.min(100, normalizedScore));
@@ -602,7 +603,6 @@ function calculateCreditBehaviorScore(memberName, untilDate) {
 function getLoanEligibility(memberName, score) {
     const memberData = allData.filter(r => r.name === memberName);
     
-    // Check for outstanding loans using the new partial payment logic
     let totalLoan = 0, totalPayment = 0;
     memberData.forEach(r => {
         totalLoan += r.loan;
@@ -652,15 +652,14 @@ function calculateProfitDistribution(paymentRecord) {
     for (const memberName in snapshotScores) {
         let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * profit;
         
-        // UPDATED INACTIVE POLICY LOGIC
         const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate).pop()?.date;
         const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
         
         let appliedMultiplier = 1.0;
         if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) {
-            appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; // 25% penalty
+            appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
         } else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) {
-            appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; // 10% penalty
+            appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
         }
         memberShare *= appliedMultiplier;
 
@@ -676,30 +675,22 @@ function calculateProfitDistribution(paymentRecord) {
 
 /*
 // --- BUSINESS LOAN PROCESSING FEE (Example Structure) ---
-// NOTE: This function cannot be fully implemented without a change in the data structure.
-// It requires a transaction type 'business_loan' and a 'processingFee' field.
 function distributeProcessingFee(businessLoanRecord) {
     const fee = businessLoanRecord.processingFee;
     const loanDate = businessLoanRecord.date;
     if (!fee || fee <= 0) return;
-
-    // Get all members in the system on the day of the loan
     const activeMembers = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))];
     if (activeMembers.length === 0) return;
-
     const sharePerMember = fee / activeMembers.length;
-
     console.log(`Processing fee of ₹${fee} distributed.`);
     activeMembers.forEach(name => {
         console.log(`- ${name} receives ₹${sharePerMember.toFixed(2)}`);
-        // Here, you would create new transactions or update member balances
-        // to reflect this fee distribution.
     });
 }
 */
 
 
-// --- UI and Display Functions (Largely unchanged, but will now use new score data) ---
+// --- UI and Display Functions ---
 
 function initializeDashboard() {
     document.getElementById('dashboardContent').classList.remove('visually-hidden');
