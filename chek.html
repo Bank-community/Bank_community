@@ -517,7 +517,7 @@ function calculateConsistencyScore(memberData) {
     return (consistencyPoints / (monthsConsidered * 10)) * 100;
 }
 
-// 3. NEW CREDIT BEHAVIOR SCORE
+// 3. NEW CREDIT BEHAVIOR SCORE (UPDATED with 40 as base)
 function calculateCreditBehaviorScore(memberName, untilDate) {
     const data = allData.filter(r => r.date <= untilDate);
     const memberData = data.filter(r => r.name === memberName);
@@ -530,15 +530,15 @@ function calculateCreditBehaviorScore(memberName, untilDate) {
 
     // Case 1: No loans taken
     if (memberLoans.length === 0) {
-        if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 50; // Neutral score for very new members
+        if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; // UPDATED: Neutral score for very new members
         
         // Score based on SIP discipline for members without loans
         const sipData = memberData.filter(r => r.sipPayment > 0);
-        if (sipData.length === 0) return 60; // No SIPs yet, but member for a while
+        if (sipData.length === 0) return 40; // UPDATED: No SIPs yet, but member for a while
         
         const avgSipDay = sipData.reduce((sum, r) => sum + r.date.getDate(), 0) / sipData.length;
         // Lower day is better. Score is higher if avg day is < 15
-        const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 50); // Scale from 0 to 100
+        const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40); // UPDATED: Scale from 0 to 100
         return Math.min(100, dayScore);
     }
 
@@ -587,7 +587,7 @@ function calculateCreditBehaviorScore(memberName, untilDate) {
         }
     }
 
-    if (loansProcessed === 0) return 70; // Should not happen if memberLoans.length > 0, but a safeguard.
+    if (loansProcessed === 0) return 40; // UPDATED: Safeguard
     
     // Normalize score to a 0-100 scale
     const maxPossiblePoints = loansProcessed * 35; // (25 for speed + 10 for amount)
@@ -595,6 +595,7 @@ function calculateCreditBehaviorScore(memberName, untilDate) {
     
     return Math.max(0, Math.min(100, normalizedScore));
 }
+
 
 // --- OTHER CORE FUNCTIONS (Updated Inactive Policy) ---
 
@@ -939,7 +940,7 @@ function showCalculationDetails(details) {
     } else if (details.type === 'profit_event') {
         const { member, profitEvent } = details;
         titleEl.textContent = `Profit Share for ${member.name}`;
-        const sharePercentage = (member.snapshotScore / member.totalSnapshotScore) * 100;
+        const sharePercentage = (member.totalSnapshotScore > 0) ? (member.snapshotScore / member.totalSnapshotScore) * 100 : 0;
         const initialShare = (sharePercentage / 100) * profitEvent.profit;
         html = `<div class="calc-row"><span class="calc-label">Loan From</span> <span class="calc-value">${profitEvent.relevantLoan.name}</span></div><div class="calc-row"><span class="calc-label">Total Profit from Loan</span> <span class="calc-value">₹${profitEvent.profit.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Your Score (at loan time)</span> <span class="calc-value">${member.snapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Total Community Score</span> <span class="calc-value">${member.totalSnapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Your Share (%)</span> <span class="calc-value">${sharePercentage.toFixed(2)}%</span></div><div class="calc-formula">(Your Score / Total Score) * 100</div><hr><div class="calc-row"><span class="calc-label">Initial Share</span> <span class="calc-value">₹${initialShare.toFixed(2)}</span></div>${member.multiplier !== 1 ? `<div class="calc-row"><span class="calc-label">Inactive Policy (x${member.multiplier})</span> <span class="calc-value">- ₹${(initialShare - member.share).toFixed(2)}</span></div>` : ''}<div class="calc-final">Final Profit: ₹${member.share.toFixed(2)}</div>`;
     } else if (details.type === 'total_profit') {
