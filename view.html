@@ -259,15 +259,24 @@
   </div>
 
   <script type="module">
-    // --- CONFIGURATION FOR FINANCIAL CALCULATOR ---
+    // --- CONFIGURATION FOR FINANCIAL CALCULATOR (UPDATED) ---
     const CALC_CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
+        CAPITAL_SCORE_DAYS: 90,
         LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
         LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
-        MINIMUM_MEMBERSHIP_DAYS: 60, SIP_ON_TIME_LIMIT: 10,
-        LOAN_TERM_TIER3: 90,
-        INACTIVE_MEMBER_DAYS_LIMIT: 365,
-        INACTIVE_MEMBER_PROFIT_MULTIPLIER: 0.75
+        MINIMUM_MEMBERSHIP_DAYS: 60,
+        MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE: 30,
+        SIP_ON_TIME_LIMIT: 10,
+        LOAN_FORMALITY_DAYS_LIMIT: 15,
+        LOAN_TERM_BEST: 30,
+        LOAN_TERM_BETTER: 60,
+        LOAN_TERM_GOOD: 90,
+        LOAN_TERM_LATE_FEE: 100,
+        INACTIVE_DAYS_LEVEL_1: 180,
+        INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90,
+        INACTIVE_DAYS_LEVEL_2: 365,
+        INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75,
     };
 
     let currentMemberData = {};
@@ -325,6 +334,7 @@
                 
                 const allMembersData = snapshot.val();
                 currentMemberData = allMembersData[memberId];
+                currentMemberData.membershipId = memberId; // Ensure memberId is part of the object
 
                 if (!currentMemberData) throw new Error(`Member with ID "${memberId}" not found.`);
 
@@ -349,7 +359,6 @@
                     sipPayment: parseFloat(row["SIP Payment"]) || 0,
                     returnAmount: parseFloat(row["Return amount"] || 0),
                     extraBalance: parseFloat(row["Extra Balance"] || 0),
-                    // ✅ BUG FIX: Read the new withdrawal field
                     extraWithdraw: parseFloat(row["Extra Withdraw"] || 0),
                 })).filter(r => r.fullName && !isNaN(r.date.getTime()));
                 allMemberTransactions.sort((a,b) => a.date - b.date);
@@ -402,7 +411,7 @@
             document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
             document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
-
+            
             const scoreResult = calculatePerformanceScore(data.fullName, new Date());
             const eligibilityResult = getLoanEligibility(data.fullName, scoreResult.totalScore);
             document.getElementById('performance-score').textContent = scoreResult.totalScore.toFixed(2);
@@ -509,7 +518,6 @@
         
         // --- IMAGE & SHARING FUNCTIONS ---
         function toDataURL(url) {
-            // Use a CORS proxy for Firebase Storage URLs
             const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
             const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
 
@@ -526,7 +534,7 @@
                 }))
                 .catch((error) => {
                     console.warn(`Could not fetch image via proxy: ${error}. Falling back to original URL.`);
-                    return url; // Fallback to original url if fetch fails
+                    return url; 
                 });
         }
 
@@ -568,13 +576,148 @@
             }
         }
 
-        // --- FINANCIAL CALCULATOR LOGIC (WITH BUG FIX) ---
+        // --- FINANCIAL CALCULATOR LOGIC (UPDATED) ---
+
+        // 1. Capital Score (90-day Average)
+        function calculateCapitalScore(memberName, untilDate) {
+            const daysToReview = CALC_CONFIG.CAPITAL_SCORE_DAYS;
+            const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
+            const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
+
+            let balanceAtStart = 0;
+            allMemberTransactions.filter(r => r.fullName === memberName && r.date < startDate).forEach(r => {
+                balanceAtStart += r.sipPayment + r.payment - r.loan;
+            });
+
+            let weightedCapitalSum = 0;
+            let currentBalance = balanceAtStart;
+            let lastDate = startDate;
+
+            const relevantTransactions = memberData.filter(r => r.date >= startDate);
+            relevantTransactions.forEach(t => {
+                const daysDifference = (t.date - lastDate) / (1000 * 3600 * 24);
+                weightedCapitalSum += currentBalance * daysDifference;
+                currentBalance += t.sipPayment + t.payment - t.loan;
+                lastDate = t.date;
+            });
+            weightedCapitalSum += currentBalance * ((untilDate - lastDate) / (1000 * 3600 * 24));
+            const averageDailyBalance = weightedCapitalSum / daysToReview;
+            const normalizedScore = Math.min(100, (averageDailyBalance / 50000) * 100);
+            return Math.max(0, normalizedScore);
+        }
+
+        // 2. Consistency Score (SIP Discipline)
+        function calculateConsistencyScore(memberData) {
+            const sipHistory = {};
+            memberData.filter(r => r.sipPayment > 0).forEach(r => {
+                const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`;
+                if (!sipHistory[monthKey]) {
+                    sipHistory[monthKey] = r.date.getDate() <= CALC_CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5;
+                }
+            });
+            const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
+            const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
+            return (consistencyPoints / (monthsConsidered * 10)) * 100;
+        }
+
+        // 3. Credit Behavior Score (Advanced Logic)
+        function calculateCreditBehaviorScore(memberName, untilDate) {
+            const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
+            const memberLoans = memberData.filter(r => r.loan > 0);
+            const firstTransactionDate = memberData[0]?.date;
+            if (!firstTransactionDate) return 0;
+            const membershipDays = (untilDate - firstTransactionDate) / (1000 * 3600 * 24);
+
+            if (memberLoans.length === 0) {
+                if (membershipDays < CALC_CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40;
+                const sipData = memberData.filter(r => r.sipPayment > 0);
+                if (sipData.length === 0) return 40;
+                if (sipData.length === 1) return 60;
+                const sipsForAvg = sipData.slice(1);
+                const avgSipDay = sipsForAvg.reduce((sum, r) => sum + r.date.getDate(), 0) / sipsForAvg.length;
+                const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40);
+                return Math.min(100, dayScore);
+            }
+
+            let totalPoints = 0;
+            let loansProcessed = 0;
+            for (const loanRecord of memberLoans) {
+                let loanAmount = loanRecord.loan;
+                let paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0));
+                let amountRepaid = 0;
+                let repaymentDate = null;
+                for (const p of paymentsAfterLoan) {
+                    amountRepaid += p.payment + p.sipPayment;
+                    if (amountRepaid >= loanAmount) {
+                        repaymentDate = p.date;
+                        break;
+                    }
+                }
+                loansProcessed++;
+                if (repaymentDate) {
+                    const daysToRepay = (repaymentDate - loanRecord.date) / (1000 * 3600 * 24);
+                    if (daysToRepay < CALC_CONFIG.LOAN_FORMALITY_DAYS_LIMIT) totalPoints += 5;
+                    else {
+                        if (daysToRepay <= CALC_CONFIG.LOAN_TERM_BEST) totalPoints += 25;
+                        else if (daysToRepay <= CALC_CONFIG.LOAN_TERM_BETTER) totalPoints += 20;
+                        else if (daysToRepay <= CALC_CONFIG.LOAN_TERM_GOOD) totalPoints += 15;
+                        else if (daysToRepay <= CALC_CONFIG.LOAN_TERM_LATE_FEE) totalPoints -= 5;
+                        else totalPoints -= 20;
+                    }
+                    if (loanAmount > 5000) totalPoints += 5;
+                    if (loanAmount > 10000) totalPoints += 5;
+                } else {
+                    totalPoints -= 40;
+                }
+            }
+            if (loansProcessed === 0) return 40;
+            const maxPossiblePoints = loansProcessed * 35;
+            const normalizedScore = (totalPoints / maxPossiblePoints) * 100;
+            return Math.max(0, Math.min(100, normalizedScore));
+        }
+
+        // Main Performance Score Function
+        function calculatePerformanceScore(memberName, untilDate) {
+            const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
+            if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
+            const capitalScore = calculateCapitalScore(memberName, untilDate);
+            const consistencyScore = calculateConsistencyScore(memberData);
+            const creditScore = calculateCreditBehaviorScore(memberName, untilDate);
+            const totalScore = (capitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
+            return { totalScore: isNaN(totalScore) ? 0 : totalScore, capitalScore, consistencyScore, creditScore };
+        }
+
+        // Loan Eligibility Function
+        function getLoanEligibility(memberName, score) {
+            const memberData = allMemberTransactions.filter(r => r.fullName === memberName);
+            let totalLoan = 0, totalPayment = 0;
+            memberData.forEach(r => {
+                totalLoan += r.loan;
+                totalPayment += r.payment + r.sipPayment;
+            });
+            if (totalLoan > totalPayment) return { eligible: false, reason: 'Outstanding Loan' };
+            const firstSip = memberData.find(r => r.sipPayment > 0);
+            if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
+            const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
+            if (daysSinceFirstSip < CALC_CONFIG.MINIMUM_MEMBERSHIP_DAYS) {
+                const daysLeft = Math.ceil(CALC_CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip);
+                return { eligible: false, reason: `${daysLeft} days left` };
+            }
+            const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CALC_CONFIG;
+            let multiplier = LOAN_LIMIT_TIER1_MAX;
+            if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
+            else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
+            else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
+            else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
+            return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, isNaN(multiplier) ? 1.0 : multiplier) };
+        }
+
+        // ✅ UPDATED Extra Balance Calculation
         function calculateTotalExtraBalance(memberId) {
-            let total = 0;
             const history = [];
             const memberFullName = currentMemberData.fullName;
 
-            // 1. Calculate profit from loan distributions
+            // 1. Calculate profit from all loan distributions using the new logic
             const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
             profitEvents.forEach(paymentRecord => {
                 const profit = paymentRecord.returnAmount * 0.90;
@@ -602,10 +745,12 @@
                     let memberShare = (snapshotScores[memberFullName] / totalScoreInSnapshot) * profit;
                     
                     const lastLoanDate = allMemberTransactions.filter(r => r.fullName === memberFullName && r.loan > 0 && r.date <= loanDate).pop()?.date;
-                    const daysSinceLastLoan = lastLoanDate ? (loanDate - loanDate) / (1000 * 3600 * 24) : Infinity;
+                    const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
                     
-                    if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_MEMBER_DAYS_LIMIT) {
-                        memberShare *= CALC_CONFIG.INACTIVE_MEMBER_PROFIT_MULTIPLIER;
+                    if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_DAYS_LEVEL_2) {
+                        memberShare *= CALC_CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
+                    } else if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_DAYS_LEVEL_1) {
+                        memberShare *= CALC_CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
                     }
                     
                     if (memberShare > 0) {
@@ -621,80 +766,15 @@
                     history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
                 }
                 if (tx.extraWithdraw > 0) {
-                    // Make the amount negative for withdrawal
                     history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
                 }
             });
             
             history.sort((a,b) => a.date - b.date);
             
-            // Calculate final total from sorted history
-            total = history.reduce((acc, item) => acc + item.amount, 0);
+            const total = history.reduce((acc, item) => acc + item.amount, 0);
 
             return { total, history };
-        }
-
-        function calculatePerformanceScore(memberName, untilDate) {
-            const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
-            if (memberData.length === 0) return { totalScore: 0 };
-            const totalDays = 180;
-            const startDate = new Date(untilDate.getTime() - totalDays * 24 * 3600 * 1000);
-            let weightedCapitalSum = 0, currentBalance = 0;
-            const relevantTransactions = memberData.filter(r => r.date >= startDate);
-            if (relevantTransactions.length > 0) {
-                let lastDate = startDate;
-                relevantTransactions.forEach(t => {
-                    const daysDifference = (t.date - lastDate) / (1000 * 3600 * 24);
-                    weightedCapitalSum += currentBalance * daysDifference;
-                    currentBalance += t.sipPayment + t.payment - t.loan;
-                    lastDate = t.date;
-                });
-                weightedCapitalSum += currentBalance * ((untilDate - lastDate) / (1000 * 3600 * 24));
-            }
-            const capitalScore = Math.max(0, weightedCapitalSum / totalDays);
-            const normalizedCapitalScore = Math.min(100, (capitalScore / 50000) * 100);
-            const sipHistory = {};
-            memberData.filter(r => r.sipPayment > 0).forEach(r => {
-                const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`;
-                if (!sipHistory[monthKey]) sipHistory[monthKey] = r.date.getDate() <= CALC_CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5;
-            });
-            const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
-            const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
-            const consistencyScore = (consistencyPoints / (monthsConsidered * 10)) * 100;
-            let creditPoints = 0;
-            const memberLoans = memberData.filter(r => r.loan > 0);
-            memberLoans.forEach(loanRecord => {
-                const repayment = memberData.find(r => r.payment >= loanRecord.loan && r.date > loanRecord.date);
-                if (repayment) {
-                    const daysToRepay = (repayment.date - loanRecord.date) / (1000 * 3600 * 24);
-                    if (daysToRepay <= CALC_CONFIG.LOAN_TERM_TIER3) creditPoints += 20;
-                    else creditPoints -= 5;
-                } else { creditPoints -= 40; }
-            });
-            const creditScore = memberLoans.length > 0 ? Math.max(0, (creditPoints / (memberLoans.length * 20)) * 100) : 70;
-            const totalScore = (normalizedCapitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
-            return { totalScore: isNaN(totalScore) ? 0 : totalScore };
-        }
-
-        function getLoanEligibility(memberName, score) {
-            const memberData = allMemberTransactions.filter(r => r.fullName === memberName);
-            const totalLoan = memberData.reduce((sum, r) => sum + r.loan, 0);
-            const totalPayment = memberData.reduce((sum, r) => sum + r.payment + r.sipPayment, 0); 
-            if (totalLoan > totalPayment) return { eligible: false, reason: 'Outstanding Loan' };
-            const firstSip = memberData.find(r => r.sipPayment > 0);
-            if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
-            const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
-            if (daysSinceFirstSip < CALC_CONFIG.MINIMUM_MEMBERSHIP_DAYS) {
-                const daysLeft = Math.ceil(CALC_CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip);
-                return { eligible: false, reason: `${daysLeft} days left` };
-            }
-            const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CALC_CONFIG;
-            let multiplier = LOAN_LIMIT_TIER1_MAX;
-            if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
-            else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
-            else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
-            else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
-            return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, isNaN(multiplier) ? 1.0 : multiplier) };
         }
 
         loadAllData();
