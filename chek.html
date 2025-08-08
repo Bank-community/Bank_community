@@ -1,1059 +1,746 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loan Profit Analytics - Firebase Version</title>
-    
-    <!-- Google Fonts & Icons -->
+    <title>Smart Loan Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Marked.js for rendering Markdown from Gemini -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <!-- Firebase SDKs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDKs for backend connection -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
 </head>
 <body>
 <style>
-/* --- ROOT VARIABLES & FONT IMPORT --- */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #e67e22;
-    --light-bg: #ecf0f1;
-    --text-dark: #2c3e50;
-    --text-light: #7f8c8d;
-    --positive-color: #27ae60;
-    --negative-color: #c0392b;
-    --warning-color: #f39c12;
+    --primary-bg: #f7f8fc;
     --card-bg: #ffffff;
-    --card-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
-    --border-color: #dfe6e9;
-    --modal-bg: rgba(44, 62, 80, 0.7);
-    --gradient-header: linear-gradient(90deg, #2c3e50, #34495e);
-    --details-btn-bg: #27ae60;
-    --details-btn-text: #ffffff;
-    --ai-btn-bg: #8e44ad;
-    --ai-btn-text: #ffffff;
+    --text-dark: #1a202c;
+    --text-light: #718096;
+    --border-color: #e2e8f0;
+    --primary-color: #4f46e5;
+    --primary-dark: #4338ca;
+    --danger-color: #e53e3e;
+    --danger-light: #fff5f5;
+    --success-color: #38a169;
+    --success-light: #f0fff4;
+    --warning-color: #dd6b20;
+    --warning-light: #fffaf0;
+    --font-family: 'Poppins', sans-serif;
 }
 
-/* --- BASE & UTILITIES --- */
-body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--light-bg); color: var(--text-dark); line-height: 1.6; padding-top: 70px; }
-.container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
-.hidden { display: none !important; }
-.visually-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
-.highlight { font-weight: 700; padding: 2px 6px; border-radius: 5px; }
-.highlight.high { background-color: rgba(39, 174, 96, 0.15); color: var(--positive-color); }
-.highlight.medium { background-color: rgba(52, 152, 219, 0.15); color: var(--secondary-color); }
-.highlight.low { background-color: rgba(243, 156, 18, 0.15); color: var(--warning-color); }
-.btn-details-small, .btn-ai-small { background-color: var(--details-btn-bg); color: var(--details-btn-text); padding: 5px 10px; font-size: 0.8em; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; font-weight: 600; border: none; margin-left: 8px; }
-.btn-ai-small { background-color: var(--ai-btn-bg); }
-.btn-details-small:hover, .btn-ai-small:hover { opacity: 0.85; transform: scale(1.05); }
-.button-group { display: flex; align-items: center; justify-content: center; }
+body { 
+    font-family: var(--font-family); 
+    background-color: var(--primary-bg); 
+    margin: 0; 
+    padding: 24px;
+    color: var(--text-dark); 
+}
 
-/* --- LOADER & PASSWORD PROMPT --- */
-#loader, #passwordPromptContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 5000; transition: opacity 0.5s ease; flex-direction: column; }
-#loader { background-color: var(--light-bg); }
-#loader .spinner, .ai-loader .spinner { width: 50px; height: 50px; border: 5px solid rgba(0,0,0,0.1); border-left-color: var(--secondary-color); border-radius: 50%; animation: spin 1.2s linear infinite; }
+.container { 
+    max-width: 1280px; 
+    margin: 0 auto; 
+}
+
+.header { 
+    text-align: center; 
+    margin-bottom: 40px; 
+}
+.header h1 { 
+    margin: 0; 
+    font-size: 32px; 
+    font-weight: 700; 
+    color: var(--text-dark);
+}
+.header p { 
+    margin: 8px 0 0; 
+    color: var(--text-light); 
+    font-size: 18px; 
+}
+
+.summary-section { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 24px; 
+    margin-bottom: 40px; 
+}
+.summary-card { 
+    background: var(--card-bg); 
+    border-radius: 12px; 
+    padding: 24px; 
+    text-align: center; 
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.07);
+}
+.summary-card h3 { 
+    margin: 0 0 8px 0; 
+    font-size: 16px; 
+    color: var(--text-light); 
+    font-weight: 500; 
+}
+.summary-card p { 
+    margin: 0; 
+    font-size: 36px; 
+    font-weight: 700; 
+    color: var(--primary-color); 
+}
+
+.filter-controls { 
+    margin-bottom: 32px; 
+}
+#search-input { 
+    width: 100%; 
+    padding: 12px 16px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 8px; 
+    font-size: 16px; 
+    box-sizing: border-box; 
+    transition: border-color 0.2s, box-shadow 0.2s; 
+    background-color: var(--card-bg);
+}
+#search-input:focus { 
+    outline: none; 
+    border-color: var(--primary-color); 
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+#loader { 
+    text-align: center; 
+    padding: 50px; 
+    font-size: 16px; 
+    color: var(--text-light); 
+}
+.spinner { 
+    width: 40px; height: 40px; 
+    border: 4px solid rgba(0,0,0,0.1); 
+    border-left-color: var(--primary-color); 
+    border-radius: 50%; 
+    animation: spin 1s linear infinite; 
+    margin: 0 auto 15px auto; 
+}
 @keyframes spin { to { transform: rotate(360deg); } }
-#passwordPromptContainer { background-color: var(--modal-bg); backdrop-filter: blur(5px); }
-#passwordPromptContainer.visually-hidden { opacity: 0; }
-#passwordPromptMessage { padding: 30px 35px; background-color: var(--card-bg); border-radius: 16px; box-shadow: var(--card-shadow); text-align: center; max-width: 340px; width: 90%; }
-#passwordPromptMessage h3 { margin-top: 0; font-size: 1.3em; }
-#passwordInput { width: calc(100% - 24px); padding: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 22px; text-align: center; letter-spacing: 10px; font-family: 'Poppins', sans-serif; }
-#passwordSubmit { width: 100%; padding: 12px 20px; font-size: 1em; font-weight: 600; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
-#passwordSubmit:hover { background-color: var(--secondary-color); transform: translateY(-2px); }
+#loader.hidden { display: none; }
 
-/* --- HEADER & FILTERS --- */
-.header { text-align: center; background: var(--gradient-header); color: white; padding: 15px 0; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
-.header h1 { font-size: 1.4em; margin: 0; font-weight: 600; }
-.filters { margin-bottom: 30px; background-color: var(--card-bg); padding: 15px 20px; border-radius: 12px; box-shadow: var(--card-shadow); }
-.filter-group { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
-.filter-group label { font-weight: 500; }
-.filter-group select { padding: 10px 15px; font-size: 1em; border-radius: 8px; border: 1px solid var(--border-color); background-color: white; font-family: 'Poppins', sans-serif; cursor: pointer; flex-grow: 1; }
-.rank-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px; }
-.rank-buttons button { flex-grow: 1; padding: 10px 15px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
-.rank-buttons button i { margin-right: 8px; }
-.btn-profit { background-color: var(--accent-color); color: white; }
-.btn-score { background-color: var(--secondary-color); color: white; }
-.btn-eligibility { background-color: #8e44ad; color: white; }
-.rank-buttons button:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.message-box { 
+    background-color: var(--success-light); 
+    color: var(--success-color); 
+    padding: 25px; 
+    border-radius: 12px; 
+    text-align: center; 
+    border: 1px solid #c6f6d5; 
+    grid-column: 1 / -1;
+}
 
-/* --- MAIN CONTENT & SECTIONS --- */
-.main-content { display: grid; grid-template-columns: 1fr; gap: 30px; align-items: flex-start; }
-#dashboardContent { opacity: 0; transition: opacity 0.5s ease-in-out; }
-#dashboardContent.visible { opacity: 1; }
-.content-section { background-color: var(--card-bg); border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px; margin-bottom: 30px;}
-.content-section h2 { margin-top: 0; text-align: center; color: var(--primary-color); }
-#growthChartContainer { position: relative; height: 350px; }
+#outstanding-loans-container { 
+    display: grid; 
+    gap: 24px; 
+    grid-template-columns: 1fr; 
+}
+@media (min-width: 640px) { #outstanding-loans-container { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { #outstanding-loans-container { grid-template-columns: repeat(3, 1fr); } }
 
-/* --- PROFILE CARD --- */
-.profile-card { border-top: 4px solid var(--secondary-color); }
-.profile-image-container { width: 130px; height: 130px; margin: 0 auto 15px auto; border-radius: 50%; overflow: hidden; border: 5px solid var(--light-bg); box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-.profile-image-container img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s ease; }
-.profile-image-container img:hover { transform: scale(1.05); }
-.profile-card h2 { margin: 10px 0 20px 0; font-size: 1.8em; color: var(--primary-color); word-break: break-word; }
-.profile-stats { margin-top: 20px; text-align: left; }
-.stat-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 5px; border-bottom: 1px solid var(--border-color); font-size: 1em; }
-.stat-item:last-child { border-bottom: none; }
-.stat-item .label { font-weight: 500; color: var(--text-light); display: flex; align-items: center; gap: 10px; }
-.stat-item .label i { width: 20px; text-align: center; }
-.stat-item .value { font-weight: 700; font-size: 1.1em; }
-.value.positive { color: var(--positive-color); }
-.value.negative { color: var(--negative-color); }
-.icon-loan { color: var(--negative-color); }
-.icon-capital { color: var(--primary-color); }
-.icon-profit { color: var(--accent-color); }
-.icon-score { color: var(--secondary-color); }
-.icon-limit { color: #8e44ad; }
+.loan-card { 
+    background-color: var(--card-bg); 
+    border-radius: 16px; 
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+    transition: all 0.3s ease; 
+    overflow: hidden; 
+    display: flex; 
+    flex-direction: column; 
+}
+.loan-card:hover { 
+    transform: translateY(-5px); 
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+}
 
-/* --- TABLES (PROFIT, HISTORY, RANKING) --- */
-.table-container { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { padding: 15px; border-bottom: 1px solid var(--border-color); text-align: center; vertical-align: middle; }
-th { background-color: var(--primary-color); color: white; font-size: 0.9em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-td { font-size: 0.95em; }
-.profit-value { font-weight: bold; color: var(--positive-color); }
-.details-btn { padding: 8px 14px; font-size: 0.85em; background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
-.details-btn:hover { background-color: #2980b9; transform: scale(1.05); }
-.no-data-row td { text-align: center; padding: 50px; color: var(--text-light); font-size: 1.1em; }
-.transaction-type { font-weight: bold; }
-.transaction-type.sip { color: var(--positive-color); }
-.transaction-type.loan { color: var(--negative-color); }
-.transaction-type.payment { color: var(--secondary-color); }
-.transaction-type.business_fee { color: var(--accent-color); } /* New Style */
+.card-main-content { 
+    padding: 20px; 
+    position: relative; 
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
 
-/* --- MODALS --- */
-.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-bg); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2500; padding: 15px; box-sizing: border-box; transition: opacity 0.3s ease, visibility 0.3s ease; }
-.modal-content { background-color: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: var(--card-shadow); max-width: 700px; width: 95%; position: relative; max-height: 90vh; display: flex; flex-direction: column; }
-.modal.visually-hidden { opacity: 0; visibility: hidden; }
-.modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 30px; color: #bdc3c7; cursor: pointer; transition: color 0.2s; z-index: 2510;}
-.modal-close:hover { color: var(--text-dark); }
-.modal h2 { margin-top: 0; text-align: center; color: var(--primary-color); font-weight: 600; }
-.modal .list-container { overflow-y: auto; flex-grow: 1; }
-.modal ul, .modal ol { list-style: none; padding: 0; margin-top: 15px; }
-.modal li { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; background-color: var(--light-bg); transition: background-color 0.2s; }
-.modal li:hover { background-color: #dfe6e9; }
-.modal .rank { font-weight: bold; color: var(--secondary-color); min-width: 35px; font-size: 1.1em; }
-.modal .name { font-weight: 600; flex-grow: 1; }
-.modal .share { font-weight: bold; color: var(--positive-color); white-space: nowrap; }
-.chart-container { margin-bottom: 20px; }
-.list-header { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); font-size: 1.1em; color: var(--text-light); }
-#imageModal .modal-content { background: transparent; padding: 0; box-shadow: none; max-width: 90vw; }
-#imageModal img { max-height: 85vh; width: auto; object-fit: contain; border-radius: 12px; }
-#imageModal .modal-close { color: white; background-color: rgba(0,0,0,0.4); border-radius: 50%; width: 35px; height: 35px; line-height: 35px; font-size: 22px; text-align: center; top: 20px; right: 20px; }
-#calculationDetailsContent { font-size: 0.95em; line-height: 1.8; }
-#calculationDetailsContent .calc-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border-color); }
-#calculationDetailsContent .calc-row:last-child { border-bottom: none; }
-#calculationDetailsContent .calc-label { color: var(--text-light); }
-#calculationDetailsContent .calc-value { font-weight: 600; }
-#calculationDetailsContent .calc-formula { font-size: 0.85em; color: var(--text-light); text-align: right; margin-top: -5px; }
-#calculationDetailsContent .calc-final { font-size: 1.2em; font-weight: 700; color: var(--positive-color); text-align: center; margin-top: 15px; padding: 10px; background-color: var(--light-bg); border-radius: 8px; }
-.improvement-tips { margin-top: 20px; padding: 15px; background-color: rgba(39, 174, 96, 0.05); border: 1px solid rgba(39, 174, 96, 0.2); border-radius: 8px; color: #218c52; }
-.improvement-tips h4 { margin-top: 0; }
-.improvement-tips ul { padding-left: 20px; margin-bottom: 0; }
+.download-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.download-btn:hover {
+    background-color: #e5e7eb;
+    transform: scale(1.1);
+}
+.download-btn .icon {
+    width: 20px;
+    height: 20px;
+}
 
-/* --- AI MODAL STYLES --- */
-#aiExplainModal .modal-content { max-width: 800px; }
-#aiExplainModal h2 { display: flex; align-items: center; justify-content: center; gap: 10px; }
-#aiExplanationContainer { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
-#aiExplanationResult { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; min-height: 200px; max-height: 60vh; overflow-y: auto; line-height: 1.7; color: var(--text-dark); }
-#aiExplanationResult h3, #aiExplanationResult h4 { margin-top: 1.5em; margin-bottom: 0.5em; color: var(--primary-color); padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
-#aiExplanationResult ul { padding-left: 20px; }
-#aiExplanationResult strong { color: var(--primary-color); }
-#aiExplanationResult table { width: 100%; border-collapse: collapse; margin-top: 1.2em; margin-bottom: 1.2em; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
-#aiExplanationResult th, #aiExplanationResult td { padding: 12px 15px; font-size: 0.95em; text-align: left; border-bottom: 1px solid var(--border-color); }
-#aiExplanationResult th { background-color: var(--primary-color); color: white; font-weight: 600; }
-#aiExplanationResult td { color: var(--text-dark); }
-#aiExplanationResult td:first-child { font-weight: 600; color: var(--text-light); }
-#aiExplanationResult tr:last-child td { border-bottom: none; }
-.ai-loader { text-align: center; padding: 40px 0; }
-.ai-loader .spinner { margin: 0 auto 15px auto; }
-.ai-loader span { font-size: 1.1em; color: var(--text-light); }
-#languageToggleContainer { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; }
-.lang-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; font-size: 0.8em; border-radius: 5px; cursor: pointer; transition: all 0.2s ease; }
-.lang-btn:hover { background-color: var(--border-color); }
+.card-top { 
+    display: flex; 
+    align-items: center; 
+    margin-bottom: 20px; 
+}
+.profile-picture { 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    margin-right: 16px; 
+    flex-shrink: 0; 
+    border: 2px solid var(--border-color); 
+}
+.profile-picture img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+}
+.user-details h3 { 
+    margin: 0; 
+    font-size: 18px; 
+    font-weight: 600; 
+    color: var(--text-dark);
+}
+.loan-date { 
+    font-size: 13px; 
+    color: var(--text-light); 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    margin-top: 4px; 
+}
+.loan-date .icon {
+    width: 14px;
+    height: 14px;
+}
 
-/* --- RESPONSIVE DESIGN --- */
-@media (min-width: 992px) { .main-content { grid-template-columns: 380px 1fr; } .profile-card { position: sticky; top: 100px; } }
-@media (max-width: 991px) { .profile-card { margin-bottom: 30px; } }
-@media (max-width: 600px) { body { padding-top: 60px; } .container { padding: 0 15px; } .header h1 { font-size: 1.2em; } .filter-group { flex-direction: column; align-items: stretch; } .rank-buttons { flex-direction: column; } .profile-card h2 { font-size: 1.5em; } th, td { padding: 12px 8px; } .modal-content { padding: 20px; } #growthChartContainer { height: 300px; } }
+.smart-slab-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+.smart-slab-badge.active {
+    background-color: #e0e7ff; 
+    color: var(--primary-color);
+}
+.smart-slab-badge.defaulted {
+    background-color: var(--danger-light);
+    color: var(--danger-color);
+}
+.smart-slab-badge .icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* NEW STYLE FOR EMI COUNTDOWN */
+.emi-countdown {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+    background-color: var(--success-light);
+    color: var(--success-color);
+    border: 1px solid #9ae6b4;
+}
+.emi-countdown .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.card-middle { 
+    background-color: var(--primary-bg); 
+    border-radius: 12px; 
+    padding: 16px; 
+    border: 1px solid var(--border-color);
+    margin-top: auto;
+}
+.detail-row { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    font-size: 14px; 
+}
+.detail-row:not(:last-child) { 
+    margin-bottom: 12px; 
+}
+.detail-label { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    color: var(--text-light); 
+    font-weight: 500;
+}
+.detail-label .icon {
+    width: 16px;
+    height: 16px;
+}
+.detail-value { 
+    font-weight: 600; 
+    font-size: 15px; 
+}
+.detail-value.amount { 
+    color: var(--text-dark); 
+}
+.detail-value.loan-type-value {
+    color: var(--primary-dark);
+    font-weight: 600;
+    background-color: #e0e7ff;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+.detail-value.penalty-value { 
+    color: var(--danger-color);
+    font-weight: 700; 
+}
+
+.pending-banner { 
+    color: white; 
+    padding: 12px 20px; 
+    text-align: center; 
+    font-weight: 500; 
+    font-size: 14px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; 
+    transition: background-color 0.3s ease; 
+}
+.pending-banner.green { 
+    background-color: var(--success-color); 
+}
+.pending-banner.warning { 
+    background-color: var(--warning-color); 
+}
+.pending-banner.danger { 
+    background-color: var(--danger-color); 
+}
+.pending-banner .icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
 </style>
-    <div id="loader">
-        <div class="spinner"></div>
-        <span>Authenticating...</span>
-    </div>
-
-    <div id="passwordPromptContainer" class="visually-hidden">
-        <div id="passwordPromptMessage">
-            <h3><i class="fas fa-lock"></i> Enter Access PIN</h3>
-            <input type="password" id="passwordInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••">
-            <button id="passwordSubmit">Enter</button>
+    <div class="container">
+        <div class="header">
+            <h1>Smart Loan Dashboard</h1>
+            <p>Track all outstanding member loans.</p>
         </div>
-    </div>
 
-    <div id="dashboardContent" class="visually-hidden">
-        <header class="header"><h1><i class="fas fa-chart-line"></i> Bank Loan Profit</h1></header>
-        <div class="container">
-            <div class="filters">
-                <div class="filter-group">
-                    <label for="memberFilter"><i class="fas fa-user-friends"></i> Select View:</label>
-                    <select id="memberFilter"><option value="all">Community Overview</option></select>
-                </div>
-                <div class="rank-buttons">
-                    <button id="showReturnRankBtn" class="btn-profit"><i class="fas fa-trophy"></i> Profit Ranking</button>
-                    <button id="showScoreRankBtn" class="btn-score"><i class="fas fa-star"></i> Score Ranking</button>
-                    <button id="showEligibilityRankBtn" class="btn-eligibility"><i class="fas fa-gavel"></i> Eligibility Ranking</button>
-                </div>
+        <div class="summary-section">
+            <div class="summary-card">
+                <h3>Outstanding Loans</h3>
+                <p id="total-outstanding-count">0</p>
             </div>
-            <main class="main-content">
-                <aside class="profile-card content-section" id="profileSection">
-                    <div class="profile-image-container"><img id="profileImage" src="https://i.postimg.cc/XNpR3cN1/20241030-065157.png" alt="Profile Picture"></div>
-                    <h2 id="profileName">Community</h2>
-                    <div class="profile-stats">
-                        <div class="stat-item"><span class="label"><i class="fas fa-coins icon-capital"></i> Total Capital</span><span class="value" id="profileTotalCapital">₹0.00</span></div>
-                        <div class="stat-item"><span class="label"><i class="fas fa-arrow-up-from-bracket icon-loan"></i> Total Loan Given</span><span class="value negative" id="profileTotalLoan">₹0.00</span></div>
-                        <div class="stat-item"><span class="label"><i class="fas fa-sack-dollar icon-profit"></i> Profit Distributed</span><span class="value positive" id="profileTotalProfit">₹0.00</span></div>
-                        <div id="memberSpecificStats" class="hidden">
-                             <div class="stat-item"><span class="label"><i class="fas fa-star icon-score"></i> Performance Score</span><span class="value" id="profilePerformanceScore">0</span></div>
-                             <div class="stat-item"><span class="label"><i class="fas fa-gavel icon-limit"></i> Loan Eligibility</span><span class="value" id="profileLoanLimit">1.00x</span></div>
-                        </div>
-                    </div>
-                </aside>
-                <div id="right-column">
-                    <section id="growthChartSection" class="content-section"><h2><i class="fas fa-chart-area"></i> Community Growth Over Time</h2><div id="growthChartContainer"><canvas id="growthChart"></canvas></div></section>
-                    <section id="profitLogSection" class="content-section"><h2><i class="fas fa-exchange-alt"></i> Profit Distribution Events</h2><div class="table-container"><table id="profitLogTable"><thead><tr><th>Date</th><th>Payer</th><th>Loan Amt</th><th>Profit</th><th>Details</th></tr></thead><tbody></tbody></table></div></section>
-                    <section id="memberHistorySection" class="content-section hidden"><h2><i class="fas fa-history"></i> Member Transaction History</h2><div class="table-container"><table id="memberHistoryTable"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th></tr></thead><tbody></tbody></table></div></section>
-                </div>
-            </main>
+            <div class="summary-card">
+                <h3>Total Amount Due</h3>
+                <p id="total-outstanding-amount">₹0</p>
+            </div>
         </div>
+
+        <div class="filter-controls">
+            <input type="text" id="search-input" placeholder="Search by member name...">
+        </div>
+
+        <div id="loader">
+            <div class="spinner"></div>
+            Authenticating user...
+        </div>
+
+        <div id="outstanding-loans-container"></div>
+
     </div>
-    
-    <!-- Modals -->
-    <div id="detailsModal" class="modal visually-hidden"><div class="modal-content"><button class="modal-close">×</button><h2><i class="fas fa-chart-pie"></i> Profit Distribution</h2><div class="chart-container"><canvas id="distributionChart"></canvas></div><h3 class="list-header">Beneficiaries</h3><div class="list-container"><ul id="distributionDetails"></ul></div></div></div>
-    <div id="returnRankModal" class="modal visually-hidden"><div class="modal-content"><button class="modal-close">×</button><h2><i class="fas fa-trophy"></i> Member Profit Ranking</h2><div class="list-container"><ol id="returnRankList"></ol></div></div></div>
-    <div id="scoreRankModal" class="modal visually-hidden"><div class="modal-content"><button class="modal-close">×</button><h2><i class="fas fa-star"></i> Performance Score Ranking</h2><div class="table-container list-container"><table id="scoreRankTable"><thead><tr><th>Rank</th><th>Name</th><th>Score</th><th>Actions</th></tr></thead><tbody></tbody></table></div><div class="improvement-tips"><h4><i class="fas fa-lightbulb"></i> Score Kaise Badhaye?</h4><ul><li>Har mahine 1 se 10 tarikh ke beech SIP jama karein.</li><li>Liye gaye loan ko samay par (90 din ke andar) chukayein.</li><li>System mein lambe samay tak apna capital banaye rakhein.</li></ul></div></div></div>
-    <div id="eligibilityRankModal" class="modal visually-hidden"><div class="modal-content"><button class="modal-close">×</button><h2><i class="fas fa-gavel"></i> Loan Eligibility Ranking</h2><div class="table-container list-container"><table id="eligibilityRankTable"><thead><tr><th>Name</th><th>Capital</th><th>Eligibility</th><th>Max Loan Amt</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
-    <div id="calculationDetailsModal" class="modal visually-hidden"><div class="modal-content"><button class="modal-close">×</button><h2 id="calculationDetailsTitle">Calculation Details</h2><div id="calculationDetailsContent" class="list-container"></div></div></div>
-    <div id="imageModal" class="modal visually-hidden"><button class="modal-close">×</button><div class="modal-content"><img id="fullProfileImage" src="" alt="Full Profile Picture View"></div></div>
-    <div id="aiExplainModal" class="modal visually-hidden"><div class="modal-content"><button class="modal-close">×</button><h2><i class="fas fa-robot"></i> AI Assistant</h2><div id="aiExplanationContainer"><div id="languageToggleContainer" class="hidden"><button class="lang-btn" data-lang="hi">हिंदी में</button><button class="lang-btn" data-lang="en">In English</button></div><div id="aiExplanationResult"></div></div></div></div>
 
 <script>
-// --- CONFIGURATION & NIYAM (UPDATED) ---
-const CONFIG = {
-    PASSWORD: "7536",
-    DEFAULT_PROFILE_PIC: 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png',
+document.addEventListener("DOMContentLoaded", () => {
     
-    // Performance Score Weights
-    CAPITAL_WEIGHT: 0.40, 
-    CONSISTENCY_WEIGHT: 0.30, 
-    CREDIT_BEHAVIOR_WEIGHT: 0.30,
+    async function checkAuthAndInitialize() {
+        try {
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
+            
+            firebase.initializeApp(config.firebase);
+            
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    runAppLogic();
+                } else {
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                }
+            });
 
-    // NEW: Capital Score Calculation Window
-    CAPITAL_SCORE_DAYS: 90,
-
-    // Loan Eligibility Tiers
-    LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
-    LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
-    
-    // Credit Behavior & Membership Rules
-    MINIMUM_MEMBERSHIP_DAYS: 60,
-    MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE: 30, // New
-    SIP_ON_TIME_LIMIT: 10,
-    LOAN_FORMALITY_DAYS_LIMIT: 15, // New
-    LOAN_TERM_BEST: 30, // New
-    LOAN_TERM_BETTER: 60, // New
-    LOAN_TERM_GOOD: 90, // New
-    LOAN_TERM_LATE_FEE: 100,
-
-    // NEW: Inactive Policy Tiers
-    INACTIVE_DAYS_LEVEL_1: 180,
-    INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90, // 10% penalty
-    INACTIVE_DAYS_LEVEL_2: 365,
-    INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75, // 25% penalty
-};
-
-// --- GLOBAL VARIABLES ---
-let allData = [], memberNames = [], distributionChartInstance = null, growthChartInstance = null;
-let db;
-
-// --- INITIALIZATION ---
-document.addEventListener("DOMContentLoaded", () => checkAuthAndInitialize());
-
-// --- Authentication check ---
-async function checkAuthAndInitialize() {
-    try {
-        const response = await fetch('/api/config');
-        if (!response.ok) throw new Error('Configuration failed to load.');
-        const config = await response.json();
-        
-        firebase.initializeApp(config.firebase);
-        db = firebase.database();
-        
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                console.log("User authenticated, showing PIN prompt...");
-                document.getElementById('loader').classList.add('hidden');
-                setupPasswordPrompt();
-            } else {
-                console.log("User not authenticated, redirecting...");
-                window.location.href = `/login.html?redirect=${window.location.pathname}`;
-            }
-        });
-
-    } catch (error) {
-        console.error("Initialization Error:", error);
-        document.getElementById('loader').innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
-    }
-}
-
-function setupPasswordPrompt() {
-    const passwordContainer = document.getElementById('passwordPromptContainer');
-    const passwordInput = document.getElementById('passwordInput');
-    const passwordSubmit = document.getElementById('passwordSubmit');
-    passwordContainer.classList.remove('visually-hidden');
-    passwordInput.focus();
-    const checkPassword = () => {
-        if (passwordInput.value === CONFIG.PASSWORD) {
-            passwordContainer.classList.add('visually-hidden');
-            document.getElementById('loader').classList.remove('hidden');
-            loadAndProcessData();
-        } else {
-            alert("Incorrect PIN");
-            passwordInput.value = "";
-            passwordInput.focus();
+        } catch (error) {
+            console.error("Initialization Error:", error);
+            const loader = document.getElementById('loader');
+            loader.innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
         }
-    };
-    passwordSubmit.addEventListener('click', checkPassword);
-    passwordInput.addEventListener('keydown', (e) => e.key === 'Enter' && checkPassword());
-}
+    }
 
-// --- DATA FETCHING AND PROCESSING ---
-async function loadAndProcessData() {
-    try {
-        const membersRef = db.ref('members');
-        const snapshot = await membersRef.once('value');
-        if (!snapshot.exists()) throw new Error('No member data found in Firebase.');
+    function runAppLogic() {
+        const ICONS = {
+            calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
+            money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
+            penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
+            clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
+            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
+            star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`,
+            tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`,
+            briefcase: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.07a2.25 2.25 0 0 1-2.25 2.25H5.92a2.25 2.25 0 0 1-2.18-2.01l-.34-9.4a2.25 2.25 0 0 1 2.18-2.51h12.44a2.25 2.25 0 0 1 2.25 2.25v4.07Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9.75h7.5v.008h-7.5V9.75Zm4.95.45a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>`,
+            receipt: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m3 0h.75M9 12l3-3m0 0 3 3m-3-3v12.75" /></svg>`,
+            percent: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 0 0 4.5 9.75v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25v-7.5a2.25 2.25 0 0 0-2.25-2.25h-.75m0-3-3-3m0 0-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-7.5a2.25 2.25 0 0 1 2.25-2.25h.75" /></svg>`,
+            // NEW ICON FOR EMI COUNTDOWN
+            hourglass: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662s.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.092-1.21.138-2.43.138-3.662Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12Z" /></svg>`,
+        };
+
+        const state = {
+            allOutstandingLoans: [],
+            ui: {
+                loader: document.getElementById('loader'),
+                container: document.getElementById('outstanding-loans-container'),
+                totalCountEl: document.getElementById('total-outstanding-count'),
+                totalAmountEl: document.getElementById('total-outstanding-amount'),
+                searchInput: document.getElementById('search-input'),
+            },
+        };
+
+        async function fetchAndProcessData() {
+            state.ui.loader.innerHTML = '<div class="spinner"></div>Loading member data...';
+            try {
+                const db = firebase.database();
+                const membersRef = db.ref('members');
+                const snapshot = await membersRef.once('value');
+                if (!snapshot.exists()) throw new Error('No member data found.');
+                
+                const membersData = snapshot.val();
+                const allTransactions = [];
+                for (const memberId in membersData) {
+                    const member = membersData[memberId];
+                    if (member.transactions) {
+                        for (const txId in member.transactions) {
+                            allTransactions.push({ ...member.transactions[txId], fullName: member.fullName, profilePicUrl: member.profilePicUrl });
+                        }
+                    }
+                }
+                
+                const processedData = processRawData(allTransactions);
+                state.allOutstandingLoans = findOutstandingLoans(processedData);
+                displayAllData();
+                setupEventListeners();
+            } catch (error) {
+                console.error("Data fetch failed:", error);
+                state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded.</p>`;
+            } finally {
+                state.ui.loader.classList.add('hidden');
+            }
+        }
         
-        const membersData = snapshot.val();
-        const allTransactions = [];
-        for (const memberId in membersData) {
-            const member = membersData[memberId];
-            if (member.transactions) {
-                for (const txId in member.transactions) {
-                    allTransactions.push({
-                        ...member.transactions[txId],
-                        Name: member.fullName,
-                        imageUrl: member.profilePicUrl
+        function processRawData(rawData) {
+             return rawData
+                .map(row => {
+                    const loanAmount = parseFloat(row.Loan || 0);
+                    return {
+                        Name: String(row.fullName || 'Unknown').trim(),
+                        Date: new Date(row.Date),
+                        Loan: loanAmount,
+                        Payment: parseFloat(row['Loan Payment'] || 0),
+                        ImageUrl: row.profilePicUrl || null,
+                        LoanType: row['Loan Type'] || (loanAmount > 0 ? 'Personal Loan' : null)
+                    };
+                })
+                .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
+                .sort((a, b) => a.Date - b.Date);
+        }
+
+        function calculateStandardPenalty(loanAmount, daysSinceLoan) {
+            let percentage = 0;
+            if (daysSinceLoan > 0 && daysSinceLoan <= 30)       percentage = 1;
+            else if (daysSinceLoan >= 31 && daysSinceLoan <= 60) percentage = 3;
+            else if (daysSinceLoan >= 61 && daysSinceLoan <= 90) percentage = 5;
+            else if (daysSinceLoan > 90)                   percentage = 6;
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { type: 'penalty', percentage, amount };
+        }
+
+        function calculateSmartSlabInterest(loanAmount, paymentsMadeCount) {
+            let percentage = 0;
+            let slabName = "";
+            
+            if (paymentsMadeCount === 0) {
+                percentage = 1; 
+                slabName = "Month 1";
+            } else if (paymentsMadeCount === 1) {
+                percentage = 2.5; 
+                slabName = "Month 2";
+            } else {
+                percentage = 4.5; 
+                slabName = "Month 3+";
+            }
+
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { type: 'smart-interest', percentage, amount, slabName };
+        }
+        
+        // UPDATED with EMI countdown logic
+        function findOutstandingLoans(allData) {
+            const outstanding = [];
+            const members = [...new Set(allData.map(d => d.Name))];
+
+            members.forEach(name => {
+                const memberData = allData.filter(r => r.Name === name);
+                
+                const lastLoan = memberData.filter(tx => tx.Loan > 0).pop();
+                if (!lastLoan) return;
+
+                const transactionsAfterLoan = memberData.filter(tx => tx.Date >= lastLoan.Date);
+                
+                let currentBalance = 0;
+                transactionsAfterLoan.forEach(tx => {
+                    currentBalance += tx.Loan;
+                    currentBalance -= tx.Payment;
+                });
+                
+                currentBalance = Math.round(currentBalance);
+                if (currentBalance <= 0) return;
+
+                const today = new Date();
+                const loanDate = lastLoan.Date;
+                const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
+
+                if (lastLoan.LoanType === 'Business Loan') {
+                    let processingFee = (currentBalance <= 9000) ? Math.round(currentBalance * 0.01) : Math.round(currentBalance * 0.01) + 200;
+                    let dueText = '', dueAmount = 0;
+                    const monthsSinceLoan = daysSinceLoan / 30.44; 
+
+                    if (monthsSinceLoan <= 3) {
+                        dueText = 'Monthly Interest (1.5%)';
+                        dueAmount = Math.round(currentBalance * 0.015);
+                    } else if (monthsSinceLoan > 3 && monthsSinceLoan <= 9) {
+                        const P = currentBalance, r = 0.015, n = 6;
+                        const emi = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+                        dueText = 'EMI Due';
+                        dueAmount = Math.round(emi);
+                    } else {
+                        dueText = 'Overdue Amount';
+                        dueAmount = currentBalance;
+                    }
+
+                    outstanding.push({
+                        name: name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
+                        imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
+                        loanDate: loanDate, interest: { type: dueText, amount: dueAmount },
+                        status: 'business', loanType: lastLoan.LoanType, processingFee: processingFee
+                    });
+
+                } else {
+                    let interestInfo, status = 'standard', daysRemainingForEMI = null;
+                    const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
+                    const firstPaymentAfterLoan = paymentsAfterLoan[0];
+                    let isSmartSlabEligible = false;
+
+                    if (firstPaymentAfterLoan) {
+                        const daysToFirstPayment = (firstPaymentAfterLoan.Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24);
+                        if (daysToFirstPayment <= 30) isSmartSlabEligible = true;
+                    }
+
+                    if (isSmartSlabEligible) {
+                        const lastPayment = paymentsAfterLoan[paymentsAfterLoan.length - 1];
+                        const daysSinceLastPayment = Math.floor((today.getTime() - lastPayment.Date.getTime()) / (1000 * 3600 * 24));
+                        
+                        if (daysSinceLastPayment > 30) {
+                            status = 'smart-defaulted';
+                            interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                        } else {
+                            status = 'smart-active';
+                            interestInfo = calculateSmartSlabInterest(currentBalance, paymentsAfterLoan.length);
+                            // NEW: Calculate remaining days for the next EMI
+                            daysRemainingForEMI = 30 - daysSinceLastPayment;
+                        }
+                    } else {
+                        status = 'standard';
+                        interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                    }
+
+                    outstanding.push({
+                        name: name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
+                        imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
+                        loanDate: loanDate, interest: interestInfo, status: status,
+                        loanType: lastLoan.LoanType,
+                        // NEW: Add remaining days to the object
+                        daysRemainingForEMI: daysRemainingForEMI
                     });
                 }
-            }
-        }
-
-        allData = allTransactions.map((row, index) => ({
-            id: index, date: new Date(row.Date), name: String(row.Name).trim(),
-            loan: parseFloat(row.Loan) || 0, payment: parseFloat(row["Loan Payment"]) || 0,
-            sipPayment: parseFloat(row["SIP Payment"]) || 0, returnAmount: parseFloat(row["Return amount"] || 0),
-            imageUrl: row.imageUrl || null,
-            // New transaction types can be added here if data structure changes
-            // e.g., processingFee: parseFloat(row["Processing Fee"]) || 0,
-            // type: row.Type || 'standard'
-        })).filter(r => r.name && !isNaN(r.date.getTime()));
-
-        allData.sort((a, b) => a.date - b.date || a.id - b.id);
-        memberNames = [...new Set(allData.map(row => row.name))].sort();
-        initializeDashboard();
-
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        document.body.innerHTML = `<div style="text-align:center; padding:50px; color:red;">Failed to load data. Please check Firebase connection and Vercel logs.</div>`;
-    } finally {
-        document.getElementById('loader').classList.add('hidden');
-    }
-}
-
-// --- AI EXPLANATION FUNCTIONS ---
-async function getGeminiExplanation(promptText, source = 'default') {
-    try {
-        let apiEndpoint = '/api/getAiExplanation';
-        if (source === 'profit_system') apiEndpoint = '/api/getProfitAiExplanation';
-
-        const response = await fetch(apiEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ promptText: promptText })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.details || 'AI request failed.');
-        }
-        const data = await response.json();
-        return data.explanation;
-    } catch (error) {
-        console.error("Frontend AI Error:", error);
-        throw error;
-    }
-}
-
-async function generateAndShowExplanation(promptGenerator, source = 'default') {
-    const resultDiv = document.getElementById('aiExplanationResult');
-    const langToggleContainer = document.getElementById('languageToggleContainer');
-    
-    resultDiv.innerHTML = `<div class="ai-loader"><div class="spinner"></div><span>AI aapke liye jankari taiyar kar raha hai...</span></div>`;
-    langToggleContainer.classList.add('hidden');
-    document.getElementById('aiExplainModal').classList.remove('visually-hidden');
-
-    const initialPrompt = promptGenerator();
-
-    try {
-        const explanation = await getGeminiExplanation(initialPrompt, source);
-        resultDiv.innerHTML = marked.parse(explanation);
-        resultDiv.dataset.originalText = explanation;
-        resultDiv.dataset.source = source;
-        langToggleContainer.classList.remove('hidden');
-    } catch (error) {
-        resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> AI se jawab nahi mil saka. Kripya Vercel logs check karein.</p><p style="font-size:0.8em; color: var(--text-light);">${error.message}</p>`;
-    }
-}
-
-async function handleLanguageToggle(event) {
-    const targetLang = event.target.dataset.lang;
-    const resultDiv = document.getElementById('aiExplanationResult');
-    const textToTranslate = resultDiv.dataset.originalText;
-    
-    if (!textToTranslate) return;
-
-    const langFullName = targetLang === 'hi' ? 'Hindi' : 'English';
-    const translationPrompt = `Translate the following text into ${langFullName}. Provide only the translated text, without any additional formatting or introductory phrases:\n\n"${textToTranslate}"`;
-    
-    resultDiv.innerHTML = `<div class="ai-loader"><div class="spinner"></div></div>`;
-
-    try {
-        const sourceForTranslation = resultDiv.dataset.source || 'default';
-        const translatedText = await getGeminiExplanation(translationPrompt, sourceForTranslation);
-        resultDiv.innerHTML = marked.parse(translatedText);
-    } catch (error) {
-        resultDiv.innerHTML = `<p style="color: var(--negative-color);"><strong>Error:</strong> Translation fail ho gaya.</p>`;
-    }
-}
-
-// --- CORE SCORE CALCULATION ENGINE (UPDATED) ---
-
-function calculatePerformanceScore(memberName, untilDate) {
-    const data = allData.filter(r => r.date <= untilDate);
-    const memberData = data.filter(r => r.name === memberName);
-    if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
-    
-    const capitalScore = calculateCapitalScore(memberName, untilDate);
-    const consistencyScore = calculateConsistencyScore(memberData);
-    const creditScore = calculateCreditBehaviorScore(memberName, untilDate);
-
-    const totalScore = (capitalScore * CONFIG.CAPITAL_WEIGHT) + 
-                       (consistencyScore * CONFIG.CONSISTENCY_WEIGHT) + 
-                       (creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT);
-
-    return { totalScore, capitalScore, consistencyScore, creditScore };
-}
-
-// 1. UPDATED CAPITAL SCORE
-function calculateCapitalScore(memberName, untilDate) {
-    const daysToReview = CONFIG.CAPITAL_SCORE_DAYS;
-    const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
-    
-    const data = allData.filter(r => r.date <= untilDate);
-    const memberData = data.filter(r => r.name === memberName);
-
-    // Find balance at the start of the 90-day window
-    let balanceAtStart = 0;
-    memberData.filter(r => r.date < startDate).forEach(r => {
-        balanceAtStart += r.sipPayment + r.payment - r.loan;
-    });
-
-    let weightedCapitalSum = 0;
-    let currentBalance = balanceAtStart;
-    let lastDate = startDate;
-
-    const relevantTransactions = memberData.filter(r => r.date >= startDate);
-    
-    relevantTransactions.forEach(t => {
-        const daysDifference = (t.date - lastDate) / (1000 * 3600 * 24);
-        weightedCapitalSum += currentBalance * daysDifference;
-        currentBalance += t.sipPayment + t.payment - t.loan;
-        lastDate = t.date;
-    });
-
-    weightedCapitalSum += currentBalance * ((untilDate - lastDate) / (1000 * 3600 * 24));
-    
-    const averageDailyBalance = weightedCapitalSum / daysToReview;
-
-    // Normalize the score. Example: 50,000 avg balance = 100 score.
-    const normalizedScore = Math.min(100, (averageDailyBalance / 50000) * 100);
-    return Math.max(0, normalizedScore); // Ensure score is not negative
-}
-
-// 2. CONSISTENCY SCORE (No change in logic)
-function calculateConsistencyScore(memberData) {
-    const sipHistory = {};
-    memberData.filter(r => r.sipPayment > 0).forEach(r => {
-        const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`;
-        if (!sipHistory[monthKey]) {
-            sipHistory[monthKey] = r.date.getDate() <= CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5;
-        }
-    });
-    const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
-    const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
-    return (consistencyPoints / (monthsConsidered * 10)) * 100;
-}
-
-// 3. NEW CREDIT BEHAVIOR SCORE (FINAL UPDATE)
-function calculateCreditBehaviorScore(memberName, untilDate) {
-    const data = allData.filter(r => r.date <= untilDate);
-    const memberData = data.filter(r => r.name === memberName);
-    const memberLoans = memberData.filter(r => r.loan > 0);
-    
-    const firstTransactionDate = memberData[0]?.date;
-    if (!firstTransactionDate) return 0; // No transactions, no score
-
-    const membershipDays = (untilDate - firstTransactionDate) / (1000 * 3600 * 24);
-
-    // Case 1: No loans taken
-    if (memberLoans.length === 0) {
-        if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; 
-        
-        const sipData = memberData.filter(r => r.sipPayment > 0);
-        
-        // Agar koi SIP nahi hai, to base score do
-        if (sipData.length === 0) return 40; 
-        
-        // FINAL UPDATE: Agar sirf ek SIP hai, to date ki parwah kiye bina ek accha score do
-        if (sipData.length === 1) return 60; // Aadat shuru karne ke liye reward
-
-        // Agar ek se zyada SIP hain, to dusre SIP se average nikalo
-        const sipsForAvg = sipData.slice(1); // Pehle SIP ko chhod do
-        const avgSipDay = sipsForAvg.reduce((sum, r) => sum + r.date.getDate(), 0) / sipsForAvg.length;
-        
-        const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40);
-        return Math.min(100, dayScore);
-    }
-
-    // Case 2: Loans have been taken
-    let totalPoints = 0;
-    let loansProcessed = 0;
-
-    for (const loanRecord of memberLoans) {
-        let loanAmount = loanRecord.loan;
-        let paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0));
-        
-        let amountRepaid = 0;
-        let repaymentDate = null;
-
-        for (const p of paymentsAfterLoan) {
-            amountRepaid += p.payment + p.sipPayment;
-            if (amountRepaid >= loanAmount) {
-                repaymentDate = p.date;
-                break; // Loan is considered repaid
-            }
-        }
-        
-        loansProcessed++;
-        
-        if (repaymentDate) {
-            const daysToRepay = (repaymentDate - loanRecord.date) / (1000 * 3600 * 24);
-            
-            if (daysToRepay < CONFIG.LOAN_FORMALITY_DAYS_LIMIT) {
-                totalPoints += 5; 
-            } else {
-                if (daysToRepay <= CONFIG.LOAN_TERM_BEST) totalPoints += 25; 
-                else if (daysToRepay <= CONFIG.LOAN_TERM_BETTER) totalPoints += 20;
-                else if (daysToRepay <= CONFIG.LOAN_TERM_GOOD) totalPoints += 15;
-                else if (daysToRepay <= CONFIG.LOAN_TERM_LATE_FEE) totalPoints -= 5;
-                else totalPoints -= 20;
-            }
-            if(loanAmount > 5000) totalPoints += 5;
-            if(loanAmount > 10000) totalPoints += 5;
-
-        } else {
-            totalPoints -= 40;
-        }
-    }
-
-    if (loansProcessed === 0) return 40;
-    
-    const maxPossiblePoints = loansProcessed * 35; 
-    const normalizedScore = (totalPoints / maxPossiblePoints) * 100;
-    
-    return Math.max(0, Math.min(100, normalizedScore));
-}
-
-
-// --- OTHER CORE FUNCTIONS (Updated Inactive Policy) ---
-
-function getLoanEligibility(memberName, score) {
-    const memberData = allData.filter(r => r.name === memberName);
-    
-    let totalLoan = 0, totalPayment = 0;
-    memberData.forEach(r => {
-        totalLoan += r.loan;
-        totalPayment += r.payment + r.sipPayment;
-    });
-    
-    if (totalLoan > totalPayment) return { eligible: false, reason: 'Outstanding Loan' };
-
-    const firstSip = memberData.find(r => r.sipPayment > 0);
-    if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
-    const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
-    if (daysSinceFirstSip < CONFIG.MINIMUM_MEMBERSHIP_DAYS) {
-        const daysLeft = Math.ceil(CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip);
-        return { eligible: false, reason: `${daysLeft} days left` };
-    }
-    const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CONFIG;
-    let multiplier = LOAN_LIMIT_TIER1_MAX;
-    if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
-    else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
-    else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
-    else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
-    return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
-}
-
-function calculateProfitDistribution(paymentRecord) {
-    const profit = paymentRecord.returnAmount * 0.90; 
-    if (profit <= 0) return null;
-
-    const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date);
-    if (userLoansBeforePayment.length === 0) return null; 
-    const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1];
-    const loanDate = relevantLoan.date;
-    const snapshotScores = {};
-    let totalScoreInSnapshot = 0;
-    const membersInSystemAtLoanDate = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))];
-    
-    membersInSystemAtLoanDate.forEach(name => {
-        const scoreObject = calculatePerformanceScore(name, loanDate);
-        if (scoreObject.totalScore > 0) {
-            snapshotScores[name] = scoreObject;
-            totalScoreInSnapshot += scoreObject.totalScore;
-        }
-    });
-
-    if (totalScoreInSnapshot <= 0) return null;
-    const distribution = [];
-    for (const memberName in snapshotScores) {
-        let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * profit;
-        
-        const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate).pop()?.date;
-        const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
-        
-        let appliedMultiplier = 1.0;
-        if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) {
-            appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
-        } else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) {
-            appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
-        }
-        memberShare *= appliedMultiplier;
-
-        if (memberShare > 0) distribution.push({ 
-            name: memberName, share: memberShare,
-            snapshotScore: snapshotScores[memberName].totalScore,
-            totalSnapshotScore: totalScoreInSnapshot,
-            multiplier: appliedMultiplier
-        });
-    }
-    return { profit, relevantLoan, distribution: distribution.sort((a,b) => b.share - a.share) };
-}
-
-/*
-// --- BUSINESS LOAN PROCESSING FEE (Example Structure) ---
-function distributeProcessingFee(businessLoanRecord) {
-    const fee = businessLoanRecord.processingFee;
-    const loanDate = businessLoanRecord.date;
-    if (!fee || fee <= 0) return;
-    const activeMembers = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))];
-    if (activeMembers.length === 0) return;
-    const sharePerMember = fee / activeMembers.length;
-    console.log(`Processing fee of ₹${fee} distributed.`);
-    activeMembers.forEach(name => {
-        console.log(`- ${name} receives ₹${sharePerMember.toFixed(2)}`);
-    });
-}
-*/
-
-
-// --- UI and Display Functions ---
-
-function initializeDashboard() {
-    document.getElementById('dashboardContent').classList.remove('visually-hidden');
-    document.getElementById('dashboardContent').classList.add('visible');
-    populateMemberFilter();
-    setupEventListeners();
-    updateDisplay();
-}
-
-function setupEventListeners() {
-    document.getElementById('memberFilter').addEventListener('change', updateDisplay);
-    document.querySelectorAll('.modal').forEach(modal => {
-        const closeBtn = modal.querySelector('.modal-close');
-        if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.add('visually-hidden'));
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('visually-hidden') });
-    });
-    document.getElementById('showReturnRankBtn').addEventListener('click', displayReturnRanking);
-    document.getElementById('showScoreRankBtn').addEventListener('click', displayScoreRanking);
-    document.getElementById('showEligibilityRankBtn').addEventListener('click', displayEligibilityRanking);
-    document.getElementById('profileImage').addEventListener('click', () => {
-        const imageModal = document.getElementById('imageModal');
-        const fullImage = document.getElementById('fullProfileImage');
-        if(imageModal && fullImage) {
-            fullImage.src = document.getElementById('profileImage').src;
-            imageModal.classList.remove('visually-hidden');
-        }
-    });
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.addEventListener('click', handleLanguageToggle);
-    });
-}
-
-function populateMemberFilter() {
-    const nameFilter = document.getElementById("memberFilter");
-    memberNames.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        nameFilter.appendChild(option);
-    });
-}
-
-function updateDisplay() {
-    const selectedName = document.getElementById('memberFilter').value;
-    const isCommunityView = selectedName === 'all';
-    document.getElementById('growthChartSection').classList.toggle('hidden', !isCommunityView);
-    document.getElementById('profitLogSection').classList.toggle('hidden', !isCommunityView);
-    document.getElementById('memberSpecificStats').classList.toggle('hidden', isCommunityView);
-    document.getElementById('memberHistorySection').classList.toggle('hidden', isCommunityView);
-    if (isCommunityView) {
-        renderGrowthChart();
-        populateProfitLog();
-    } else {
-        populateMemberHistory(selectedName);
-    }
-    updateProfileCard(selectedName);
-}
-
-function updateProfileCard(name) {
-    const profileImageEl = document.getElementById('profileImage');
-    const profileNameEl = document.getElementById('profileName');
-    let totalCapital = 0, totalLoan = 0, totalProfitEarned = 0;
-    if (name === 'all') {
-        allData.forEach(r => {
-            totalCapital += r.sipPayment + r.payment - r.loan;
-            totalLoan += r.loan;
-        });
-        totalProfitEarned = allData.reduce((sum, r) => sum + r.returnAmount, 0);
-        profileNameEl.textContent = 'Community Overview';
-        profileImageEl.src = CONFIG.DEFAULT_PROFILE_PIC;
-    } else {
-        const dataToShow = allData.filter(r => r.name === name);
-        totalCapital = dataToShow.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
-        totalLoan = dataToShow.reduce((sum, r) => sum + r.loan, 0);
-        totalProfitEarned = calculateTotalProfitForMember(name);
-        const memberScores = calculatePerformanceScore(name, new Date());
-        const score = memberScores.totalScore;
-        const loanEligibility = getLoanEligibility(name, score);
-        document.getElementById('profilePerformanceScore').textContent = score.toFixed(2);
-        const limitEl = document.getElementById('profileLoanLimit');
-        if(loanEligibility.eligible) {
-            limitEl.textContent = `${loanEligibility.multiplier.toFixed(2)}x`;
-            limitEl.classList.remove('negative');
-        } else {
-            limitEl.textContent = loanEligibility.reason;
-            limitEl.classList.add('negative');
-        }
-        profileNameEl.textContent = name;
-        const lastUserEntryWithImage = [...dataToShow].reverse().find(r => r.imageUrl);
-        profileImageEl.src = lastUserEntryWithImage ? lastUserEntryWithImage.imageUrl : CONFIG.DEFAULT_PROFILE_PIC;
-    }
-    document.getElementById('profileTotalCapital').textContent = `₹${totalCapital.toFixed(2)}`;
-    document.getElementById('profileTotalLoan').textContent = `₹${totalLoan.toFixed(2)}`;
-    document.getElementById('profileTotalProfit').textContent = `₹${totalProfitEarned.toFixed(2)}`;
-}
-
-function populateProfitLog() {
-    const tableBody = document.querySelector("#profitLogTable tbody");
-    tableBody.innerHTML = '';
-    const profitEvents = allData.filter(r => r.returnAmount > 0);
-    if (profitEvents.length === 0) {
-        tableBody.innerHTML = `<tr class="no-data-row"><td colspan="5">No profit events found.</td></tr>`;
-        return;
-    }
-    profitEvents.forEach(paymentRecord => {
-        const result = calculateProfitDistribution(paymentRecord);
-        if (result && result.profit > 0) {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${formatDate(paymentRecord.date)}</td><td>${paymentRecord.name}</td><td>₹${result.relevantLoan.loan.toFixed(2)}</td><td class="profit-value">₹${result.profit.toFixed(2)}</td><td><button class="details-btn">View</button></td>`;
-            row.querySelector('.details-btn').addEventListener('click', () => showDistributionModal(result));
-            tableBody.appendChild(row);
-        }
-    });
-}
-
-function populateMemberHistory(memberName) {
-    const tableBody = document.querySelector("#memberHistoryTable tbody");
-    tableBody.innerHTML = '';
-    const memberData = allData.filter(r => r.name === memberName);
-    let balance = 0;
-    if (memberData.length === 0) {
-        tableBody.innerHTML = `<tr class="no-data-row"><td colspan="4">No transaction history found.</td></tr>`;
-        return;
-    }
-    memberData.forEach(r => {
-        let type = '', amount = 0, sign = '';
-        if (r.sipPayment > 0) { type = 'sip'; amount = r.sipPayment; balance += amount; sign = '+'; }
-        else if (r.loan > 0) { type = 'loan'; amount = r.loan; balance -= amount; sign = '-'; }
-        else if (r.payment > 0) { type = 'payment'; amount = r.payment; balance += amount; sign = '+'; }
-        else return;
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${formatDate(r.date)}</td><td class="transaction-type ${type}">${type.toUpperCase()}</td><td>${sign} ₹${amount.toFixed(2)}</td><td>₹${balance.toFixed(2)}</td>`;
-        tableBody.appendChild(row);
-    });
-}
-
-function calculateTotalProfitForMember(memberName) {
-    return allData.reduce((totalProfit, transaction) => {
-        if (transaction.returnAmount > 0) {
-            const result = calculateProfitDistribution(transaction);
-            const memberShare = result?.distribution.find(d => d.name === memberName);
-            if (memberShare) totalProfit += memberShare.share;
-        }
-        return totalProfit;
-    }, 0);
-}
-
-function displayReturnRanking() {
-    const listEl = document.getElementById('returnRankList');
-    let memberProfits = memberNames.map(name => ({ name: name, totalProfit: calculateTotalProfitForMember(name) }))
-        .filter(member => member.totalProfit > 0).sort((a, b) => b.totalProfit - a.totalProfit);
-    listEl.innerHTML = '';
-    if (memberProfits.length === 0) listEl.innerHTML = '<li>No members have earned a return yet.</li>';
-    else memberProfits.forEach((member, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${member.name}</span><span class="share">+ ₹${member.totalProfit.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
-        li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'total_profit', memberName: member.name}));
-        li.querySelector('.btn-ai-small').addEventListener('click', () => {
-             const promptGenerator = () => {
-                let profitBreakdown = '';
-                allData.filter(r => r.returnAmount > 0).forEach(event => {
-                    const result = calculateProfitDistribution(event);
-                    const share = result?.distribution.find(d => d.name === member.name);
-                    if (share) {
-                        profitBreakdown += `\n- ${event.name} ke loan (Date: ${formatDate(event.date)}) se mila profit: ₹${share.share.toFixed(2)}.`;
-                    }
-                });
-                return `Tum ek financial advisor ho. Member '${member.name}' ko mile total profit (₹${member.totalProfit.toFixed(2)}) ko aasan Hindi me samjhao. Unhe yeh profit kahan kahan se mila, iska breakdown do: ${profitBreakdown}\n\nAnt mein, 'Salah' section mein batao ki total profit badhane ke liye unhe apna performance score hamesha accha rakhna chahiye.`;
-            };
-            generateAndShowExplanation(promptGenerator, 'profit_system');
-        });
-        listEl.appendChild(li);
-    });
-    document.getElementById('returnRankModal').classList.remove('visually-hidden');
-}
-
-function displayScoreRanking() {
-    const tableBody = document.querySelector("#scoreRankTable tbody");
-    let memberScores = memberNames.map(name => ({ name, scores: calculatePerformanceScore(name, new Date()) }))
-        .sort((a, b) => b.scores.totalScore - a.scores.totalScore);
-    tableBody.innerHTML = '';
-    memberScores.forEach((member, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${index + 1}</td><td>${member.name}</td><td>${member.scores.totalScore.toFixed(2)}</td><td><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div></td>`;
-        row.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'score', member: member}));
-        row.querySelector('.btn-ai-small').addEventListener('click', () => {
-            const promptGenerator = () => {
-                const { name, scores } = member;
-                return `Tum ek financial advisor ho. Member '${name}' ka performance score ${scores.totalScore.toFixed(2)} hai. Is score ko aasan Hindi me samjhao. Batao ki yeh score in teen cheezon se milkar bana hai: 1. Capital Score: ${scores.capitalScore.toFixed(2)} (Weight: 40%), 2. Consistency Score: ${scores.consistencyScore.toFixed(2)} (Weight: 30%), 3. Credit Score: ${scores.creditScore.toFixed(2)} (Weight: 30%).\n\nAnt mein, 'Aapko Kya Karna Chahiye' naam ka ek section jodkar 2-3 line mein sabse zaroori kadam batao jisse ve apna score sudhar sakein.`;
-            };
-            generateAndShowExplanation(promptGenerator, 'profit_system');
-        });
-        tableBody.appendChild(row);
-    });
-    document.getElementById('scoreRankModal').classList.remove('visually-hidden');
-}
-
-function displayEligibilityRanking() {
-    const tableBody = document.querySelector("#eligibilityRankTable tbody");
-    let memberEligibility = memberNames.map(name => {
-        const capital = allData.filter(r => r.name === name).reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
-        const score = calculatePerformanceScore(name, new Date()).totalScore;
-        const eligibility = getLoanEligibility(name, score);
-        return { name, capital, score, eligibility, maxLoan: eligibility.eligible ? capital * eligibility.multiplier : 0 };
-    }).sort((a, b) => b.maxLoan - a.maxLoan);
-    tableBody.innerHTML = '';
-    memberEligibility.forEach(member => {
-        const row = document.createElement('tr');
-        let eligibilityText = '';
-        if (member.eligibility.eligible) eligibilityText = `${member.eligibility.multiplier.toFixed(2)}x`;
-        else eligibilityText = `<span class="negative">${member.eligibility.reason}</span>`;
-        row.innerHTML = `<td>${member.name}</td><td>₹${member.capital.toFixed(2)}</td><td>${eligibilityText}</td><td>₹${member.maxLoan.toFixed(2)}</td><td><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div></td>`;
-        row.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'eligibility', member: member}));
-        row.querySelector('.btn-ai-small').addEventListener('click', () => {
-            const promptGenerator = () => {
-                const { name, capital, score, eligibility, maxLoan } = member;
-                if (eligibility.eligible) {
-                    return `Tum ek financial advisor ho. Member '${name}' ki loan eligibility ko aasan Hindi me samjhao. Data: - Capital: ₹${capital.toFixed(2)} - Performance Score: ${score.toFixed(2)} - Eligibility Multiplier: ${eligibility.multiplier.toFixed(2)}x - Max Loan Amount: ₹${maxLoan.toFixed(2)} Samjhao ki unka multiplier unke score par depend karta hai.\n\nAnt mein, 'Salah' section mein batao ki score accha banaye rakhne se unhe hamesha fayda hoga.`;
-                } else {
-                    return `Tum ek financial advisor ho. Member '${name}' abhi loan ke liye eligible kyun nahi hai, yeh aasan Hindi me samjhao. Karan: ${eligibility.reason}. Is karan ka matlab samjhao.\n\nAnt mein, 'Salah' section mein batao ki is samasya ko kaise theek kiya ja sakta hai.`;
-                }
-            };
-            generateAndShowExplanation(promptGenerator, 'profit_system');
-        });
-        tableBody.appendChild(row);
-    });
-    document.getElementById('eligibilityRankModal').classList.remove('visually-hidden');
-}
-
-function showCalculationDetails(details) {
-    const titleEl = document.getElementById('calculationDetailsTitle');
-    const contentEl = document.getElementById('calculationDetailsContent');
-    let html = '';
-    if (details.type === 'score') {
-        const { name, scores } = details.member;
-        titleEl.textContent = `Score Calculation for ${name}`;
-        html = `<div class="calc-row"><span class="calc-label">Capital Score (90-day Avg)</span> <span class="calc-value">${scores.capitalScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Consistency Score (SIP)</span> <span class="calc-value">${scores.consistencyScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Credit Behavior Score</span> <span class="calc-value">${scores.creditScore.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Weighted Capital (40%)</span> <span class="calc-value">${(scores.capitalScore * CONFIG.CAPITAL_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Consistency (30%)</span> <span class="calc-value">${(scores.consistencyScore * CONFIG.CONSISTENCY_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Credit (30%)</span> <span class="calc-value">${(scores.creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT).toFixed(2)}</span></div><div class="calc-final">Total Score: ${scores.totalScore.toFixed(2)}</div>`;
-    } else if (details.type === 'profit_event') {
-        const { member, profitEvent } = details;
-        titleEl.textContent = `Profit Share for ${member.name}`;
-        const sharePercentage = (member.totalSnapshotScore > 0) ? (member.snapshotScore / member.totalSnapshotScore) * 100 : 0;
-        const initialShare = (sharePercentage / 100) * profitEvent.profit;
-        html = `<div class="calc-row"><span class="calc-label">Loan From</span> <span class="calc-value">${profitEvent.relevantLoan.name}</span></div><div class="calc-row"><span class="calc-label">Total Profit from Loan</span> <span class="calc-value">₹${profitEvent.profit.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Your Score (at loan time)</span> <span class="calc-value">${member.snapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Total Community Score</span> <span class="calc-value">${member.totalSnapshotScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Your Share (%)</span> <span class="calc-value">${sharePercentage.toFixed(2)}%</span></div><div class="calc-formula">(Your Score / Total Score) * 100</div><hr><div class="calc-row"><span class="calc-label">Initial Share</span> <span class="calc-value">₹${initialShare.toFixed(2)}</span></div>${member.multiplier !== 1 ? `<div class="calc-row"><span class="calc-label">Inactive Policy (x${member.multiplier})</span> <span class="calc-value">- ₹${(initialShare - member.share).toFixed(2)}</span></div>` : ''}<div class="calc-final">Final Profit: ₹${member.share.toFixed(2)}</div>`;
-    } else if (details.type === 'total_profit') {
-        titleEl.textContent = `Total Profit for ${details.memberName}`;
-        let profitBreakdownHtml = '';
-        let totalProfit = 0;
-        allData.filter(r => r.returnAmount > 0).forEach(event => {
-            const result = calculateProfitDistribution(event);
-            const share = result?.distribution.find(d => d.name === details.memberName);
-            if (share) {
-                totalProfit += share.share;
-                profitBreakdownHtml += `<div class="calc-row"><span class="calc-label">From ${event.name}'s loan (${formatDate(event.date)})</span> <span class="calc-value">+ ₹${share.share.toFixed(2)}</span></div>`;
-            }
-        });
-        if (!profitBreakdownHtml) profitBreakdownHtml = '<div class="calc-row"><span class="calc-label">No profit earned yet.</span></div>';
-        html = `${profitBreakdownHtml}<div class="calc-final">Total Profit: ₹${totalProfit.toFixed(2)}</div>`;
-    } else if (details.type === 'eligibility') {
-        const { name, score, eligibility } = details.member;
-        titleEl.textContent = `Eligibility for ${name}`;
-        if(eligibility.eligible) {
-            html = `<div class="calc-row"><span class="calc-label">Your Performance Score</span> <span class="calc-value">${score.toFixed(2)}</span></div><hr><p style="font-size:0.9em; text-align:center; color: var(--text-light);">Aapka multiplier aapke score ke aadhar par scale hota hai.</p><div class="calc-final">Your Multiplier: ${eligibility.multiplier.toFixed(2)}x</div>`;
-        } else {
-             html = `<div class="calc-final" style="color:var(--negative-color);">${eligibility.reason}</div>`;
-        }
-    }
-    contentEl.innerHTML = html;
-    document.getElementById('calculationDetailsModal').classList.remove('visually-hidden');
-}
-
-function renderGrowthChart() {
-    const ctx = document.getElementById('growthChart').getContext('2d');
-    const growthData = calculateGrowthData();
-    if (growthChartInstance) growthChartInstance.destroy();
-    growthChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: growthData.labels,
-            datasets: [
-                { label: 'Total Capital', data: growthData.capital, borderColor: 'rgba(52, 152, 219, 1)', backgroundColor: 'rgba(52, 152, 219, 0.1)', fill: true, tension: 0.1 },
-                { label: 'Total Loans', data: growthData.loans, borderColor: 'rgba(231, 76, 60, 1)', backgroundColor: 'rgba(231, 76, 60, 0.1)', fill: true, tension: 0.1 },
-                { label: 'Total Profit', data: growthData.profits, borderColor: 'rgba(39, 174, 96, 1)', backgroundColor: 'rgba(39, 174, 96, 0.1)', fill: true, tension: 0.1 }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: value => `₹${value}` } } }, plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}: ₹${context.parsed.y.toFixed(2)}` } } } }
-    });
-}
-
-function calculateGrowthData() {
-    const snapshots = {}; let cumulativeCapital = 0, cumulativeLoan = 0, cumulativeProfit = 0;
-    allData.forEach(r => {
-        cumulativeCapital += r.sipPayment + r.payment - r.loan; cumulativeLoan += r.loan; cumulativeProfit += r.returnAmount;
-        const monthKey = r.date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-        snapshots[monthKey] = { capital: cumulativeCapital, loans: cumulativeLoan, profits: cumulativeProfit, date: new Date(r.date.getFullYear(), r.date.getMonth(), 1) };
-    });
-    const sortedKeys = Object.keys(snapshots).sort((a,b) => snapshots[a].date - snapshots[b].date);
-    return { labels: sortedKeys, capital: sortedKeys.map(key => snapshots[key].capital), loans: sortedKeys.map(key => snapshots[key].loans), profits: sortedKeys.map(key => snapshots[key].profits) };
-}
-
-function showDistributionModal(profitEvent) {
-    const modal = document.getElementById('detailsModal'); const listEl = document.getElementById('distributionDetails'); listEl.innerHTML = '';
-    const ctx = document.getElementById('distributionChart').getContext('2d');
-    if (distributionChartInstance) distributionChartInstance.destroy();
-    const distributionData = profitEvent.distribution;
-    if (!distributionData || distributionData.length === 0) { listEl.innerHTML = '<li>No beneficiaries found for this event.</li>'; } 
-    else {
-        const labels = distributionData.map(d => d.name); const data = distributionData.map(d => d.share.toFixed(2));
-        distributionData.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span class="rank">${index + 1}.</span><span class="name">${item.name}</span><span class="share">+ ₹${item.share.toFixed(2)}</span><div class="button-group"><button class="btn-details-small">Details</button><button class="btn-ai-small"><i class="fas fa-robot"></i> AI</button></div>`;
-            li.querySelector('.btn-details-small').addEventListener('click', () => showCalculationDetails({type: 'profit_event', member: item, profitEvent: profitEvent}));
-            li.querySelector('.btn-ai-small').addEventListener('click', () => {
-                const promptGenerator = () => {
-                    let prompt = `Tum ek financial advisor ho. Member '${item.name}' ko is loan event se mile munafey (₹${item.share.toFixed(2)}) ko aasan Hindi me samjhao.\n\n`;
-                    if (item.multiplier < 1) {
-                        const initialShare = item.share / item.multiplier;
-                        const penaltyPercent = ((1-item.multiplier)*100).toFixed(0);
-                        const inactiveDays = item.multiplier === CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1 ? CONFIG.INACTIVE_DAYS_LEVEL_1 : CONFIG.INACTIVE_DAYS_LEVEL_2;
-                        prompt += `Sabse pehle, unka mool munafa ₹${initialShare.toFixed(2)} tha, lekin usmein katoati hui hai.\n\n#### 'Inactive Policy' Kya Hai?\nSaral bhasha me samjhao ki yeh niyam un sadasyon par laagoo hota hai jinhonne pichhle ${inactiveDays} dinon mein koi bhi loan nahin liya hai. Batao ki 'kyunki aapne ${inactiveDays} din se koi loan nahi liya tha, isliye aapka munafa ${penaltyPercent}% kam kar diya gaya hai'.\n\n`;
-                    }
-                    const myRankIndex = distributionData.findIndex(d => d.name === item.name);
-                    const topper = distributionData[0];
-                    const personAbove = myRankIndex > 0 ? distributionData[myRankIndex - 1] : null;
-                    if (myRankIndex === 0 && distributionData.length > 1) { prompt += `Aap is event ke topper hain! Badhai ho! Aapka score (at the time of loan) sabse behtar tha.\n\n`; } 
-                    else if (myRankIndex > 0) {
-                        prompt += `#### Vistrit Tulna (Comparison)\nApne jawab mein neeche di gayi Markdown table ko anivarya roop se (compulsorily) shamil karo. Is table ko mat badalna.\n\n`;
-                        let tableHeader = `| Vivaran | ${topper.name} (Topper) |`;
-                        if (personAbove && personAbove.name !== topper.name) { tableHeader += ` ${personAbove.name} (Aapse Upar) |`; }
-                        tableHeader += ` ${item.name} (Aap) |`;
-                        let tableSeparator = `| :--- | :--- |`;
-                        if (personAbove && personAbove.name !== topper.name) { tableSeparator += ` :--- |`; }
-                        tableSeparator += ` :--- |`;
-                        let rankRow = `| **Rank** | #1 |`;
-                        if (personAbove && personAbove.name !== topper.name) { rankRow += ` #${myRankIndex} |`; }
-                        rankRow += ` #${myRankIndex + 1} |`;
-                        let profitRow = `| **Mila Munafa** | ₹${topper.share.toFixed(2)} |`;
-                        if (personAbove && personAbove.name !== topper.name) { profitRow += ` ₹${personAbove.share.toFixed(2)} |`; }
-                        profitRow += ` ₹${item.share.toFixed(2)} |`;
-                        let scoreRow = `| **Loan ke samay Score** | **${topper.snapshotScore.toFixed(2)}** |`;
-                        if (personAbove && personAbove.name !== topper.name) { scoreRow += ` **${personAbove.snapshotScore.toFixed(2)}** |`; }
-                        scoreRow += ` ${item.snapshotScore.toFixed(2)} |`;
-                        prompt += `${tableHeader}\n${tableSeparator}\n${rankRow}\n${profitRow}\n${scoreRow}\n\n#### Nishkarsh\nUpar di gayi table ke aadhar par samjhao ki munafey mein antar ka mukhya kaaran 'Loan ke samay ka Score' hai. Jiska score us samay zyada tha, usey munafey mein zyada hissa mila.\n\n`;
-                    }
-                    prompt += `#### Aage Ke Liye Salah\n`;
-                    if (item.multiplier < 1) { prompt += `Bhavishya mein is katoati se bachne ke liye, aapko niyamit roop se loan lena zaroori hai. `; }
-                    if (personAbove) { prompt += `Agle rank par jaane ke liye aapko apna score **${personAbove.snapshotScore.toFixed(2)} se behtar karna hoga. Niyamit SIP aur samay par loan chukane se aapka score zaroor badhega.`; } 
-                    else if (myRankIndex === 0) { prompt += `Apna behtareen pradarshan banaye rakhein!`; } 
-                    else { prompt += `Apna score behtar karke aap agle munafey mein aur bhi zyada hissa paa sakte hain.`; }
-                    return prompt;
-                };
-                generateAndShowExplanation(promptGenerator, 'profit_system');
             });
-            listEl.appendChild(li);
-        });
-        distributionChartInstance = new Chart(ctx, {
-            type: 'bar', data: { labels, datasets: [{ label: 'Profit Share (₹)', data, backgroundColor: 'rgba(52, 152, 219, 0.7)', borderColor: 'rgba(52, 152, 219, 1)', borderWidth: 1 }] },
-            options: { responsive: true, indexAxis: 'y', scales: { x: { beginAtZero: true, title: { display: true, text: 'Amount (₹)' } } }, plugins: { legend: { display: false } } }
-        });
-    }
-    modal.classList.remove('visually-hidden');
-}
+            
+            return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
+        }
 
-function formatDate(date) { if (!(date instanceof Date) || isNaN(date)) return "N/A"; return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } 
+        function displayAllData() {
+            displaySummary(state.allOutstandingLoans);
+            displayLoanCards(state.allOutstandingLoans);
+        }
+
+        function displaySummary(loans) {
+            const { totalCountEl, totalAmountEl } = state.ui;
+            const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
+            totalCountEl.textContent = loans.length;
+            totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
+        }
+        
+        // UPDATED to render the new EMI countdown
+        function displayLoanCards(loans) {
+            const { container } = state.ui;
+            container.innerHTML = '';
+
+            if (loans.length === 0) {
+                container.innerHTML = `<div class="message-box"><h2>All Clear!</h2><p>There are no outstanding loans.</p></div>`;
+                return;
+            }
+
+            loans.forEach(loan => {
+                const card = document.createElement('div');
+                const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${loan.loanAmount}`;
+                card.id = cardId;
+                card.className = 'loan-card';
+
+                const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
+                const profilePic = loan.imageUrl || defaultPic;
+                const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+                
+                let bannerClass = 'green';
+                if (loan.daysAgo > 60) bannerClass = 'danger';
+                else if (loan.daysAgo > 30) bannerClass = 'warning';
+                
+                let bannerText = `Loan taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
+                
+                const cardTopHtml = `
+                    <button class="download-btn" data-card-id="${cardId}" title="Download Card">${ICONS.download}</button>
+                    <div class="card-top">
+                        <div class="profile-picture">
+                            <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                        </div>
+                        <div class="user-details">
+                            <h3>${loan.name}</h3>
+                            <div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div>
+                        </div>
+                    </div>`;
+
+                if (loan.loanType === 'Business Loan') {
+                    const businessBadge = `<div class="smart-slab-badge active" style="background-color: #eef2ff; color: #4338ca;">${ICONS.briefcase} Business Loan</div>`;
+                    card.innerHTML = `
+                        <div class="card-main-content">
+                            ${cardTopHtml.replace('</h3>', `</h3>${businessBadge}`)}
+                            <div class="card-middle">
+                                <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
+                                <div class="detail-row"><span class="detail-label">${ICONS.receipt} Processing Fee:</span><span class="detail-value">₹${loan.processingFee.toLocaleString('en-IN')}</span></div>
+                                <div class="detail-row"><span class="detail-label">${ICONS.percent} ${loan.interest.type}:</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>
+                            </div>
+                        </div>
+                        <div class="pending-banner ${bannerClass}">${ICONS.clock}<span>${bannerText}</span></div>`;
+                } else {
+                    let interestHtml = '';
+                    if (loan.interest.amount > 0) {
+                        const label = loan.status === 'smart-active' ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
+                        interestHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} ${label} (${loan.interest.percentage}%):</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
+                    }
+                    
+                    let statusBadge = '';
+                    if (loan.status === 'smart-active') {
+                        statusBadge = `<div class="smart-slab-badge active">${ICONS.star} Smart Slab Active</div>`;
+                    } else if (loan.status === 'smart-defaulted') {
+                        statusBadge = `<div class="smart-slab-badge defaulted">${ICONS.penalty} Slab Defaulted</div>`;
+                    }
+                    
+                    // NEW: EMI Countdown HTML
+                    let emiCountdownHtml = '';
+                    if (loan.status === 'smart-active' && loan.daysRemainingForEMI !== null) {
+                        const dayText = loan.daysRemainingForEMI === 1 ? 'day' : 'days';
+                        emiCountdownHtml = `<div class="emi-countdown">${ICONS.hourglass} Next EMI in: <strong>${loan.daysRemainingForEMI} ${dayText}</strong></div>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="card-main-content">
+                             ${cardTopHtml.replace('</h3>', `</h3>${statusBadge}${emiCountdownHtml}`)}
+                            <div class="card-middle">
+                                <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
+                                <div class="detail-row"><span class="detail-label">${ICONS.tag} Loan Type:</span><span class="detail-value loan-type-value">${loan.loanType}</span></div>
+                                ${interestHtml}
+                            </div>
+                        </div>
+                        <div class="pending-banner ${bannerClass}">${ICONS.clock}<span>${bannerText}</span></div>`;
+                }
+                container.appendChild(card);
+            });
+        }
+
+        function downloadCardAsImage(cardId) {
+             const cardElement = document.getElementById(cardId);
+            if (!cardElement) {
+                console.error("Card element not found for ID:", cardId);
+                return;
+            }
+            
+            html2canvas(cardElement, {
+                useCORS: true, 
+                scale: 2 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `${cardId}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        function setupEventListeners() {
+             state.ui.searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const filteredLoans = state.allOutstandingLoans.filter(loan => 
+                    loan.name.toLowerCase().includes(searchTerm)
+                );
+                displayLoanCards(filteredLoans);
+            });
+
+            state.ui.container.addEventListener('click', function(event) {
+                const downloadButton = event.target.closest('.download-btn');
+                if (downloadButton) {
+                    const cardId = downloadButton.dataset.cardId;
+                    downloadCardAsImage(cardId);
+                }
+            });
+        }
+        
+        fetchAndProcessData();
+    }
+    
+    checkAuthAndInitialize();
+});
 </script>
 </body>
 </html>
