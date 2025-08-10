@@ -6,7 +6,6 @@
     <title>Smart Bank Joining Letter Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -354,14 +353,13 @@
         <div class="footer">
              <p class="team-text">Thank you,<br>Bank Community Team</p>
              <p class="signature-text">Authorized Signature</p>
-            <img src="https://i.imgur.com/P0rtQjw.png" crossorigin="anonymous" class="stamp stamp-bottom-right" alt="Authorized Signature Stamp" id="signatureStamp">
+            <img src="" crossorigin="anonymous" class="stamp stamp-bottom-right" alt="Authorized Signature Stamp" id="signatureStamp">
         </div>
     </div>
 
     <button id="download">Download Letter</button>
 
     <script>
-        // ✅ FIX: Original authentication logic ko restore kiya gaya hai
         async function checkAuthAndInitialize() {
             try {
                 const response = await fetch('/api/config');
@@ -372,11 +370,9 @@
                 
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        // User is logged in, run the main app logic.
                         console.log("User authenticated, running app logic...");
                         runAppLogic();
                     } else {
-                        // User is not logged in, redirect to login page.
                         console.log("User not authenticated, redirecting to login...");
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
@@ -388,7 +384,6 @@
             }
         }
 
-        // App ka mukhya logic ab is function ke andar hai
         function runAppLogic() {
             let membersData = {};
             const primeMemberNames = ["amit kumar", "mithilesh sahni", "prince rama"];
@@ -405,6 +400,8 @@
             const displayExtraTextEl = document.getElementById('displayExtraText');
             const apiApplicantPhotoEl = document.getElementById('apiApplicantPhoto');
             const downloadBtn = document.getElementById('download');
+            // ✅ FIX: Signature image element ko select kiya gaya
+            const signatureStampEl = document.getElementById('signatureStamp');
             
             async function fetchMemberData() {
                 try {
@@ -436,9 +433,11 @@
                 }
             }
 
+            // CORS issue se bachne ke liye proxy URL function
             function createProxyUrl(url) {
                 if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-                    return '';
+                    // Ek transparent pixel lauta dein agar URL valid nahin hai
+                    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                 }
                 const urlWithoutProtocol = url.replace(/^(https?:\/\/)/, '');
                 return `https://images.weserv.nl/?url=${urlWithoutProtocol}`;
@@ -459,15 +458,21 @@
                     return `प्रिय ${name},<br>आपका हमारे बैंक मेंबर के रूप में स्वागत है। आपकी सहभागिता हमारे लिए मूल्यवान है, और हम आपके साथ एक मजबूत रिश्ता बनाने की आशा करते हैं।`;
                 }
             }
-
-            function setApiImage(member) {
+            
+            function setImages(member) {
+                // Applicant Photo set karein
                 const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=daa520&color=fff&size=140`;
                 const imageUrl = member.profilePicUrl || defaultPic;
-                
                 apiApplicantPhotoEl.src = createProxyUrl(imageUrl);
-                
-                apiApplicantPhotoEl.onerror = () => {
-                    apiApplicantPhotoEl.src = createProxyUrl(defaultPic);
+                apiApplicantPhotoEl.onerror = () => { apiApplicantPhotoEl.src = createProxyUrl(defaultPic); };
+
+                // ✅ FIX: Signature image ko proxy ke through set karein
+                const signatureUrl = 'https://i.imgur.com/P0rtQjw.png';
+                signatureStampEl.src = createProxyUrl(signatureUrl);
+                signatureStampEl.onerror = () => { 
+                    console.error('Failed to load signature image via proxy.');
+                    // Fallback to a blank image if proxy fails
+                    signatureStampEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                 };
             }
 
@@ -486,6 +491,7 @@
                 
                 const position = primeMemberNames.includes(member.fullName.toLowerCase()) ? "Prime Member" : "Bank Member";
                 
+                // Letter mein data bharein
                 displayDateEl.innerText = formatDisplayDate(new Date().toISOString());
                 displayNameEl.innerText = member.fullName;
                 displayPositionEl.innerText = position;
@@ -493,35 +499,41 @@
                 displayAadhaarEl.innerText = member.aadhaar || 'N/A';
                 displayStartDateEl.innerText = formatDisplayDate(member.joiningDate);
                 displayExtraTextEl.innerHTML = generateExtraText(member.fullName, position);
-                setApiImage(member);
+                
+                // Sabhi images ko set karein
+                setImages(member);
 
+                // Letter ko display karein
                 captureDiv.style.display = 'flex';
                 downloadBtn.style.display = 'block';
                 captureDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
-
+            
+            // Ye function sunishchit karta hai ki canvas banane se pehle sabhi images load ho chuki hain
             async function waitForImages(containerElement) {
-                const images = Array.from(containerElement.querySelectorAll('img[src]'));
+                const images = Array.from(containerElement.querySelectorAll('img'));
                 const promises = images.map(img => {
-                    if (!img.complete) {
+                    // Check karein ki image ka src hai aur wo abhi tak load nahin hui hai
+                    if (img.src && !img.complete) {
                         return new Promise((resolve) => {
                             img.onload = resolve;
                             img.onerror = () => {
                                 console.warn(`Image failed to load: ${img.src}`);
-                                resolve(); 
+                                resolve(); // Error hone par bhi aage badhein
                             };
                         });
                     }
-                    return Promise.resolve();
+                    return Promise.resolve(); // Agar image pehle se loaded hai
                 });
-                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500)));
+                // Sabhi image loading promises ke poora hone ka intezar karein
+                return Promise.all(promises).then(() => new Promise(resolve => setTimeout(resolve, 500))); // Canvas rendering ke liye extra samay
             }
 
             downloadBtn.addEventListener('click', async () => {
                 downloadBtn.textContent = 'Preparing Download...';
                 downloadBtn.disabled = true;
                 try {
-                    await waitForImages(captureDiv);
+                    await waitForImages(captureDiv); // Images load hone ka intezar karein
                     const canvas = await html2canvas(captureDiv, {
                         scale: 3,
                         useCORS: true,
@@ -544,14 +556,12 @@
                 }
             });
 
-            // Is line ko runAppLogic ke andar rakha gaya hai
-            // nameSelect.disabled = true;
-            // fetchMemberData();
+            nameSelect.disabled = true;
+            fetchMemberData();
         }
 
-        // ✅ App ko shuru karein
+        // App ko shuru karein
         checkAuthAndInitialize();
     </script>
 </body>
 </html>
-
