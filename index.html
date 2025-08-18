@@ -500,7 +500,27 @@
     </section>
 
     <!-- Modals Start Here -->
-    <div id="balanceModal" class="modal"> <div class="modal-content"> <span class="close" id="closeBalanceModal">×</span> <h2>Community Funds</h2> <div id="totalBalance" class="balance-display">₹0</div><small class="balance-label">Available Community Balance</small> <div id="returnBalance" class="balance-display return">₹0</div><small class="balance-label">Net Return Amount (After 10% Deduction)</small> <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);"> <div id="combinedBalance" class="balance-display total">₹0</div><small class="balance-label">Grand Total</small> </div> </div> 
+    <!-- UPDATED BALANCE MODAL -->
+    <div id="balanceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeBalanceModal">×</span>
+            <h2>Community Funds</h2>
+            
+            <div id="totalSipAmountDisplay" class="balance-display" style="color: var(--info-color); font-size: 2.4em;">₹0</div>
+            <small class="balance-label">Total SIP Amount</small>
+            
+            <div id="totalCurrentLoanDisplay" class="balance-display" style="color: var(--danger-color); font-size: 2.2em; margin-top: 15px;">₹0</div>
+            <small class="balance-label">Total Current Loan Amount</small>
+            
+            <div id="netReturnAmountDisplay" class="balance-display return" style="margin-top: 15px;">₹0</div>
+            <small class="balance-label">Net Return Amount (After 10% Deduction)</small>
+            
+            <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
+            
+            <div id="availableAmountDisplay" class="balance-display total">₹0</div>
+            <small class="balance-label">Available Community Balance</small>
+        </div>
+    </div>
     
     <div id="penaltyWalletModal" class="modal">
         <div class="modal-content">
@@ -642,7 +662,7 @@
     }
 
     // ##################################################################
-    // ## MAIN APPLICATION LOGIC (V15 - Fixed Pop-up Logic) ##
+    // ## MAIN APPLICATION LOGIC (V16 - Updated Balance Modal) ##
     // ##################################################################
     function runMainApp(database) {
         
@@ -662,9 +682,6 @@
         const headerDisplay = document.getElementById('headerDisplay');
         const infoSlider = document.getElementById('infoSlider');
         const balanceModalElement = document.getElementById('balanceModal');
-        const totalBalanceElement = document.getElementById('totalBalance');
-        const returnBalanceElement = document.getElementById('returnBalance');
-        const combinedBalanceElement = document.getElementById('combinedBalance');
         const closeBalanceModalBtn = document.getElementById('closeBalanceModal');
         const profileModalElement = document.getElementById('memberProfileModal');
         const closeProfileModalBtn = document.getElementById('closeProfileModal');
@@ -708,9 +725,10 @@
         // App State
         let allMembersData = {}; 
         let penaltyWalletData = {};
-        let netCommunityBalance = 0;
         let netReturnAmount = 0;
         let totalPenaltyAmount = 0;
+        let totalSipAmount = 0; // For new balance modal
+        let totalCurrentLoanAmount = 0; // For new balance modal
         let adData = { topSipMember: null, topBalanceMember: null, topThreeMembers: [], bankStats: null };
         let todaysTransactions = [];
         let deferredInstallPrompt = null;
@@ -719,7 +737,7 @@
         let customCardsData = {};
         let communityLettersData = {};
         let headerButtonsData = {};
-        let popupsHaveBeenShown = false; // Flag to ensure popups show only once per page load
+        let popupsHaveBeenShown = false;
 
         function setupPWA() {
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -781,7 +799,7 @@
 
         function displayHeaderButtons(buttons) {
             if (!headerActionsContainer) return;
-            headerActionsContainer.innerHTML = ''; // Clear loading text
+            headerActionsContainer.innerHTML = ''; 
             if (staticHeaderButtonsContainer) staticHeaderButtonsContainer.innerHTML = '';
 
             if (Object.keys(buttons).length === 0) {
@@ -813,7 +831,6 @@
                 }
                 element.innerHTML = innerHTML;
 
-                // Apply dynamic styles
                 element.style.backgroundColor = btnData.transparent ? 'transparent' : btnData.color;
                 element.style.color = btnData.textColor;
                 element.style.width = btnData.width;
@@ -852,7 +869,6 @@
                     notificationModal.classList.add('show');
                     const dot = document.getElementById('notificationDot');
                     if(dot) dot.style.display = 'none';
-                    // Mark notifications for today as viewed in the modal
                     sessionStorage.setItem('notificationsViewed_' + getTodayDateString(), 'true');
                 });
             }
@@ -875,10 +891,15 @@
             let totalLoanDisbursed = 0;
             let totalGrossReturn = 0;
             let allTransactions = [];
+            
+            // Reset global calculation variables
+            totalSipAmount = 0;
+            totalCurrentLoanAmount = 0;
+            netReturnAmount = 0;
+            totalPenaltyAmount = 0;
 
-            // Define today's date for filtering transactions
             const today = new Date();
-            today.setHours(23, 59, 59, 999); // Set to end of day to include all of today's transactions
+            today.setHours(23, 59, 59, 999);
 
             totalPenaltyAmount = Object.values(penaltyIncomes)
                 .filter(income => income.reason && income.reason.includes("10% of Return"))
@@ -893,18 +914,15 @@
 
                 if (member.transactions) {
                     memberTransactions = Object.values(member.transactions);
-                    
-                    // Filter transactions to include only those on or before today
                     const validTransactions = memberTransactions.filter(tx => new Date(tx.Date) <= today);
                     
-                    // Calculate balance based only on valid transactions, excluding extra payments/withdrawals
                     const totalSip = validTransactions.reduce((sum, tx) => sum + parseFloat(tx['SIP Payment'] || 0), 0);
                     const totalLoanPayment = validTransactions.reduce((sum, tx) => sum + parseFloat(tx['Loan Payment'] || 0), 0);
                     const totalLoan = validTransactions.reduce((sum, tx) => sum + parseFloat(tx.Loan || 0), 0);
                     
                     balance = (totalSip + totalLoanPayment) - totalLoan;
+                    totalSipAmount += totalSip; // Accumulate total SIP amount here
 
-                    // Calculate other stats using all transactions (or valid ones as needed)
                     memberReturn = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Return amount'] || 0), 0);
                     const totalExtraPayment = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Extra Balance'] || 0), 0);
                     const totalExtraWithdraw = memberTransactions.reduce((sum, tx) => sum + parseFloat(tx['Extra Withdraw'] || 0), 0);
@@ -915,7 +933,6 @@
                     totalLoanDisbursed += totalLoan;
                     totalGrossReturn += memberReturn;
 
-                    // Push all transactions to a global list for other processing
                     memberTransactions.forEach(tx => {
                         allTransactions.push({ ...tx, fullName: member.fullName, profilePicUrl: member.profilePicUrl || DEFAULT_IMAGE, Date: new Date(tx.Date) });
                     });
@@ -938,8 +955,31 @@
                 };
             }
             
-            netReturnAmount = totalGrossReturn;
-            // The member list is now sorted based on the new, correct balance
+            // Calculate current outstanding loan amount
+            const memberNames = [...new Set(allTransactions.map(tx => tx.fullName))];
+            memberNames.forEach(name => {
+                if (!name) return;
+                const memberTxsSorted = allTransactions
+                    .filter(tx => tx.fullName === name)
+                    .sort((a, b) => a.Date - b.Date);
+
+                const lastLoanTx = [...memberTxsSorted].filter(tx => parseFloat(tx.Loan || 0) > 0).pop();
+
+                if (lastLoanTx) {
+                    const txsAfterLoan = memberTxsSorted.filter(tx => tx.Date >= lastLoanTx.Date);
+                    let outstandingBalance = 0;
+                    txsAfterLoan.forEach(tx => {
+                        outstandingBalance += parseFloat(tx.Loan || 0);
+                        outstandingBalance -= parseFloat(tx['Loan Payment'] || 0);
+                    });
+
+                    if (outstandingBalance > 0) {
+                        totalCurrentLoanAmount += Math.round(outstandingBalance);
+                    }
+                }
+            });
+            
+            netReturnAmount = totalGrossReturn - totalPenaltyAmount;
             const memberList = Object.values(processedMembers).sort((a, b) => b.balance - a.balance);
             
             adData.topBalanceMember = memberList.length > 0 ? memberList[0] : null;
@@ -958,7 +998,6 @@
             processTodaysTransactions(allTransactions);
 
             displayMembers(memberList);
-            updateTotalBalanceDisplay(memberList);
             updateInfoCards(memberList.length, totalLoanDisbursed);
             startHeaderDisplayRotator();
             buildInfoSlider();
@@ -976,7 +1015,6 @@
             const silverMedalURL = "https://www.svgrepo.com/show/452101/silver-medal.svg";
             const bronzeMedalURL = "https://www.svgrepo.com/show/452174/bronze-medal.svg";
             
-            // Sorting is now done in processAndDisplayData, so we just display
             members.forEach((member, index) => {
                 const card = document.createElement('div');
                 card.className = 'member-card animate-on-scroll';
@@ -1094,9 +1132,7 @@
             if (totalMembersValueElement) totalMembersValueElement.textContent = memberCount;
             if (totalLoanValueElement) totalLoanValueElement.textContent = totalLoan.toLocaleString('en-IN', { style: 'currency', currency: 'INR'});
         }
-        function updateTotalBalanceDisplay(memberList) {
-            netCommunityBalance = memberList.reduce((sum, member) => sum + member.balance, 0);
-        }
+
         function showMemberProfileModal(member) {
             currentMemberForFullView = member.id;
             profileModalImage.src = member.displayImageUrl;
@@ -1113,16 +1149,26 @@
             profileModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
+        
         function showBalanceModal() {
             if (!balanceModalElement) return;
-            const netReturnAfterPenalty = netReturnAmount - totalPenaltyAmount;
-            const combinedBalance = netCommunityBalance + netReturnAfterPenalty;
+
+            const totalSipDisplay = document.getElementById('totalSipAmountDisplay');
+            const totalLoanDisplay = document.getElementById('totalCurrentLoanDisplay');
+            const netReturnDisplay = document.getElementById('netReturnAmountDisplay');
+            const availableAmountDisplay = document.getElementById('availableAmountDisplay');
+
+            const availableAmount = totalSipAmount - totalCurrentLoanAmount;
+
             balanceModalElement.classList.add('show');
             document.body.style.overflow = 'hidden';
-            animateValue(totalBalanceElement, 0, netCommunityBalance, 1200);
-            animateValue(returnBalanceElement, 0, netReturnAfterPenalty, 1200);
-            animateValue(combinedBalanceElement, 0, combinedBalance, 1200);
+
+            animateValue(totalSipDisplay, 0, totalSipAmount, 1200);
+            animateValue(totalLoanDisplay, 0, totalCurrentLoanAmount, 1200);
+            animateValue(netReturnDisplay, 0, netReturnAmount, 1200);
+            animateValue(availableAmountDisplay, 0, availableAmount, 1200);
         }
+
         function showSipStatusModal() {
             if (!sipStatusListContainer || Object.keys(allMembersData).length === 0) { alert('Sadasya data abhi load ho raha hai. Kripya pratiksha karein.'); return; }
             sipStatusListContainer.innerHTML = '';
@@ -1319,7 +1365,6 @@
             feather.replace();
         }
         
-        // NEW: Function to show a single pop-up notification
         function showPopupNotification(tx) {
             const container = document.getElementById('notification-popup-container');
             if (!container) return;
@@ -1365,7 +1410,6 @@
                 popup.addEventListener('animationend', () => popup.remove(), { once: true });
             };
             
-            // Auto-remove after animation finishes
             popup.addEventListener('animationend', (e) => {
                 if (e.animationName === 'fadeOutNotification') {
                     popup.remove();
@@ -1375,7 +1419,6 @@
             container.appendChild(popup);
         }
 
-        // UPDATED: This function now also triggers pop-up notifications with corrected logic
         function processTodaysTransactions(transactions) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -1395,20 +1438,17 @@
             const notificationDot = document.getElementById('notificationDot');
             const viewedTodayInModal = sessionStorage.getItem('notificationsViewed_' + getTodayDateString());
 
-            // Logic for the red dot on the bell icon
             if (notificationDot && todaysTransactions.length > 0 && !viewedTodayInModal) {
                 notificationDot.style.display = 'block';
             }
 
-            // NEW LOGIC FOR POP-UPS: Show only once per page load
             if (todaysTransactions.length > 0 && !popupsHaveBeenShown) {
-                // Show staggered pop-up notifications
                 todaysTransactions.forEach((tx, index) => {
                     setTimeout(() => {
                         showPopupNotification(tx);
-                    }, index * 1500); // 1.5-second delay between each notification
+                    }, index * 1500); 
                 });
-                popupsHaveBeenShown = true; // Set the flag so they don't show again on this page load
+                popupsHaveBeenShown = true; 
             }
         }
         
@@ -1442,11 +1482,11 @@
                 } else if (tx['Extra Balance'] > 0) {
                     text = `<strong>${tx.fullName}</strong> made an extra deposit.`;
                     amount = `+ ₹${parseFloat(tx['Extra Balance']).toLocaleString()}`;
-                    typeClass = 'sip'; // Re-using 'sip' style for positive amounts
+                    typeClass = 'sip'; 
                 } else if (tx['Extra Withdraw'] > 0) {
                     text = `<strong>${tx.fullName}</strong> made an extra withdrawal.`;
                     amount = `- ₹${parseFloat(tx['Extra Withdraw']).toLocaleString()}`;
-                    typeClass = 'loan'; // Re-using 'loan' style for negative amounts
+                    typeClass = 'loan';
                 }
 
                 li.innerHTML = `
@@ -1463,7 +1503,6 @@
         
         function showFullProfileViewModal(memberId) {
             const memberData = allMembersData[memberId];
-            // Find the processed member to get calculated extraBalance
             const processedMember = Object.values(allMembersData).find(m => m.id === memberId) || { extraBalance: 0 };
 
             document.getElementById('fullProfileName').textContent = memberData.fullName;
@@ -1473,7 +1512,6 @@
             document.getElementById('fullProfileAadhaar').textContent = memberData.aadhaar || 'N/A';
             document.getElementById('fullProfileAddress').textContent = memberData.address || 'N/A';
             
-            // Get the correct extra balance from the processed data
             document.getElementById('fullProfileExtraAmount').textContent = (processedMember.extraBalance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
             
             const profilePic = document.getElementById('fullProfilePic');
