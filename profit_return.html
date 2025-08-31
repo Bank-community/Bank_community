@@ -261,7 +261,7 @@ const CONFIG = {
     CREDIT_BEHAVIOR_WEIGHT: 0.30,
 
     // NEW: Capital Score Calculation Window
-    CAPITAL_SCORE_DAYS: 180,
+    CAPITAL_SCORE_DAYS: 180, // Changed from 90 to 180
 
     // Loan Eligibility Tiers
     LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
@@ -475,7 +475,7 @@ function calculateCapitalScore(memberName, untilDate) {
     const data = allData.filter(r => r.date <= untilDate);
     const memberData = data.filter(r => r.name === memberName);
 
-    // Find balance at the start of the 90-day window
+    // Find balance at the start of the 180-day window
     let balanceAtStart = 0;
     memberData.filter(r => r.date < startDate).forEach(r => {
         balanceAtStart += r.sipPayment + r.payment - r.loan;
@@ -927,7 +927,7 @@ function showCalculationDetails(details) {
     if (details.type === 'score') {
         const { name, scores } = details.member;
         titleEl.textContent = `Score Calculation for ${name}`;
-        html = `<div class="calc-row"><span class="calc-label">Capital Score (90-day Avg)</span> <span class="calc-value">${scores.capitalScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Consistency Score (SIP)</span> <span class="calc-value">${scores.consistencyScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Credit Behavior Score</span> <span class="calc-value">${scores.creditScore.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Weighted Capital (40%)</span> <span class="calc-value">${(scores.capitalScore * CONFIG.CAPITAL_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Consistency (30%)</span> <span class="calc-value">${(scores.consistencyScore * CONFIG.CONSISTENCY_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Credit (30%)</span> <span class="calc-value">${(scores.creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT).toFixed(2)}</span></div><div class="calc-final">Total Score: ${scores.totalScore.toFixed(2)}</div>`;
+        html = `<div class="calc-row"><span class="calc-label">Capital Score (180-day Avg)</span> <span class="calc-value">${scores.capitalScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Consistency Score (SIP)</span> <span class="calc-value">${scores.consistencyScore.toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Credit Behavior Score</span> <span class="calc-value">${scores.creditScore.toFixed(2)}</span></div><hr><div class="calc-row"><span class="calc-label">Weighted Capital (40%)</span> <span class="calc-value">${(scores.capitalScore * CONFIG.CAPITAL_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Consistency (30%)</span> <span class="calc-value">${(scores.consistencyScore * CONFIG.CONSISTENCY_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Credit (30%)</span> <span class="calc-value">${(scores.creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT).toFixed(2)}</span></div><div class="calc-final">Total Score: ${scores.totalScore.toFixed(2)}</div>`;
     } else if (details.type === 'profit_event') {
         const { member, profitEvent } = details;
         titleEl.textContent = `Profit Share for ${member.name}`;
