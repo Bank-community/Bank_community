@@ -175,6 +175,8 @@
                                 <div class="info-item flex justify-between items-center"><span class="text-gray-500">Joining Date</span><span id="joining-date" class="font-semibold text-gray-800"></span></div>
                                 <div class="info-item flex justify-between items-center"><span class="text-gray-500">Guarantor</span><span id="guarantor-name" class="font-semibold text-gray-800"></span></div>
                                 <div class="info-item flex justify-between items-center"><span class="text-gray-500">Total SIP</span><span id="total-sip" class="font-bold text-lg text-indigo-600"></span></div>
+                                <!-- *** NEW *** Lifetime Profit Box -->
+                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Lifetime Profit</span><span id="lifetime-profit" class="font-bold text-lg text-green-600"></span></div>
                             </div>
                             <div class="mt-6 p-4 bg-indigo-50 rounded-lg text-center">
                                 <div class="flex justify-between items-center">
@@ -259,7 +261,7 @@
   </div>
 
   <script type="module">
-    // --- *** UPDATED *** CONFIGURATION FOR FINANCIAL CALCULATOR ---
+    // --- CONFIGURATION FOR FINANCIAL CALCULATOR ---
     const CALC_CONFIG = {
         CAPITAL_WEIGHT: 0.40, 
         CONSISTENCY_WEIGHT: 0.30, 
@@ -382,6 +384,9 @@
             const extraBalance = balanceResult.total;
             balanceHistory = balanceResult.history;
             
+            // *** NEW *** Calculate Lifetime Profit
+            const lifetimeProfit = calculateLifetimeProfit(data.fullName);
+
             let totalSip = 0;
             if (data.transactions) {
                 totalSip = Object.values(data.transactions).reduce((sum, tx) => sum + (parseFloat(tx['SIP Payment']) || 0), 0);
@@ -406,6 +411,9 @@
             document.getElementById('guarantor-name').textContent = data.guarantorName || 'N/A';
             document.getElementById('total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
             document.getElementById('extra-balance').textContent = `₹${extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            // *** NEW *** Populate Lifetime Profit
+            document.getElementById('lifetime-profit').textContent = `₹${lifetimeProfit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
             
             const withdrawBtn = document.getElementById('withdraw-btn');
             withdrawBtn.disabled = extraBalance < 10;
@@ -427,7 +435,7 @@
             }
         }
 
-        // --- Event Listeners ---
+        // --- Event Listeners and Modals (No changes here) ---
         const imageViewerModal = document.getElementById('imageViewerModal');
         document.querySelectorAll('.document-thumbnail').forEach(img => {
             img.addEventListener('click', () => {
@@ -519,40 +527,26 @@
             cardResultModal.classList.remove('hidden');
         }
         
-        // --- IMAGE & SHARING FUNCTIONS ---
         function toDataURL(url) {
             return new Promise((resolve) => {
-                // Using a simple check to see if it's a data URL already
-                if(url.startsWith('data:')) {
-                    resolve(url);
-                    return;
-                }
-                // Basic CORS proxy for Firebase Storage URLs
+                if(url.startsWith('data:')) { resolve(url); return; }
                 const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
                 const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url;
-
                 fetch(targetUrl)
                     .then(response => response.blob())
                     .then(blob => {
                         const reader = new FileReader();
                         reader.onloadend = () => resolve(reader.result);
-                        reader.onerror = () => resolve(url); // Fallback to original URL on error
+                        reader.onerror = () => resolve(url);
                         reader.readAsDataURL(blob);
-                    })
-                    .catch(() => resolve(url)); // Fallback on fetch failure
+                    }).catch(() => resolve(url));
             });
         }
-
         async function getCardAsBlob() {
             const cardElement = document.getElementById('withdrawalCard');
-            const canvas = await html2canvas(cardElement, { 
-                scale: 3, 
-                backgroundColor: null,
-                useCORS: true, 
-            });
+            const canvas = await html2canvas(cardElement, { scale: 3, backgroundColor: null, useCORS: true });
             return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         }
-
         async function downloadCard() {
             const blob = await getCardAsBlob();
             const link = document.createElement('a');
@@ -561,33 +555,20 @@
             link.click();
             URL.revokeObjectURL(link.href);
         }
-        
         async function shareCard() {
             const blob = await getCardAsBlob();
             const file = new File([blob], `withdrawal.png`, { type: 'image/png' });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Withdrawal Receipt',
-                        text: `Withdrawal receipt for ${currentMemberData.fullName}.`
-                    });
-                } catch (error) {
-                    console.error('Share failed:', error);
-                    alert('Could not share the image.');
-                }
-            } else {
-                alert("Sharing is not supported on this browser.");
-            }
+                try { await navigator.share({ files: [file], title: 'Withdrawal Receipt', text: `Withdrawal receipt for ${currentMemberData.fullName}.`});
+                } catch (error) { console.error('Share failed:', error); alert('Could not share the image.'); }
+            } else { alert("Sharing is not supported on this browser."); }
         }
 
-        // --- *** UPDATED *** FINANCIAL CALCULATOR LOGIC ---
-
+        // --- FINANCIAL CALCULATOR LOGIC (Final Version) ---
+        
         function calculatePerformanceScore(memberName, untilDate) {
             const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
-            if (memberData.length === 0) {
-                return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
-            }
+            if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
             
             const firstTransactionDate = memberData[0]?.date;
             const membershipDays = firstTransactionDate ? (untilDate - firstTransactionDate) / (1000 * 3600 * 24) : 0;
@@ -602,27 +583,19 @@
                 creditScore *= 0.50;
             }
 
-            const totalScore = (capitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + 
-                               (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + 
-                               (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
-
-            return { totalScore, capitalScore, consistencyScore, creditScore };
+            const totalScore = (capitalScore * CALC_CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CALC_CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CALC_CONFIG.CREDIT_BEHAVIOR_WEIGHT);
+            return { totalScore: isNaN(totalScore) ? 0 : totalScore, capitalScore, consistencyScore, creditScore };
         }
 
         function calculateCapitalScore(memberName, untilDate) {
             const daysToReview = CALC_CONFIG.CAPITAL_SCORE_DAYS;
             const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
             const memberData = allMemberTransactions.filter(r => r.fullName === memberName && r.date <= untilDate);
-
             let balanceAtStart = 0;
-            allMemberTransactions.filter(r => r.fullName === memberName && r.date < startDate).forEach(r => {
-                balanceAtStart += r.sipPayment + r.payment - r.loan;
-            });
-
+            allMemberTransactions.filter(r => r.fullName === memberName && r.date < startDate).forEach(r => { balanceAtStart += r.sipPayment + r.payment - r.loan; });
             let weightedCapitalSum = 0;
             let currentBalance = balanceAtStart;
             let lastDate = startDate;
-
             const relevantTransactions = memberData.filter(r => r.date >= startDate);
             relevantTransactions.forEach(t => {
                 const daysDifference = (t.date - lastDate) / (1000 * 3600 * 24);
@@ -641,13 +614,10 @@
             oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
             const recentMemberData = memberData.filter(r => r.date >= oneYearAgo);
             if (recentMemberData.length === 0) return 0;
-
             const sipHistory = {};
             recentMemberData.filter(r => r.sipPayment > 0).forEach(r => {
                 const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`;
-                if (!sipHistory[monthKey]) {
-                    sipHistory[monthKey] = r.date.getDate() <= CALC_CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5;
-                }
+                if (!sipHistory[monthKey]) { sipHistory[monthKey] = r.date.getDate() <= CALC_CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5; }
             });
             if (Object.keys(sipHistory).length === 0) return 0;
             const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
@@ -660,11 +630,9 @@
             const oneYearAgo = new Date(untilDate);
             oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
             const memberLoans = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo);
-
             const firstTransactionDate = memberData[0]?.date;
             if (!firstTransactionDate) return 0;
             const membershipDays = (untilDate - firstTransactionDate) / (1000 * 3600 * 24);
-
             if (memberLoans.length === 0) {
                 if (membershipDays < CALC_CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40;
                 const sipData = memberData.filter(r => r.sipPayment > 0);
@@ -675,20 +643,14 @@
                 const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40);
                 return Math.min(100, dayScore);
             }
-
-            let totalPoints = 0;
-            let loansProcessed = 0;
+            let totalPoints = 0, loansProcessed = 0;
             for (const loanRecord of memberLoans) {
                 let loanAmount = loanRecord.loan;
                 let paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0));
-                let amountRepaid = 0;
-                let repaymentDate = null;
+                let amountRepaid = 0, repaymentDate = null;
                 for (const p of paymentsAfterLoan) {
                     amountRepaid += p.payment + p.sipPayment;
-                    if (amountRepaid >= loanAmount) {
-                        repaymentDate = p.date;
-                        break;
-                    }
+                    if (amountRepaid >= loanAmount) { repaymentDate = p.date; break; }
                 }
                 loansProcessed++;
                 if (repaymentDate) {
@@ -703,9 +665,7 @@
                     }
                     if (loanAmount > 5000) totalPoints += 5;
                     if (loanAmount > 10000) totalPoints += 5;
-                } else {
-                    totalPoints -= 40;
-                }
+                } else { totalPoints -= 40; }
             }
             if (loansProcessed === 0) return 40;
             const maxPossiblePoints = loansProcessed * 35;
@@ -716,10 +676,7 @@
         function getLoanEligibility(memberName, score) {
             const memberData = allMemberTransactions.filter(r => r.fullName === memberName);
             let totalLoan = 0, totalPayment = 0;
-            memberData.forEach(r => {
-                totalLoan += r.loan;
-                totalPayment += r.payment + r.sipPayment;
-            });
+            memberData.forEach(r => { totalLoan += r.loan; totalPayment += r.payment + r.sipPayment; });
             if (totalLoan > totalPayment) return { eligible: false, reason: 'Outstanding Loan' };
             const firstSip = memberData.find(r => r.sipPayment > 0);
             if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
@@ -737,11 +694,11 @@
             return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, isNaN(multiplier) ? 1.0 : multiplier) };
         }
 
-        function calculateTotalExtraBalance(memberId) {
-            const history = [];
-            const memberFullName = currentMemberData.fullName;
-
+        // --- *** NEW *** LIFETIME PROFIT CALCULATION ---
+        function calculateLifetimeProfit(memberFullName) {
+            let totalProfit = 0;
             const profitEvents = allMemberTransactions.filter(r => r.returnAmount > 0);
+            
             profitEvents.forEach(paymentRecord => {
                 const profit = paymentRecord.returnAmount * 0.90;
                 if (profit <= 0) return;
@@ -770,32 +727,36 @@
                     const lastLoanDate = allMemberTransactions.filter(r => r.fullName === memberFullName && r.loan > 0 && r.date <= loanDate).pop()?.date;
                     const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
                     
-                    if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_DAYS_LEVEL_2) {
-                        memberShare *= CALC_CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
-                    } else if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_DAYS_LEVEL_1) {
-                        memberShare *= CALC_CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
-                    }
+                    if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_DAYS_LEVEL_2) memberShare *= CALC_CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
+                    else if (daysSinceLastLoan > CALC_CONFIG.INACTIVE_DAYS_LEVEL_1) memberShare *= CALC_CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
                     
-                    if (memberShare > 0) {
-                        history.push({ type: 'profit', from: paymentRecord.fullName, date: paymentRecord.date, amount: memberShare });
-                    }
+                    if (memberShare > 0) totalProfit += memberShare;
                 }
             });
+            return totalProfit;
+        }
+
+        function calculateTotalExtraBalance(memberId) {
+            const history = [];
+            const memberFullName = currentMemberData.fullName;
+            const lifetimeProfit = calculateLifetimeProfit(memberFullName);
+
+            // Add total calculated profit as a single entry for simplicity in balance calculation
+            // The detailed profit history can be generated separately if needed for display
+            if (lifetimeProfit > 0) {
+                 // We find the date of the last profit event to give a representative date
+                const lastProfitEvent = allMemberTransactions.filter(r => r.returnAmount > 0).pop();
+                history.push({ type: 'profit', from: 'All Sources', date: lastProfitEvent ? lastProfitEvent.date : new Date(), amount: lifetimeProfit });
+            }
 
             const manualAdjustments = allMemberTransactions.filter(tx => tx.memberId === memberId && (tx.extraBalance !== 0 || tx.extraWithdraw !== 0));
             manualAdjustments.forEach(tx => {
-                if (tx.extraBalance > 0) {
-                    history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
-                }
-                if (tx.extraWithdraw > 0) {
-                    history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
-                }
+                if (tx.extraBalance > 0) history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+                if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
             });
             
             history.sort((a,b) => a.date - b.date);
-            
             const total = history.reduce((acc, item) => acc + item.amount, 0);
-
             return { total, history };
         }
 
@@ -806,4 +767,5 @@
   </script>
 </body>
 </html>
+
 
