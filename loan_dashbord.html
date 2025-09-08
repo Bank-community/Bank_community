@@ -161,32 +161,37 @@ body {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
 }
 
-/* ---- START: FINAL UPDATED CREDIT CARD STYLES ---- */
+/* ---- START: FINAL CREDIT CARD STYLES ---- */
 .credit-card-wrapper {
-    /* This wrapper now holds the card image and the banner below it */
-    background-color: transparent;
+    background-color: transparent; /* Wrapper has no background */
     border: none;
-    box-shadow: none;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+    border-radius: 16px;
+    overflow: hidden; /* This is important to contain the children */
+}
+.credit-card-wrapper:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 25px -5px rgba(0,0,0,0.15);
 }
 
 .credit-card-image-bg {
     color: white;
     position: relative;
-    /* Enforcing 16:9 ratio for the thumbnail size */
     aspect-ratio: 16 / 9;
-    background-size: cover;
+    /* This ensures the full image is visible, without cropping */
+    background-size: contain; 
+    background-repeat: no-repeat;
     background-position: center;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+    background-color: #0c3b38; /* Dark teal background for letterboxing */
     width: 100%;
-    /* No border radius here, parent will handle it */
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
 }
 
 .cc-profile-pic {
     position: absolute;
-    /* Positioned based on percentage to scale with card size */
-    top: 10%;
+    top: 9%;
     left: 7%;
-    width: 15%; /* Scalable width */
+    width: 15%;
     height: auto;
     aspect-ratio: 1/1;
     border-radius: 50%;
@@ -201,7 +206,7 @@ body {
     position: absolute;
     bottom: 12%;
     left: 7%;
-    font-size: clamp(14px, 4vw, 18px); /* Responsive font size */
+    font-size: clamp(14px, 4vw, 18px);
     font-weight: 500;
 }
 
@@ -212,16 +217,16 @@ body {
     text-align: right;
 }
 .cc-amount-group .cc-value {
-    font-size: clamp(24px, 7vw, 32px); /* Responsive font size */
+    font-size: clamp(24px, 7vw, 32px);
     font-weight: 700;
     line-height: 1.1;
 }
 
-/* The banner is now a direct child of .loan-card, not inside the image div */
 .credit-card-wrapper .pending-banner {
-    border-radius: 0 0 16px 16px; /* Rounded corners only at the bottom */
+    /* Banner is now a direct child of the wrapper, appearing below the image */
+    border-radius: 0; 
 }
-/* ---- END: FINAL UPDATED CREDIT CARD STYLES ---- */
+/* ---- END: FINAL CREDIT CARD STYLES ---- */
 
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
@@ -542,7 +547,6 @@ document.addEventListener("DOMContentLoaded", () => {
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
         }
         
-        // FINAL UPDATED RENDER FUNCTION
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -560,15 +564,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 const profilePic = loan.imageUrl || defaultPic;
 
                 if (loan.status === '10-day-credit') {
-                    // Use a special wrapper class for credit cards
                     card.className = 'loan-card credit-card-wrapper'; 
                     
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText} (Zero Charges)`;
 
-                    // NEW HTML STRUCTURE: Card Image and Banner are separate siblings
+                    // ## YAHAN APNA IMAGE LINK DALEN ##
+                    // Example link for the card with "10 DAYS" text. Replace this with your actual public link.
+                    const cardImageUrl = "https://i.ibb.co/dJj89hph/20250908-070346.png";
+
                     card.innerHTML = `
-                        <div class="credit-card-image-bg" style="background-image: url('https://i.ibb.co/dJj89hph/20250908-070346.png')">
+                        <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}')">
                             <div class="cc-profile-pic">
                                 <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
                             </div>
@@ -696,4 +702,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
