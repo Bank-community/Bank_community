@@ -210,21 +210,12 @@ body {
 .credit-card-wrapper .pending-banner { border-radius: 10px; }
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
-.download-btn { position: absolute; top: 16px; right: 16px; background-color: #f3f4f6; color: #4b5563; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; z-index: 2;}
-.download-btn:hover { background-color: #e5e7eb; transform: scale(1.1); }
-.download-btn .icon { width: 20px; height: 20px; }
 .card-top { display: flex; align-items: center; margin-bottom: 20px; }
 .profile-picture { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; margin-right: 16px; flex-shrink: 0; border: 2px solid var(--border-color); }
 .profile-picture img { width: 100%; height: 100%; object-fit: cover; }
 .user-details h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-dark); }
 .loan-date { font-size: 13px; color: var(--text-light); display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .loan-date .icon { width: 14px; height: 14px; }
-.smart-slab-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 6px; }
-.smart-slab-badge.active { background-color: #e0e7ff; color: var(--primary-color); }
-.smart-slab-badge.defaulted { background-color: var(--danger-light); color: var(--danger-color); }
-.smart-slab-badge .icon { width: 12px; height: 12px; }
-.emi-countdown { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-top: 8px; background-color: var(--success-light); color: var(--success-color); border: 1px solid #9ae6b4; }
-.emi-countdown .icon { width: 14px; height: 14px; }
 .card-middle { background-color: var(--primary-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); margin-top: auto; }
 .detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
 .detail-row:not(:last-child) { margin-bottom: 12px; }
@@ -269,11 +260,16 @@ body {
     background-color: var(--primary-color); color: white;
 }
 .modal-btn:hover { background-color: var(--primary-dark); }
-.modal-btn:disabled { background-color: #a5b4fc; cursor: not-allowed; }
 #generated-card-container { margin-top: 24px; }
-#share-btn { background-color: #25D366; margin-top: 12px; }
-#share-btn:hover { background-color: #128C7E; }
 #modal-status { text-align: center; margin-top: 15px; font-weight: 500; }
+.action-buttons { display: flex; gap: 12px; margin-top: 12px; }
+.action-buttons .modal-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+#share-btn { background-color: #25D366; }
+#share-btn:hover { background-color: #128C7E; }
+#download-btn { background-color: var(--text-light); }
+#download-btn:hover { background-color: var(--text-dark); }
 </style>
     <div class="container">
         <div class="header">
@@ -325,7 +321,7 @@ body {
                 <label for="credit-amount">Amount</label>
                 <input type="number" id="credit-amount" placeholder="Select a member first" disabled>
             </div>
-            <button class="modal-btn" id="generate-save-btn">Generate & Save</button>
+            <button class="modal-btn" id="generate-card-btn">Generate Card</button>
             <div id="modal-status"></div>
             <div id="generated-card-container"></div>
         </div>
@@ -380,7 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 closeModalBtn: document.querySelector('.close-modal-btn'),
                 memberSelect: document.getElementById('member-select'),
                 creditAmountInput: document.getElementById('credit-amount'),
-                generateSaveBtn: document.getElementById('generate-save-btn'),
+                generateCardBtn: document.getElementById('generate-card-btn'),
                 generatedCardContainer: document.getElementById('generated-card-container'),
                 modalStatus: document.getElementById('modal-status'),
             },
@@ -500,15 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (monthsSinceLoan <= 3) {
                         dueText = 'Monthly Interest (1.5%)';
                         dueAmount = Math.round(currentBalance * 0.015);
-                    } else if (monthsSinceLoan > 3 && monthsSinceLoan <= 9) {
-                        const P = currentBalance, r = 0.015, n = 6;
-                        const emi = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-                        dueText = 'EMI Due';
-                        dueAmount = Math.round(emi);
-                    } else {
-                        dueText = 'Overdue Amount';
-                        dueAmount = currentBalance;
-                    }
+                    } else { dueText = 'Overdue Amount'; dueAmount = currentBalance; }
 
                     outstanding.push({
                         name: name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
@@ -530,13 +518,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
         }
 
-
         function displayAllData() {
             displaySummary(state.allOutstandingLoans);
             displayLoanCards(state.allOutstandingLoans);
         }
 
-        // --- SUDHAR: Sirf loan amount ko jodega ---
         function displaySummary(loans) {
             const { totalCountEl, totalAmountEl } = state.ui;
             const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
@@ -553,8 +539,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             loans.forEach(loan => {
                 const card = document.createElement('div');
-                const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${loan.loanAmount}`;
-                card.id = cardId;
                 const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
                 const profilePic = loan.imageUrl || defaultPic;
 
@@ -627,7 +611,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         function setupModalEventListeners() {
-            const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateSaveBtn, modalStatus, generatedCardContainer } = state.ui;
+            const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer } = state.ui;
 
             openModalBtn.addEventListener('click', () => {
                 memberSelect.value = '';
@@ -636,111 +620,86 @@ document.addEventListener("DOMContentLoaded", () => {
                 creditAmountInput.placeholder = 'Select a member first';
                 generatedCardContainer.innerHTML = '';
                 modalStatus.textContent = '';
-                generateSaveBtn.style.display = 'block';
-                generateSaveBtn.disabled = false;
                 modal.classList.add('visible');
             });
             
             closeModalBtn.addEventListener('click', () => modal.classList.remove('visible'));
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
 
-            // --- SUDHAR: Amount ka logic hataya gaya ---
             memberSelect.addEventListener('change', () => {
-                const memberId = memberSelect.value;
-                if (!memberId) {
-                    creditAmountInput.disabled = true;
-                    creditAmountInput.placeholder = 'Select a member first';
-                } else {
-                    creditAmountInput.disabled = false;
-                    creditAmountInput.placeholder = 'Enter amount manually';
-                }
+                creditAmountInput.disabled = !memberSelect.value;
+                creditAmountInput.placeholder = memberSelect.value ? 'Enter amount' : 'Select a member first';
             });
 
-            generateSaveBtn.addEventListener('click', async () => {
+            generateCardBtn.addEventListener('click', () => {
                 const memberId = memberSelect.value;
                 const amount = parseFloat(creditAmountInput.value);
                 const selectedOption = memberSelect.options[memberSelect.selectedIndex];
 
-                // --- SUDHAR: Sirf basic validation ---
-                if (!memberId) { modalStatus.textContent = 'Please select a member.'; modalStatus.style.color='red'; return; }
-                if (isNaN(amount) || amount <= 0) { modalStatus.textContent = 'Please enter a valid amount.'; modalStatus.style.color='red'; return; }
-                
-                modalStatus.textContent = 'Saving transaction...';
-                modalStatus.style.color = 'var(--text-light)';
-                generateSaveBtn.disabled = true;
-                
-                const newTransaction = {
-                    Date: new Date().toISOString(),
-                    Loan: amount,
-                    'Loan Payment': 0,
-                    'SIP Amount': 0,
-                    transactionType: '10DaysCredit',
-                    'Loan Type': '10 Days Credit',
-                };
-
-                try {
-                    const db = firebase.database();
-                    await db.ref(`members/${memberId}/transactions`).push(newTransaction);
-                    
-                    modalStatus.textContent = 'Loan granted! Card generated.';
-                    modalStatus.style.color = 'var(--success-color)';
-                    generateSaveBtn.style.display = 'none';
-
-                    const memberName = selectedOption.textContent;
-                    const profilePic = selectedOption.dataset.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=4f46e5&color=fff&size=50`;
-                    const cardImageUrl = "https://i.ibb.co/fVmPsNx1/IMG-20250908-091143.png";
-
-                    generatedCardContainer.innerHTML = `
-                        <div id="card-to-share" class="credit-card-wrapper" style="margin-bottom: 12px;">
-                           <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}');">
-                              <div class="cc-content">
-                                 <div class="cc-profile-pic"><img src="${profilePic}" alt="${memberName}" ></div>
-                                 <div class="cc-member-name">${memberName}</div>
-                                 <div class="cc-amount-group"><div class="cc-value">₹${amount.toLocaleString('en-IN')}</div></div>
-                              </div>
-                           </div>
-                        </div>
-                        <button class="modal-btn" id="share-btn">Share on WhatsApp</button>
-                    `;
-                    
-                    document.getElementById('share-btn').addEventListener('click', shareCard);
-                    fetchAndProcessData();
-
-                } catch (error) {
-                    console.error("Firebase write error:", error);
-                    modalStatus.textContent = 'Failed to save. Please try again.';
-                    modalStatus.style.color = 'var(--danger-color)';
-                    generateSaveBtn.disabled = false;
+                if (!memberId || isNaN(amount) || amount <= 0) {
+                    modalStatus.textContent = 'Please select a member and enter a valid amount.';
+                    modalStatus.style.color = 'red';
+                    return;
                 }
+                modalStatus.textContent = '';
+                
+                const memberName = selectedOption.textContent;
+                const profilePic = selectedOption.dataset.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=4f46e5&color=fff&size=50`;
+                const cardImageUrl = "https://i.ibb.co/fVmPsNx1/IMG-20250908-091143.png";
+
+                generatedCardContainer.innerHTML = `
+                    <div id="card-to-share" class="credit-card-wrapper">
+                       <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}');">
+                          <div class="cc-content">
+                             <div class="cc-profile-pic"><img src="${profilePic}" alt="${memberName}" ></div>
+                             <div class="cc-member-name">${memberName}</div>
+                             <div class="cc-amount-group"><div class="cc-value">₹${amount.toLocaleString('en-IN')}</div></div>
+                          </div>
+                       </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="modal-btn" id="download-btn">Download</button>
+                        <button class="modal-btn" id="share-btn">Share</button>
+                    </div>
+                `;
+                
+                document.getElementById('download-btn').addEventListener('click', () => handleCardAction('download'));
+                document.getElementById('share-btn').addEventListener('click', () => handleCardAction('share'));
             });
         }
         
-        async function shareCard() {
+        async function handleCardAction(action) {
             const cardElement = document.getElementById('card-to-share');
             const statusEl = state.ui.modalStatus;
-            statusEl.textContent = "Preparing image for sharing...";
+            statusEl.textContent = "Preparing image...";
+            statusEl.style.color = 'var(--text-light)';
 
             try {
                 const canvas = await html2canvas(cardElement, { useCORS: true, scale: 2 });
                 canvas.toBlob(async (blob) => {
-                    const file = new File([blob], 'credit-card.png', { type: 'image/png' });
-                    if (navigator.share) {
-                         await navigator.share({
-                            files: [file],
-                            title: '10-Day Credit Card',
-                            text: '10-Day Credit Approved!'
-                        });
-                        statusEl.textContent = "Shared successfully!";
-                    } else {
-                        statusEl.textContent = 'Sharing not supported. Downloading instead...';
+                    if (action === 'download') {
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(blob);
-                        link.download = 'credit-card.png';
+                        link.download = `credit-card-${Date.now()}.png`;
                         link.click();
+                        statusEl.textContent = "Image downloaded!";
+                        statusEl.style.color = 'var(--success-color)';
+                    } else if (action === 'share') {
+                        const file = new File([blob], 'credit-card.png', { type: 'image/png' });
+                        if (navigator.share) {
+                             await navigator.share({
+                                files: [file],
+                                title: '10-Day Credit Card',
+                                text: '10-Day Credit Generated!'
+                            });
+                        } else {
+                            statusEl.textContent = 'Sharing not supported on this browser.';
+                            statusEl.style.color = 'var(--warning-color)';
+                        }
                     }
                 }, 'image/png');
             } catch (err) {
-                console.error('Sharing failed:', err);
+                console.error('Action failed:', err);
                 statusEl.textContent = 'Could not generate image. Please try again.';
                 statusEl.style.color = 'red';
             }
