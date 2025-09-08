@@ -161,17 +161,15 @@ body {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
 }
 
-/* ---- START: FINAL & PERFECT CREDIT CARD /* ---- START: FINAL & PERFECT CREDIT CARD STYLES ---- */
-/* Puraane credit card styles ko is block se badal dein */
-
+/* ---- START: FINAL & PERFECT CREDIT CARD STYLES ---- */
 .credit-card-wrapper {
-    background-color: transparent; /* Wrapper ka koi background nahi hai */
+    background-color: transparent; /* Wrapper has no background */
     border: none;
     box-shadow: none;
-    overflow: visible; /* Hover effect ke liye zaroori */
+    overflow: visible; /* Allows hover effect to be seen */
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Card aur banner ke beech mein space */
+    gap: 8px; /* Space between card and banner */
 }
 .credit-card-wrapper:hover .credit-card-image-bg {
     transform: translateY(-5px);
@@ -181,7 +179,7 @@ body {
 .credit-card-image-bg {
     color: white;
     position: relative;
-    padding-bottom: 56.25%; /* 16:9 ka ratio banata hai */
+    padding-bottom: 56.25%; /* This creates the 16:9 aspect ratio */
     background-size: cover;
     background-position: center;
     width: 100%;
@@ -439,6 +437,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return { type: 'smart-interest', percentage, amount, slabName };
         }
         
+        // ## START: LOGIC UPDATE ##
+        // FindOutstandingLoans function ko is naye function se badal diya gaya hai
         function findOutstandingLoans(allData) {
             const outstanding = [];
             const members = [...new Set(allData.map(d => d.Name))];
@@ -464,21 +464,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 const loanDate = lastLoan.Date;
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
 
-                if (lastLoan.transactionType === '10DaysCredit' && lastLoan.creditStatus === 'Active' && today < lastLoan.DueDate) {
+                // Yahi hai mukhya logic badlav:
+                // Check karte hain ki kya yeh ek ACTIVE 10-day credit hai.
+                const isActiveCredit = lastLoan.transactionType === '10DaysCredit' && lastLoan.DueDate && today < lastLoan.DueDate;
+
+                if (isActiveCredit) {
                     const daysRemaining = Math.ceil((lastLoan.DueDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
                     outstanding.push({
                         name: name,
                         loanAmount: currentBalance,
-                        daysAgo: daysSinceLoan,
                         imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
-                        loanDate: loanDate,
-                        status: '10-day-credit',
-                        loanType: '10 Days Credit',
+                        status: '10-day-credit', // Yeh special status card banane ke kaam aayega
                         daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
                     });
                     
                 } else {
-                    if (lastLoan.LoanType === 'Business Loan' || (lastLoan.transactionType === '10DaysCredit' && lastLoan.LoanType === 'Business Loan')) {
+                    // Yeh block ab sabhi normal loans aur overdue ho chuke credits ko handle karega.
+                    
+                    // Business Loan ka logic
+                    if (lastLoan.LoanType === 'Business Loan') {
                         let processingFee = (currentBalance <= 9000) ? Math.round(currentBalance * 0.01) : Math.round(currentBalance * 0.01) + 200;
                         let dueText = '', dueAmount = 0;
                         const monthsSinceLoan = daysSinceLoan / 30.44; 
@@ -503,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             status: 'business', loanType: lastLoan.LoanType, processingFee: processingFee
                         });
 
-                    } else {
+                    } else { // Normal loans aur overdue credits ka logic
                         let interestInfo, status = 'standard', daysRemainingForEMI = null;
                         const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
                         const firstPaymentAfterLoan = paymentsAfterLoan[0];
@@ -531,6 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
                         }
                         
+                        // Agar yeh credit tha, toh use "Overdue" label denge
                         const finalLoanType = lastLoan.transactionType === '10DaysCredit' ? '10 Days Credit (Overdue)' : lastLoan.LoanType;
 
                         outstanding.push({
@@ -546,6 +551,7 @@ document.addEventListener("DOMContentLoaded", () => {
             
             return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
         }
+        // ## END: LOGIC UPDATE ##
 
         function displayAllData() {
             displaySummary(state.allOutstandingLoans);
@@ -581,8 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText} (Zero Charges)`;
                     
-                    // ## YAHAN APNA IMAGE LINK DALEN ##
-                    const cardImageUrl = "https://i.ibb.co/fVmPsNx1/IMG-20250908-091143.png"; 
+                    const cardImageUrl = "https://i.ibb.co/dJj89hph/20250908-070346.png"; 
 
                     card.innerHTML = `
                         <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}')">
