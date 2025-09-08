@@ -210,12 +210,21 @@ body {
 .credit-card-wrapper .pending-banner { border-radius: 10px; }
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
+.card-download-btn { position: absolute; top: 16px; right: 16px; background-color: #f3f4f6; color: #4b5563; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; z-index: 2;}
+.card-download-btn:hover { background-color: #e5e7eb; transform: scale(1.1); }
+.card-download-btn .icon { width: 20px; height: 20px; }
 .card-top { display: flex; align-items: center; margin-bottom: 20px; }
 .profile-picture { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; margin-right: 16px; flex-shrink: 0; border: 2px solid var(--border-color); }
 .profile-picture img { width: 100%; height: 100%; object-fit: cover; }
 .user-details h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-dark); }
 .loan-date { font-size: 13px; color: var(--text-light); display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .loan-date .icon { width: 14px; height: 14px; }
+.smart-slab-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 6px; }
+.smart-slab-badge.active { background-color: #e0e7ff; color: var(--primary-color); }
+.smart-slab-badge.defaulted { background-color: var(--danger-light); color: var(--danger-color); }
+.smart-slab-badge .icon { width: 12px; height: 12px; }
+.emi-countdown { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-top: 8px; background-color: var(--success-light); color: var(--success-color); border: 1px solid #9ae6b4; }
+.emi-countdown .icon { width: 14px; height: 14px; }
 .card-middle { background-color: var(--primary-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); margin-top: auto; }
 .detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
 .detail-row:not(:last-child) { margin-bottom: 12px; }
@@ -360,6 +369,11 @@ document.addEventListener("DOMContentLoaded", () => {
             money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
             penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
+            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
+            star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`,
+            tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`,
+            receipt: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m3 0h.75M9 12l3-3m0 0 3 3m-3-3v12.75" /></svg>`,
+            hourglass: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662s.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.092-1.21.138-2.43.138-3.662Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12Z" /></svg>`,
         };
 
         const state = {
@@ -445,6 +459,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const amount = Math.round((loanAmount * percentage) / 100);
             return { type: 'penalty', percentage, amount };
         }
+        
+        // --- SMART SLAB FUNCTION RESTORED ---
+        function calculateSmartSlabInterest(loanAmount, paymentsMadeCount) {
+            let percentage = 0;
+            let slabName = "";
+            if (paymentsMadeCount === 0) { percentage = 1; slabName = "Month 1"; } 
+            else if (paymentsMadeCount === 1) { percentage = 2.5; slabName = "Month 2"; } 
+            else { percentage = 4.5; slabName = "Month 3+"; }
+            const amount = Math.round((loanAmount * percentage) / 100);
+            return { type: 'smart-interest', percentage, amount, slabName };
+        }
 
         function findOutstandingLoans(allData) {
             const outstanding = [];
@@ -480,9 +505,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         const timeDiff = dueDate.getTime() - todayAtMidnight.getTime();
                         const daysRemaining = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
                         outstanding.push({
-                            name: name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                            imageUrl: memberData[0].ImageUrl || null, loanDate: loanDate,
-                            status: '10-day-credit', loanType: '10 Days Credit', daysRemaining: daysRemaining,
+                            name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
+                            imageUrl: memberData[0].ImageUrl || null, loanDate,
+                            status: '10-day-credit', loanType: '10 Days Credit', daysRemaining,
                         });
                         return; 
                     }
@@ -490,27 +515,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 if (lastLoan.LoanType === 'Business Loan') {
                     let processingFee = (currentBalance <= 9000) ? Math.round(currentBalance * 0.01) : Math.round(currentBalance * 0.01) + 200;
-                    let dueText = '', dueAmount = 0;
-                    const monthsSinceLoan = daysSinceLoan / 30.44; 
-
-                    if (monthsSinceLoan <= 3) {
-                        dueText = 'Monthly Interest (1.5%)';
-                        dueAmount = Math.round(currentBalance * 0.015);
-                    } else { dueText = 'Overdue Amount'; dueAmount = currentBalance; }
-
+                    let dueText = 'Monthly Interest (1.5%)', dueAmount = Math.round(currentBalance * 0.015);
                     outstanding.push({
-                        name: name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                        imageUrl: memberData[0].ImageUrl || null, loanDate: loanDate,
+                        name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
+                        imageUrl: memberData[0].ImageUrl || null, loanDate,
                         interest: { type: dueText, amount: dueAmount }, status: 'business',
-                        loanType: lastLoan.LoanType, processingFee: processingFee
+                        loanType: lastLoan.LoanType, processingFee
                     });
                 } else {
-                    const interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                    // --- SMART SLAB LOGIC RESTORED ---
+                    let interestInfo, status = 'standard', daysRemainingForEMI = null;
+                    const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
+                    let isSmartSlabEligible = paymentsAfterLoan.length > 0 && ((paymentsAfterLoan[0].Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24)) <= 30;
+
+                    if(isSmartSlabEligible) {
+                        const daysSinceLastPayment = Math.floor((today.getTime() - paymentsAfterLoan[paymentsAfterLoan.length - 1].Date.getTime()) / (1000 * 3600 * 24));
+                        if(daysSinceLastPayment > 30) {
+                            status = 'smart-defaulted';
+                            interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                        } else {
+                            status = 'smart-active';
+                            interestInfo = calculateSmartSlabInterest(currentBalance, paymentsAfterLoan.length);
+                            daysRemainingForEMI = 30 - daysSinceLastPayment;
+                        }
+                    } else {
+                        status = 'standard';
+                        interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
+                    }
+                    
                     const finalLoanType = lastLoan.transactionType === '10DaysCredit' ? '10 Days Credit (Overdue)' : (lastLoan.LoanType || 'Personal Loan');
                     outstanding.push({
-                        name: name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                        imageUrl: memberData[0].ImageUrl || null, loanDate: loanDate,
-                        interest: interestInfo, status: 'standard', loanType: finalLoanType,
+                        name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
+                        imageUrl: memberData[0].ImageUrl || null, loanDate, interest: interestInfo,
+                        status, loanType: finalLoanType, daysRemainingForEMI
                     });
                 }
             });
@@ -539,13 +576,15 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             loans.forEach(loan => {
                 const card = document.createElement('div');
+                const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now()}`;
+                card.id = cardId;
                 const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
                 const profilePic = loan.imageUrl || defaultPic;
 
                 if (loan.status === '10-day-credit') {
                     card.className = 'loan-card credit-card-wrapper';
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
-                    const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText} (Zero Charges)`;
+                    const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText}`;
                     const cardImageUrl = "https://i.ibb.co/fVmPsNx1/IMG-20250908-091143.png";
                     card.innerHTML = `
                         <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}')">
@@ -564,23 +603,38 @@ document.addEventListener("DOMContentLoaded", () => {
                     else if (loan.daysAgo > 30) bannerClass = 'warning';
                     let bannerText = `Loan taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
                     const cardTopHtml = `
+                        <button class="card-download-btn" data-card-id="${cardId}" title="Download Card">${ICONS.download}</button>
                         <div class="card-top">
                             <div class="profile-picture"><img src="${profilePic}" alt="${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div>
                             <div class="user-details"><h3>${loan.name}</h3><div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div></div>
                         </div>`;
                     
                     let middleContent = '';
+                    // --- SUDHAR: Business Loan Card ab Loan Type dikhayega ---
                     if (loan.status === 'business') {
                         middleContent = `
                             <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
+                             <div class="detail-row"><span class="detail-label">${ICONS.tag} Loan Type:</span><span class="detail-value loan-type-value">${loan.loanType}</span></div>
                             <div class="detail-row"><span class="detail-label">${ICONS.receipt} Processing Fee:</span><span class="detail-value">₹${loan.processingFee.toLocaleString('en-IN')}</span></div>
                             <div class="detail-row"><span class="detail-label">${ICONS.money} ${loan.interest.type}:</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
-                    } else {
+                    } else { // Personal & Smart Slab Loans
                         let interestHtml = '';
                         if (loan.interest && loan.interest.amount > 0) {
-                            interestHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} Late Fee (${loan.interest.percentage}%):</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
+                             const label = loan.status === 'smart-active' ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
+                            interestHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} ${label} (${loan.interest.percentage}%):</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
                         }
+                        let statusBadge = '';
+                        if (loan.status === 'smart-active') statusBadge = `<div class="smart-slab-badge active">${ICONS.star} Smart Slab Active</div>`;
+                        else if (loan.status === 'smart-defaulted') statusBadge = `<div class="smart-slab-badge defaulted">${ICONS.penalty} Slab Defaulted</div>`;
+                        
+                        let emiCountdownHtml = '';
+                        if (loan.status === 'smart-active' && loan.daysRemainingForEMI !== null) {
+                            const dayText = loan.daysRemainingForEMI === 1 ? 'day' : 'days';
+                            emiCountdownHtml = `<div class="emi-countdown">${ICONS.hourglass} Next EMI in: <strong>${loan.daysRemainingForEMI} ${dayText}</strong></div>`;
+                        }
+                        
                         middleContent = `
+                            ${statusBadge ? `<div style="margin-bottom:8px;">${statusBadge}${emiCountdownHtml}</div>` : ''}
                             <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
                             <div class="detail-row"><span class="detail-label">${ICONS.tag} Loan Type:</span><span class="detail-value loan-type-value">${loan.loanType}</span></div>
                             ${interestHtml}`;
@@ -658,8 +712,8 @@ document.addEventListener("DOMContentLoaded", () => {
                        </div>
                     </div>
                     <div class="action-buttons">
-                        <button class="modal-btn" id="download-btn">Download</button>
-                        <button class="modal-btn" id="share-btn">Share</button>
+                        <button class="modal-btn" id="download-btn">Download Card</button>
+                        <button class="modal-btn" id="share-btn">Share on WhatsApp</button>
                     </div>
                 `;
                 
@@ -676,33 +730,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 const canvas = await html2canvas(cardElement, { useCORS: true, scale: 2 });
-                canvas.toBlob(async (blob) => {
-                    if (action === 'download') {
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(blob);
-                        link.download = `credit-card-${Date.now()}.png`;
-                        link.click();
-                        statusEl.textContent = "Image downloaded!";
-                        statusEl.style.color = 'var(--success-color)';
-                    } else if (action === 'share') {
-                        const file = new File([blob], 'credit-card.png', { type: 'image/png' });
-                        if (navigator.share) {
-                             await navigator.share({
-                                files: [file],
-                                title: '10-Day Credit Card',
-                                text: '10-Day Credit Generated!'
-                            });
-                        } else {
-                            statusEl.textContent = 'Sharing not supported on this browser.';
-                            statusEl.style.color = 'var(--warning-color)';
-                        }
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+                if (action === 'download') {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `credit-card-${Date.now()}.png`;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                    statusEl.textContent = "Image downloaded!";
+                    statusEl.style.color = 'var(--success-color)';
+                } else if (action === 'share') {
+                    const file = new File([blob], 'credit-card.png', { type: 'image/png' });
+                    if (navigator.share && navigator.canShare({ files: [file] })) {
+                         await navigator.share({ files: [file], title: '10-Day Credit Card' });
+                    } else {
+                        statusEl.textContent = 'Sharing not supported. Please download.';
+                        statusEl.style.color = 'var(--warning-color)';
                     }
-                }, 'image/png');
+                }
             } catch (err) {
                 console.error('Action failed:', err);
-                statusEl.textContent = 'Could not generate image. Please try again.';
+                statusEl.textContent = 'Could not generate image.';
                 statusEl.style.color = 'red';
             }
+        }
+        
+        function downloadCardAsImage(cardId) {
+            const cardElement = document.getElementById(cardId);
+            if (!cardElement) return;
+
+            html2canvas(cardElement, { 
+                useCORS: true,
+                scale: 2,
+                onclone: (document) => {
+                    // Hide the button on the cloned element before taking the screenshot
+                    const button = document.querySelector(`#${cardId} .card-download-btn`);
+                    if(button) button.style.display = 'none';
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `${cardId}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
         }
 
         function setupEventListeners() {
@@ -712,6 +783,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     loan.name.toLowerCase().includes(searchTerm)
                 );
                 displayLoanCards(filteredLoans);
+            });
+            
+            // --- SUDHAR: Download button ke liye event listener ---
+            state.ui.container.addEventListener('click', function(event) {
+                const downloadButton = event.target.closest('.card-download-btn');
+                if (downloadButton) {
+                    const cardId = downloadButton.dataset.cardId;
+                    downloadCardAsImage(cardId);
+                }
             });
         }
         
