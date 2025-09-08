@@ -161,15 +161,17 @@ body {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
 }
 
-/* ---- START: FINAL CREDIT CARD STYLES ---- */
+/* ---- START: FINAL & PERFECT CREDIT CARD STYLES ---- */
 .credit-card-wrapper {
-    background-color: transparent; /* Wrapper has no background */
+    background-color: transparent;
     border: none;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
-    border-radius: 16px;
-    overflow: hidden; /* This is important to contain the children */
+    box-shadow: none;
+    overflow: visible; /* Allows hover effect to be seen */
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Space between card and banner */
 }
-.credit-card-wrapper:hover {
+.credit-card-wrapper:hover .credit-card-image-bg {
     transform: translateY(-5px);
     box-shadow: 0 15px 25px -5px rgba(0,0,0,0.15);
 }
@@ -177,23 +179,28 @@ body {
 .credit-card-image-bg {
     color: white;
     position: relative;
-    aspect-ratio: 16 / 9;
-    /* This ensures the full image is visible, without cropping */
-    background-size: contain; 
-    background-repeat: no-repeat;
+    padding-bottom: 56.25%; /* This creates the 16:9 aspect ratio */
+    background-size: cover; /* Fills the area, might crop slightly */
     background-position: center;
-    background-color: #0c3b38; /* Dark teal background for letterboxing */
     width: 100%;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.cc-content {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    padding: 20px;
 }
 
 .cc-profile-pic {
     position: absolute;
-    top: 9%;
-    left: 7%;
-    width: 15%;
-    height: auto;
-    aspect-ratio: 1/1;
+    top: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     border: 2px solid rgba(255,255,255,0.7);
     overflow: hidden;
@@ -204,29 +211,28 @@ body {
 
 .cc-member-name {
     position: absolute;
-    bottom: 12%;
-    left: 7%;
-    font-size: clamp(14px, 4vw, 18px);
+    bottom: 20px;
+    left: 20px;
+    font-size: 18px;
     font-weight: 500;
 }
 
 .cc-amount-group {
     position: absolute;
-    bottom: 12%;
-    right: 7%;
+    bottom: 20px;
+    right: 20px;
     text-align: right;
 }
 .cc-amount-group .cc-value {
-    font-size: clamp(24px, 7vw, 32px);
+    font-size: 32px;
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1;
 }
 
 .credit-card-wrapper .pending-banner {
-    /* Banner is now a direct child of the wrapper, appearing below the image */
-    border-radius: 0; 
+    border-radius: 12px;
 }
-/* ---- END: FINAL CREDIT CARD STYLES ---- */
+/* ---- END: FINAL & PERFECT CREDIT CARD STYLES ---- */
 
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
@@ -568,19 +574,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText} (Zero Charges)`;
-
+                    
                     // ## YAHAN APNA IMAGE LINK DALEN ##
-                    // Example link for the card with "10 DAYS" text. Replace this with your actual public link.
-                    const cardImageUrl = "https://i.ibb.co/dJj89hph/20250908-070346.png";
+                    const cardImageUrl = "https://i.ibb.co/dJj89hph/20250908-070346.png"; 
 
                     card.innerHTML = `
                         <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}')">
-                            <div class="cc-profile-pic">
-                                <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
-                            </div>
-                            <div class="cc-member-name">${loan.name}</div>
-                            <div class="cc-amount-group">
-                                <div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div>
+                            <div class="cc-content">
+                                <div class="cc-profile-pic">
+                                    <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                                </div>
+                                <div class="cc-member-name">${loan.name}</div>
+                                <div class="cc-amount-group">
+                                    <div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div>
+                                </div>
                             </div>
                         </div>
                         <div class="pending-banner green">
