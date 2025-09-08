@@ -8,12 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDKs for backend connection -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
-   <style>
+<style>
 :root {
     --primary-bg: #f7f8fc;
     --card-bg: #ffffff;
@@ -160,72 +161,67 @@ body {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
 }
 
-/* ---- START: UPDATED CREDIT CARD STYLES ---- */
+/* ---- START: FINAL UPDATED CREDIT CARD STYLES ---- */
+.credit-card-wrapper {
+    /* This wrapper now holds the card image and the banner below it */
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
 .credit-card-image-bg {
     color: white;
-    border-radius: 16px;
     position: relative;
-    overflow: hidden;
-    aspect-ratio: 16 / 10;
+    /* Enforcing 16:9 ratio for the thumbnail size */
+    aspect-ratio: 16 / 9;
     background-size: cover;
     background-position: center;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+    width: 100%;
+    /* No border radius here, parent will handle it */
 }
 
 .cc-profile-pic {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    width: 45px;
-    height: 45px;
+    /* Positioned based on percentage to scale with card size */
+    top: 10%;
+    left: 7%;
+    width: 15%; /* Scalable width */
+    height: auto;
+    aspect-ratio: 1/1;
     border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.6);
+    border: 2px solid rgba(255,255,255,0.7);
+    overflow: hidden;
 }
 .cc-profile-pic img {
-    width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+    width: 100%; height: 100%; object-fit: cover;
 }
 
 .cc-member-name {
     position: absolute;
-    bottom: 55px; /* Moved up to be above the banner */
-    left: 20px;
-    font-size: 16px;
+    bottom: 12%;
+    left: 7%;
+    font-size: clamp(14px, 4vw, 18px); /* Responsive font size */
     font-weight: 500;
 }
 
 .cc-amount-group {
     position: absolute;
-    bottom: 55px; /* Moved up to be above the banner */
-    right: 20px;
+    bottom: 12%;
+    right: 7%;
     text-align: right;
 }
-.cc-amount-group .cc-label {
-    font-size: 11px;
-    font-weight: 400;
-    opacity: 0.9;
-    text-transform: uppercase;
-}
 .cc-amount-group .cc-value {
-    font-size: 26px;
+    font-size: clamp(24px, 7vw, 32px); /* Responsive font size */
     font-weight: 700;
     line-height: 1.1;
 }
 
-.cc-countdown-banner {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+/* The banner is now a direct child of .loan-card, not inside the image div */
+.credit-card-wrapper .pending-banner {
+    border-radius: 0 0 16px 16px; /* Rounded corners only at the bottom */
 }
-
-/* This specifically makes the banner inside the credit card thinner */
-.cc-countdown-banner .pending-banner {
-    padding: 8px 15px; /* Reduced padding to make it thinner */
-    font-size: 13px;
-    border-radius: 0 0 16px 16px; /* Match the card's border radius */
-    background-color: rgba(0,0,0,0.25); /* Slightly transparent background */
-}
-/* ---- END: UPDATED CREDIT CARD STYLES ---- */
+/* ---- END: FINAL UPDATED CREDIT CARD STYLES ---- */
 
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
@@ -264,7 +260,6 @@ body {
 .pending-banner.danger { background-color: var(--danger-color); }
 .pending-banner .icon { width: 16px; height: 16px; flex-shrink: 0; }
 </style>
-
     <div class="container">
         <div class="header">
             <h1>Smart Loan Dashboard</h1>
@@ -547,7 +542,7 @@ document.addEventListener("DOMContentLoaded", () => {
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
         }
         
-        // UPDATED to render the new Image Background Credit Card
+        // FINAL UPDATED RENDER FUNCTION
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -565,24 +560,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 const profilePic = loan.imageUrl || defaultPic;
 
                 if (loan.status === '10-day-credit') {
-                    card.className = 'loan-card credit-card-image-bg';
-                    // The link you provided is used here
-                    card.style.backgroundImage = `url('https://i.ibb.co/dJj89hph/20250908-070346.png')`;
+                    // Use a special wrapper class for credit cards
+                    card.className = 'loan-card credit-card-wrapper'; 
                     
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText} (Zero Charges)`;
 
+                    // NEW HTML STRUCTURE: Card Image and Banner are separate siblings
                     card.innerHTML = `
-                        <div class="cc-profile-pic">
-                            <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                        <div class="credit-card-image-bg" style="background-image: url('https://i.ibb.co/dJj89hph/20250908-070346.png')">
+                            <div class="cc-profile-pic">
+                                <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
+                            </div>
+                            <div class="cc-member-name">${loan.name}</div>
+                            <div class="cc-amount-group">
+                                <div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div>
+                            </div>
                         </div>
-                        <div class="cc-member-name">${loan.name}</div>
-                        <div class="cc-amount-group">
-                            <div class="cc-label">Credit Amount</div>
-                            <div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div>
-                        </div>
-                        <div class="cc-countdown-banner">
-                            <div class="pending-banner green">${ICONS.clock}<span>${bannerText}</span></div>
+                        <div class="pending-banner green">
+                            ${ICONS.clock}<span>${bannerText}</span>
                         </div>
                     `;
                 
@@ -700,3 +696,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
