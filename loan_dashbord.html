@@ -160,73 +160,68 @@ body {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
 }
 
-/* NEW STYLES for 10 Days Credit Card */
-.credit-card-special {
-    background: linear-gradient(135deg, #0b726c 0%, #2a9d8f 100%);
+/* NEW STYLES for Image Background Credit Card */
+.credit-card-image-bg {
     color: white;
-    padding: 20px;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    /* This ratio is close to a standard credit card and youtube thumbnail */
+    aspect-ratio: 16 / 10; 
+    background-size: cover;
+    background-position: center;
+    padding: 15px 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 250px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
 }
-.credit-card-special .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-.credit-card-special .profile-picture {
-    width: 50px;
-    height: 50px;
+.cc-profile-pic {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.5);
+    border: 2px solid rgba(255,255,255,0.6);
 }
-.credit-card-special .profile-picture img {
-    width: 100%; height: 100%; object-fit: cover;
+.cc-profile-pic img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
 }
-.credit-card-special .credit-title-group {
-    text-align: right;
-}
-.credit-card-special .credit-title-group h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0;
-    letter-spacing: 0.5px;
-}
-.credit-card-special .credit-title-group p {
-    font-size: 12px;
-    margin: 2px 0 0 0;
-    opacity: 0.8;
-}
-.credit-card-special .card-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-.credit-card-special .member-name {
+.cc-member-name {
+    position: absolute;
+    bottom: 45px; /* Positioned above the banner */
+    left: 20px;
     font-size: 16px;
     font-weight: 500;
 }
-.credit-card-special .amount-group {
+.cc-amount-group {
+    position: absolute;
+    bottom: 45px; /* Positioned above the banner */
+    right: 20px;
     text-align: right;
 }
-.credit-card-special .amount-group .amount-label {
-    font-size: 12px;
-    opacity: 0.8;
+.cc-amount-group .cc-label {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.9;
+    text-transform: uppercase;
 }
-.credit-card-special .amount-group .amount-value {
-    font-size: 28px;
+.cc-amount-group .cc-value {
+    font-size: 26px;
     font-weight: 700;
-    line-height: 1;
+    line-height: 1.1;
 }
-.credit-card-special .pending-banner {
-    border-radius: 0 0 16px 16px;
-    margin: -20px;
-    margin-top: 20px;
+.cc-countdown-banner {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.2);
 }
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
-.download-btn { position: absolute; top: 16px; right: 16px; background-color: #f3f4f6; color: #4b5563; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+.download-btn { position: absolute; top: 16px; right: 16px; background-color: #f3f4f6; color: #4b5563; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; z-index: 2;}
 .download-btn:hover { background-color: #e5e7eb; transform: scale(1.1); }
 .download-btn .icon { width: 20px; height: 20px; }
 
@@ -255,11 +250,11 @@ body {
 .detail-value.loan-type-value { color: var(--primary-dark); font-weight: 600; background-color: #e0e7ff; padding: 2px 8px; border-radius: 6px; font-size: 13px; }
 .detail-value.penalty-value { color: var(--danger-color); font-weight: 700; }
 
-.pending-banner { color: white; padding: 12px 20px; text-align: center; font-weight: 500; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.3s ease; }
+.pending-banner { color: white; padding: 10px 20px; text-align: center; font-weight: 500; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.3s ease; }
 .pending-banner.green { background-color: var(--success-color); }
 .pending-banner.warning { background-color: var(--warning-color); }
 .pending-banner.danger { background-color: var(--danger-color); }
-.pending-banner .icon { width: 18px; height: 18px; flex-shrink: 0; }
+.pending-banner .icon { width: 16px; height: 16px; flex-shrink: 0; }
 </style>
     <div class="container">
         <div class="header">
@@ -294,7 +289,6 @@ body {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    // This function remains the same as it correctly handles your Vercel setup.
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config');
@@ -321,17 +315,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function runAppLogic() {
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
-            money: `<svg class="icon" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
-            penalty: `<svg class="icon" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
-            clock: `<svg class="icon" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
-            download: `<svg class="icon" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
+            money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
+            penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
+            clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
+            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
             star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`,
             tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`,
             briefcase: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.07a2.25 2.25 0 0 1-2.25 2.25H5.92a2.25 2.25 0 0 1-2.18-2.01l-.34-9.4a2.25 2.25 0 0 1 2.18-2.51h12.44a2.25 2.25 0 0 1 2.25 2.25v4.07Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9.75h7.5v.008h-7.5V9.75Zm4.95.45a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>`,
             receipt: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m3 0h.75M9 12l3-3m0 0 3 3m-3-3v12.75" /></svg>`,
             percent: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 0 0 4.5 9.75v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25v-7.5a2.25 2.25 0 0 0-2.25-2.25h-.75m0-3-3-3m0 0-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-7.5a2.25 2.25 0 0 1 2.25-2.25h.75" /></svg>`,
             hourglass: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662s.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.092-1.21.138-2.43.138-3.662Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12Z" /></svg>`,
-            wifi: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.75 18.255a.75.75 0 0 1-1.5 0" /></svg>`,
         };
 
         const state = {
@@ -376,7 +369,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        // UPDATED to include new fields from admin panel
         function processRawData(rawData) {
              return rawData
                 .map(row => {
@@ -388,7 +380,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         Payment: parseFloat(row['Loan Payment'] || 0),
                         ImageUrl: row.profilePicUrl || null,
                         LoanType: row['Loan Type'] || (loanAmount > 0 ? 'Personal Loan' : null),
-                        // NEW FIELDS being passed through
                         transactionType: row.transactionType || null,
                         creditStatus: row.creditStatus || null,
                         DueDate: row.DueDate ? new Date(row.DueDate) : null
@@ -427,7 +418,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return { type: 'smart-interest', percentage, amount, slabName };
         }
         
-        // UPDATED with logic for 10 Days Credit
         function findOutstandingLoans(allData) {
             const outstanding = [];
             const members = [...new Set(allData.map(d => d.Name))];
@@ -453,7 +443,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const loanDate = lastLoan.Date;
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
 
-                // NEW LOGIC BLOCK FOR 10 DAYS CREDIT
                 if (lastLoan.transactionType === '10DaysCredit' && lastLoan.creditStatus === 'Active' && today < lastLoan.DueDate) {
                     const daysRemaining = Math.ceil((lastLoan.DueDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
                     outstanding.push({
@@ -462,13 +451,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         daysAgo: daysSinceLoan,
                         imageUrl: memberData.find(r => r.ImageUrl)?.ImageUrl || null,
                         loanDate: loanDate,
-                        status: '10-day-credit', // Special status for rendering
+                        status: '10-day-credit',
                         loanType: '10 Days Credit',
                         daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
                     });
                     
                 } else {
-                    // ALL PREVIOUS LOGIC for other loan types
                     if (lastLoan.LoanType === 'Business Loan' || (lastLoan.transactionType === '10DaysCredit' && lastLoan.LoanType === 'Business Loan')) {
                         let processingFee = (currentBalance <= 9000) ? Math.round(currentBalance * 0.01) : Math.round(currentBalance * 0.01) + 200;
                         let dueText = '', dueAmount = 0;
@@ -522,7 +510,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
                         }
                         
-                        // Overdue 10-day credits will be treated as standard loans
                         const finalLoanType = lastLoan.transactionType === '10DaysCredit' ? '10 Days Credit (Overdue)' : lastLoan.LoanType;
 
                         outstanding.push({
@@ -533,7 +520,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             daysRemainingForEMI: daysRemainingForEMI
                         });
                     }
-                } // End of the main if/else block
+                }
             });
             
             return outstanding.sort((a, b) => b.daysAgo - a.daysAgo);
@@ -551,7 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
         }
         
-        // UPDATED to render the new 10 Days Credit Card
+        // UPDATED to render the new Image Background Credit Card
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -568,34 +555,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
                 const profilePic = loan.imageUrl || defaultPic;
 
-                // NEW: Render special card for 10 Days Credit
                 if (loan.status === '10-day-credit') {
-                    card.className = 'loan-card credit-card-special';
+                    card.className = 'loan-card credit-card-image-bg';
+                    // The link you provided is used here
+                    card.style.backgroundImage = `url('https://i.ibb.co/dJj89hph/20250908-070346.png')`;
+                    
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
-                    const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText}`;
+                    const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText} (Zero Charges)`;
+
                     card.innerHTML = `
-                        <div class="card-top">
-                            <div class="profile-picture">
-                                <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
-                            </div>
-                            <div class="credit-title-group">
-                                <h3>BANK COMMUNITY LOAN</h3>
-                                <p>${ICONS.wifi}</p>
-                            </div>
+                        <div class="cc-profile-pic">
+                            <img src="${profilePic}" alt="Photo of ${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';">
                         </div>
-                        <div class="card-bottom">
-                            <span class="member-name">${loan.name}</span>
-                            <div class="amount-group">
-                                <span class="amount-label">CREDIT AMOUNT</span>
-                                <p class="amount-value">₹${loan.loanAmount.toLocaleString('en-IN')}</p>
-                            </div>
+                        <div class="cc-member-name">${loan.name}</div>
+                        <div class="cc-amount-group">
+                            <div class="cc-label">Credit Amount</div>
+                            <div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div>
                         </div>
-                        <div class="pending-banner green" style="border-radius: 8px; margin-top: 15px;">
-                            ${ICONS.clock}<span>${bannerText} (Zero Charges)</span>
+                        <div class="cc-countdown-banner">
+                            <div class="pending-banner green">${ICONS.clock}<span>${bannerText}</span></div>
                         </div>
                     `;
                 
-                } else { // Render normal cards for all other loan types
+                } else { 
                     card.className = 'loan-card';
                     const formattedDate = loan.loanDate ? loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                     
@@ -660,7 +642,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="pending-banner ${bannerClass}">${ICONS.clock}<span>${bannerText}</span></div>`;
                     }
-                } // End of the main if/else for rendering
+                }
                 container.appendChild(card);
             });
         }
