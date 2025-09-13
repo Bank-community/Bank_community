@@ -461,7 +461,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return { type: 'penalty', percentage, amount };
         }
         
-        // --- SMART SLAB FUNCTION RESTORED ---
         function calculateSmartSlabInterest(loanAmount, paymentsMadeCount) {
             let percentage = 0;
             let slabName = "";
@@ -524,7 +523,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         loanType: lastLoan.LoanType, processingFee
                     });
                 } else {
-                    // --- SMART SLAB LOGIC RESTORED ---
                     let interestInfo, status = 'standard', daysRemainingForEMI = null;
                     const paymentsAfterLoan = transactionsAfterLoan.filter(tx => tx.Payment > 0);
                     let isSmartSlabEligible = paymentsAfterLoan.length > 0 && ((paymentsAfterLoan[0].Date.getTime() - loanDate.getTime()) / (1000 * 3600 * 24)) <= 30;
@@ -586,7 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     card.className = 'loan-card credit-card-wrapper';
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText}`;
-                    const cardImageUrl = "https://i.ibb.co/JWVL1qd4/IMG-20250912-230811.jpg";
+                    const cardImageUrl = "https://i.ibb.co/v44qmLTH/1757738358948.jpg";
                     card.innerHTML = `
                         <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}')">
                             <div class="cc-content">
@@ -611,7 +609,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>`;
                     
                     let middleContent = '';
-                    // --- SUDHAR: Business Loan Card ab Loan Type dikhayega ---
                     if (loan.status === 'business') {
                         middleContent = `
                             <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
@@ -700,7 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 const memberName = selectedOption.textContent;
                 const profilePic = selectedOption.dataset.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=4f46e5&color=fff&size=50`;
-                const cardImageUrl = "https://i.ibb.co/JWVL1qd4/IMG-20250912-230811.jpg";
+                const cardImageUrl = "https://i.ibb.co/v44qmLTH/1757738358948.jpg";
 
                 generatedCardContainer.innerHTML = `
                     <div id="card-to-share" class="credit-card-wrapper">
@@ -730,7 +727,8 @@ document.addEventListener("DOMContentLoaded", () => {
             statusEl.style.color = 'var(--text-light)';
 
             try {
-                const canvas = await html2canvas(cardElement, { useCORS: true, scale: 2 });
+                // --- UPDATE: Increased scale from 2 to 3 for better quality ---
+                const canvas = await html2canvas(cardElement, { useCORS: true, scale: 3 });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 
                 if (action === 'download') {
@@ -761,9 +759,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const cardElement = document.getElementById(cardId);
             if (!cardElement) return;
 
+            // --- UPDATE: Increased scale from 2 to 3 for better quality ---
             html2canvas(cardElement, { 
                 useCORS: true,
-                scale: 2,
+                scale: 4,
                 onclone: (document) => {
                     // Hide the button on the cloned element before taking the screenshot
                     const button = document.querySelector(`#${cardId} .card-download-btn`);
@@ -786,7 +785,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 displayLoanCards(filteredLoans);
             });
             
-            // --- SUDHAR: Download button ke liye event listener ---
             state.ui.container.addEventListener('click', function(event) {
                 const downloadButton = event.target.closest('.card-download-btn');
                 if (downloadButton) {
@@ -806,5 +804,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
-
 
