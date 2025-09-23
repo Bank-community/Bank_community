@@ -352,27 +352,23 @@ document.addEventListener("DOMContentLoaded", () => {
     
     async function checkAuthAndInitialize() {
         try {
-            // Hardcoded configuration for demonstration
-            const firebaseConfig = {
-              apiKey: "AIzaSyBVCDW0Q8YaTPz_MO9FTve1FaPu42jtO2c",
-              authDomain: "bank-master-data.firebaseapp.com",
-              databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app",
-              projectId: "bank-master-data",
-              storageBucket: "bank-master-data.appspot.com",
-              messagingSenderId: "778113641069",
-              appId: "1:778113641069:web:f2d584555dee89b8ca2d64",
-              measurementId: "G-JF1DCDTFJ2"
-            };
+            const response = await fetch('/api/config');
+            if (!response.ok) throw new Error('Configuration failed to load.');
+            const config = await response.json();
             
-            firebase.initializeApp(firebaseConfig);
+            firebase.initializeApp(config.firebase);
             
-            // For this public dashboard, we will sign in anonymously
-            firebase.auth().signInAnonymously().then(() => {
-                runAppLogic();
-            }).catch(error => {
-                 console.error("Anonymous Auth Failed:", error);
-                 const loader = document.getElementById('loader');
-                 loader.innerHTML = `<p style="color: red;">Authentication failed. Cannot load data.</p>`;
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    runAppLogic();
+                } else {
+                    // This logic might need adjustment based on your full authentication flow
+                    console.warn("User is not signed in.");
+                    // For a public dashboard, you might want to sign in anonymously here instead
+                    // For now, it will show an error if no user is found.
+                    const loader = document.getElementById('loader');
+                    loader.innerHTML = `<p style="color: red;">Authentication failed. Cannot load data.</p>`;
+                }
             });
 
         } catch (error) {
@@ -852,4 +848,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
