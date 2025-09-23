@@ -186,15 +186,17 @@ body {
 
 /* ---- CREDIT CARD & RECHARGE CARD STYLES ---- */
 .credit-card-wrapper {
+    /* This class is for special cards that replace the default .loan-card structure */
     background-color: transparent; border: none; box-shadow: none;
     overflow: visible; display: flex; flex-direction: column; gap: 8px;
+    width: 350px;
 }
 .credit-card-wrapper:hover .credit-card-image-bg {
     transform: translateY(-5px);
     box-shadow: 0 15px 25px -5px rgba(0,0,0,0.15);
 }
 .credit-card-image-bg {
-    color: white; position: relative; padding-bottom: 56.25%;
+    color: white; position: relative; padding-bottom: 56.25%; /* 16:9 aspect ratio */
     background-size: cover; background-position: center; width: 100%;
     text-shadow: 1px 1px 5px rgba(0,0,0,0.7); border-radius: 16px;
     transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
@@ -208,7 +210,7 @@ body {
 .cc-member-name { position: absolute; bottom: 40px; left: 35px; font-size: 18px; font-weight: 500; }
 .cc-amount-group { position: absolute; bottom: 25px; right: 35px; text-align: right; }
 .cc-amount-group .cc-value { font-size: 26px; font-weight: 700; line-height: 1; }
-/* NEW STYLE FOR TELECOM COMPANY */
+/* NEW STYLE FOR TELECOM COMPANY ON RECHARGE CARD */
 .cc-telecom-logo {
     position: absolute;
     top: 25px;
@@ -249,6 +251,7 @@ body {
 .pending-banner.green { background-color: var(--success-color); }
 .pending-banner.warning { background-color: var(--warning-color); }
 .pending-banner.danger { background-color: var(--danger-color); }
+.pending-banner .icon { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* Modal Styles */
 .modal-overlay {
@@ -362,12 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (user) {
                     runAppLogic();
                 } else {
-                    // This logic might need adjustment based on your full authentication flow
-                    console.warn("User is not signed in.");
-                    // For a public dashboard, you might want to sign in anonymously here instead
-                    // For now, it will show an error if no user is found.
-                    const loader = document.getElementById('loader');
-                    loader.innerHTML = `<p style="color: red;">Authentication failed. Cannot load data.</p>`;
+                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
 
@@ -508,7 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 const loanDate = lastLoan.Date;
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
-                
+
                 // --- NEW: LOGIC FOR RECHARGE CARD ---
                 if (lastLoan.LoanType === 'Recharge') {
                      outstanding.push({
@@ -517,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         status: 'recharge', loanType: 'Recharge', 
                         telecomCompany: lastLoan.TelecomCompany
                     });
-                    return;
+                    return; // Important to stop further processing for this member
                 }
                 
                 if (lastLoan.transactionType === '10DaysCredit') {
@@ -608,7 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // --- CONDITION FOR 10-DAY CREDIT CARD ---
                 if (loan.status === '10-day-credit') {
-                    card.className = 'loan-card credit-card-wrapper';
+                    card.className = 'credit-card-wrapper'; // Use wrapper class for special cards
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText}`;
                     const cardImageUrl = "https://i.ibb.co/VVSgVzL/1757738358948.jpg";
@@ -624,7 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 // --- NEW CONDITION FOR RECHARGE CARD ---
                 } else if (loan.status === 'recharge') {
-                    card.className = 'loan-card credit-card-wrapper';
+                    card.className = 'credit-card-wrapper'; // Use wrapper class for special cards
                     const bannerText = `Recharge taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
                     const rechargeCardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
                     card.innerHTML = `
@@ -640,7 +638,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 // --- CONDITION FOR ALL OTHER LOAN CARDS ---
                 } else { 
-                    card.className = 'loan-card';
+                    card.className = 'loan-card'; // Use default loan-card class
                     const formattedDate = loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                     let bannerClass = 'green';
                     if (loan.daysAgo > 60) bannerClass = 'danger';
