@@ -184,10 +184,11 @@ body {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
 }
 
-/* ---- CREDIT CARD STYLES ---- */
+/* ---- CREDIT CARD & RECHARGE CARD STYLES ---- */
 .credit-card-wrapper {
     background-color: transparent; border: none; box-shadow: none;
     overflow: visible; display: flex; flex-direction: column; gap: 8px;
+    width: 350px;
 }
 .credit-card-wrapper:hover .credit-card-image-bg {
     transform: translateY(-5px);
@@ -208,6 +209,15 @@ body {
 .cc-member-name { position: absolute; bottom: 40px; left: 35px; font-size: 18px; font-weight: 500; }
 .cc-amount-group { position: absolute; bottom: 25px; right: 35px; text-align: right; }
 .cc-amount-group .cc-value { font-size: 26px; font-weight: 700; line-height: 1; }
+.cc-telecom-logo {
+    position: absolute;
+    top: 25px;
+    right: 35px;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
 .credit-card-wrapper .pending-banner { border-radius: 10px; }
 
 .card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
@@ -280,6 +290,61 @@ body {
 #share-btn:hover { background-color: #128C7E; }
 #download-btn { background-color: var(--text-light); }
 #download-btn:hover { background-color: var(--text-dark); }
+
+/* Toggle Switch Styles */
+.toggle-switch-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    background-color: var(--primary-bg);
+    padding: 8px;
+    border-radius: 10px;
+}
+.toggle-switch-container label {
+    font-weight: 500;
+    margin: 0;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 28px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--primary-color);
+}
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
 </style>
     <div class="container">
         <div class="header">
@@ -287,7 +352,7 @@ body {
             <p>Track all outstanding member loans.</p>
             <button id="generate-credit-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                10 days free credit
+                Generate Card
             </button>
         </div>
 
@@ -314,23 +379,54 @@ body {
         <div id="outstanding-loans-container"></div>
     </div>
 
-    <!-- Modal for Generating Credit Card -->
+    <!-- Modal for Generating Cards -->
     <div class="modal-overlay" id="credit-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Generate 10-Day Credit</h2>
+                <h2 id="modal-title">Generate 10-Day Credit</h2>
                 <button class="close-modal-btn">&times;</button>
             </div>
+
             <div class="form-group">
                 <label for="member-select">Select Member</label>
                 <select id="member-select">
                     <option value="">-- Loading members --</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label for="credit-amount">Amount</label>
-                <input type="number" id="credit-amount" placeholder="Select a member first" disabled>
+
+            <div class="toggle-switch-container">
+                <label for="recharge-toggle">Generate Recharge Card</label>
+                <label class="switch">
+                    <input type="checkbox" id="recharge-toggle">
+                    <span class="slider"></span>
+                </label>
             </div>
+            
+            <!-- Fields for 10-Day Credit -->
+            <div id="credit-fields">
+                <div class="form-group">
+                    <label for="credit-amount">Amount</label>
+                    <input type="number" id="credit-amount" placeholder="Select a member first" disabled>
+                </div>
+            </div>
+
+            <!-- Fields for Recharge -->
+            <div id="recharge-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="telecom-select">Telecom Company</label>
+                    <select id="telecom-select">
+                        <option value="Jio">Jio</option>
+                        <option value="Airtel">Airtel</option>
+                        <option value="Vi">Vi</option>
+                        <option value="BSNL">BSNL</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="recharge-amount">Recharge Amount</label>
+                    <input type="number" id="recharge-amount" placeholder="Enter amount">
+                </div>
+            </div>
+
             <button class="modal-btn" id="generate-card-btn">Generate Card</button>
             <div id="modal-status"></div>
             <div id="generated-card-container"></div>
@@ -387,10 +483,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 totalAmountEl: document.getElementById('total-outstanding-amount'),
                 searchInput: document.getElementById('search-input'),
                 modal: document.getElementById('credit-modal'),
+                modalTitle: document.getElementById('modal-title'),
                 openModalBtn: document.getElementById('generate-credit-btn'),
                 closeModalBtn: document.querySelector('.close-modal-btn'),
                 memberSelect: document.getElementById('member-select'),
+                rechargeToggle: document.getElementById('recharge-toggle'),
+                creditFields: document.getElementById('credit-fields'),
+                rechargeFields: document.getElementById('recharge-fields'),
                 creditAmountInput: document.getElementById('credit-amount'),
+                telecomSelect: document.getElementById('telecom-select'),
+                rechargeAmountInput: document.getElementById('recharge-amount'),
                 generateCardBtn: document.getElementById('generate-card-btn'),
                 generatedCardContainer: document.getElementById('generated-card-container'),
                 modalStatus: document.getElementById('modal-status'),
@@ -430,7 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             } catch (error) {
                 console.error("Data fetch failed:", error);
-                state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded.</p>`;
+                state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded: ${error.message}</p>`;
             } finally {
                 state.ui.loader.classList.add('hidden');
             }
@@ -445,6 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     Payment: parseFloat(row['Loan Payment'] || 0),
                     ImageUrl: row.profilePicUrl || null,
                     LoanType: row['Loan Type'] || null,
+                    TelecomCompany: row['Telecom Company'] || null,
                     transactionType: row.transactionType || null,
                 }))
                 .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()))
@@ -494,6 +597,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 const loanDate = lastLoan.Date;
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
 
+                if (lastLoan.LoanType === 'Recharge') {
+                     outstanding.push({
+                        name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
+                        imageUrl: memberData[0].ImageUrl || null, loanDate,
+                        status: 'recharge', loanType: 'Recharge', 
+                        telecomCompany: lastLoan.TelecomCompany
+                    });
+                    return;
+                }
+                
                 if (lastLoan.transactionType === '10DaysCredit') {
                     const todayAtMidnight = new Date();
                     todayAtMidnight.setHours(0, 0, 0, 0);
@@ -581,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const profilePic = loan.imageUrl || defaultPic;
 
                 if (loan.status === '10-day-credit') {
-                    card.className = 'loan-card credit-card-wrapper';
+                    card.className = 'credit-card-wrapper';
                     const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
                     const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText}`;
                     const cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
@@ -594,6 +707,20 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
                         <div class="pending-banner green">${ICONS.clock}<span>${bannerText}</span></div>`;
+                } else if (loan.status === 'recharge') {
+                    card.className = 'credit-card-wrapper';
+                    const bannerText = `Recharge taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
+                    const rechargeCardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                    card.innerHTML = `
+                        <div class="credit-card-image-bg" style="background-image: url('${rechargeCardImageUrl}')">
+                            <div class="cc-content">
+                                <div class="cc-profile-pic"><img src="${profilePic}" alt="${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div>
+                                <div class="cc-telecom-logo">${loan.telecomCompany || ''}</div>
+                                <div class="cc-member-name">${loan.name}</div>
+                                <div class="cc-amount-group"><div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div></div>
+                            </div>
+                        </div>
+                        <div class="pending-banner warning">${ICONS.clock}<span>${bannerText}</span></div>`;
                 } else { 
                     card.className = 'loan-card';
                     const formattedDate = loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -615,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
                              <div class="detail-row"><span class="detail-label">${ICONS.tag} Loan Type:</span><span class="detail-value loan-type-value">${loan.loanType}</span></div>
                             <div class="detail-row"><span class="detail-label">${ICONS.receipt} Processing Fee:</span><span class="detail-value">₹${loan.processingFee.toLocaleString('en-IN')}</span></div>
                             <div class="detail-row"><span class="detail-label">${ICONS.money} ${loan.interest.type}:</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
-                    } else { // Personal & Smart Slab Loans
+                    } else { 
                         let interestHtml = '';
                         if (loan.interest && loan.interest.amount > 0) {
                              const label = loan.status === 'smart-active' ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
@@ -654,20 +781,30 @@ document.addEventListener("DOMContentLoaded", () => {
             memberSelect.innerHTML = '<option value="">-- Choose a member --</option>';
             for (const memberId in state.membersData) {
                 const member = state.membersData[memberId];
-                const option = document.createElement('option');
-                option.value = memberId;
-                option.textContent = member.fullName;
-                option.dataset.profilePic = member.profilePicUrl || '';
-                memberSelect.appendChild(option);
+                if(member.status === 'Approved') {
+                    const option = document.createElement('option');
+                    option.value = memberId;
+                    option.textContent = member.fullName;
+                    option.dataset.profilePic = member.profilePicUrl || '';
+                    memberSelect.appendChild(option);
+                }
             }
         }
 
         function setupModalEventListeners() {
-            const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer } = state.ui;
+            const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer, rechargeToggle, creditFields, rechargeFields, modalTitle, telecomSelect, rechargeAmountInput } = state.ui;
 
             openModalBtn.addEventListener('click', () => {
+                // Reset form to default (10-Day Credit)
+                rechargeToggle.checked = false;
+                creditFields.style.display = 'block';
+                rechargeFields.style.display = 'none';
+                modalTitle.textContent = 'Generate 10-Day Credit';
+                generateCardBtn.textContent = 'Generate Card';
+
                 memberSelect.value = '';
                 creditAmountInput.value = '';
+                rechargeAmountInput.value = '';
                 creditAmountInput.disabled = true;
                 creditAmountInput.placeholder = 'Select a member first';
                 generatedCardContainer.innerHTML = '';
@@ -682,31 +819,71 @@ document.addEventListener("DOMContentLoaded", () => {
                 creditAmountInput.disabled = !memberSelect.value;
                 creditAmountInput.placeholder = memberSelect.value ? 'Enter amount' : 'Select a member first';
             });
+            
+            rechargeToggle.addEventListener('change', () => {
+                const isRecharge = rechargeToggle.checked;
+                creditFields.style.display = isRecharge ? 'none' : 'block';
+                rechargeFields.style.display = isRecharge ? 'block' : 'none';
+                modalTitle.textContent = isRecharge ? 'Generate Recharge Card' : 'Generate 10-Day Credit';
+                generateCardBtn.textContent = isRecharge ? 'Generate Recharge Card' : 'Generate Card';
+                generatedCardContainer.innerHTML = ''; // Clear previous card
+                modalStatus.textContent = '';
+            });
 
             generateCardBtn.addEventListener('click', () => {
+                const isRecharge = rechargeToggle.checked;
                 const memberId = memberSelect.value;
-                const amount = parseFloat(creditAmountInput.value);
                 const selectedOption = memberSelect.options[memberSelect.selectedIndex];
 
-                if (!memberId || isNaN(amount) || amount <= 0) {
-                    modalStatus.textContent = 'Please select a member and enter a valid amount.';
+                if (!memberId) {
+                    modalStatus.textContent = 'Please select a member.';
                     modalStatus.style.color = 'red';
                     return;
                 }
-                modalStatus.textContent = '';
+
+                let amount, telecomCompany, cardImageUrl, cardType;
                 
+                if (isRecharge) {
+                    // Recharge Card Logic
+                    amount = parseFloat(rechargeAmountInput.value);
+                    telecomCompany = telecomSelect.value;
+                    cardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                    cardType = 'recharge';
+                    if (isNaN(amount) || amount <= 0) {
+                         modalStatus.textContent = 'Please enter a valid recharge amount.';
+                         modalStatus.style.color = 'red';
+                         return;
+                    }
+                } else {
+                    // 10-Day Credit Logic
+                    amount = parseFloat(creditAmountInput.value);
+                    cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
+                    cardType = 'credit';
+                    if (isNaN(amount) || amount <= 0) {
+                        modalStatus.textContent = 'Please enter a valid credit amount.';
+                        modalStatus.style.color = 'red';
+                        return;
+                    }
+                }
+                
+                modalStatus.textContent = '';
                 const memberName = selectedOption.textContent;
                 const profilePic = selectedOption.dataset.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=4f46e5&color=fff&size=50`;
-                const cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
+
+                let cardContentHtml = `
+                    <div class="cc-profile-pic"><img src="${profilePic}" alt="${memberName}" ></div>
+                    <div class="cc-member-name">${memberName}</div>
+                    <div class="cc-amount-group"><div class="cc-value">₹${amount.toLocaleString('en-IN')}</div></div>
+                `;
+                
+                if(isRecharge) {
+                    cardContentHtml += `<div class="cc-telecom-logo">${telecomCompany}</div>`;
+                }
 
                 generatedCardContainer.innerHTML = `
                     <div id="card-to-share" class="credit-card-wrapper">
                        <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}');">
-                          <div class="cc-content">
-                             <div class="cc-profile-pic"><img src="${profilePic}" alt="${memberName}" ></div>
-                             <div class="cc-member-name">${memberName}</div>
-                             <div class="cc-amount-group"><div class="cc-value">₹${amount.toLocaleString('en-IN')}</div></div>
-                          </div>
+                          <div class="cc-content">${cardContentHtml}</div>
                        </div>
                     </div>
                     <div class="action-buttons">
@@ -727,22 +904,21 @@ document.addEventListener("DOMContentLoaded", () => {
             statusEl.style.color = 'var(--text-light)';
 
             try {
-                // --- UPDATE: Increased scale from 2 to 3 for better quality ---
                 const canvas = await html2canvas(cardElement, { useCORS: true, scale: 3 });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 
                 if (action === 'download') {
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
-                    link.download = `credit-card-${Date.now()}.png`;
+                    link.download = `card-${Date.now()}.png`;
                     link.click();
                     URL.revokeObjectURL(link.href);
                     statusEl.textContent = "Image downloaded!";
                     statusEl.style.color = 'var(--success-color)';
                 } else if (action === 'share') {
-                    const file = new File([blob], 'credit-card.png', { type: 'image/png' });
+                    const file = new File([blob], 'card.png', { type: 'image/png' });
                     if (navigator.share && navigator.canShare({ files: [file] })) {
-                         await navigator.share({ files: [file], title: '10-Day Credit Card' });
+                         await navigator.share({ files: [file], title: 'Generated Card' });
                     } else {
                         statusEl.textContent = 'Sharing not supported. Please download.';
                         statusEl.style.color = 'var(--warning-color)';
@@ -759,12 +935,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const cardElement = document.getElementById(cardId);
             if (!cardElement) return;
 
-            // --- UPDATE: Increased scale from 2 to 3 for better quality ---
             html2canvas(cardElement, { 
                 useCORS: true,
                 scale: 4,
                 onclone: (document) => {
-                    // Hide the button on the cloned element before taking the screenshot
                     const button = document.querySelector(`#${cardId} .card-download-btn`);
                     if(button) button.style.display = 'none';
                 }
@@ -804,4 +978,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
