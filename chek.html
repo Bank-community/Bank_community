@@ -168,6 +168,29 @@ body {
 @media (min-width: 640px) { #outstanding-loans-container { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { #outstanding-loans-container { grid-template-columns: repeat(3, 1fr); } }
 
+/* NEW STYLE FOR OLD LOAN SEPARATOR */
+.old-loans-separator {
+    grid-column: 1 / -1; /* Span all columns in the grid */
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 40px 0 20px 0;
+    color: var(--text-light);
+    font-weight: 500;
+}
+.old-loans-separator::before,
+.old-loans-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
+.old-loans-separator:not(:empty)::before {
+    margin-right: 1em;
+}
+.old-loans-separator:not(:empty)::after {
+    margin-left: 1em;
+}
+
 .loan-card { 
     background-color: var(--card-bg); 
     border-radius: 12px; 
@@ -362,7 +385,7 @@ input:checked + .slider:before {
                 <p id="total-outstanding-count">0</p>
             </div>
             <div class="summary-card">
-                <h3>Total Amount Due</h3>
+                <h3>Recent Amount Due</h3>
                 <p id="total-outstanding-amount">₹0</p>
             </div>
         </div>
@@ -516,7 +539,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     const member = state.membersData[memberId];
                     if (member.transactions) {
                         for (const txId in member.transactions) {
-                            // NEW: Har transaction ke saath uski unique ID (txId) bhi save kar rahe hain
                             allTransactions.push({ 
                                 txId: txId, 
                                 ...member.transactions[txId], 
@@ -544,7 +566,6 @@ document.addEventListener("DOMContentLoaded", () => {
         function processRawData(rawData) {
              return rawData
                 .map(row => ({
-                    // NEW: txId aur paymentForTxId ko bhi process kar rahe hain
                     txId: row.txId,
                     paymentForTxId: row.paymentForTxId || null,
                     Name: String(row.fullName || 'Unknown').trim(),
@@ -579,29 +600,24 @@ document.addEventListener("DOMContentLoaded", () => {
             return { type: 'smart-interest', percentage, amount, slabName };
         }
 
-        // --- NEW LOGIC: YAH FUNCTION HAR EK OUTSTANDING LOAN KO ALAG-ALAG IDENTIFY KARTA HAI ---
         function findOutstandingLoans(allData) {
-            // Step 1: Un sabhi loan IDs ko nikalen jinka payment ho chuka hai.
             const paidLoanIds = new Set(
                 allData
-                    .filter(tx => tx.paymentForTxId) // Sirf woh transactions jisme payment link hai
+                    .filter(tx => tx.paymentForTxId)
                     .map(tx => tx.paymentForTxId)
             );
 
-            // Step 2: Ab sirf un loans ko filter karein jo 'Loan' hain aur jinka payment nahi hua hai.
             const outstandingLoanTransactions = allData.filter(tx => 
                 tx.Loan > 0 && !paidLoanIds.has(tx.txId)
             );
 
             const today = new Date();
 
-            // Step 3: Har baki loan ke liye ek card object banayein.
             return outstandingLoanTransactions.map(loan => {
                 const loanDate = loan.Date;
                 const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
-                const currentBalance = loan.Loan; // Kyunki yeh unpaid hai, isliye balance loan amount ke barabar hai.
+                const currentBalance = loan.Loan;
 
-                // Recharge Card Logic
                 if (loan.LoanType === 'Recharge') {
                      return {
                         name: loan.Name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
@@ -611,7 +627,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     };
                 }
                 
-                // 10-Day Credit Card Logic (jo abhi overdue nahi hua)
                 if (loan.transactionType === '10DaysCredit') {
                     const todayAtMidnight = new Date();
                     todayAtMidnight.setHours(0, 0, 0, 0);
@@ -630,7 +645,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
                 
-                // Business Loan Card Logic
                 if (loan.LoanType === 'Business Loan') {
                     let processingFee = (currentBalance <= 9000) ? Math.round(currentBalance * 0.01) : Math.round(currentBalance * 0.01) + 200;
                     let dueText = 'Monthly Interest (1.5%)', dueAmount = Math.round(currentBalance * 0.015);
@@ -642,12 +656,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     };
                 } 
                 
-                // Standard Loan, Overdue Credit, aur Smart Slab Loan Logic
-                // NOTE: Abhi ke liye, yeh maan rahe hain ki agar loan yahan dikh raha hai to uski koi payment nahi hui hai.
                 const paymentsMadeCount = 0; 
                 let interestInfo, status = 'standard', daysRemainingForEMI = null;
                 
-                // Simplified logic since we are only showing fully unpaid loans
                 status = 'standard';
                 interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
                 
@@ -659,7 +670,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     status, loanType: finalLoanType, daysRemainingForEMI
                 };
 
-            }).sort((a, b) => b.daysAgo - a.daysAgo);
+            // NEW: Sabse naye loan ko sabse upar dikhane ke liye sort kiya gaya hai
+            }).sort((a, b) => b.loanDate - a.loanDate);
         }
 
 
@@ -668,13 +680,25 @@ document.addEventListener("DOMContentLoaded", () => {
             displayLoanCards(state.allOutstandingLoans);
         }
 
+        // --- UPDATED LOGIC: Ab summary me sirf recent loans ka amount dikhega ---
         function displaySummary(loans) {
             const { totalCountEl, totalAmountEl } = state.ui;
-            const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0);
+            const RECENT_DAYS_THRESHOLD = 30;
+
+            // Filter for recent loans (30 days or newer)
+            const recentLoans = loans.filter(loan => loan.daysAgo <= RECENT_DAYS_THRESHOLD);
+            
+            // Calculate total amount from RECENT loans only
+            const totalRecentAmount = recentLoans.reduce((sum, loan) => sum + loan.loanAmount, 0);
+            
+            // Total count will still show ALL outstanding loans
             totalCountEl.textContent = loans.length;
-            totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
+            totalAmountEl.textContent = `₹${totalRecentAmount.toLocaleString('en-IN')}`;
+            // Update the title of the summary card
+            document.querySelector('#total-outstanding-amount').previousElementSibling.textContent = `Recent Amount Due (Last 30 Days)`;
         }
         
+        // --- UPDATED LOGIC: Ab naye aur purane loans ke beech me ek line dikhegi ---
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -682,7 +706,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 container.innerHTML = `<div class="message-box"><h2>All Clear!</h2><p>There are no outstanding loans.</p></div>`;
                 return;
             }
+
+            const RECENT_DAYS_THRESHOLD = 30;
+            let separatorInserted = false;
+
             loans.forEach(loan => {
+                // Check if it's time to insert the separator
+                if (loan.daysAgo > RECENT_DAYS_THRESHOLD && !separatorInserted) {
+                    const separator = document.createElement('div');
+                    separator.className = 'old-loans-separator';
+                    separator.textContent = 'Old Outstanding Loans';
+                    container.appendChild(separator);
+                    separatorInserted = true;
+                }
+
                 const card = document.createElement('div');
                 const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${Math.random().toString(36).substr(2, 9)}`;
                 card.id = cardId;
@@ -728,7 +765,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button class="card-download-btn" data-card-id="${cardId}" title="Download Card">${ICONS.download}</button>
                         <div class="card-top">
                             <div class="profile-picture"><img src="${profilePic}" alt="${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div>
-                            <div class="user-details"><h3>${loan.name}</h3><div class="loan-date">${ICONS.calendar} Last Loan: ${formattedDate}</div></div>
+                            <div class="user-details"><h3>${loan.name}</h3><div class="loan-date">${ICONS.calendar} Loan Date: ${formattedDate}</div></div>
                         </div>`;
                     
                     let middleContent = '';
@@ -791,13 +828,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer, rechargeToggle, creditFields, rechargeFields, modalTitle, telecomSelect, rechargeAmountInput } = state.ui;
 
             openModalBtn.addEventListener('click', () => {
-                // Reset form to default (10-Day Credit)
                 rechargeToggle.checked = false;
                 creditFields.style.display = 'block';
                 rechargeFields.style.display = 'none';
                 modalTitle.textContent = 'Generate 10-Day Credit';
                 generateCardBtn.textContent = 'Generate Card';
-
                 memberSelect.value = '';
                 creditAmountInput.value = '';
                 rechargeAmountInput.value = '';
@@ -822,7 +857,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 rechargeFields.style.display = isRecharge ? 'block' : 'none';
                 modalTitle.textContent = isRecharge ? 'Generate Recharge Card' : 'Generate 10-Day Credit';
                 generateCardBtn.textContent = isRecharge ? 'Generate Recharge Card' : 'Generate Card';
-                generatedCardContainer.innerHTML = ''; // Clear previous card
+                generatedCardContainer.innerHTML = '';
                 modalStatus.textContent = '';
             });
 
@@ -837,24 +872,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                let amount, telecomCompany, cardImageUrl, cardType;
+                let amount, telecomCompany, cardImageUrl;
                 
                 if (isRecharge) {
-                    // Recharge Card Logic
                     amount = parseFloat(rechargeAmountInput.value);
                     telecomCompany = telecomSelect.value;
                     cardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                    cardType = 'recharge';
                     if (isNaN(amount) || amount <= 0) {
                          modalStatus.textContent = 'Please enter a valid recharge amount.';
                          modalStatus.style.color = 'red';
                          return;
                     }
                 } else {
-                    // 10-Day Credit Logic
                     amount = parseFloat(creditAmountInput.value);
                     cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
-                    cardType = 'credit';
                     if (isNaN(amount) || amount <= 0) {
                         modalStatus.textContent = 'Please enter a valid credit amount.';
                         modalStatus.style.color = 'red';
