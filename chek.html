@@ -1,996 +1,541 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Loan Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Firebase SDKs for backend connection -->
+    <title>Bank Community Loan Dashboard</title>
+    
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        /* All CSS styles remain the same as before */
+        :root {
+             --primary-color: #007BFF; --secondary-color: #056fff; --light-bg: #f8f9fa;
+             --text-light: #fff; --text-dark: #555; --positive-color: #04c800;
+             --negative-color: #ff1f02; --warning-color: #ffc107; --neutral-color: #808080;
+             --profile-bg: linear-gradient(135deg, #0d6efd, #0a58ca); --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+             --profile-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+             --loader-color: var(--primary-color); --modal-bg: rgba(0, 0, 0, 0.88);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; background-color: var(--light-bg);
+            padding-top: 230px;
+            transition: padding-top 0.3s ease; color: var(--text-dark); line-height: 1.5;
+        }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--light-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 4000; font-size: 18px; color: var(--text-dark); transition: opacity 0.5s ease; padding: 20px; text-align: center; box-sizing: border-box; }
+        #loader .spinner { width: 40px; height: 40px; border: 4px solid rgba(0,0,0,0.1); border-left-color: var(--loader-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        #loader.hidden { opacity: 0; pointer-events: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #passwordPromptContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 3000; opacity: 1; transition: opacity 0.3s ease; }
+        #passwordPromptContainer.hidden { opacity: 0; pointer-events: none; }
+        #passwordPromptMessage { padding: 25px 30px; background-color: #fff; border-radius: 10px; box-shadow: var(--card-shadow); text-align: center; max-width: 320px; width: 85%; }
+        #passwordPromptMessage p { margin: 0 0 15px 0; font-size: 16px; }
+        #passwordInput { width: calc(100% - 20px); padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; font-size: 18px; text-align: center; letter-spacing: 5px; }
+        #passwordSubmit { padding: 10px 20px; font-size: 16px; background-color: var(--primary-color); color: var(--text-light); border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s ease; }
+        #passwordSubmit:hover { background-color: #0056b3; }
+        #passwordError { color: var(--negative-color); font-weight: bold; margin-top: 10px; font-size: 14px; min-height: 1em; }
+        #dashboardContent { display: none; } #dashboardContent.visible { display: block; }
+        #dataTable tbody tr.highlight-recent-loan td { font-weight: bold; color: red; }
+        .header { text-align: center; background-color: var(--primary-color); color: var(--text-light); padding: 10px 0; display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; z-index: 1001; height: 60px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header img { width: 40px; height: 40px; margin-right: 10px; } .header h1 { font-size: 1.2em; margin: 0; font-weight: 500; }
+        .profile-section { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: var(--profile-bg); color: var(--text-light); border-radius: 12px; box-shadow: var(--profile-shadow); width: 94%; max-width: 520px; z-index: 1000; padding: 15px; display: grid; grid-template-areas: "pic header buttons" "stats stats stats"; grid-template-columns: auto 1fr auto; grid-template-rows: auto 1fr; gap: 10px 15px; align-items: start; transition: top 0.3s ease; }
+        .profile-picture { grid-area: pic; width: 75px; height: 75px; border-radius: 50%; background-color: #fff; display: flex; align-items: center; justify-content: center; font-size: 35px; font-weight: bold; color: var(--text-dark); text-transform: uppercase; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); flex-shrink: 0; border: 4px solid rgba(255, 255, 255, 0.8); overflow: hidden; margin-top: 5px; padding: 5px; box-sizing: border-box;}
+        .profile-picture img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+        .profile-header-area { grid-area: header; display: flex; flex-direction: column; justify-content: center; min-width: 0; align-items: start; margin-top: 5px; }
+        .profile-header-area h3 { margin: 0; font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+        .profile-buttons-area { grid-area: buttons; display: flex; flex-direction: column; align-items: end; gap: 5px; margin-top: 5px; }
+        .profile-buttons-area button { background-color: rgba(255, 255, 255, 0.2); color: var(--text-light); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 5px; padding: 4px 8px; font-size: 11px; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease; white-space: nowrap; }
+        .profile-buttons-area button:hover { background-color: rgba(255, 255, 255, 0.3); }
+        .profile-stats-grid { grid-area: stats; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; align-self: stretch; }
+        .metric-card { background-color: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 70px; cursor: default; box-sizing: border-box; }
+        .metric-card .label { font-size: 11px; opacity: 0.9; margin-bottom: 3px; white-space: nowrap; color: #e0e0e0; }
+        .metric-card .value { font-weight: bold; font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-light); }
+        #netAmountCard .value.positive { color: #b2f0b2; } 
+        #netAmountCard .value.negative { color: #f7c8c8; }
+        #loanAmountCard .value { color: #f7c8c8; }
+        #sipAmountCard .value, #paymentAmountCard .value, #returnAmountCard .value { color: #b2f0b2; }
+        .filters { display: flex; justify-content: center; margin: 15px 10px; gap: 15px; flex-wrap: wrap; padding-top: 180px; }
+        label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 14px; }
+        select { padding: 8px 10px; font-size: 14px; min-width: 160px; border: 1px solid #ccc; border-radius: 5px; background-color: #fff; }
+        .table-container { width: 100%; overflow-x: auto; margin: 0 auto 20px auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: var(--card-shadow); }
+        th, td { padding: 8px 10px; border: 1px solid #e0e0e0; text-align: center; }
+        th { background-color: var(--primary-color); color: var(--text-light); font-size: 13px; font-weight: 500; white-space: nowrap; }
+        td { font-size: 12px; vertical-align: middle; }
+        .loan { color: var(--negative-color); font-weight: 500; } .payment { color: var(--positive-color); font-weight: 500;}
+        tfoot td { font-weight: bold; background-color: #fff8e1; font-size: 13px; }
+        .positive { color: var(--positive-color); font-weight: bold; } .negative { color: var(--negative-color); font-weight: bold; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-bg); display: flex; align-items: center; justify-content: center; z-index: 2500; opacity: 1; transition: opacity 0.3s ease; padding: 10px; box-sizing: border-box; }
+        .modal.hidden { opacity: 0; pointer-events: none; }
+        .modal-content { background-color: #fff; padding: 20px 25px; border-radius: 8px; box-shadow: var(--card-shadow); max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; position: relative; box-sizing: border-box; }
+        .modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 28px; color: #aaa; cursor: pointer; line-height: 1; z-index: 10; padding: 0; }
+        .modal h2 { margin-top: 0; margin-bottom: 15px; font-size: 18px; color: var(--primary-color); text-align: center; }
+        #imageModal .modal-content { background: none; box-shadow: none; padding: 5px; width: auto; height: auto; max-width: 95%; max-height: 95%; overflow: hidden; }
+        #modalImage { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; border-radius: 10px; border: 4px solid white; object-fit: contain; box-sizing: border-box; }
+        #sipStatusModal .status-list { max-height: 60vh; overflow-y: auto; margin-top: 10px; padding-right: 5px;}
+        #sipStatusModal .status-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; font-size: 14px; }
+        #sipStatusModal .status-item span:last-child { font-weight: bold; display: flex; align-items: center; gap: 5px;}
+        #sipStatusModal .status-paid { color: var(--positive-color); }
+        #sipStatusModal .status-pending { color: var(--negative-color); }
+        #sipStatusModal .status-due { color: var(--neutral-color); }
+        @media only screen and (max-width: 1024px) { body { padding-top: 195px; } .filters { padding-top: 150px; } .profile-section { max-width: 95%; } }
+        @media only screen and (max-width: 600px) { body { padding-top: 205px; } .header { height: 55px; } .header h1 { font-size: 1em; } .profile-section { top: 65px; width: 95%; padding: 10px 12px; grid-template-columns: 55px 1fr auto; gap: 8px 10px; } .profile-picture { width: 50px; height: 50px; font-size: 22px; border-width: 2px; margin-top: 0;} .profile-header-area h3 { font-size: 16px; } .profile-buttons-area { flex-direction: row; gap: 6px; grid-column: 3; grid-row: 1; align-self: center; margin-top: 0;} .profile-stats-grid{ grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; } .metric-card{ min-height: 55px; padding: 5px 6px; border-radius: 4px; } .metric-card .label{ font-size: 9px; } .metric-card .value{ font-size: 12px; } .filters { padding-top: 165px; gap: 10px; margin-top: 15px; } label, select { font-size: 12px; min-width: 110px;} select { padding: 5px 6px; } .table-container { margin-top: 10px; } th { font-size: 11px; padding: 6px 8px; } td { font-size: 10px; padding: 5px 6px; } tfoot td { font-size: 11px; } .modal-content{ width: 95%; padding: 15px 20px; } .modal h2{ font-size: 16px; } #sipStatusModal .status-item{font-size: 13px;} }
+        @media only screen and (max-width: 420px) { body { padding-top: 220px; } .profile-section { grid-template-columns: 50px 1fr auto; gap: 5px 8px; padding: 8px 10px; } .profile-picture { width: 45px; height: 45px; font-size: 20px; } .profile-header-area h3 { font-size: 15px; } .profile-stats-grid { grid-template-columns: repeat(2, 1fr); } .filters { padding-top: 180px; } }
+    </style>
 </head>
 <body>
-<style>
-:root {
-    --primary-bg: #f7f8fc;
-    --card-bg: #ffffff;
-    --text-dark: #1a202c;
-    --text-light: #718096;
-    --border-color: #e2e8f0;
-    --primary-color: #4f46e5;
-    --primary-dark: #4338ca;
-    --danger-color: #e53e3e;
-    --danger-light: #fff5f5;
-    --success-color: #38a169;
-    --success-light: #f0fff4;
-    --warning-color: #dd6b20;
-    --warning-light: #fffaf0;
-    --font-family: 'Poppins', sans-serif;
-}
+    <div id="loader"> <div class="spinner"></div> Loading... </div>
 
-body { 
-    font-family: var(--font-family); 
-    background-color: var(--primary-bg); 
-    margin: 0; 
-    padding: 24px;
-    color: var(--text-dark); 
-}
-
-.container { 
-    max-width: 1380px; 
-    margin: 0 auto; 
-}
-
-.header { 
-    text-align: left; 
-    margin-bottom: 10px; 
-    position: relative;
-}
-.header h1 { 
-    margin: 0; 
-    font-size: 32px; 
-    font-weight: 700; 
-    color: var(--text-dark);
-}
-.header p { 
-    margin: 8px 0 0; 
-    color: var(--text-light); 
-    font-size: 18px; 
-}
-
-#generate-credit-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-#generate-credit-btn:hover {
-    background-color: var(--primary-dark);
-}
-
-.summary-section { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 24px; 
-    margin-bottom: 40px; 
-}
-.summary-card { 
-    background: var(--card-bg); 
-    border-radius: 12px; 
-    padding: 24px; 
-    text-align: center; 
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-}
-.summary-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.07);
-}
-.summary-card h3 { 
-    margin: 0 0 8px 0; 
-    font-size: 16px; 
-    color: var(--text-light); 
-    font-weight: 500; 
-}
-.summary-card p { 
-    margin: 0; 
-    font-size: 36px; 
-    font-weight: 700; 
-    color: var(--primary-color); 
-}
-
-.filter-controls { 
-    margin-bottom: 32px; 
-}
-#search-input { 
-    width: 100%; 
-    padding: 12px 16px; 
-    border: 1px solid var(--border-color); 
-    border-radius: 8px; 
-    font-size: 16px; 
-    box-sizing: border-box; 
-    transition: border-color 0.2s, box-shadow 0.2s; 
-    background-color: var(--card-bg);
-}
-#search-input:focus { 
-    outline: none; 
-    border-color: var(--primary-color); 
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-}
-
-#loader { 
-    text-align: center; 
-    padding: 50px; 
-    font-size: 16px; 
-    color: var(--text-light); 
-}
-.spinner { 
-    width: 40px; height: 40px; 
-    border: 4px solid rgba(0,0,0,0.1); 
-    border-left-color: var(--primary-color); 
-    border-radius: 50%; 
-    animation: spin 1s linear infinite; 
-    margin: 0 auto 15px auto; 
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-#loader.hidden { display: none; }
-
-.message-box { 
-    background-color: var(--success-light); 
-    color: var(--success-color); 
-    padding: 25px; 
-    border-radius: 12px; 
-    text-align: center; 
-    border: 1px solid #c6f6d5; 
-    grid-column: 1 / -1;
-}
-
-#outstanding-loans-container { 
-    display: grid; 
-    gap: 24px; 
-    grid-template-columns: 1fr; 
-}
-@media (min-width: 640px) { #outstanding-loans-container { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { #outstanding-loans-container { grid-template-columns: repeat(3, 1fr); } }
-
-.old-loans-separator {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 40px 0 20px 0;
-    color: var(--text-light);
-    font-weight: 500;
-}
-.old-loans-separator::before,
-.old-loans-separator::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid var(--border-color);
-}
-.old-loans-separator:not(:empty)::before {
-    margin-right: 1em;
-}
-.old-loans-separator:not(:empty)::after {
-    margin-left: 1em;
-}
-
-.loan-card { 
-    background-color: var(--card-bg); 
-    border-radius: 12px; 
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
-    transition: all 0.3s ease; 
-    overflow: hidden; 
-    display: flex; 
-    flex-direction: column; 
-    width: 350px;
-}
-.loan-card:hover { 
-    transform: translateY(-5px); 
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
-}
-
-.credit-card-wrapper {
-    background-color: transparent; border: none; box-shadow: none;
-    overflow: visible; display: flex; flex-direction: column; gap: 8px;
-    width: 350px;
-}
-.credit-card-wrapper:hover .credit-card-image-bg {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 25px -5px rgba(0,0,0,0.15);
-}
-.credit-card-image-bg {
-    color: white; position: relative; padding-bottom: 56.25%;
-    background-size: cover; background-position: center; width: 100%;
-    text-shadow: 1px 1px 5px rgba(0,0,0,0.7); border-radius: 16px;
-    transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-}
-.cc-content { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 0; }
-.cc-profile-pic {
-    position: absolute; top: 18px; left: 18px; width: 45px; height: 45px;
-    border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); overflow: hidden;
-}
-.cc-profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.cc-member-name { position: absolute; bottom: 40px; left: 35px; font-size: 18px; font-weight: 500; }
-.cc-amount-group { position: absolute; bottom: 25px; right: 35px; text-align: right; }
-.cc-amount-group .cc-value { font-size: 26px; font-weight: 700; line-height: 1; }
-.cc-telecom-logo {
-    position: absolute;
-    top: 25px;
-    right: 35px;
-    font-size: 24px;
-    font-weight: 700;
-    color: white;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-}
-.credit-card-wrapper .pending-banner { border-radius: 10px; }
-
-.card-main-content { padding: 20px; position: relative; flex-grow: 1; display: flex; flex-direction: column; }
-.card-download-btn { position: absolute; top: 16px; right: 16px; background-color: #f3f4f6; color: #4b5563; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; z-index: 2;}
-.card-download-btn:hover { background-color: #e5e7eb; transform: scale(1.1); }
-.card-download-btn .icon { width: 20px; height: 20px; }
-.card-top { display: flex; align-items: center; margin-bottom: 20px; }
-.profile-picture { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; margin-right: 16px; flex-shrink: 0; border: 2px solid var(--border-color); }
-.profile-picture img { width: 100%; height: 100%; object-fit: cover; }
-.user-details h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-dark); }
-.loan-date { font-size: 13px; color: var(--text-light); display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-.loan-date .icon { width: 14px; height: 14px; }
-.smart-slab-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 6px; }
-.smart-slab-badge.active { background-color: #e0e7ff; color: var(--primary-color); }
-.smart-slab-badge.defaulted { background-color: var(--danger-light); color: var(--danger-color); }
-.smart-slab-badge .icon { width: 12px; height: 12px; }
-.emi-countdown { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-top: 8px; background-color: var(--success-light); color: var(--success-color); border: 1px solid #9ae6b4; }
-.emi-countdown .icon { width: 14px; height: 14px; }
-.card-middle { background-color: var(--primary-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); margin-top: auto; }
-.detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-.detail-row:not(:last-child) { margin-bottom: 12px; }
-.detail-label { display: flex; align-items: center; gap: 8px; color: var(--text-light); font-weight: 500; }
-.detail-label .icon { width: 16px; height: 16px; }
-.detail-value { font-weight: 600; font-size: 15px; }
-.detail-value.amount { color: var(--text-dark); }
-.detail-value.loan-type-value { color: var(--primary-dark); font-weight: 600; background-color: #e0e7ff; padding: 2px 8px; border-radius: 6px; font-size: 13px; }
-.detail-value.penalty-value { color: var(--danger-color); font-weight: 700; }
-.pending-banner { color: white; padding: 10px 20px; text-align: center; font-weight: 500; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.3s ease; }
-.pending-banner.green { background-color: var(--success-color); }
-.pending-banner.warning { background-color: var(--warning-color); }
-.pending-banner.danger { background-color: var(--danger-color); }
-.pending-banner .icon { width: 16px; height: 16px; flex-shrink: 0; }
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.6); display: flex; align-items: center;
-    justify-content: center; z-index: 1000; opacity: 0;
-    visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
-}
-.modal-overlay.visible { opacity: 1; visibility: visible; }
-.modal-content {
-    background-color: var(--card-bg); border-radius: 16px; padding: 28px;
-    width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    transform: scale(0.95); transition: transform 0.3s;
-}
-.modal-overlay.visible .modal-content { transform: scale(1); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.modal-header h2 { margin: 0; font-size: 22px; }
-.close-modal-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-light); }
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-dark); }
-.form-group select, .form-group input {
-    width: 100%; padding: 12px; border: 1px solid var(--border-color);
-    border-radius: 8px; font-size: 16px; box-sizing: border-box; background-color: var(--primary-bg);
-}
-.modal-btn {
-    width: 100%; padding: 14px; border-radius: 8px; border: none; font-size: 16px;
-    font-weight: 600; cursor: pointer; transition: background-color 0.3s;
-    background-color: var(--primary-color); color: white;
-}
-.modal-btn:hover { background-color: var(--primary-dark); }
-#generated-card-container { margin-top: 24px; }
-#modal-status { text-align: center; margin-top: 15px; font-weight: 500; }
-.action-buttons { display: flex; gap: 12px; margin-top: 12px; }
-.action-buttons .modal-btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-#share-btn { background-color: #25D366; }
-#share-btn:hover { background-color: #128C7E; }
-#download-btn { background-color: var(--text-light); }
-#download-btn:hover { background-color: var(--text-dark); }
-
-/* Toggle Switch Styles */
-.toggle-switch-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    background-color: var(--primary-bg);
-    padding: 8px;
-    border-radius: 10px;
-}
-.toggle-switch-container label {
-    font-weight: 500;
-    margin: 0;
-}
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 28px;
-}
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 28px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  width: 20px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-input:checked + .slider {
-  background-color: var(--primary-color);
-}
-input:checked + .slider:before {
-  transform: translateX(22px);
-}
-
-</style>
-    <div class="container">
-        <div class="header">
-            <h1>Smart<br>Loan Dashboard</h1>
-            <p>Track all outstanding member loans.</p>
-            <button id="generate-credit-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Generate Card
-            </button>
+    <div id="passwordPromptContainer" class="hidden">
+        <div id="passwordPromptMessage">
+            <p>Enter Access PIN:</p>
+            <input type="password" id="passwordInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            <div id="passwordError"></div>
+            <button id="passwordSubmit">Enter</button>
         </div>
-
-        <div class="summary-section">
-            <div class="summary-card">
-                <h3>Outstanding Loans</h3>
-                <p id="total-outstanding-count">0</p>
-            </div>
-            <div class="summary-card">
-                <h3>Recent Amount Due</h3>
-                <p id="total-outstanding-amount">₹0</p>
-            </div>
-        </div>
-
-        <div class="filter-controls">
-            <input type="text" id="search-input" placeholder="Search by member name...">
-        </div>
-
-        <div id="loader">
-            <div class="spinner"></div>
-            Authenticating user...
-        </div>
-
-        <div id="outstanding-loans-container"></div>
     </div>
 
-    <!-- Modal for Generating Cards -->
-    <div class="modal-overlay" id="credit-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Generate 10-Day Credit</h2>
-                <button class="close-modal-btn">&times;</button>
-            </div>
+    <div id="dashboardContent" class="hidden">
+        <div class="header">
+            <img src="https://i.postimg.cc/XNpR3cN1/20241030-065157.png" alt="Logo">
+            <h1>Community Loan Dashboard</h1>
+        </div>
 
-            <div class="form-group">
-                <label for="member-select">Select Member</label>
-                <select id="member-select">
-                    <option value="">-- Loading members --</option>
-                </select>
+        <div id="profileSection" class="profile-section">
+            <div class="profile-picture" id="profilePictureContainer"></div>
+            <div class="profile-header-area">
+                 <h3 id="profileName">Loading...</h3>
             </div>
-
-            <div class="toggle-switch-container">
-                <label for="recharge-toggle">Generate Recharge Card</label>
-                <label class="switch">
-                    <input type="checkbox" id="recharge-toggle">
-                    <span class="slider"></span>
-                </label>
+            <div class="profile-buttons-area">
+                <button id="sipStatusButton">SIP Status</button>
             </div>
             
-            <!-- Fields for 10-Day Credit -->
-            <div id="credit-fields">
-                <div class="form-group">
-                    <label for="credit-amount">Amount</label>
-                    <input type="number" id="credit-amount" placeholder="Select a member first" disabled>
-                </div>
+            <div class="profile-stats-grid">
+                 <div class="metric-card" id="sipAmountCard"><span class="label">Total SIP</span><span id="totalSipValue" class="value">0</span></div>
+                 <div class="metric-card" id="paymentAmountCard"><span class="label">Total Payment</span><span id="totalPaymentValue" class="value">0</span></div>
+                 <div class="metric-card" id="returnAmountCard"><span class="label">Total Return</span><span id="totalReturnValue" class="value">0</span></div>
+                 <div class="metric-card" id="loanAmountCard"><span class="label">Total Loan</span><span id="totalLoanValue" class="value">0</span></div>
+                 <div class="metric-card" id="netAmountCard"><span class="label">Net Amount</span><span id="netAmountValue" class="value">0</span></div>
+                 <div class="metric-card" id="daysCard"><span class="label">Total Days</span><span id="totalDaysValue" class="value">0</span></div>
             </div>
+        </div>
 
-            <!-- Fields for Recharge -->
-            <div id="recharge-fields" style="display: none;">
-                <div class="form-group">
-                    <label for="telecom-select">Telecom Company</label>
-                    <select id="telecom-select">
-                        <option value="Jio">Jio</option>
-                        <option value="Airtel">Airtel</option>
-                        <option value="Vi">Vi</option>
-                        <option value="BSNL">BSNL</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="recharge-amount">Recharge Amount</label>
-                    <input type="number" id="recharge-amount" placeholder="Enter amount">
-                </div>
-            </div>
-
-            <button class="modal-btn" id="generate-card-btn">Generate Card</button>
-            <div id="modal-status"></div>
-            <div id="generated-card-container"></div>
+        <div class="filters">
+             <div><label for="nameFilter">Select Name:</label><select id="nameFilter"><option value="all">All Members</option></select></div>
+             <div><label for="typeFilter">Filter Data By:</label><select id="typeFilter"><option value="all_transactions">All Transactions</option><option value="members_invest">Loan Repayments</option><option value="loan_history">Loan History</option><option value="sip_payment">SIP Payments</option><option value="total_return">Total Return</option></select></div>
+        </div>
+        
+        <div class="table-container">
+            <table id="dataTable">
+                <thead></thead>
+                <tbody></tbody>
+                <tfoot><tr><td id="totalLabelCell" colspan="2">Total</td><td id="totalValue1Cell">0</td><td id="totalValue2Cell">0</td><td id="totalValue3Cell">0</td></tr></tfoot>
+            </table>
         </div>
     </div>
 
+    <div id="imageModal" class="modal hidden"><div class="modal-content"><button class="modal-close" onclick="closeModal('imageModal')">×</button><img id="modalImage" src="" alt="Profile Image Fullscreen"></div></div>
+    <div id="sipStatusModal" class="modal hidden"><div class="modal-content"><button class="modal-close" onclick="closeModal('sipStatusModal')">×</button><h2>Current Month SIP Status</h2><div id="sipStatusList" class="status-list">Loading status...</div></div></div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    
-    async function checkAuthAndInitialize() {
+    // --- Global variables ---
+    let allData = [];
+    let allMembers = {};
+    const defaultProfilePic = 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png';
+
+    // --- Initialization & Authentication Flow ---
+    document.addEventListener("DOMContentLoaded", () => {
+        initializeApp();
+    });
+
+    async function initializeApp() {
+        const loader = document.getElementById('loader');
         try {
             const response = await fetch('/api/config');
-            if (!response.ok) throw new Error('Configuration failed to load.');
+            if (!response.ok) throw new Error('Configuration API se fetch nahi ho saki.');
             const config = await response.json();
-            
-            firebase.initializeApp(config.firebase);
-            
-            firebase.auth().onAuthStateChanged(user => {
-                if (user) {
-                    runAppLogic();
-                } else {
-                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
-                }
-            });
-
+            if (!firebase.apps.length) firebase.initializeApp(config.firebase);
+            setupPasswordPrompt();
         } catch (error) {
             console.error("Initialization Error:", error);
-            const loader = document.getElementById('loader');
-            loader.innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
+            loader.innerHTML = `<b>Initialization Error:</b> ${error.message}`;
         }
     }
 
-    function runAppLogic() {
-        // NEW: Ab recent loan ki seema 100 din kar di gayi hai
-        const RECENT_DAYS_THRESHOLD = 100;
+    function setupPasswordPrompt() {
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordSubmit = document.getElementById('passwordSubmit');
+        const passwordError = document.getElementById('passwordError');
+        const passwordContainer = document.getElementById('passwordPromptContainer');
+        const loader = document.getElementById('loader');
 
-        const ICONS = {
-            calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
-            money: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125-1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V8.25c0-.621.504-1.125 1.125-1.125h1.5" /></svg>`,
-            penalty: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>`,
-            clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
-            download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
-            star: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`,
-            tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`,
-            receipt: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m3 0h.75M9 12l3-3m0 0 3 3m-3-3v12.75" /></svg>`,
-            hourglass: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662s.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.092-1.21.138-2.43.138-3.662Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12Z" /></svg>`,
-        };
+        loader.classList.add('hidden');
+        passwordContainer.classList.remove('hidden');
+        passwordInput.focus();
 
-        const state = {
-            allOutstandingLoans: [],
-            membersData: {},
-            ui: {
-                loader: document.getElementById('loader'),
-                container: document.getElementById('outstanding-loans-container'),
-                totalCountEl: document.getElementById('total-outstanding-count'),
-                totalAmountEl: document.getElementById('total-outstanding-amount'),
-                searchInput: document.getElementById('search-input'),
-                modal: document.getElementById('credit-modal'),
-                modalTitle: document.getElementById('modal-title'),
-                openModalBtn: document.getElementById('generate-credit-btn'),
-                closeModalBtn: document.querySelector('.close-modal-btn'),
-                memberSelect: document.getElementById('member-select'),
-                rechargeToggle: document.getElementById('recharge-toggle'),
-                creditFields: document.getElementById('credit-fields'),
-                rechargeFields: document.getElementById('recharge-fields'),
-                creditAmountInput: document.getElementById('credit-amount'),
-                telecomSelect: document.getElementById('telecom-select'),
-                rechargeAmountInput: document.getElementById('recharge-amount'),
-                generateCardBtn: document.getElementById('generate-card-btn'),
-                generatedCardContainer: document.getElementById('generated-card-container'),
-                modalStatus: document.getElementById('modal-status'),
-            },
-        };
+        const checkPassword = async () => {
+            const enteredPassword = passwordInput.value;
+            if (!enteredPassword) return;
 
-        async function fetchAndProcessData() {
-            state.ui.loader.innerHTML = '<div class="spinner"></div>Loading member data...';
-            state.ui.loader.classList.remove('hidden');
-            state.ui.container.innerHTML = '';
+            passwordError.textContent = "";
+            passwordSubmit.disabled = true;
+            passwordSubmit.textContent = "Checking...";
+
             try {
-                const db = firebase.database();
-                const membersRef = db.ref('members');
-                const snapshot = await membersRef.once('value');
-                if (!snapshot.exists()) throw new Error('No member data found.');
-                
-                state.membersData = snapshot.val();
-                const allTransactions = [];
-                for (const memberId in state.membersData) {
-                    const member = state.membersData[memberId];
-                    if (member.transactions) {
-                        for (const txId in member.transactions) {
-                            allTransactions.push({ 
-                                txId: txId, 
-                                ...member.transactions[txId], 
-                                fullName: member.fullName, 
-                                profilePicUrl: member.profilePicUrl 
-                            });
-                        }
-                    }
-                }
-                
-                const processedData = processRawData(allTransactions);
-                state.allOutstandingLoans = findOutstandingLoans(processedData);
-                
-                populateMembersDropdown(); 
-                displayAllData();
+                const membersSnapshot = await firebase.database().ref('members').once('value');
+                allMembers = membersSnapshot.val() || {};
+                const isValidPin = Object.values(allMembers).some(member => member.password === enteredPassword);
 
-            } catch (error) {
-                console.error("Data fetch failed:", error);
-                state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded: ${error.message}</p>`;
-            } finally {
-                state.ui.loader.classList.add('hidden');
-            }
-        }
-        
-        function processRawData(rawData) {
-             return rawData
-                .map(row => ({
-                    txId: row.txId,
-                    paymentForTxId: row.paymentForTxId || null,
-                    Name: String(row.fullName || 'Unknown').trim(),
-                    Date: new Date(row.Date),
-                    Loan: parseFloat(row.Loan || 0),
-                    Payment: parseFloat(row['Loan Payment'] || 0),
-                    ImageUrl: row.profilePicUrl || null,
-                    LoanType: row['Loan Type'] || null,
-                    TelecomCompany: row['Telecom Company'] || null,
-                    transactionType: row.transactionType || null,
-                }))
-                .filter(r => r.Name !== 'Unknown' && !isNaN(r.Date.getTime()));
-        }
-
-        function calculateStandardPenalty(loanAmount, daysSinceLoan) {
-            let percentage = 0;
-            if (daysSinceLoan > 10 && daysSinceLoan <= 30) percentage = 1;
-            else if (daysSinceLoan >= 31 && daysSinceLoan <= 60) percentage = 3;
-            else if (daysSinceLoan >= 61 && daysSinceLoan <= 90) percentage = 5;
-            else if (daysSinceLoan > 90) percentage = 6;
-            const amount = Math.round((loanAmount * percentage) / 100);
-            return { type: 'penalty', percentage, amount };
-        }
-        
-        function calculateSmartSlabInterest(loanAmount, paymentsMadeCount) {
-            let percentage = 0;
-            let slabName = "";
-            if (paymentsMadeCount === 0) { percentage = 1; slabName = "Month 1"; } 
-            else if (paymentsMadeCount === 1) { percentage = 2.5; slabName = "Month 2"; } 
-            else { percentage = 4.5; slabName = "Month 3+"; }
-            const amount = Math.round((loanAmount * percentage) / 100);
-            return { type: 'smart-interest', percentage, amount, slabName };
-        }
-
-        function findOutstandingLoans(allData) {
-            const paidLoanIds = new Set(
-                allData
-                    .filter(tx => tx.paymentForTxId)
-                    .map(tx => tx.paymentForTxId)
-            );
-
-            const outstandingLoanTransactions = allData.filter(tx => 
-                tx.Loan > 0 && !paidLoanIds.has(tx.txId)
-            );
-
-            const today = new Date();
-
-            return outstandingLoanTransactions.map(loan => {
-                const loanDate = loan.Date;
-                const daysSinceLoan = Math.floor((today.getTime() - loanDate.getTime()) / (1000 * 3600 * 24));
-                const currentBalance = loan.Loan;
-
-                if (loan.LoanType === 'Recharge') {
-                     return {
-                        name: loan.Name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                        imageUrl: loan.ImageUrl || null, loanDate,
-                        status: 'recharge', loanType: 'Recharge', 
-                        telecomCompany: loan.TelecomCompany
-                    };
-                }
-                
-                if (loan.transactionType === '10DaysCredit') {
-                    const todayAtMidnight = new Date();
-                    todayAtMidnight.setHours(0, 0, 0, 0);
-                    const dueDate = new Date(loanDate);
-                    dueDate.setDate(dueDate.getDate() + 10);
-                    dueDate.setHours(0, 0, 0, 0);
-
-                    if (todayAtMidnight <= dueDate) {
-                        const timeDiff = dueDate.getTime() - todayAtMidnight.getTime();
-                        const daysRemaining = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
-                        return {
-                            name: loan.Name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                            imageUrl: loan.ImageUrl || null, loanDate,
-                            status: '10-day-credit', loanType: '10 Days Credit', daysRemaining,
-                        };
-                    }
-                }
-                
-                if (loan.LoanType === 'Business Loan') {
-                    let processingFee = (currentBalance <= 9000) ? Math.round(currentBalance * 0.01) : Math.round(currentBalance * 0.01) + 200;
-                    let dueText = 'Monthly Interest (1.5%)', dueAmount = Math.round(currentBalance * 0.015);
-                    return {
-                        name: loan.Name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                        imageUrl: loan.ImageUrl || null, loanDate,
-                        interest: { type: dueText, amount: dueAmount }, status: 'business',
-                        loanType: loan.LoanType, processingFee
-                    };
-                } 
-                
-                const paymentsMadeCount = 0; 
-                let interestInfo, status = 'standard', daysRemainingForEMI = null;
-                
-                status = 'standard';
-                interestInfo = calculateStandardPenalty(currentBalance, daysSinceLoan);
-                
-                const finalLoanType = loan.transactionType === '10DaysCredit' ? '10 Days Credit (Overdue)' : (loan.LoanType || 'Personal Loan');
-                
-                return {
-                    name: loan.Name, loanAmount: currentBalance, daysAgo: daysSinceLoan,
-                    imageUrl: loan.ImageUrl || null, loanDate, interest: interestInfo,
-                    status, loanType: finalLoanType, daysRemainingForEMI
-                };
-
-            }).sort((a, b) => b.loanDate - a.loanDate);
-        }
-
-
-        function displayAllData() {
-            displaySummary(state.allOutstandingLoans);
-            displayLoanCards(state.allOutstandingLoans);
-        }
-
-        function displaySummary(loans) {
-            const { totalCountEl, totalAmountEl } = state.ui;
-            
-            const recentLoans = loans.filter(loan => loan.daysAgo <= RECENT_DAYS_THRESHOLD);
-            const totalRecentAmount = recentLoans.reduce((sum, loan) => sum + loan.loanAmount, 0);
-            
-            totalCountEl.textContent = loans.length;
-            totalAmountEl.textContent = `₹${totalRecentAmount.toLocaleString('en-IN')}`;
-            document.querySelector('#total-outstanding-amount').previousElementSibling.textContent = `Recent Amount Due (Last ${RECENT_DAYS_THRESHOLD} Days)`;
-        }
-        
-        function displayLoanCards(loans) {
-            const { container } = state.ui;
-            container.innerHTML = '';
-            if (loans.length === 0) {
-                container.innerHTML = `<div class="message-box"><h2>All Clear!</h2><p>There are no outstanding loans.</p></div>`;
-                return;
-            }
-
-            let separatorInserted = false;
-
-            loans.forEach(loan => {
-                if (loan.daysAgo > RECENT_DAYS_THRESHOLD && !separatorInserted) {
-                    const separator = document.createElement('div');
-                    separator.className = 'old-loans-separator';
-                    separator.textContent = 'Old Outstanding Loans';
-                    container.appendChild(separator);
-                    separatorInserted = true;
-                }
-
-                const card = document.createElement('div');
-                const cardId = `loan-card-${loan.name.replace(/[^a-zA-Z0-9]/g, '')}-${Math.random().toString(36).substr(2, 9)}`;
-                card.id = cardId;
-                const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=4f46e5&color=fff&size=50`;
-                const profilePic = loan.imageUrl || defaultPic;
-
-                if (loan.status === '10-day-credit') {
-                    card.className = 'credit-card-wrapper';
-                    const dayText = loan.daysRemaining === 1 ? 'day' : 'days';
-                    const bannerText = `Free period ends in ${loan.daysRemaining} ${dayText}`;
-                    const cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
-                    card.innerHTML = `
-                        <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}')">
-                            <div class="cc-content">
-                                <div class="cc-profile-pic"><img src="${profilePic}" alt="${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div>
-                                <div class="cc-member-name">${loan.name}</div>
-                                <div class="cc-amount-group"><div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div></div>
-                            </div>
-                        </div>
-                        <div class="pending-banner green">${ICONS.clock}<span>${bannerText}</span></div>`;
-                } else if (loan.status === 'recharge') {
-                    card.className = 'credit-card-wrapper';
-                    const bannerText = `Recharge taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
-                    const rechargeCardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                    card.innerHTML = `
-                        <div class="credit-card-image-bg" style="background-image: url('${rechargeCardImageUrl}')">
-                            <div class="cc-content">
-                                <div class="cc-profile-pic"><img src="${profilePic}" alt="${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div>
-                                <div class="cc-telecom-logo">${loan.telecomCompany || ''}</div>
-                                <div class="cc-member-name">${loan.name}</div>
-                                <div class="cc-amount-group"><div class="cc-value">₹${loan.loanAmount.toLocaleString('en-IN')}</div></div>
-                            </div>
-                        </div>
-                        <div class="pending-banner warning">${ICONS.clock}<span>${bannerText}</span></div>`;
-                } else { 
-                    card.className = 'loan-card';
-                    const formattedDate = loan.loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                    let bannerClass = 'green';
-                    if (loan.daysAgo > 60) bannerClass = 'danger';
-                    else if (loan.daysAgo > 30) bannerClass = 'warning';
-                    let bannerText = `Loan taken ${loan.daysAgo} ${loan.daysAgo === 1 ? 'day' : 'days'} ago`;
-                    const cardTopHtml = `
-                        <button class="card-download-btn" data-card-id="${cardId}" title="Download Card">${ICONS.download}</button>
-                        <div class="card-top">
-                            <div class="profile-picture"><img src="${profilePic}" alt="${loan.name}" onerror="this.onerror=null; this.src='${defaultPic}';"></div>
-                            <div class="user-details"><h3>${loan.name}</h3><div class="loan-date">${ICONS.calendar} Loan Date: ${formattedDate}</div></div>
-                        </div>`;
-                    
-                    let middleContent = '';
-                    if (loan.status === 'business') {
-                        middleContent = `
-                            <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
-                             <div class="detail-row"><span class="detail-label">${ICONS.tag} Loan Type:</span><span class="detail-value loan-type-value">${loan.loanType}</span></div>
-                            <div class="detail-row"><span class="detail-label">${ICONS.receipt} Processing Fee:</span><span class="detail-value">₹${loan.processingFee.toLocaleString('en-IN')}</span></div>
-                            <div class="detail-row"><span class="detail-label">${ICONS.money} ${loan.interest.type}:</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
-                    } else { 
-                        let interestHtml = '';
-                        if (loan.interest && loan.interest.amount > 0) {
-                             const label = loan.status === 'smart-active' ? `Smart Interest (${loan.interest.slabName})` : 'Late Fee';
-                            interestHtml = `<div class="detail-row"><span class="detail-label">${ICONS.penalty} ${label} (${loan.interest.percentage}%):</span><span class="detail-value penalty-value">₹${loan.interest.amount.toLocaleString('en-IN')}</span></div>`;
-                        }
-                        let statusBadge = '';
-                        if (loan.status === 'smart-active') statusBadge = `<div class="smart-slab-badge active">${ICONS.star} Smart Slab Active</div>`;
-                        else if (loan.status === 'smart-defaulted') statusBadge = `<div class="smart-slab-badge defaulted">${ICONS.penalty} Slab Defaulted</div>`;
-                        
-                        let emiCountdownHtml = '';
-                        if (loan.status === 'smart-active' && loan.daysRemainingForEMI !== null) {
-                            const dayText = loan.daysRemainingForEMI === 1 ? 'day' : 'days';
-                            emiCountdownHtml = `<div class="emi-countdown">${ICONS.hourglass} Next EMI in: <strong>${loan.daysRemainingForEMI} ${dayText}</strong></div>`;
-                        }
-                        
-                        middleContent = `
-                            ${statusBadge ? `<div style="margin-bottom:8px;">${statusBadge}${emiCountdownHtml}</div>` : ''}
-                            <div class="detail-row"><span class="detail-label">${ICONS.money} Outstanding Amount:</span><span class="detail-value amount">₹${loan.loanAmount.toLocaleString('en-IN')}</span></div>
-                            <div class="detail-row"><span class="detail-label">${ICONS.tag} Loan Type:</span><span class="detail-value loan-type-value">${loan.loanType}</span></div>
-                            ${interestHtml}`;
-                    }
-                    
-                    card.innerHTML = `
-                        <div class="card-main-content">
-                             ${cardTopHtml}
-                            <div class="card-middle">${middleContent}</div>
-                        </div>
-                        <div class="pending-banner ${bannerClass}">${ICONS.clock}<span>${bannerText}</span></div>`;
-                }
-                container.appendChild(card);
-            });
-        }
-        
-        function populateMembersDropdown() {
-            const { memberSelect } = state.ui;
-            memberSelect.innerHTML = '<option value="">-- Choose a member --</option>';
-            for (const memberId in state.membersData) {
-                const member = state.membersData[memberId];
-                if(member.status === 'Approved') {
-                    const option = document.createElement('option');
-                    option.value = memberId;
-                    option.textContent = member.fullName;
-                    option.dataset.profilePic = member.profilePicUrl || '';
-                    memberSelect.appendChild(option);
-                }
-            }
-        }
-
-        function setupModalEventListeners() {
-            const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer, rechargeToggle, creditFields, rechargeFields, modalTitle, telecomSelect, rechargeAmountInput } = state.ui;
-
-            openModalBtn.addEventListener('click', () => {
-                rechargeToggle.checked = false;
-                creditFields.style.display = 'block';
-                rechargeFields.style.display = 'none';
-                modalTitle.textContent = 'Generate 10-Day Credit';
-                generateCardBtn.textContent = 'Generate Card';
-                memberSelect.value = '';
-                creditAmountInput.value = '';
-                rechargeAmountInput.value = '';
-                creditAmountInput.disabled = true;
-                creditAmountInput.placeholder = 'Select a member first';
-                generatedCardContainer.innerHTML = '';
-                modalStatus.textContent = '';
-                modal.classList.add('visible');
-            });
-            
-            closeModalBtn.addEventListener('click', () => modal.classList.remove('visible'));
-            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
-
-            memberSelect.addEventListener('change', () => {
-                creditAmountInput.disabled = !memberSelect.value;
-                creditAmountInput.placeholder = memberSelect.value ? 'Enter amount' : 'Select a member first';
-            });
-            
-            rechargeToggle.addEventListener('change', () => {
-                const isRecharge = rechargeToggle.checked;
-                creditFields.style.display = isRecharge ? 'none' : 'block';
-                rechargeFields.style.display = isRecharge ? 'block' : 'none';
-                modalTitle.textContent = isRecharge ? 'Generate Recharge Card' : 'Generate 10-Day Credit';
-                generateCardBtn.textContent = isRecharge ? 'Generate Recharge Card' : 'Generate Card';
-                generatedCardContainer.innerHTML = '';
-                modalStatus.textContent = '';
-            });
-
-            generateCardBtn.addEventListener('click', () => {
-                const isRecharge = rechargeToggle.checked;
-                const memberId = memberSelect.value;
-                const selectedOption = memberSelect.options[memberSelect.selectedIndex];
-
-                if (!memberId) {
-                    modalStatus.textContent = 'Please select a member.';
-                    modalStatus.style.color = 'red';
-                    return;
-                }
-
-                let amount, telecomCompany, cardImageUrl;
-                
-                if (isRecharge) {
-                    amount = parseFloat(rechargeAmountInput.value);
-                    telecomCompany = telecomSelect.value;
-                    cardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                    if (isNaN(amount) || amount <= 0) {
-                         modalStatus.textContent = 'Please enter a valid recharge amount.';
-                         modalStatus.style.color = 'red';
-                         return;
-                    }
+                if (isValidPin) {
+                    passwordContainer.classList.add('hidden');
+                    loader.classList.remove('hidden');
+                    await processFirebaseData();
                 } else {
-                    amount = parseFloat(creditAmountInput.value);
-                    cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
-                    if (isNaN(amount) || amount <= 0) {
-                        modalStatus.textContent = 'Please enter a valid credit amount.';
-                        modalStatus.style.color = 'red';
-                        return;
-                    }
+                    passwordError.textContent = "Incorrect PIN";
+                    passwordInput.value = "";
+                    passwordInput.focus();
+                    passwordInput.style.animation = 'shake 0.5s';
+                    setTimeout(() => passwordInput.style.animation = '', 500);
                 }
-                
-                modalStatus.textContent = '';
-                const memberName = selectedOption.textContent;
-                const profilePic = selectedOption.dataset.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=4f46e5&color=fff&size=50`;
-
-                let cardContentHtml = `
-                    <div class="cc-profile-pic"><img src="${profilePic}" alt="${memberName}" ></div>
-                    <div class="cc-member-name">${memberName}</div>
-                    <div class="cc-amount-group"><div class="cc-value">₹${amount.toLocaleString('en-IN')}</div></div>
-                `;
-                
-                if(isRecharge) {
-                    cardContentHtml += `<div class="cc-telecom-logo">${telecomCompany}</div>`;
-                }
-
-                generatedCardContainer.innerHTML = `
-                    <div id="card-to-share" class="credit-card-wrapper">
-                       <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}');">
-                          <div class="cc-content">${cardContentHtml}</div>
-                       </div>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="modal-btn" id="download-btn">Download Card</button>
-                        <button class="modal-btn" id="share-btn">Share on WhatsApp</button>
-                    </div>
-                `;
-                
-                document.getElementById('download-btn').addEventListener('click', () => handleCardAction('download'));
-                document.getElementById('share-btn').addEventListener('click', () => handleCardAction('share'));
-            });
-        }
-        
-        async function handleCardAction(action) {
-            const cardElement = document.getElementById('card-to-share');
-            const statusEl = state.ui.modalStatus;
-            statusEl.textContent = "Preparing image...";
-            statusEl.style.color = 'var(--text-light)';
-
-            try {
-                const canvas = await html2canvas(cardElement, { useCORS: true, scale: 3 });
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                
-                if (action === 'download') {
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `card-${Date.now()}.png`;
-                    link.click();
-                    URL.revokeObjectURL(link.href);
-                    statusEl.textContent = "Image downloaded!";
-                    statusEl.style.color = 'var(--success-color)';
-                } else if (action === 'share') {
-                    const file = new File([blob], 'card.png', { type: 'image/png' });
-                    if (navigator.share && navigator.canShare({ files: [file] })) {
-                         await navigator.share({ files: [file], title: 'Generated Card' });
-                    } else {
-                        statusEl.textContent = 'Sharing not supported. Please download.';
-                        statusEl.style.color = 'var(--warning-color)';
-                    }
-                }
-            } catch (err) {
-                console.error('Action failed:', err);
-                statusEl.textContent = 'Could not generate image.';
-                statusEl.style.color = 'red';
+            } catch (error) {
+                console.error("Error during PIN verification:", error);
+                passwordError.textContent = "Error connecting to database.";
+            } finally {
+                passwordSubmit.disabled = false;
+                passwordSubmit.textContent = "Enter";
             }
-        }
-        
-        function downloadCardAsImage(cardId) {
-            const cardElement = document.getElementById(cardId);
-            if (!cardElement) return;
+        };
 
-            html2canvas(cardElement, { 
-                useCORS: true,
-                scale: 4,
-                onclone: (document) => {
-                    const button = document.querySelector(`#${cardId} .card-download-btn`);
-                    if(button) button.style.display = 'none';
-                }
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `${cardId}.png`;
-                link.href = canvas.toDataURL("image/png");
-                link.click();
-            });
-        }
-
-        function setupEventListeners() {
-             state.ui.searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase().trim();
-                const filteredLoans = state.allOutstandingLoans.filter(loan => 
-                    loan.name.toLowerCase().includes(searchTerm)
-                );
-                displayLoanCards(filteredLoans);
-            });
-            
-            state.ui.container.addEventListener('click', function(event) {
-                const downloadButton = event.target.closest('.card-download-btn');
-                if (downloadButton) {
-                    const cardId = downloadButton.dataset.cardId;
-                    downloadCardAsImage(cardId);
-                }
-            });
-        }
-        
-        fetchAndProcessData();
-        setupEventListeners();
-        setupModalEventListeners();
+        passwordSubmit.addEventListener('click', checkPassword);
+        passwordInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') checkPassword();
+        });
     }
     
-    checkAuthAndInitialize();
-});
+    // --- MUKHYA UPDATE: Data Fetching & Processing from new structure (Corrected) ---
+    async function processFirebaseData() {
+        const loader = document.getElementById('loader');
+        try {
+            const transactionsSnapshot = await firebase.database().ref('transactions').once('value');
+            const rawTransactions = transactionsSnapshot.val() || {};
+
+            // Step 1: Member ID se Full Name ka map banayein
+            const memberIdToNameMap = {};
+            if (allMembers) {
+                Object.values(allMembers).forEach(member => {
+                    if (member && member.memberId && member.fullName) {
+                        memberIdToNameMap[member.memberId] = member.fullName;
+                    }
+                });
+            }
+
+            if (Object.keys(memberIdToNameMap).length === 0) {
+                console.error("MAPPING ERROR: Koi bhi member 'memberId' ke saath nahi mila. '/members' data structure check karein.");
+            }
+
+            // Step 2: Loan ID se Loan Type ka map banayein
+            const loanIdToTypeMap = {};
+            Object.values(rawTransactions).forEach(tx => {
+                if (tx.type === 'Loan Taken' && tx.linkedLoanId && tx.loanType) {
+                    loanIdToTypeMap[tx.linkedLoanId] = tx.loanType;
+                }
+            });
+
+            // Step 3: Sabhi transactions ko process karke ek flat list banayein
+            let flatTransactionList = [];
+            let unmappedCount = 0;
+            Object.values(rawTransactions).forEach(tx => {
+                const memberName = memberIdToNameMap[tx.memberId];
+                if (!memberName) {
+                    unmappedCount++;
+                    return; // Member nahi mila, is transaction ko skip karein
+                }
+
+                const parsedDate = new Date(tx.date || tx.timestamp || 0);
+                if (isNaN(parsedDate.getTime())) return;
+
+                let processedTx = {
+                    Name: memberName, Date: parsedDate,
+                    Loan: 0, Payment: 0, SipPayment: 0, ReturnAmount: 0,
+                    Category: tx.type || 'Unknown'
+                };
+
+                const amount = parseFloat(tx.amount) || 0;
+                
+                switch (tx.type) {
+                    case 'Loan Taken':
+                        processedTx.Loan = amount;
+                        processedTx.Category = `Loan (${tx.loanType || 'General'})`;
+                        break;
+                    case 'Loan Payment':
+                        processedTx.Payment = parseFloat(tx.principalPaid) || 0;
+                        const loanType = loanIdToTypeMap[tx.paidForLoanId] || 'General';
+                        processedTx.Category = `Payment (${loanType})`;
+                        break;
+                    case 'SIP Payment':
+                        processedTx.SipPayment = amount;
+                        processedTx.Category = 'SIP';
+                        break;
+                    default:
+                        // Agar type nahi hai, par amount hai, to use SIP maanein
+                        if (amount > 0 && !tx.type) {
+                            processedTx.SipPayment = amount;
+                            processedTx.Category = 'SIP';
+                        }
+                        break;
+                }
+
+                if (processedTx.Loan > 0 || processedTx.Payment > 0 || processedTx.SipPayment > 0) {
+                    flatTransactionList.push(processedTx);
+                }
+            });
+
+            if (unmappedCount > 0) {
+                console.warn(`WARNING: ${unmappedCount} transactions skip kiye gaye kyunki unka 'memberId' match nahi hua.`);
+            }
+            
+            flatTransactionList.sort((a, b) => a.Date - b.Date);
+            allData = flatTransactionList;
+            
+            initializeDashboard();
+
+        } catch (error) {
+            console.error("Error processing Firebase data:", error);
+            loader.innerHTML = `Error: ${error.message}`;
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    // --- Dashboard Initialization & Event Listeners ---
+    function initializeDashboard() {
+        document.getElementById('dashboardContent').classList.add('visible');
+        populateNameFilter();
+        setupEventListeners();
+        document.getElementById('nameFilter').value = 'all';
+        document.getElementById('typeFilter').value = 'all_transactions';
+        updateDisplay();
+    }
+
+    function setupEventListeners() {
+        document.getElementById('nameFilter').addEventListener('change', updateDisplay);
+        document.getElementById('typeFilter').addEventListener('change', updateDisplay);
+        document.getElementById('imageModal').addEventListener('click', () => closeModal('imageModal'));
+        document.getElementById('profilePictureContainer').addEventListener('click', (event) => {
+            const img = event.target;
+            if (img.tagName === 'IMG' && img.src && img.src !== defaultProfilePic) {
+                 event.stopPropagation();
+                openModal('imageModal', img.src);
+            }
+        });
+        document.getElementById('sipStatusButton').addEventListener('click', () => {
+            populateSipStatusModal();
+            openModal('sipStatusModal');
+        });
+    }
+
+    // --- Modal, Filter, and other utility functions ---
+    function openModal(modalId, imageSrc = null) {
+        const modal = document.getElementById(modalId);
+        if(modal) {
+            if (modalId === 'imageModal' && imageSrc) modal.querySelector('#modalImage').src = imageSrc;
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if(modal) {
+            modal.classList.add('hidden');
+            if (modalId === 'imageModal') modal.querySelector('#modalImage').src = "";
+        }
+    }
+    
+    function populateNameFilter() {
+        const nameFilter = document.getElementById("nameFilter");
+        const memberNames = Object.values(allMembers).map(m => m.fullName).filter(Boolean);
+        const uniqueNames = [...new Set(memberNames)];
+        uniqueNames.sort((a, b) => a.localeCompare(b));
+        nameFilter.innerHTML = '<option value="all">All Members</option>';
+        uniqueNames.forEach(name => {
+            nameFilter.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+    }
+
+    function updateDisplay() {
+        const selectedName = document.getElementById('nameFilter').value;
+        const selectedType = document.getElementById('typeFilter').value;
+        updateProfileSection(selectedName);
+        updateTopCards(selectedName);
+        const filteredData = getFilteredTransactionData(selectedName, selectedType);
+        updateTableHeader(selectedType === 'total_return' ? 'total_return' : 'all_transactions');
+        if (selectedType === 'total_return') {
+            calculateAndDisplayTotalReturn(filteredData);
+        } else {
+            displayTransactionData(filteredData, selectedType === 'all_transactions');
+        }
+    }
+    
+    function updateTopCards(selectedName) {
+        const dataForCards = selectedName === 'all' ? allData : allData.filter(row => row.Name === selectedName);
+        let totalSip = 0, totalReturn = 0, totalLoan = 0, totalPayment = 0;
+
+        dataForCards.forEach(row => {
+            totalSip += row.SipPayment;
+            totalReturn += row.ReturnAmount;
+            totalLoan += row.Loan;
+            totalPayment += row.Payment + row.SipPayment;
+        });
+
+        const netAmount = (totalPayment + totalReturn) - totalLoan;
+        let totalDays = 0;
+        if (dataForCards.length > 0) {
+            const firstDate = dataForCards[0].Date;
+            totalDays = Math.round((new Date() - firstDate) / (1000 * 60 * 60 * 24));
+        }
+
+        document.getElementById('totalSipValue').textContent = totalSip.toFixed(2);
+        document.getElementById('totalPaymentValue').textContent = totalPayment.toFixed(2);
+        document.getElementById('totalReturnValue').textContent = totalReturn.toFixed(2);
+        document.getElementById('totalLoanValue').textContent = totalLoan.toFixed(2);
+        const netAmountEl = document.getElementById('netAmountValue');
+        netAmountEl.textContent = netAmount.toFixed(2);
+        netAmountEl.parentElement.classList.toggle('positive', netAmount >= 0);
+        netAmountEl.parentElement.classList.toggle('negative', netAmount < 0);
+        document.getElementById('totalDaysValue').textContent = totalDays;
+    }
+
+    function updateTableHeader(type) {
+        const tableHead = document.querySelector('#dataTable thead');
+        const footLabel = document.getElementById('totalLabelCell');
+        const [footVal1, footVal2, footVal3] = [document.getElementById('totalValue1Cell'), document.getElementById('totalValue2Cell'), document.getElementById('totalValue3Cell')];
+        
+        footVal1.style.display = ''; footVal2.style.display = ''; footVal3.style.display = '';
+        
+        if (type === 'total_return') {
+            tableHead.innerHTML = `<tr><th>Member</th><th>Total Return</th></tr>`;
+            footLabel.textContent = "Total:"; footLabel.colSpan = 1;
+            footVal1.className = 'positive';
+            footVal2.style.display = 'none'; footVal3.style.display = 'none';
+        } else {
+            tableHead.innerHTML = `<tr><th>Date</th><th>Member</th><th>Amount</th><th>Category</th><th>Net Balance</th></tr>`;
+            footLabel.textContent = "Total:"; footLabel.colSpan = 2;
+        }
+    }
+
+    function getFilteredTransactionData(name, type) {
+        const data = name === 'all' ? allData : allData.filter(r => r.Name === name);
+        switch (type) {
+            case 'loan_history': return data.filter(r => r.Loan > 0);
+            case 'members_invest': return data.filter(r => r.Payment > 0);
+            case 'sip_payment': return data.filter(r => r.SipPayment > 0);
+            case 'total_return': return data.filter(r => r.ReturnAmount > 0);
+            default: return data;
+        }
+    }
+
+    function displayTransactionData(data, isCumulative) {
+        const tbody = document.querySelector("#dataTable tbody");
+        tbody.innerHTML = "";
+        let loanSum = 0, paymentSum = 0, runningBalance = 0;
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5">No transactions found for this filter.</td></tr>`;
+            updateTransactionTotals(0, 0, 0); return;
+        }
+
+        data.forEach(row => {
+            const totalPayment = row.Payment + row.SipPayment + row.ReturnAmount;
+            loanSum += row.Loan;
+            paymentSum += totalPayment;
+            runningBalance += (totalPayment - row.Loan);
+            
+            const displayAmount = row.Loan > 0 ? row.Loan : totalPayment;
+            const amountClass = row.Loan > 0 ? 'loan' : 'payment';
+            const netToShow = isCumulative ? runningBalance : (totalPayment - row.Loan);
+
+            tbody.innerHTML += `<tr>
+                <td>${formatDate(row.Date)}</td><td>${row.Name}</td>
+                <td class="${amountClass}">${displayAmount.toFixed(2)}</td>
+                <td>${row.Category}</td>
+                <td class="${netToShow < 0 ? 'negative' : 'positive'}">${netToShow.toFixed(2)}</td>
+            </tr>`;
+        });
+        updateTransactionTotals(loanSum, paymentSum, runningBalance);
+    }
+    
+    function calculateAndDisplayTotalReturn(returnData) {
+        const tbody = document.querySelector("#dataTable tbody");
+        tbody.innerHTML = "";
+        let totalReturn = 0;
+        if (returnData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="2">No return data available.</td></tr>`;
+            document.getElementById("totalValue1Cell").textContent = "0.00"; return;
+        }
+        const returnByMember = returnData.reduce((acc, row) => {
+            acc[row.Name] = (acc[row.Name] || 0) + row.ReturnAmount;
+            return acc;
+        }, {});
+        Object.entries(returnByMember).sort(([,a], [,b]) => b - a).forEach(([name, amount]) => {
+            tbody.innerHTML += `<tr><td>${name}</td><td class="positive">${amount.toFixed(2)}</td></tr>`;
+            totalReturn += amount;
+        });
+        document.getElementById("totalValue1Cell").textContent = totalReturn.toFixed(2);
+    }
+
+    function updateTransactionTotals(loanSum, paymentSum, finalBalance) {
+        const [footVal1, footVal2, footVal3] = [document.getElementById('totalValue1Cell'), document.getElementById('totalValue2Cell'), document.getElementById('totalValue3Cell')];
+        footVal1.textContent = loanSum.toFixed(2); footVal1.className = 'loan';
+        footVal2.textContent = paymentSum.toFixed(2); footVal2.className = 'payment';
+        footVal3.textContent = finalBalance.toFixed(2); footVal3.className = finalBalance < 0 ? "negative" : "positive";
+    }
+
+    function updateProfileSection(name) {
+        const profileNameEl = document.getElementById("profileName");
+        const profilePicContainer = document.getElementById("profilePictureContainer");
+        let displayName = "Community Overview", profileImageUrl = defaultProfilePic;
+
+        if (name !== 'all') {
+            const memberInfo = Object.values(allMembers).find(m => m.fullName === name);
+            displayName = name;
+            if (memberInfo && memberInfo.profilePicUrl) profileImageUrl = memberInfo.profilePicUrl;
+        }
+        
+        profileNameEl.textContent = displayName;
+        profilePicContainer.innerHTML = `<img src="${profileImageUrl}" alt="Profile of ${name}" onerror="this.onerror=null; this.src='${defaultProfilePic}';" style="cursor: ${profileImageUrl !== defaultProfilePic ? 'pointer' : 'default'}; object-fit: ${profileImageUrl === defaultProfilePic ? 'contain' : 'cover'};">`;
+    }
+    
+    function populateSipStatusModal() {
+        const listContainer = document.getElementById('sipStatusList');
+        listContainer.innerHTML = "";
+        const memberNames = [...new Set(Object.values(allMembers).map(m => m.fullName).filter(Boolean))].sort();
+        const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear(), currentDay = now.getDate();
+
+        if (memberNames.length === 0) { listContainer.innerHTML = "No members found."; return; }
+
+        memberNames.forEach(name => {
+            const paidThisMonth = allData.some(r => r.Name === name && r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
+            let statusText, statusClass, statusIcon;
+            if (paidThisMonth) { [statusText, statusClass, statusIcon] = ["Paid", "status-paid", "✅"]; } 
+            else if (currentDay > 10) { [statusText, statusClass, statusIcon] = ["Pending", "status-pending", "❌"]; } 
+            else { [statusText, statusClass, statusIcon] = ["Due", "status-due", "🔴"]; }
+            listContainer.innerHTML += `<div class="status-item"><span>${name}</span><span class="${statusClass}">${statusIcon} ${statusText}</span></div>`;
+        });
+    }
+
+    function formatDate(date) {
+        if (!(date instanceof Date) || isNaN(date)) return "Invalid Date";
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = `@keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }`;
+    document.head.appendChild(styleSheet);
 </script>
 </body>
 </html>
