@@ -1,5 +1,7 @@
 // user-data.js
-// BADLAV: Ab yah admin panel se header_buttons ka data bhi laayega.
+// FINAL & CORRECTED UPDATE: "Available Community Balance" ki calculation ab
+// sirf (Total SIP Amount - Total Current Loan Amount) होगी। Extra transactions ka
+// is par koi asar nahi hoga.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithilesh Sahni"];
@@ -26,9 +28,7 @@ export async function fetchAndProcessData(database) {
         const manualNotificationsRaw = notificationsRaw.manual || {};
         const automatedQueueRaw = notificationsRaw.automatedQueue || {};
         const allProductsRaw = data.products || {};
-        // === YAHAN BADLAV KIYA GAYA HAI: header_buttons ko alag se fetch karna ===
         const headerButtonsRaw = adminSettingsRaw.header_buttons || {};
-        // === BADLAV SAMAPT ===
 
         const processedMembers = {};
         const allTransactions = Object.values(allTransactionsRaw);
@@ -40,16 +40,15 @@ export async function fetchAndProcessData(database) {
 
             const memberTransactions = allTransactions.filter(tx => tx.memberId === memberId);
             
-            let depositBalance = 0;
+            let totalSipAmount = 0;
             let totalReturn = 0;
             let loanCount = 0;
 
             memberTransactions.forEach(tx => {
-                if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
-                    depositBalance += parseFloat(tx.amount || 0);
-                } else if (tx.type === 'Extra Withdraw') {
-                    depositBalance -= parseFloat(tx.amount || 0);
+                if (tx.type === 'SIP') {
+                    totalSipAmount += parseFloat(tx.amount || 0);
                 }
+                
                 if (tx.type === 'Loan Payment') {
                     totalReturn += parseFloat(tx.interestPaid || 0);
                 }
@@ -61,7 +60,7 @@ export async function fetchAndProcessData(database) {
             const memberActiveLoans = allActiveLoans.filter(loan => loan.memberId === memberId && loan.status === 'Active');
             const totalOutstandingLoan = memberActiveLoans.reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
             
-            const finalBalance = depositBalance - totalOutstandingLoan;
+            const displayBalanceOnCard = totalSipAmount - totalOutstandingLoan;
 
             const now = new Date();
             const currentMonthSip = memberTransactions.find(tx => 
@@ -74,7 +73,7 @@ export async function fetchAndProcessData(database) {
                 ...member,
                 id: memberId,
                 name: member.fullName,
-                balance: finalBalance,
+                balance: displayBalanceOnCard,
                 totalReturn: totalReturn,
                 loanCount: loanCount,
                 displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
@@ -97,9 +96,7 @@ export async function fetchAndProcessData(database) {
             manualNotifications: manualNotificationsRaw,
             automatedQueue: automatedQueueRaw,
             allProducts: allProductsRaw,
-            // === YAHAN BADLAV KIYA GAYA HAI: header_buttons ko return object mein jodna ===
             headerButtons: headerButtonsRaw,
-            // === BADLAV SAMAPT ===
         };
 
     } catch (error) {
@@ -112,12 +109,13 @@ export async function fetchAndProcessData(database) {
  * Poore community ke liye aarthik (financial) stats calculate karta hai.
  */
 function calculateCommunityStats(processedMembers, allTransactions, allActiveLoans, penaltyWallet) {
-    let totalSipAmount = 0;
+    // === YAHAN FINAL BADLAV KIYA GAYA HAI ===
+    let totalPureSipAmount = 0;
+
+    // Sirf 'SIP' transactions ko jodkar 'Total SIP Amount' banaya jayega.
     allTransactions.forEach(tx => {
-        if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
-            totalSipAmount += parseFloat(tx.amount || 0);
-        } else if (tx.type === 'Extra Withdraw') {
-            totalSipAmount -= parseFloat(tx.amount || 0);
+        if (tx.type === 'SIP') {
+            totalPureSipAmount += parseFloat(tx.amount || 0);
         }
     });
 
@@ -125,6 +123,10 @@ function calculateCommunityStats(processedMembers, allTransactions, allActiveLoa
         .filter(loan => loan.status === 'Active')
         .reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
 
+    // 'Available Community Balance' ki calculation ko theek kiya gaya hai.
+    const availableCommunityBalance = totalPureSipAmount - totalCurrentLoanAmount;
+
+    // Baaki calculations jaise hain waise hi rahenge.
     const totalInterestReceived = allTransactions
         .filter(tx => tx.type === 'Loan Payment')
         .reduce((sum, tx) => sum + parseFloat(tx.interestPaid || 0), 0);
@@ -137,13 +139,14 @@ function calculateCommunityStats(processedMembers, allTransactions, allActiveLoa
     const totalPenaltyExpenses = penaltyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
     return {
-        totalSipAmount,
+        totalSipAmount: totalPureSipAmount, // Modal mein dikhane ke liye
         totalCurrentLoanAmount,
         netReturnAmount: totalInterestReceived - penaltyFromInterest,
-        availableCommunityBalance: totalSipAmount - totalCurrentLoanAmount,
+        availableCommunityBalance: availableCommunityBalance, // Sahi formula ke saath
         totalPenaltyBalance: totalPenaltyIncomes - totalPenaltyExpenses,
         totalLoanDisbursed: allTransactions.filter(tx => tx.type === 'Loan Taken').reduce((sum, tx) => sum + tx.amount, 0)
     };
+    // === BADLAV SAMAPT ===
 }
 
 
