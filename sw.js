@@ -79,3 +79,56 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+// === YAHAN BADLAV KIYA GAYA HAI ===
+
+// 4. Push Event: Jab server se notification aata hai
+self.addEventListener('push', event => {
+  console.log('[Service Worker] Push Received.');
+  // Default data agar push message mein data na ho
+  let data = { title: 'Naya Sandesh', body: 'Aapke liye ek update hai.' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      console.error('Push event data parsing error:', e);
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: 'https://i.ibb.co/pjB1bQ7J/1752978674430.jpg', // App icon
+    badge: 'https://i.ibb.co/pjB1bQ7J/1752978674430.jpg', // Chhota icon jo notification bar mein dikhta hai
+    vibrate: [200, 100, 200], // Vibration pattern
+    data: {
+      url: self.location.origin, // Click karne par kaun sa URL khulega
+    },
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// 5. Notification Click Event: Jab user notification par click karta hai
+self.addEventListener('notificationclick', event => {
+  console.log('[Service Worker] Notification click Received.');
+
+  event.notification.close(); // Notification ko band kar do
+
+  event.waitUntil(
+    clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    }).then(clientList => {
+      // Check karo ki app ka koi tab pehle se khula hai ya nahi
+      for (const client of clientList) {
+        if (new URL(client.url).pathname === '/index.html' && 'focus' in client)
+          return client.focus();
+      }
+      // Agar koi tab khula nahi hai, to naya kholo
+      if (clients.openWindow)
+        return clients.openWindow(event.notification.data.url || '/');
+    })
+  );
+});
