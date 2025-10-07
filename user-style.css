@@ -11,6 +11,7 @@ FINAL UPDATE:
 9. [USER REQUEST 2] Normal card mein profile photo ki layering (z-index) theek ki gayi hai.
 10. [USER REQUEST 3] Normal card ka size aur style ko Top 3 card ke "Same to Same" kiya gaya hai. Rank number ka color black kiya gaya hai. Name ka color white with shadow kiya gaya hai.
 11. [SELF-GUIDED UPDATE] Card ke beech ka gap kam kiya gaya aur badge ki position adjust ki gayi.
+12. [LATEST UPDATE] Card size chhota kiya gaya hai taki screen par do cards fit ho sakein.
 */
 
 :root {
@@ -300,8 +301,19 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
 .header-container { display: flex; justify-content: space-between; align-items: center; padding: 0 25px 20px 25px; flex-wrap: wrap; gap: 15px; max-width: 1140px; margin: 0 auto; }
 .bank-headline { font-size: 1.8em; font-weight: 700; color: var(--primary-darker); margin: 0; flex-grow: 1; }
 .header-buttons-wrapper { display: flex; gap: 10px; }
-/* UPDATED: Card ke beech ka gap kam kiya gaya */
-.member-slider { display: flex; gap: 5px; overflow-x: auto; scroll-behavior: smooth; padding: 20px 15px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--primary-color) #e0f2f7; max-width: 1140px; margin: 0 auto; }
+/* === YAHAN BADLAV KIYA GAYA HAI === */
+.member-slider { 
+    display: flex; 
+    gap: 5px; /* Gap kam kiya gaya */
+    overflow-x: auto; 
+    scroll-behavior: smooth; 
+    padding: 30px 5px; /* Left/Right padding kam ki gayi */
+    -webkit-overflow-scrolling: touch; 
+    scrollbar-width: thin; 
+    scrollbar-color: var(--primary-color) #e0f2f7; 
+    max-width: 1140px; 
+    margin: 0 auto; 
+}
 .member-slider::-webkit-scrollbar { height: 8px; }
 .member-slider::-webkit-scrollbar-track { background: #e0f2f7; border-radius: 4px;}
 .member-slider::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid #e0f2f7; }
@@ -309,10 +321,11 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
 
 
 /* === TOP 3 FRAMED CARD (RANK 1-3) === */
+/* Card ka size chhota kiya gaya */
 .framed-card-wrapper {
-    flex: 0 0 55%;
-    max-width: 220px;
-    height: 330px;
+    flex: 0 0 auto; /* Flex-basis auto kiya gaya taki width kaam kare */
+    width: 180px;
+    height: 305px;
     cursor: pointer;
     transition: transform 0.3s ease;
 }
@@ -328,11 +341,11 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
 .framed-member-photo {
     position: absolute;
     top: 7.5%;
-    left: 12%;
-    width: 82%;
-    height: 50%;
+    left: 9%;
+    width: 85%; /* Photo thodi patli ki gayi */
+    height: 60%;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: 4px; /* Radius thoda kam kiya */
     z-index: 1;
 }
 .card-frame-image {
@@ -344,9 +357,10 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
     z-index: 2;
     pointer-events: none;
 }
+/* Font size aur position adjust ki gayi */
 .framed-member-name {
     position: absolute;
-    bottom: 25%;
+    bottom: 26%;
     width: 100%;
     left: 0;
     color: white;
@@ -354,29 +368,29 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
     margin: 0;
     padding: 0 10px;
     box-sizing: border-box;
-    font-size: 1.25em;
+    font-size: 1.05em;
     font-weight: 700;
     z-index: 3;
 }
 .framed-member-balance {
     position: absolute;
-    bottom: 4%;
+    bottom: 5%;
     width: 100%;
-    left: 2px;
+    left: 3px; /* Center karne ke liye left 0 */
     font-weight: 700;
-    font-size: 1.35em;
+    font-size: 1.1em;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     z-index: 3;
 }
 .framed-prime-tag {
     position: absolute;
     bottom: 35%;
-    right: 12%;
+    right: 11%; /* Position adjust ki gayi */
     background-color: var(--prime-color);
     color: var(--text-color);
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 9px;
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     z-index: 3;
@@ -388,11 +402,11 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
 
 
 /* === NORMAL FRAMED CARD (RANK 4+) === */
-/* Wrapper ka size Top 3 jaisa kiya gaya */
+/* Card ka size Top 3 jaisa kiya gaya */
 .normal-framed-card-wrapper {
-    flex: 0 0 55%;
-    max-width: 220px;
-    height: 330px;
+    flex: 0 0 auto;
+    width: 180px;
+    height: 305px;
     cursor: pointer;
     transition: transform 0.3s ease;
     position: relative;
@@ -406,18 +420,16 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
     height: 100%;
     text-align: center;
 }
-/* Layer 1: Profile Photo */
 .normal-framed-photo {
     position: absolute;
     top: 7.5%;
-    left: 12%;
-    width: 82%;
-    height: 50%;
+    left: 10%;
+    width: 85%;
+    height: 60%;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: 8px;
     z-index: 1; 
 }
-/* Layer 2: Frame Image */
 .normal-card-frame-image {
     position: absolute;
     top: 0;
@@ -427,25 +439,24 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
     z-index: 2; 
     pointer-events: none;
 }
-/* Layer 3: Baaki Content */
 .normal-card-rank {
     position: absolute;
-    top: 4%;   /* UPDATED: Thoda upar kiya */
-    left: 5%;  /* UPDATED: Thoda left kiya */
+    top: 4%;
+    left: 5%;
     width: 18%; 
     height: 11%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: black; 
-    font-size: 1.1em;
+    font-size: 0.9em;
     font-weight: 700;
     text-shadow: 0 0 1px rgba(255,255,255,0.5); 
     z-index: 3;
 }
 .normal-framed-name {
     position: absolute;
-    bottom: 25%;
+    bottom: 26%;
     width: 100%;
     left: 0;
     color: white; 
@@ -453,7 +464,7 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
     margin: 0;
     padding: 0 10px;
     box-sizing: border-box;
-    font-size: 1.25em;
+    font-size: 1.05em;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -462,15 +473,15 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
 }
 .normal-framed-balance {
     position: absolute;
-    bottom: 4%;
+    bottom: 5%;
     width: 100%;
-    left: 2px;
+    left: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: 700;
-    font-size: 1.35em;
+    font-size: 1.1em;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     z-index: 3;
 }
@@ -480,12 +491,12 @@ section { margin-bottom: 25px; padding: 25px; background-color: var(--card-bg); 
 .normal-prime-tag {
     position: absolute;
     bottom: 35%;
-    right: 12%;
+    right: 11%;
     background-color: var(--prime-color);
     color: var(--text-color);
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 9px;
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     z-index: 3;
@@ -604,5 +615,4 @@ footer p { color: #f8f9fa; margin: 0; }
 @media (min-width: 992px) { .member-card { flex: 0 0 20%; max-width: 210px; } .balance-display { font-size: 3.2em; } h2 { font-size: 2.1em; } }
 @media (min-width: 1200px) { .content-wrapper, .header-container, .member-slider { max-width: 1140px; } .member-card { flex: 0 0 15%; max-width: 220px; } h2 { font-size: 2.2em; } }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
 
