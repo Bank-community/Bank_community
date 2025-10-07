@@ -1,5 +1,5 @@
 // user-main.js
-// Is file mein serviceWorker ki spelling theek kar di gayi hai.
+// BADLAV: Device verification system ko chalu karne ke liye ek function call joda gaya hai.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -49,6 +49,11 @@ async function runAppLogic(database) {
         if (processedData) {
             initUI(database);
             renderPage(processedData);
+
+            // === YAHAN PAR BADLAV KIYA GAYA HAI ===
+            // Yeh line device verification aur notification system ko chalu karti hai.
+            verifyDeviceAndSetupNotifications(database, processedData.processedMembers);
+            // === BADLAV SAMAPT ===
         }
     } catch (error) {
         console.error("Failed to run main app logic:", error);
@@ -61,14 +66,11 @@ async function runAppLogic(database) {
  */
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    // YAHAN Galti Thi: 'service-worker' ko 'serviceWorker' kar diya gaya hai.
     navigator.serviceWorker.register('/sw.js')
       .then(registration => console.log('Service Worker registered with scope:', registration.scope))
       .catch(error => console.error('Service Worker registration failed:', error));
   }
 }
-
-// Baaki ka code waisa hi hai jaisa aapne diya tha...
 
 /**
  * Device ko verify aur notifications ke liye setup karta hai.
