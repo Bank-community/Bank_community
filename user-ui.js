@@ -374,7 +374,7 @@ export function promptForDeviceVerification(allMembers) {
         const sortedMembers = [...allMembers].sort((a, b) => a.name.localeCompare(b.name));
         modalContent.innerHTML = `
             <span class="close" id="closeVerificationModal">×</span>
-            <h2>Verify Your Device</h2>
+            <h2>Verify Your Name</h2>
             <p style="margin-bottom: 20px; font-size: 0.9em; color: var(--light-text);">
                 To receive important notifications, please select your name from the list below. This is a one-time setup.
             </p>
