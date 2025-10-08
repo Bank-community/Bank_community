@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        /* All CSS styles remain the same as before */
+        /* General Styling */
         :root {
              --primary-color: #007BFF; --secondary-color: #056fff; --light-bg: #f8f9fa;
              --text-light: #fff; --text-dark: #555; --positive-color: #04c800;
@@ -23,7 +23,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0; background-color: var(--light-bg);
-            padding-top: 230px;
+            padding-top: 230px; /* Initial padding, JS will adjust */
             transition: padding-top 0.3s ease; color: var(--text-dark); line-height: 1.5;
         }
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--light-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 4000; font-size: 18px; color: var(--text-dark); transition: opacity 0.5s ease; padding: 20px; text-align: center; box-sizing: border-box; }
@@ -39,12 +39,11 @@
         #passwordSubmit:hover { background-color: #0056b3; }
         #passwordError { color: var(--negative-color); font-weight: bold; margin-top: 10px; font-size: 14px; min-height: 1em; }
         #dashboardContent { display: none; } #dashboardContent.visible { display: block; }
-        #dataTable tbody tr.highlight-recent-loan td { font-weight: bold; color: red; }
         .header { text-align: center; background-color: var(--primary-color); color: var(--text-light); padding: 10px 0; display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; z-index: 1001; height: 60px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .header img { width: 40px; height: 40px; margin-right: 10px; } .header h1 { font-size: 1.2em; margin: 0; font-weight: 500; }
+        .header img { width: 40px; height: 40px; margin-right: 10px; border-radius: 50%; } .header h1 { font-size: 1.2em; margin: 0; font-weight: 500; }
         .profile-section { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: var(--profile-bg); color: var(--text-light); border-radius: 12px; box-shadow: var(--profile-shadow); width: 94%; max-width: 520px; z-index: 1000; padding: 15px; display: grid; grid-template-areas: "pic header buttons" "stats stats stats"; grid-template-columns: auto 1fr auto; grid-template-rows: auto 1fr; gap: 10px 15px; align-items: start; transition: top 0.3s ease; }
-        .profile-picture { grid-area: pic; width: 75px; height: 75px; border-radius: 50%; background-color: #fff; display: flex; align-items: center; justify-content: center; font-size: 35px; font-weight: bold; color: var(--text-dark); text-transform: uppercase; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); flex-shrink: 0; border: 4px solid rgba(255, 255, 255, 0.8); overflow: hidden; margin-top: 5px; padding: 5px; box-sizing: border-box;}
-        .profile-picture img { width: 100%; height: 100%; object-fit: contain; cursor: pointer; }
+        .profile-picture { grid-area: pic; width: 75px; height: 75px; border-radius: 50%; background-color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); border: 4px solid rgba(255, 255, 255, 0.8); overflow: hidden; margin-top: 5px; }
+        .profile-picture img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
         .profile-header-area { grid-area: header; display: flex; flex-direction: column; justify-content: center; min-width: 0; align-items: start; margin-top: 5px; }
         .profile-header-area h3 { margin: 0; font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
         .profile-buttons-area { grid-area: buttons; display: flex; flex-direction: column; align-items: end; gap: 5px; margin-top: 5px; }
@@ -54,25 +53,32 @@
         .metric-card { background-color: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 70px; cursor: default; box-sizing: border-box; }
         .metric-card .label { font-size: 11px; opacity: 0.9; margin-bottom: 3px; white-space: nowrap; color: #e0e0e0; }
         .metric-card .value { font-weight: bold; font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-light); }
-        #netAmountCard .value.positive { color: #b2f0b2; } 
-        #netAmountCard .value.negative { color: #f7c8c8; }
-        #loanAmountCard .value { color: #f7c8c8; }
-        #sipAmountCard .value, #paymentAmountCard .value, #returnAmountCard .value { color: #b2f0b2; }
-        .filters { display: flex; justify-content: center; margin: 15px 10px; gap: 15px; flex-wrap: wrap; padding-top: 180px; }
+        #accountBalanceCard .value.positive { color: #b2f0b2; } 
+        #accountBalanceCard .value.negative { color: #f7c8c8; }
+        #loanDueCard .value { color: #f7c8c8; }
+        
+        /* BADLAV: Filter layout ab mobile ke liye bhi behtar hai */
+        .filters { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin: 15px; 
+            gap: 10px; /* Gap kam kiya gaya hai */
+            flex-wrap: nowrap; /* Wrap nahi hoga */
+        }
+        .filter-item {
+            flex: 1; /* Dono items barabar space lenge */
+        }
+
         label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 14px; }
-        select { padding: 8px 10px; font-size: 14px; min-width: 160px; border: 1px solid #ccc; border-radius: 5px; background-color: #fff; }
-        .summary-container { width: 95%; max-width: 800px; margin: 15px auto 10px auto; background-color: #fff; border-radius: 8px; box-shadow: var(--card-shadow); padding: 15px 20px; border-left: 5px solid var(--primary-color); }
-        .summary-container.hidden { display: none; }
-        .table-footnote { font-size: 0.8em; color: #777; text-align: center; margin: 5px auto 15px auto; padding: 0 15px; }
-        .table-footnote.hidden { display: none; }
-        .table-container { width: 100%; overflow-x: auto; margin: 0 auto 20px auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: var(--card-shadow); }
-        th, td { padding: 8px 10px; border: 1px solid #e0e0e0; text-align: center; }
+        select { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; background-color: #fff; }
+        .table-container { width: 95%; max-width: 800px; margin: 0 auto 20px auto; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: var(--card-shadow); border-radius: 8px; overflow: hidden;}
+        th, td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: left; }
         th { background-color: var(--primary-color); color: var(--text-light); font-size: 13px; font-weight: 500; white-space: nowrap; }
         td { font-size: 12px; vertical-align: middle; }
-        .loan { color: var(--negative-color); font-weight: 500; } .payment { color: var(--positive-color); font-weight: 500;}
-        tfoot td { font-weight: bold; background-color: #fff8e1; font-size: 13px; }
-        .positive { color: var(--positive-color); font-weight: bold; } .negative { color: var(--negative-color); font-weight: bold; }
+        td.debit { color: var(--negative-color); } td.credit { color: var(--positive-color); }
+        tfoot td { font-weight: bold; background-color: #f5f5f5; font-size: 13px; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-bg); display: flex; align-items: center; justify-content: center; z-index: 2500; opacity: 1; transition: opacity 0.3s ease; padding: 10px; box-sizing: border-box; }
         .modal.hidden { opacity: 0; pointer-events: none; }
         .modal-content { background-color: #fff; padding: 20px 25px; border-radius: 8px; box-shadow: var(--card-shadow); max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; position: relative; box-sizing: border-box; }
@@ -86,9 +92,24 @@
         #sipStatusModal .status-paid { color: var(--positive-color); }
         #sipStatusModal .status-pending { color: var(--negative-color); }
         #sipStatusModal .status-due { color: var(--neutral-color); }
-        @media only screen and (max-width: 1024px) { body { padding-top: 195px; } .filters { padding-top: 150px; } .profile-section { max-width: 95%; } }
-        @media only screen and (max-width: 600px) { body { padding-top: 205px; } .header { height: 55px; } .header h1 { font-size: 1em; } .profile-section { top: 65px; width: 95%; padding: 10px 12px; grid-template-columns: 55px 1fr auto; gap: 8px 10px; } .profile-picture { width: 50px; height: 50px; font-size: 22px; border-width: 2px; margin-top: 0;} .profile-header-area h3 { font-size: 16px; } .profile-buttons-area { flex-direction: row; gap: 6px; grid-column: 3; grid-row: 1; align-self: center; margin-top: 0;} .profile-stats-grid{ grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; } .metric-card{ min-height: 55px; padding: 5px 6px; border-radius: 4px; } .metric-card .label{ font-size: 9px; } .metric-card .value{ font-size: 12px; } .filters { padding-top: 165px; gap: 10px; margin-top: 15px; } label, select { font-size: 12px; min-width: 110px;} select { padding: 5px 6px; } .table-container { margin-top: 10px; } th { font-size: 11px; padding: 6px 8px; } td { font-size: 10px; padding: 5px 6px; } tfoot td { font-size: 11px; } .modal-content{ width: 95%; padding: 15px 20px; } .modal h2{ font-size: 16px; } #sipStatusModal .status-item{font-size: 13px;} .summary-container h3 { font-size: 1em; } .summary-stat .value { font-size: 1.1em; } }
-        @media only screen and (max-width: 420px) { body { padding-top: 220px; } .profile-section { grid-template-columns: 50px 1fr auto; gap: 5px 8px; padding: 8px 10px; } .profile-picture { width: 45px; height: 45px; font-size: 20px; } .profile-header-area h3 { font-size: 15px; } .profile-stats-grid { grid-template-columns: repeat(2, 1fr); } .filters { padding-top: 180px; } }
+        
+        @media only screen and (max-width: 600px) { 
+            body { padding-top: 250px; } 
+            .header { height: 55px; } .header h1 { font-size: 1em; } 
+            .profile-section { top: 65px; width: 95%; padding: 10px 12px; grid-template-columns: 55px 1fr auto; gap: 8px 10px; } 
+            .profile-picture { width: 50px; height: 50px; font-size: 22px; border-width: 2px; margin-top: 0;} 
+            .profile-header-area h3 { font-size: 16px; } 
+            .profile-buttons-area { flex-direction: row; gap: 6px; grid-column: 3; grid-row: 1; align-self: center; margin-top: 0;} 
+            .profile-stats-grid{ grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; } 
+            .metric-card{ min-height: 55px; padding: 5px 6px; border-radius: 4px; } 
+            .metric-card .label{ font-size: 9px; } .metric-card .value{ font-size: 12px; } 
+            .filters { margin: 15px 10px; } 
+            th,td { padding: 8px 10px; } 
+        }
+        @media only screen and (max-width: 420px) {
+            label { font-size: 12px; }
+            select { font-size: 12px; padding: 6px 8px; }
+        }
     </style>
 </head>
 <body>
@@ -97,7 +118,7 @@
     <div id="passwordPromptContainer" class="hidden">
         <div id="passwordPromptMessage">
             <p>Enter Access PIN:</p>
-            <input type="password" id="passwordInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            <input type="password" id="passwordInput" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="off">
             <div id="passwordError"></div>
             <button id="passwordSubmit">Enter</button>
         </div>
@@ -105,7 +126,7 @@
 
     <div id="dashboardContent" class="hidden">
         <div class="header">
-            <img src="https://i.postimg.cc/XNpR3cN1/20241030-065157.png" alt="Logo">
+            <img src="https://i.ibb.co/xSNPXDc8/1753150042002.jpg" alt="Logo">
             <h1>Community Loan Dashboard</h1>
         </div>
 
@@ -119,48 +140,48 @@
             </div>
             
             <div class="profile-stats-grid">
-                 <div class="metric-card" id="sipAmountCard">
+                 <div class="metric-card" id="totalSipCard">
                      <span class="label">Total SIP</span>
                      <span id="totalSipValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="paymentAmountCard">
-                     <span class="label">Total Payment</span>
-                     <span id="totalPaymentValue" class="value">0</span>
+                 <div class="metric-card" id="interestPaidCard">
+                     <span class="label">Interest Paid</span>
+                     <span id="interestPaidValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="returnAmountCard">
-                     <span class="label">Total Return</span>
-                     <span id="totalReturnValue" class="value">0</span>
+                 <div class="metric-card" id="accountBalanceCard">
+                     <span class="label">Account Balance</span>
+                     <span id="accountBalanceValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="loanAmountCard">
-                     <span class="label">Total Loan</span>
+                 <div class="metric-card" id="loanDueCard">
+                     <span class="label">Loan Due</span>
+                     <span id="loanDueValue" class="value">0</span>
+                 </div>
+                 <div class="metric-card" id="totalLoanCard">
+                     <span class="label">Total Loan Taken</span>
                      <span id="totalLoanValue" class="value">0</span>
                  </div>
-                 <div class="metric-card" id="netAmountCard">
-                     <span class="label">Net Amount</span>
-                     <span id="netAmountValue" class="value">0</span>
-                 </div>
-                 <div class="metric-card" id="daysCard">
-                     <span class="label">Total Days</span>
-                     <span id="totalDaysValue" class="value">0</span>
+                 <div class="metric-card" id="joiningDateCard">
+                     <span class="label">Joining Date</span>
+                     <span id="joiningDateValue" class="value">-</span>
                  </div>
             </div>
         </div>
 
         <div class="filters">
-             <div>
-                <label for="nameFilter">Select Name:</label>
-                <select id="nameFilter">
+             <div class="filter-item">
+                <label for="memberFilter">Select Member:</label>
+                <select id="memberFilter">
                     <option value="all">All Members</option>
                 </select>
             </div>
-             <div>
+             <div class="filter-item">
                 <label for="typeFilter">Filter Data By:</label>
                 <select id="typeFilter">
-                    <option value="all_transactions">All Transactions</option>
-                    <option value="members_invest">Loan Repayments</option>
-                    <option value="loan_history">Loan History</option>
-                    <option value="sip_payment">SIP Payments</option>
-                    <option value="total_return">Total Return</option>
+                    <option value="all">All Transactions</option>
+                    <option value="active_loans">Active Loans</option>
+                    <option value="loan">Loan History</option>
+                    <option value="payment">Payment History</option>
+                    <option value="sip">SIP History</option>
              </select>
             </div>
         </div>
@@ -169,45 +190,35 @@
             <table id="dataTable">
                 <thead></thead>
                 <tbody></tbody>
-                <tfoot>
-                     <!-- This footer is now 5 cells wide to match the table columns -->
-                    <tr>
-                        <td id="totalLabelCell" colspan="2">Total</td>
-                        <td id="totalValue1Cell">0</td>
-                        <td id="totalValue2Cell">0</td>
-                        <td id="totalValue3Cell">0</td>
-                    </tr>
-                </tfoot>
+                <tfoot></tfoot>
             </table>
         </div>
     </div>
 
+    <!-- Modals -->
     <div id="imageModal" class="modal hidden">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal('imageModal')">×</button>
             <img id="modalImage" src="" alt="Profile Image Fullscreen">
         </div>
     </div>
-
     <div id="sipStatusModal" class="modal hidden">
          <div class="modal-content">
              <button class="modal-close" onclick="closeModal('sipStatusModal')">×</button>
              <h2>Current Month SIP Status</h2>
-             <div id="sipStatusList" class="status-list">
-                 Loading status...
-             </div>
+             <div id="sipStatusList" class="status-list">Loading...</div>
          </div>
      </div>
 
-
 <script>
-    // Global variables
-    let allData = [];
+    // === GLOBAL VARIABLES ===
     let allMembers = {};
-    // --- MUKHYA UPDATE 1: Default profile picture ab bank ka logo hai ---
-    const defaultProfilePic = 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png';
+    let allTransactions = [];
+    let allActiveLoans = [];
+    let loggedInUserPassword = null; 
+    const defaultProfilePic = 'https://i.ibb.co/xSNPXDc8/1753150042002.jpg';
 
-    // --- Initialization & Authentication Flow ---
+    // === INITIALIZATION & AUTHENTICATION ===
     document.addEventListener("DOMContentLoaded", () => {
         initializeApp();
     });
@@ -216,9 +227,7 @@
         const loader = document.getElementById('loader');
         try {
             const response = await fetch('/api/config');
-            if (!response.ok) {
-                throw new Error('Configuration API se fetch nahi ho saki.');
-            }
+            if (!response.ok) throw new Error('Configuration API could not be fetched.');
             const config = await response.json();
 
             if (!firebase.apps.length) {
@@ -229,12 +238,11 @@
 
         } catch (error) {
             console.error("Initialization Error:", error);
-            loader.innerHTML = `<b>Initialization Error:</b> ${error.message}<br><br>Please ensure the configuration API is working correctly.`;
+            loader.innerHTML = `<b>Initialization Error:</b> ${error.message}`;
         }
     }
 
     function setupPasswordPrompt() {
-        // This function remains unchanged
         const passwordInput = document.getElementById('passwordInput');
         const passwordSubmit = document.getElementById('passwordSubmit');
         const passwordError = document.getElementById('passwordError');
@@ -260,20 +268,19 @@
 
             try {
                 const membersSnapshot = await firebase.database().ref('members').once('value');
-                allMembers = membersSnapshot.val() || {};
+                const allMembersData = membersSnapshot.val() || {};
                 
-                const isValidPin = Object.values(allMembers).some(member => member.password === enteredPassword);
+                const isValidUser = Object.values(allMembersData).some(member => member.password === enteredPassword);
 
-                if (isValidPin) {
+                if (isValidUser) {
+                    loggedInUserPassword = enteredPassword;
                     passwordContainer.classList.add('hidden');
                     loader.classList.remove('hidden');
-                    processFirebaseData();
+                    await processFirebaseData();
                 } else {
                     passwordError.textContent = "Incorrect PIN";
                     passwordInput.value = "";
                     passwordInput.focus();
-                    passwordInput.style.animation = 'shake 0.5s';
-                    setTimeout(() => passwordInput.style.animation = '', 500);
                 }
             } catch (error) {
                 console.error("Error during PIN verification:", error);
@@ -285,65 +292,61 @@
         }
     }
     
-    // --- Data Fetching & Processing from Firebase ---
-    function processFirebaseData() {
-        // This function remains unchanged
-        const loader = document.getElementById('loader');
+    // === DATA FETCH & PROCESSING ===
+    async function processFirebaseData() {
         try {
-            let flatTransactionList = [];
-            for (const memberId in allMembers) {
-                const member = allMembers[memberId];
-                if (member.transactions) {
-                    for (const txId in member.transactions) {
-                        const tx = member.transactions[txId];
-                        let parsedDate = new Date(tx.Date || 0);
-                        if (isNaN(parsedDate)) {
-                            console.warn(`Invalid date format "${tx.Date}" for member ${member.fullName}.`);
-                            parsedDate = new Date(0);
-                        }
-                        flatTransactionList.push({
-                            Name: member.fullName,
-                            Date: parsedDate,
-                            Loan: parseFloat(tx.Loan) || 0,
-                            Payment: parseFloat(tx['Loan Payment']) || 0,
-                            SipPayment: parseFloat(tx['SIP Payment']) || 0,
-                            ReturnAmount: parseFloat(tx['Return amount']) || 0,
-                        });
-                    }
-                }
-            }
-            flatTransactionList.sort((a, b) => a.Date - b.Date);
-            allData = flatTransactionList;
+            const membersSnapshot = await firebase.database().ref('members').once('value');
+            const transactionsSnapshot = await firebase.database().ref('transactions').once('value');
+            const activeLoansSnapshot = await firebase.database().ref('activeLoans').once('value');
+
+            allMembers = membersSnapshot.val() || {};
             
+            allTransactions = Object.values(transactionsSnapshot.val() || {})
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            allActiveLoans = Object.values(activeLoansSnapshot.val() || {});
+
             initializeDashboard();
 
         } catch (error) {
             console.error("Error processing Firebase data:", error);
-            loader.innerHTML = `Error: ${error.message}`;
-        } finally {
-            loader.classList.add('hidden');
+            document.getElementById('loader').innerHTML = `Error: ${error.message}`;
         }
     }
 
-    // --- Dashboard Initialization & Event Listeners ---
+    // === DASHBOARD INITIALIZATION ===
     function initializeDashboard() {
-        // This function remains unchanged
         document.getElementById('dashboardContent').classList.add('visible');
-        populateNameFilter();
+        populateMemberFilter(); 
         setupEventListeners();
-        document.getElementById('nameFilter').value = 'all';
-        document.getElementById('typeFilter').value = 'all_transactions';
-        updateDisplay();
+        updateDisplay(); 
+        document.getElementById('loader').classList.add('hidden');
+    }
+
+    function populateMemberFilter() {
+        const memberFilter = document.getElementById('memberFilter');
+        memberFilter.innerHTML = '<option value="all">All Members</option>';
+
+        const approvedMembers = Object.values(allMembers)
+            .filter(member => member.status === 'Approved')
+            .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+        approvedMembers.forEach(member => {
+            const option = document.createElement('option');
+            option.value = member.membershipId; 
+            option.textContent = member.fullName;
+            memberFilter.appendChild(option);
+        });
     }
 
     function setupEventListeners() {
-        // This function remains unchanged
-        document.getElementById('nameFilter').addEventListener('change', updateDisplay);
+        document.getElementById('memberFilter').addEventListener('change', updateDisplay);
         document.getElementById('typeFilter').addEventListener('change', updateDisplay);
+        
         document.getElementById('imageModal').addEventListener('click', () => closeModal('imageModal'));
         document.getElementById('profilePictureContainer').addEventListener('click', (event) => {
             if (event.target.tagName === 'IMG' && event.target.src !== defaultProfilePic && event.target.src) {
-                 event.stopPropagation();
+                event.stopPropagation();
                 openModal('imageModal', event.target.src);
             }
         });
@@ -351,11 +354,255 @@
             populateSipStatusModal();
             openModal('sipStatusModal');
         });
+
+        const profileSection = document.getElementById('profileSection');
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const height = entry.contentRect.height;
+                document.body.style.paddingTop = `${height + 95}px`;
+            }
+        });
+        resizeObserver.observe(profileSection);
     }
 
-    // --- Modal Functions ---
+    // === CENTRAL DISPLAY LOGIC ===
+    function updateDisplay() {
+        const selectedMemberId = document.getElementById('memberFilter').value;
+        const selectedType = document.getElementById('typeFilter').value;
+        
+        updateProfileSection(selectedMemberId);
+        updateTopCards(selectedMemberId);
+        
+        if (selectedType === 'active_loans') {
+            displayActiveLoansData(selectedMemberId);
+        } else {
+            displayTransactionData(selectedMemberId, selectedType);
+        }
+    }
+    
+    function updateProfileSection(selectedMemberId) {
+        const profileNameEl = document.getElementById("profileName");
+        const profilePicContainer = document.getElementById("profilePictureContainer");
+
+        if (selectedMemberId === 'all') {
+            profileNameEl.textContent = "Community Overview";
+            profilePicContainer.innerHTML = `<img src="${defaultProfilePic}" alt="Community Logo">`;
+        } else {
+            const member = allMembers[selectedMemberId];
+            if (member) {
+                profileNameEl.textContent = member.fullName;
+                const profileImageUrl = member.profilePicUrl || defaultProfilePic;
+                profilePicContainer.innerHTML = `<img src="${profileImageUrl}" alt="Profile image" onerror="this.onerror=null; this.src='${defaultProfilePic}';">`;
+            }
+        }
+    }
+
+    function updateTopCards(selectedMemberId) {
+        const memberTransactions = (selectedMemberId === 'all') 
+            ? allTransactions 
+            : allTransactions.filter(tx => tx.memberId === selectedMemberId);
+        
+        const memberActiveLoans = (selectedMemberId === 'all')
+            ? allActiveLoans
+            : allActiveLoans.filter(loan => loan.memberId === selectedMemberId);
+
+        let totalSip = 0, interestPaid = 0, accountBalance = 0, totalLoanTaken = 0;
+        
+        memberTransactions.forEach(tx => {
+            if (tx.type === 'SIP') totalSip += tx.amount || 0;
+            if (tx.type === 'Loan Payment') interestPaid += tx.interestPaid || 0;
+            if (tx.type === 'Extra Payment') accountBalance += tx.amount || 0;
+            if (tx.type === 'Extra Withdraw') accountBalance -= tx.amount || 0;
+            if (tx.type === 'Loan Taken') totalLoanTaken += tx.amount || 0;
+        });
+
+        const loanDue = memberActiveLoans.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
+
+        let joiningDate = '-';
+        if (selectedMemberId !== 'all') {
+            const sipTransactions = memberTransactions.filter(tx => tx.type === 'SIP');
+            if (sipTransactions.length > 0) {
+                joiningDate = formatDate(new Date(sipTransactions[0].date));
+            }
+        }
+
+        document.getElementById('totalSipValue').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
+        document.getElementById('interestPaidValue').textContent = `₹${interestPaid.toLocaleString('en-IN')}`;
+        document.getElementById('accountBalanceValue').textContent = `₹${accountBalance.toLocaleString('en-IN')}`;
+        document.getElementById('loanDueValue').textContent = `₹${loanDue.toLocaleString('en-IN')}`;
+        document.getElementById('totalLoanValue').textContent = `₹${totalLoanTaken.toLocaleString('en-IN')}`;
+        document.getElementById('joiningDateValue').textContent = joiningDate;
+    }
+
+    // === DATA DISPLAY FUNCTIONS ===
+    function displayTransactionData(selectedMemberId, typeFilter) {
+        const table = document.getElementById('dataTable');
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+        const tfoot = table.querySelector('tfoot');
+        tbody.innerHTML = "";
+
+        // BADLAV: Transaction table ka header ab 6 column ka hoga
+        thead.innerHTML = `
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th style="text-align: right;">Debit (₹)</th>
+                <th style="text-align: right;">Principal (₹)</th>
+                <th style="text-align: right;">Interest (₹)</th>
+                <th style="text-align: right;">Balance (₹)</th>
+            </tr>`;
+        
+        tfoot.innerHTML = `
+            <tr>
+                <td colspan="2" style="text-align: right; font-weight: bold;">Total</td>
+                <td id="totalDebitCell" style="text-align: right;">0.00</td>
+                <td id="totalPrincipalCell" style="text-align: right;">0.00</td>
+                <td id="totalInterestCell" style="text-align: right;">0.00</td>
+                <td></td>
+            </tr>`;
+        
+        const memberTransactions = (selectedMemberId === 'all')
+            ? allTransactions
+            : allTransactions.filter(tx => tx.memberId === selectedMemberId);
+
+        let runningBalance = 0;
+        let totalDebit = 0, totalPrincipal = 0, totalInterest = 0;
+
+        const statementLines = [];
+        memberTransactions.forEach(tx => {
+            let line = { date: new Date(tx.date), description: '', debit: 0, principal: 0, interest: 0, type: tx.type };
+            
+            // BADLAV: Loan Payment ko alag alag handle kiya jayega
+            switch (tx.type) {
+                case 'SIP': line.description = 'SIP Payment'; line.principal = tx.amount || 0; break;
+                case 'Loan Taken': line.description = `${tx.loanType || 'Loan'} Taken`; line.debit = tx.amount || 0; break;
+                case 'Loan Payment': line.description = `Loan Payment`; line.principal = tx.principalPaid || 0; line.interest = tx.interestPaid || 0; break;
+                case 'Extra Payment': line.description = 'Extra Amount Deposited'; line.principal = tx.amount || 0; break;
+                case 'Extra Withdraw': line.description = 'Extra Amount Withdrawn'; line.debit = tx.amount || 0; break;
+            }
+            const credit = line.principal + line.interest;
+            runningBalance += credit - line.debit;
+            line.balance = runningBalance;
+            statementLines.push(line);
+        });
+
+        const filteredLines = statementLines.filter(line => {
+            if (typeFilter === 'all') return true;
+            if (typeFilter === 'loan' && line.type === 'Loan Taken') return true;
+            if (typeFilter === 'payment' && line.type === 'Loan Payment') return true;
+            if (typeFilter === 'sip' && line.type === 'SIP') return true;
+            return false;
+        });
+
+        if (filteredLines.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center;">No matching transactions found.</td></tr>`;
+            tfoot.style.display = 'none';
+            return;
+        }
+
+        tfoot.style.display = '';
+        filteredLines.forEach(line => {
+            totalDebit += line.debit;
+            totalPrincipal += line.principal;
+            totalInterest += line.interest;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${formatDate(line.date)}</td>
+                    <td>${line.description}</td>
+                    <td class="debit" style="text-align: right;">${line.debit > 0 ? f(line.debit) : '-'}</td>
+                    <td class="credit" style="text-align: right;">${line.principal > 0 ? f(line.principal) : '-'}</td>
+                    <td class="credit" style="text-align: right;">${line.interest > 0 ? f(line.interest) : '-'}</td>
+                    <td style="text-align: right; font-weight: 500;">${f(line.balance)}</td>
+                </tr>
+            `;
+        });
+        
+        document.getElementById('totalDebitCell').textContent = f(totalDebit);
+        document.getElementById('totalPrincipalCell').textContent = f(totalPrincipal);
+        document.getElementById('totalInterestCell').textContent = f(totalInterest);
+    }
+
+    function displayActiveLoansData(selectedMemberId) {
+        const table = document.getElementById('dataTable');
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+        const tfoot = table.querySelector('tfoot');
+        tbody.innerHTML = "";
+        
+        // BADLAV: Active Loans ke header me "Member Name" joda gaya
+        thead.innerHTML = `
+            <tr>
+                <th>Member Name</th>
+                <th>Loan Date</th>
+                <th>Loan Type</th>
+                <th style="text-align: right;">Original (₹)</th>
+                <th style="text-align: right;">Outstanding (₹)</th>
+            </tr>`;
+
+        tfoot.innerHTML = '';
+
+        const memberActiveLoans = (selectedMemberId === 'all')
+            ? allActiveLoans.filter(loan => loan.status === 'Active')
+            : allActiveLoans.filter(loan => loan.memberId === selectedMemberId && loan.status === 'Active');
+
+        if (memberActiveLoans.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No active loans found.</td></tr>`;
+            return;
+        }
+
+        memberActiveLoans.forEach(loan => {
+            // Member ka naam `allMembers` se prapt karein
+            const memberName = allMembers[loan.memberId] ? allMembers[loan.memberId].fullName : 'Unknown';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${memberName}</td>
+                    <td>${formatDate(new Date(loan.loanDate))}</td>
+                    <td>${loan.loanType}</td>
+                    <td style="text-align: right;">${f(loan.originalAmount)}</td>
+                    <td class="debit" style="text-align: right; font-weight: bold;">${f(loan.outstandingAmount)}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // === UTILITY FUNCTIONS ===
+    function populateSipStatusModal() {
+        const listContainer = document.getElementById('sipStatusList');
+        listContainer.innerHTML = "";
+        
+        const approvedMembers = Object.values(allMembers)
+            .filter(member => member.status === 'Approved')
+            .sort((a, b) => a.fullName.localeCompare(b.fullName));
+            
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const currentDay = now.getDate();
+
+        if (approvedMembers.length === 0) { listContainer.innerHTML = "No approved members found."; return; }
+
+        approvedMembers.forEach(member => {
+            const paidThisMonth = allTransactions.some(tx => 
+                tx.memberId === member.membershipId && 
+                tx.type === 'SIP' && 
+                new Date(tx.date).getMonth() === currentMonth && 
+                new Date(tx.date).getFullYear() === currentYear
+            );
+            
+            let statusText, statusClass, statusIcon;
+            if (paidThisMonth) { [statusText, statusClass, statusIcon] = ["Paid", "status-paid", "✅"]; } 
+            else if (currentDay > 10) { [statusText, statusClass, statusIcon] = ["Pending", "status-pending", "❌"]; } 
+            else { [statusText, statusClass, statusIcon] = ["Due", "status-due", "🔴"]; }
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'status-item';
+            itemDiv.innerHTML = `<span>${member.fullName}</span><span class="${statusClass}">${statusIcon} ${statusText}</span>`;
+            listContainer.appendChild(itemDiv);
+        });
+    }
+
     function openModal(modalId, imageSrc = null) {
-        // This function remains unchanged
         const modal = document.getElementById(modalId);
         if (modal) {
             if (modalId === 'imageModal' && imageSrc) {
@@ -366,7 +613,6 @@
     }
 
     function closeModal(modalId) {
-        // This function remains unchanged
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.add('hidden');
@@ -375,299 +621,18 @@
              }
         }
     }
-    
-    // --- Filter Population ---
-    function populateNameFilter() {
-        // This function remains unchanged
-        const nameFilter = document.getElementById("nameFilter");
-        const memberBalances = Object.values(allMembers).map(member => {
-            const memberData = allData.filter(r => r.Name === member.fullName);
-            const balance = memberData.reduce((acc, r) => acc + r.Payment + r.SipPayment + r.ReturnAmount - r.Loan, 0);
-            return { name: member.fullName, balance: balance };
-        });
-        memberBalances.sort((a, b) => b.balance - a.balance);
-        nameFilter.innerHTML = '<option value="all">All Members</option>';
-        memberBalances.forEach(({ name }) => {
-            nameFilter.innerHTML += `<option value="${name}">${name}</option>`;
-        });
-    }
 
-    // --- Central Display Logic ---
-    function updateDisplay() {
-        // This function remains unchanged
-        const selectedName = document.getElementById('nameFilter').value;
-        const selectedType = document.getElementById('typeFilter').value;
-        
-        updateProfileSection(selectedName);
-        
-        const filteredData = getFilteredTransactionData(selectedName, selectedType);
-        
-        updateTopCards(selectedName);
-
-        switch (selectedType) {
-            case 'total_return':
-                updateTableHeader('total_return');
-                calculateAndDisplayTotalReturn();
-                break;
-            case 'all_transactions':
-            case 'loan_history':
-            case 'members_invest':
-            case 'sip_payment':
-                updateTableHeader('all_transactions'); // Use one common header
-                displayTransactionData(filteredData, selectedType === 'all_transactions');
-                break;
-            default:
-                 updateTableHeader('default');
-                 document.querySelector("#dataTable tbody").innerHTML = `<tr><td colspan="5">Invalid filter.</td></tr>`;
-                 updateTransactionTotals(0, 0, 0);
-        }
+    function formatDate(date) {
+        if (!(date instanceof Date) || isNaN(date)) return "N/A";
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
     
-    function updateTopCards(selectedName) {
-        // This function remains unchanged
-        let totalSip = 0, totalReturn = 0, totalLoan = 0, totalPayment = 0, netAmount = 0, totalDays = 0;
-
-        const dataForCards = selectedName === 'all' ? allData : allData.filter(row => row.Name === selectedName);
-
-        if (dataForCards.length > 0) {
-            dataForCards.forEach(row => {
-                totalSip += row.SipPayment;
-                totalReturn += row.ReturnAmount;
-                totalLoan += row.Loan;
-                totalPayment += row.Payment + row.SipPayment;
-            });
-            netAmount = (totalPayment + totalReturn) - totalLoan;
-
-            const firstDate = dataForCards[0].Date;
-            const today = new Date();
-            totalDays = Math.round((today - firstDate) / (1000 * 60 * 60 * 24));
-        }
-
-        document.getElementById('totalSipValue').textContent = totalSip.toFixed(2);
-        document.getElementById('totalPaymentValue').textContent = totalPayment.toFixed(2);
-        document.getElementById('totalReturnValue').textContent = totalReturn.toFixed(2);
-        document.getElementById('totalLoanValue').textContent = totalLoan.toFixed(2);
-        const netAmountEl = document.getElementById('netAmountValue');
-        netAmountEl.textContent = netAmount.toFixed(2);
-        netAmountEl.parentElement.className = 'metric-card';
-        netAmountEl.classList.toggle('positive', netAmount >= 0);
-        netAmountEl.classList.toggle('negative', netAmount < 0);
-        document.getElementById('totalDaysValue').textContent = totalDays;
+    // Currency format karne ke liye ek chhota helper function
+    function f(num) {
+        return (num || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
     }
 
-
-    // --- MUKHYA UPDATE 2: Table header ab naye columns ke anusaar hai ---
-    function updateTableHeader(type) {
-        const tableHead = document.querySelector('#dataTable thead');
-        const footLabel = document.getElementById('totalLabelCell');
-        const footVal1 = document.getElementById('totalValue1Cell');
-        const footVal2 = document.getElementById('totalValue2Cell');
-        const footVal3 = document.getElementById('totalValue3Cell');
-        let headers = [];
-
-        // Sabhi footers ko reset karein
-        footLabel.style.display = '';
-        footVal1.style.display = '';
-        footVal2.style.display = '';
-        footVal3.style.display = '';
-
-        if (type === 'total_return') {
-            headers = ["Sadasya", "Kul Return Payment"];
-            footLabel.textContent = "Kul Total:";
-            footLabel.colSpan = 1;
-            footVal1.className = 'positive';
-            footVal2.style.display = 'none';
-            footVal3.style.display = 'none';
-        } else {
-            // "All Transactions" aur anya filter ke liye common header
-            headers = ["Date", "Member", "Amount", "Category", "Net Balance"];
-            footLabel.textContent = "Total:";
-            footLabel.colSpan = 2; // Date aur Member columns ko span karega
-            footVal1.textContent = '0.00'; // Loan Total
-            footVal2.textContent = '0.00'; // Payment Total
-            footVal3.textContent = '0.00'; // Net Total
-        }
-        
-        tableHead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
-    }
-
-    // --- Data Filtering & Display ---
-    function getFilteredTransactionData(nameFilter, typeFilter) {
-        // This function remains unchanged in its core logic
-        const isAllNames = nameFilter === 'all';
-        let nameFilteredData = isAllNames ? [...allData] : allData.filter(row => row.Name === nameFilter);
-
-        switch (typeFilter) {
-            case 'loan_history':
-                return nameFilteredData.filter(r => r.Loan > 0);
-            case 'members_invest':
-                 return nameFilteredData.filter(r => r.Payment > 0);
-            case 'sip_payment':
-                return nameFilteredData.filter(r => r.SipPayment > 0);
-            case 'all_transactions':
-                 return nameFilteredData.filter(r => r.Loan > 0 || r.Payment > 0 || r.SipPayment > 0 || r.ReturnAmount > 0);
-            case 'total_return':
-                 return []; // Handled separately
-            default:
-                 return [];
-        }
-    }
-
-    // --- MUKHYA UPDATE 3: Table data ab naye "Amount" aur "Category" columns mein dikhega ---
-    function displayTransactionData(filteredData, isCumulative) {
-        const tbody = document.querySelector("#dataTable tbody");
-        tbody.innerHTML = "";
-        let loanSum = 0, paymentSum = 0, runningBalance = 0;
-
-        if (filteredData.length === 0) {
-            const colSpan = document.querySelectorAll('#dataTable thead th').length || 5;
-            tbody.innerHTML = `<tr><td colspan="${colSpan}">Is filter ke liye koi transaction nahi mila.</td></tr>`;
-            updateTransactionTotals(0, 0, 0);
-            return;
-        }
-
-        filteredData.forEach(row => {
-            const totalTransactionPayment = row.Payment + row.SipPayment + row.ReturnAmount;
-            const transactionNet = totalTransactionPayment - row.Loan;
-            
-            loanSum += row.Loan;
-            paymentSum += totalTransactionPayment;
-            runningBalance += transactionNet;
-            
-            const netToShow = isCumulative ? runningBalance : transactionNet;
-            const dateStr = formatDate(row.Date);
-
-            let amountCellContent = '';
-            let categoryCellContent = '';
-
-            if (row.Loan > 0) {
-                // Agar loan hai
-                amountCellContent = `<td class="loan">${row.Loan.toFixed(2)}</td>`;
-                categoryCellContent = `<td>Loan</td>`;
-            } else {
-                // Agar payment hai
-                const categoryParts = [];
-                if (row.Payment > 0) categoryParts.push('Loan Payment');
-                if (row.SipPayment > 0) categoryParts.push('SIP');
-                if (row.ReturnAmount > 0) categoryParts.push('Return & Loan Payment');
-                
-                amountCellContent = `<td class="payment">${totalTransactionPayment.toFixed(2)}</td>`;
-                categoryCellContent = `<td>${categoryParts.join(' + ')}</td>`;
-            }
-
-            tbody.innerHTML += `
-                <tr data-name="${row.Name}" data-date="${row.Date.toISOString()}">
-                    <td>${dateStr}</td>
-                    <td>${row.Name}</td>
-                    ${amountCellContent}
-                    ${categoryCellContent}
-                    <td class="${netToShow < 0 ? 'negative' : 'positive'}">${netToShow.toFixed(2)}</td>
-                </tr>`;
-        });
-        updateTransactionTotals(loanSum, paymentSum, runningBalance);
-    }
-    
-    function calculateAndDisplayTotalReturn() {
-        const tbody = document.querySelector("#dataTable tbody");
-        tbody.innerHTML = "";
-        
-        const membersWithReturn = [...new Set(allData.filter(r => r.ReturnAmount > 0).map(r => r.Name))];
-        let overallReturnPaymentSum = 0;
-        
-        const memberResults = membersWithReturn.map(member => {
-            const totalReturnPayment = allData
-                .filter(r => r.Name === member)
-                .reduce((sum, r) => sum + r.ReturnAmount, 0);
-            overallReturnPaymentSum += totalReturnPayment;
-            return { member, totalReturnPayment };
-        }).sort((a, b) => b.totalReturnPayment - a.totalReturnPayment);
-
-        if (memberResults.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="2">Return data uplabdh nahi hai.</td></tr>`;
-            document.getElementById("totalValue1Cell").textContent = "0.00";
-            return;
-        }
-
-        memberResults.forEach(({ member, totalReturnPayment }) => {
-            tbody.innerHTML += `<tr>
-                <td>${member}</td>
-                <td class="positive" style="font-weight:bold;">${totalReturnPayment.toFixed(2)}</td>
-            </tr>`;
-        });
-        
-        document.getElementById("totalValue1Cell").textContent = overallReturnPaymentSum.toFixed(2);
-    }
-
-    // --- MUKHYA UPDATE 4: Footer totals ab naye cell IDs se update honge ---
-    function updateTransactionTotals(loanSum, paymentSum, finalBalance) {
-        const netSum = paymentSum - loanSum;
-        const footVal1 = document.getElementById('totalValue1Cell');
-        const footVal2 = document.getElementById('totalValue2Cell');
-        const footVal3 = document.getElementById('totalValue3Cell');
-
-        footVal1.textContent = loanSum.toFixed(2);
-        footVal1.className = 'loan';
-
-        footVal2.textContent = paymentSum.toFixed(2);
-        footVal2.className = 'payment';
-
-        const balanceToShow = finalBalance !== undefined ? finalBalance : netSum;
-        footVal3.textContent = balanceToShow.toFixed(2);
-        footVal3.className = balanceToShow < 0 ? "negative" : "positive";
-    }
-
-    // --- MUKHYA UPDATE 5: Profile section ab default logo dikhayega ---
-    function updateProfileSection(name) {
-        const profileNameEl = document.getElementById("profileName");
-        const profilePicContainer = document.getElementById("profilePictureContainer");
-
-        let profileImageUrl = defaultProfilePic; // Hamesha default se shuru karein
-        let displayName = "Community Overview";
-
-        if (name !== 'all') {
-            const memberInfo = Object.values(allMembers).find(m => m.fullName === name);
-            displayName = name;
-            // Agar member ka pic hai to use istemal karein, warna default (logo) hi rahega
-            profileImageUrl = memberInfo?.profilePicUrl || defaultProfilePic;
-        }
-        
-        profileNameEl.textContent = displayName;
-        profilePicContainer.innerHTML = `<img src="${profileImageUrl}" alt="Profile image of ${name}" onerror="this.onerror=null; this.src='${defaultProfilePic}';" style="cursor: ${profileImageUrl !== defaultProfilePic ? 'pointer' : 'default'}; object-fit: ${profileImageUrl === defaultProfilePic ? 'contain' : 'cover'};">`;
-    }
-    
-    // --- All other utility functions (remain unchanged) ---
-    function populateSipStatusModal() {
-        const listContainer = document.getElementById('sipStatusList');
-        if (!listContainer) return;
-        listContainer.innerHTML = "";
-        const members = Object.values(allMembers).map(m => m.fullName).sort((a, b) => a.localeCompare(b));
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        const currentDay = now.getDate();
-        if (members.length === 0) { listContainer.innerHTML = "Koi sadasya nahi mila."; return; }
-        members.forEach(name => {
-            const paidThisMonth = allData.some(r => r.Name === name && r.SipPayment > 0 && r.Date.getMonth() === currentMonth && r.Date.getFullYear() === currentYear);
-            let statusText, statusClass, statusIcon;
-            if (paidThisMonth) { [statusText, statusClass, statusIcon] = ["Paid", "status-paid", "✅"]; } 
-            else if (currentDay > 10) { [statusText, statusClass, statusIcon] = ["Pending", "status-pending", "❌"]; } 
-            else { [statusText, statusClass, statusIcon] = ["Due", "status-due", "🔴"]; }
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'status-item';
-            itemDiv.innerHTML = `<span>${name}</span><span class="${statusClass}">${statusIcon} ${statusText}</span>`;
-            listContainer.appendChild(itemDiv);
-        });
-    }
-
-    function formatDate(date, options = {}) {
-        if (!(date instanceof Date) || isNaN(date)) return "Invalid Date";
-        const defaultOptions = { day: '2-digit', month: 'short', year: 'numeric' };
-        try { return date.toLocaleDateString('en-GB', { ...defaultOptions, ...options }); } catch (e) { const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
-    }
-    const styleSheet = document.createElement("style");
-    styleSheet.type = "text/css";
-    styleSheet.innerText = `@keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }`;
-    document.head.appendChild(styleSheet);
 </script>
 </body>
 </html>
+
