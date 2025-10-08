@@ -1,5 +1,6 @@
 // user-main.js
-// BADLAV: PWA install prompt ko global banaya gaya hai taki dusre page bhi istemal kar sakein.
+// FINAL UPDATE: Is file ka kaam ab sirf PWA install prompt ko pakad kar
+// global variable (window.deferredInstallPrompt) me save karna hai.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -28,7 +29,6 @@ async function checkAuthAndInitialize() {
         const database = firebase.database();
 
         auth.onAuthStateChanged(user => {
-            // Hum maan rahe hain ki user hamesha logged in hai.
             runAppLogic(database);
         });
 
@@ -132,23 +132,14 @@ async function registerForPushNotifications(database, memberId) {
     }
 }
 
-// === YAHAN BADLAV KIYA GAYA HAI ===
 // PWA install event ko global window object par save karna
 window.deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
-    // Mini-infobar ko aane se rokein
     e.preventDefault();
-    // Event ko global variable me store karein
     window.deferredInstallPrompt = e;
-    
-    // Main page par install button ko dikhayein (agar maujood hai)
-    const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
-       installBtn.style.display = 'inline-flex';
-    }
+    // Main page par install button ko dikhane ke liye event dispatch karein
+    window.dispatchEvent(new CustomEvent('pwa-install-ready'));
 });
-// === BADLAV SAMAPT ===
-
 
 // App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
