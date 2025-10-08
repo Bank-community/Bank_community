@@ -147,12 +147,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
         // === YAHAN BADLAV KIYA GAYA HAI: Color code direct daal diya gaya hai ===
         installContainer.innerHTML = `
     <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
-        <button id="installAppBtn" class="civil-button btn-glossy" style="background-image: linear-gradient(to top, #218838, #28a745); border: none; border-radius: 12px; width: auto;">
+        <button id="installAppBtn" class="civil-button btn-glossy" style="background-image: linear-gradient(to top, #218838, #28a745); color: white; border: none; border-radius: 12px; width: auto;">
             <i data-feather="download-cloud"></i>
             <b>Install App</b>
         </button>
     </div>
 `;
+
 
         // === BADLAV SAMAPT ===
 
