@@ -1,5 +1,5 @@
 // user-main.js
-// BADLAV: Device verification system ko chalu karne ke liye ek function call joda gaya hai.
+// BADLAV: PWA install prompt ko global banaya gaya hai taki dusre page bhi istemal kar sakein.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -29,7 +29,6 @@ async function checkAuthAndInitialize() {
 
         auth.onAuthStateChanged(user => {
             // Hum maan rahe hain ki user hamesha logged in hai.
-            // Yadi aapke paas login system hai to 'if(user)' condition rakhein.
             runAppLogic(database);
         });
 
@@ -49,11 +48,8 @@ async function runAppLogic(database) {
         if (processedData) {
             initUI(database);
             renderPage(processedData);
-
-            // === YAHAN PAR BADLAV KIYA GAYA HAI ===
-            // Yeh line device verification aur notification system ko chalu karti hai.
+            
             verifyDeviceAndSetupNotifications(database, processedData.processedMembers);
-            // === BADLAV SAMAPT ===
         }
     } catch (error) {
         console.error("Failed to run main app logic:", error);
@@ -135,6 +131,24 @@ async function registerForPushNotifications(database, memberId) {
         console.log('Push notification token saved to Firebase.');
     }
 }
+
+// === YAHAN BADLAV KIYA GAYA HAI ===
+// PWA install event ko global window object par save karna
+window.deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Mini-infobar ko aane se rokein
+    e.preventDefault();
+    // Event ko global variable me store karein
+    window.deferredInstallPrompt = e;
+    
+    // Main page par install button ko dikhayein (agar maujood hai)
+    const installBtn = document.getElementById('installAppBtn');
+    if (installBtn) {
+       installBtn.style.display = 'inline-flex';
+    }
+});
+// === BADLAV SAMAPT ===
+
 
 // App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
