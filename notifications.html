@@ -1,156 +1,428 @@
-// user-main.js
-// BADLAV: PWA install prompt ko global banaya gaya hai taki dusre page bhi istemal kar sakein.
-
-import { fetchAndProcessData } from './user-data.js';
-import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
-
-let VAPID_KEY = null;
-
-/**
- * App ko shuru karne ka mukhya function.
- */
-async function checkAuthAndInitialize() {
-    try {
-        const response = await fetch('/api/firebase-config');
-        if (!response.ok) throw new Error('Configuration failed to load.');
-        const firebaseConfig = await response.json();
-        if (!firebaseConfig.apiKey) throw new Error('Invalid config received');
-        
-        VAPID_KEY = firebaseConfig.vapidKey;
-
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-        
-        registerServiceWorker();
-        
-        const auth = firebase.auth();
-        const database = firebase.database();
-
-        auth.onAuthStateChanged(user => {
-            // Hum maan rahe hain ki user hamesha logged in hai.
-            runAppLogic(database);
-        });
-
-    } catch (error) {
-        console.error("FATAL: Could not initialize application.", error);
-        showLoadingError(`Application failed to initialize: ${error.message}`);
-    }
-}
-
-/**
- * Mukhya application logic.
- */
-async function runAppLogic(database) {
-    try {
-        const processedData = await fetchAndProcessData(database);
-
-        if (processedData) {
-            initUI(database);
-            renderPage(processedData);
-            
-            verifyDeviceAndSetupNotifications(database, processedData.processedMembers);
-        }
-    } catch (error) {
-        console.error("Failed to run main app logic:", error);
-        showLoadingError(error.message);
-    }
-}
-
-/**
- * Service Worker ko register karta hai.
- */
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => console.log('Service Worker registered with scope:', registration.scope))
-      .catch(error => console.error('Service Worker registration failed:', error));
-  }
-}
-
-/**
- * Device ko verify aur notifications ke liye setup karta hai.
- */
-async function verifyDeviceAndSetupNotifications(database, allMembers) {
-    try {
-        let memberId = localStorage.getItem('verifiedMemberId');
-
-        if (!memberId) {
-            memberId = await promptForDeviceVerification(allMembers);
-            if (memberId) {
-                localStorage.setItem('verifiedMemberId', memberId);
-            } else {
-                console.warn('Device verification cancelled by user.');
-                return; 
-            }
-        }
-        
-        console.log(`Device verified for member: ${memberId}`);
-
-        const permissionGranted = await requestNotificationPermission();
-        if (permissionGranted) {
-            try {
-                await registerForPushNotifications(database, memberId);
-            } catch (regError) {
-                console.error("Push Notification Registration Failed:", regError);
-            }
-        }
-    } catch (error) {
-        console.error('Device verification or notification setup failed:', error);
-    }
-}
-
-/**
- * Push notifications ke liye register karta hai aur token save karta hai.
- */
-async function registerForPushNotifications(database, memberId) {
-    if (!VAPID_KEY) {
-        console.error("VAPID Key is not available from config. Push notifications will not work.");
-        return;
-    }
-
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push messaging is not supported');
-        return;
-    }
-
-    const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
-
-    if (subscription === null) {
-        subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: VAPID_KEY,
-        });
-    }
-
-    const token = subscription.toJSON().keys.p256dh;
-    if (token) {
-        const tokenRef = database.ref(`members/${memberId}/notificationTokens/${token}`);
-        await tokenRef.set(true);
-        console.log('Push notification token saved to Firebase.');
-    }
-}
-
-// === YAHAN BADLAV KIYA GAYA HAI ===
-// PWA install event ko global window object par save karna
-window.deferredInstallPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-    // Mini-infobar ko aane se rokein
-    e.preventDefault();
-    // Event ko global variable me store karein
-    window.deferredInstallPrompt = e;
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Bank Community Loan</title>
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
     
-    // Main page par install button ko dikhayein (agar maujood hai)
-    const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
-       installBtn.style.display = 'inline-flex';
-    }
-});
-// === BADLAV SAMAPT ===
+    <!-- Firebase Libraries (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #007bff; --primary-darker: #0056b3;
+            --bg-color: #f0f2f5; --card-bg: #ffffff;
+            --border-color: #dee2e6; --shadow-color: rgba(0, 0, 0, 0.08);
+            --text-color: #333; --light-text: #555;
+            --danger-color: #dc3545; --success-color: #28a745;
+        }
+        body {
+            font-family: 'Roboto', 'Arial', sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-darker));
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 {
+            font-size: 1.3em;
+            margin: 0;
+            flex-grow: 1;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-right: 15px;
+        }
+        .notifications-container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .notification-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            margin-bottom: 15px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .notification-content {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .notification-header {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--primary-darker);
+            margin: 0 0 10px 0;
+        }
+        .manual-image {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        .notification-body {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: var(--light-text);
+            margin: 0;
+        }
+        .notification-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        .notification-time {
+            font-size: 0.85em;
+            color: var(--light-text);
+        }
+        .explore-btn, .pay-now-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .explore-btn:hover, .pay-now-btn:hover {
+            background-color: var(--primary-darker);
+        }
+        .personal-reminder, .transaction-item {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .personal-reminder img, .transaction-item img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .personal-reminder .reminder-text, .transaction-item .transaction-text {
+            flex-grow: 1;
+        }
+        .loading-text, .no-notifications {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--light-text);
+            font-size: 1.1em;
+        }
+
+        #install-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            background-color: var(--success-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        #install-btn:hover {
+            background-color: #218838;
+        }
+        #install-btn img {
+            width: 28px;
+            height: 28px;
+            margin-right: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <button class="back-btn" onclick="history.back()">
+            <i data-feather="arrow-left"></i>
+        </button>
+        <h1>Notifications</h1>
+    </header>
+
+    <main id="notificationsContainer" class="notifications-container">
+        <div id="install-container" style="display: none; margin-bottom: 15px;">
+            <button id="install-btn">
+                <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" alt="App Logo">
+                <span>BANK Install App</span>
+            </button>
+        </div>
+        <p class="loading-text">Loading notifications...</p>
+    </main>
+
+    <script>
+        const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
+
+        async function initializeApp() {
+            try {
+                const response = await fetch('/api/firebase-config');
+                if (!response.ok) throw new Error('Failed to load Firebase configuration.');
+                const config = await response.json();
+                
+                firebase.initializeApp(config);
+                
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        fetchAndRenderNotifications();
+                    } else {
+                        window.location.href = '/login.html';
+                    }
+                });
+
+            } catch (error) {
+                const container = document.getElementById('notificationsContainer');
+                container.innerHTML = `<p class="no-notifications">Error: ${error.message}</p>`;
+            }
+        }
+
+        // === YAHAN BADLAV KIYA GAYA HAI: PWA Install Logic ko update kiya gaya hai ===
+        function setupPWAInstall() {
+            const installContainer = document.getElementById('install-container');
+            const installBtn = document.getElementById('install-btn');
+
+            // Check karein ki global deferredInstallPrompt maujood hai ya nahi
+            if (window.deferredInstallPrompt) {
+                if (installContainer) {
+                    installContainer.style.display = 'block';
+                }
+            }
+            
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    // Global prompt ka istemal karein
+                    const promptEvent = window.deferredInstallPrompt;
+                    if (promptEvent) {
+                        promptEvent.prompt();
+                        await promptEvent.userChoice;
+                        // Prompt ka istemal hone ke baad global variable ko clear kar dein
+                        window.deferredInstallPrompt = null;
+                        if (installContainer) {
+                            installContainer.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+        // === BADLAV SAMAPT ===
 
 
-// App ko shuru karein
-document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
+        function getTodayDateStringLocal() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = (today.getMonth() + 1).toString().padStart(2, '0');
+            const day = today.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        async function fetchAndRenderNotifications() {
+            const database = firebase.database();
+            const container = document.getElementById('notificationsContainer');
+            
+            try {
+                const snapshot = await database.ref().once('value');
+                const data = snapshot.val();
+                if (!data) {
+                    container.innerHTML = `<p class="no-notifications">No data found.</p>`;
+                    return;
+                }
+
+                const allMembersRaw = data.members || {};
+                const allManualNotifications = data.admin?.notifications?.manual || {};
+                const allAutomatedQueue = data.admin?.notifications?.automatedQueue || {};
+                const allTransactions = data.transactions || {};
+
+                const verifiedMemberId = localStorage.getItem('verifiedMemberId');
+                if (!verifiedMemberId) {
+                    container.innerHTML = `<p class="no-notifications">Please verify your device on the main page to see notifications.</p>`;
+                    return;
+                }
+                const currentUser = allMembersRaw[verifiedMemberId];
+                if (!currentUser) {
+                     container.innerHTML = `<p class="no-notifications">Could not find your profile. Please re-verify your device.</p>`;
+                     return;
+                }
+                currentUser.id = verifiedMemberId;
+
+                renderNotifications(container, currentUser, allManualNotifications, allAutomatedQueue, allMembersRaw, allTransactions);
+
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                container.innerHTML = `<p class="no-notifications">Could not load notifications. Please try again later.</p>`;
+            }
+        }
+
+        function renderNotifications(container, currentUser, manualNotifs, automatedQueue, allMembers, allTransactions) {
+            
+            const manualNotificationsList = Object.values(manualNotifs)
+                .map(item => ({ ...item, category: 'manual', date: item.createdAt }));
+
+            let userReminders = Object.values(automatedQueue)
+                .filter(item => item.memberId === currentUser.id && item.status === 'active');
+            
+            const now = new Date();
+            const memberTransactions = Object.values(allTransactions).filter(tx => tx.memberId === currentUser.id);
+            const currentMonthSipPaid = memberTransactions.some(tx => 
+                tx.type === 'SIP' &&
+                new Date(tx.date).getMonth() === now.getMonth() &&
+                new Date(tx.date).getFullYear() === now.getFullYear()
+            );
+
+            if (currentMonthSipPaid) {
+                userReminders = userReminders.filter(item => !item.type.includes('SIP Payment Reminder'));
+            }
+            
+            const personalRemindersList = userReminders.map(item => ({ ...item, category: 'reminder', date: Date.now() }));
+            
+            const todayDateString = getTodayDateStringLocal();
+            const todaysTransactionsList = Object.values(allTransactions).filter(tx => {
+                const txDate = new Date(tx.date);
+                const txDateString = `${txDate.getFullYear()}-${(txDate.getMonth() + 1).toString().padStart(2, '0')}-${txDate.getDate().toString().padStart(2, '0')}`;
+                return txDateString === todayDateString;
+            }).map(tx => ({ ...tx, category: 'transaction', date: tx.timestamp || tx.date }));
+
+            const allNotifications = [...manualNotificationsList, ...todaysTransactionsList, ...personalRemindersList];
+            
+            allNotifications.sort((a, b) => {
+                if (a.category === 'manual' && b.category !== 'manual') return -1;
+                if (a.category !== 'manual' && b.category === 'manual') return 1;
+                return new Date(b.date) - new Date(a.date);
+            });
+
+            const loadingText = container.querySelector('.loading-text');
+            if(loadingText) loadingText.remove();
+            
+            if (allNotifications.length === 0) {
+                 if (container.children.length === 1 && container.querySelector('#install-container')) {
+                 } else if (container.children.length === 0) {
+                    container.innerHTML += `<p class="no-notifications">No new notifications for you.</p>`;
+                 }
+                return;
+            }
+
+            allNotifications.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'notification-card';
+
+                if (item.category === 'manual') {
+                    card.innerHTML = `
+                        ${item.imageUrl ? `<img src="${item.imageUrl}" class="manual-image" alt="${item.title}" onerror="this.style.display='none'">` : ''}
+                        <div class="notification-content">
+                            <h3 class="notification-header">${item.title}</h3>
+                            ${item.body ? `<p class="notification-body">${item.body}</p>` : ''}
+                            <div class="notification-footer">
+                                <span class="notification-time">${new Date(item.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                ${item.link ? `<a href="${item.link}" target="_blank" class="explore-btn">Explore</a>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else if (item.category === 'reminder') {
+                    let bodyHTML = '';
+                    if (item.type.includes('SIP Payment Reminder')) {
+                        const today = new Date();
+                        let daysLeftText = '';
+                        const dueDate = 10;
+                        if (today.getDate() <= dueDate) {
+                            const daysLeft = dueDate - today.getDate();
+                            if (daysLeft > 1) daysLeftText = `<strong style="color: var(--primary-color);">(Only ${daysLeft} days left)</strong>`;
+                            else if (daysLeft === 1) daysLeftText = `<strong style="color: var(--danger-color);">(Only 1 day left!)</strong>`;
+                            else daysLeftText = `<strong style="color: var(--danger-color);">(Today is the last day!)</strong>`;
+                        } else {
+                            daysLeftText = `<strong style="color: var(--danger-color);">(Due date has passed)</strong>`;
+                        }
+                        
+                        const sipAmountHTML = `<strong style="color: var(--danger-color);">₹${currentUser.sipAmount || 500}</strong>`;
+                        const reminderMessage = `<strong>Hi ${currentUser.fullName}</strong>, this is a monthly SIP reminder for your ${sipAmountHTML} SIP. ${daysLeftText}`;
+                        
+                        bodyHTML = `
+                            <p class="notification-body">${reminderMessage}</p>
+                            <div class="notification-footer">
+                                <span></span>
+                                <a href="qr.html" class="pay-now-btn">Pay Now</a>
+                            </div>
+                        `;
+                    } else {
+                        bodyHTML = `<p class="notification-body"><strong>Hi ${currentUser.fullName}</strong>, ${item.type}</p>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="personal-reminder">
+                            <img src="${currentUser.profilePicUrl || DEFAULT_IMAGE}" alt="${currentUser.fullName}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                            <div class="reminder-text">
+                                ${bodyHTML}
+                            </div>
+                        </div>
+                    `;
+                } else if (item.category === 'transaction') {
+                    const member = allMembers[item.memberId];
+                    if (!member) return;
+
+                    let text = '', amount = '', typeClass = '';
+                    switch(item.type) {
+                        case 'SIP': text = `paid their SIP.`; amount = `+ ₹${(item.amount || 0).toLocaleString()}`; typeClass = 'sip'; break;
+                        case 'Loan Taken': text = `received a loan.`; amount = `- ₹${(item.amount || 0).toLocaleString()}`; typeClass = 'loan'; break;
+                        case 'Loan Payment': text = `made a loan payment.`; amount = `+ ₹${(item.principalPaid || 0).toLocaleString()}`; typeClass = 'payment'; break;
+                        case 'Extra Payment': text = `made an extra payment.`; amount = `+ ₹${(item.amount || 0).toLocaleString()}`; typeClass = 'sip'; break;
+                        case 'Extra Withdraw': text = `withdrew money.`; amount = `- ₹${(item.amount || 0).toLocaleString()}`; typeClass = 'loan'; break;
+                        default: text = 'made a transaction.'; break;
+                    }
+
+                    card.innerHTML = `
+                        <div class="transaction-item">
+                            <img src="${member.profilePicUrl || DEFAULT_IMAGE}" alt="${member.fullName}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                            <div class="transaction-text">
+                                <p class="notification-body">
+                                    <strong>${member.fullName}</strong> ${text}
+                                    <strong style="color: ${item.type.includes('Loan Taken') || item.type.includes('Extra Withdraw') ? 'var(--danger-color)' : 'var(--success-color)'}; float: right;">${amount}</strong>
+                                </p>
+                                <span class="notification-time">${new Date(item.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.appendChild(card);
+            });
+            
+            feather.replace();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            setupPWAInstall(); 
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
 
 
