@@ -205,26 +205,37 @@
             }
         }
 
-        // === YAHAN BADLAV KIYA GAYA HAI: PWA Install Logic ko update kiya gaya hai ===
+        // === YAHAN FINAL BADLAV KIYA GAYA HAI: PWA Install Logic ko update kiya gaya hai ===
         function setupPWAInstall() {
             const installContainer = document.getElementById('install-container');
             const installBtn = document.getElementById('install-btn');
+            let deferredInstallPrompt = window.deferredInstallPrompt;
 
-            // Check karein ki global deferredInstallPrompt maujood hai ya nahi
-            if (window.deferredInstallPrompt) {
+            const showInstallButton = () => {
                 if (installContainer) {
                     installContainer.style.display = 'block';
                 }
+            };
+
+            // 1. Page load hote hi check karein ki global prompt pehle se hai ya nahi
+            if (deferredInstallPrompt) {
+                showInstallButton();
             }
-            
+
+            // 2. Agar global prompt nahi hai, to naye signal ka intezar karein
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredInstallPrompt = e;
+                window.deferredInstallPrompt = e; // Ise global me bhi save kar dein
+                showInstallButton();
+            });
+
             if (installBtn) {
                 installBtn.addEventListener('click', async () => {
-                    // Global prompt ka istemal karein
-                    const promptEvent = window.deferredInstallPrompt;
-                    if (promptEvent) {
-                        promptEvent.prompt();
-                        await promptEvent.userChoice;
-                        // Prompt ka istemal hone ke baad global variable ko clear kar dein
+                    if (deferredInstallPrompt) {
+                        deferredInstallPrompt.prompt();
+                        await deferredInstallPrompt.userChoice;
+                        deferredInstallPrompt = null;
                         window.deferredInstallPrompt = null;
                         if (installContainer) {
                             installContainer.style.display = 'none';
@@ -234,7 +245,6 @@
             }
         }
         // === BADLAV SAMAPT ===
-
 
         function getTodayDateStringLocal() {
             const today = new Date();
