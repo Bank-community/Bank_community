@@ -1,6 +1,5 @@
 // user-main.js
-// FINAL CORRECTED UPDATE: Page blank hone ki galti ko theek kar diya gaya hai.
-// PWA install button ab dynamically create hoga aur header me inject kiya jayega.
+// FINAL COLOR UPDATE: Install App button ka color ab directly green set kar diya gaya hai.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -32,7 +31,7 @@ async function checkAuthAndInitialize() {
             runAppLogic(database);
         });
 
-    } catch (error) { // Yahan galti thi, bracket galat jagah tha
+    } catch (error) {
         console.error("FATAL: Could not initialize application.", error);
         showLoadingError(`Application failed to initialize: ${error.message}`);
     }
@@ -132,6 +131,7 @@ async function registerForPushNotifications(database, memberId) {
     }
 }
 
+
 // Global variable jisme install prompt save hoga
 window.deferredInstallPrompt = null;
 
@@ -144,16 +144,18 @@ window.addEventListener('beforeinstallprompt', (e) => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
     if (installContainer && !isStandalone) {
+        // === YAHAN BADLAV KIYA GAYA HAI: Color code direct daal diya gaya hai ===
         installContainer.innerHTML = `
-    <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
-        <button id="installAppBtn" class="civil-button btn-glossy" style="background-color: var(--success-color); border: none; border-radius: 12px; width: auto;">
-            <i data-feather="download-cloud"></i>
-            <b>Install App</b>
-        </button>
-    </div>
-`;
+            <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
+                <button id="installAppBtn" class="civil-button btn-glossy" style="background-color: #28a745; border: none; border-radius: 12px; width: auto;">
+                    <i data-feather="download-cloud"></i>
+                    <b>Install App</b>
+                </button>
+            </div>
+        `;
+        // === BADLAV SAMAPT ===
 
-        feather.replace();
+        feather.replace(); // Naye icon ko render karne ke liye
 
         const installBtn = document.getElementById('installAppBtn');
         if (installBtn) {
@@ -163,11 +165,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
                 promptEvent.prompt();
                 await promptEvent.userChoice;
                 window.deferredInstallPrompt = null;
-                installContainer.innerHTML = '';
+                installContainer.innerHTML = ''; // Install hone ke baad button hata dein
             });
         }
     }
 });
+
 
 // App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
