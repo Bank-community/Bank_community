@@ -134,12 +134,18 @@
             font-size: 1.1em;
         }
 
+        /* === YAHAN INSTALL BUTTON KE LIYE NAYA DESIGN JODA GAYA HAI === */
+        #install-container {
+            display: none; /* Default hidden */
+            margin-bottom: 15px;
+            animation: fadeInDown 0.5s ease-out;
+        }
         #install-btn {
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            background-color: var(--success-color);
+            background-image: linear-gradient(45deg, #28a745 0%, #218838 100%);
             color: white;
             padding: 12px 20px;
             border-radius: 12px;
@@ -148,17 +154,30 @@
             text-decoration: none;
             border: none;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         }
         #install-btn:hover {
-            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
         }
-        #install-btn img {
-            width: 28px;
-            height: 28px;
+        #install-btn i {
+            width: 24px;
+            height: 24px;
             margin-right: 12px;
+            stroke-width: 2.5;
         }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* === CSS BADLAV SAMAPT === */
     </style>
 </head>
 <body>
@@ -171,12 +190,14 @@
     </header>
 
     <main id="notificationsContainer" class="notifications-container">
-        <div id="install-container" style="display: none; margin-bottom: 15px;">
+        <!-- === YAHAN INSTALL BUTTON KE HTML KO UPDATE KIYA GAYA HAI === -->
+        <div id="install-container">
             <button id="install-btn">
-                <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" alt="App Logo">
+                <i data-feather="download-cloud"></i>
                 <span>BANK Install App</span>
             </button>
         </div>
+        <!-- === HTML BADLAV SAMAPT === -->
         <p class="loading-text">Loading notifications...</p>
     </main>
 
@@ -211,21 +232,25 @@
             const installBtn = document.getElementById('install-btn');
 
             const showInstallButton = () => {
-                // Check karein ki app standalone mode me chal raha hai ya nahi
                 const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-                // Agar app standalone me NAHI chal raha hai, to button dikhayein
-                if (!isStandalone && installContainer) {
+                // Button tabhi dikhao jab app standalone me NAHI chal raha ho AUR install prompt available ho
+                if (!isStandalone && window.deferredInstallPrompt && installContainer) {
                     installContainer.style.display = 'block';
                 }
             };
             
+            // 1. Page load hote hi check karein
             showInstallButton();
+
+            // 2. Agar `beforeinstallprompt` event baad me aata hai, to dobara check karein
+            window.addEventListener('pwa-install-ready', showInstallButton);
 
             if (installBtn) {
                 installBtn.addEventListener('click', async () => {
                     const promptEvent = window.deferredInstallPrompt;
                     if (!promptEvent) {
-                        alert("App cannot be installed right now. Please try again later or from the main page.");
+                        // Yeh fallback alert hai, agar kisi wajah se button dikh jaye lekin prompt na ho
+                        alert("Cannot install right now. Please try again from the main page.");
                         return;
                     }
                     promptEvent.prompt();
@@ -266,12 +291,16 @@
 
                 const verifiedMemberId = localStorage.getItem('verifiedMemberId');
                 if (!verifiedMemberId) {
-                    container.innerHTML = `<p class="no-notifications">Please verify your device on the main page to see notifications.</p>`;
+                    const loadingText = container.querySelector('.loading-text');
+                    if(loadingText) loadingText.remove();
+                    container.insertAdjacentHTML('beforeend', `<p class="no-notifications">Please verify your device on the main page to see notifications.</p>`);
                     return;
                 }
                 const currentUser = allMembersRaw[verifiedMemberId];
                 if (!currentUser) {
-                     container.innerHTML = `<p class="no-notifications">Could not find your profile. Please re-verify your device.</p>`;
+                     const loadingText = container.querySelector('.loading-text');
+                     if(loadingText) loadingText.remove();
+                     container.insertAdjacentHTML('beforeend', `<p class="no-notifications">Could not find your profile. Please re-verify your device.</p>`);
                      return;
                 }
                 currentUser.id = verifiedMemberId;
@@ -280,7 +309,9 @@
 
             } catch (error) {
                 console.error("Failed to fetch data:", error);
-                container.innerHTML = `<p class="no-notifications">Could not load notifications. Please try again later.</p>`;
+                 const loadingText = container.querySelector('.loading-text');
+                 if(loadingText) loadingText.remove();
+                 container.insertAdjacentHTML('beforeend', `<p class="no-notifications">Could not load notifications. Please try again later.</p>`);
             }
         }
 
