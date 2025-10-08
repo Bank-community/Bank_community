@@ -1,6 +1,6 @@
 // user-main.js
-// FINAL UPDATE: PWA install button ab dynamically create hoga aur
-// header me inject kiya jayega jab 'beforeinstallprompt' event fire hoga.
+// FINAL CORRECTED UPDATE: Page blank hone ki galti ko theek kar diya gaya hai.
+// PWA install button ab dynamically create hoga aur header me inject kiya jayega.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -32,7 +32,7 @@ async function checkAuthAndInitialize() {
             runAppLogic(database);
         });
 
-    } catch (error)
+    } catch (error) { // Yahan galti thi, bracket galat jagah tha
         console.error("FATAL: Could not initialize application.", error);
         showLoadingError(`Application failed to initialize: ${error.message}`);
     }
@@ -132,23 +132,17 @@ async function registerForPushNotifications(database, memberId) {
     }
 }
 
-// === YAHAN FINAL BADLAV KIYA GAYA HAI: PWA Install Logic ko update kiya gaya hai ===
-
 // Global variable jisme install prompt save hoga
 window.deferredInstallPrompt = null;
 
 // 'beforeinstallprompt' event ko sunein
 window.addEventListener('beforeinstallprompt', (e) => {
-    // Browser ka default prompt rokein
     e.preventDefault();
-    // Event ko global variable me save karein
     window.deferredInstallPrompt = e;
     
-    // Ab install button ko banayein aur header me jodein
     const installContainer = document.getElementById('install-button-container');
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
-    // Agar app pehle se install nahi hai, tabhi button banayein
     if (installContainer && !isStandalone) {
         installContainer.innerHTML = `
             <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
@@ -158,9 +152,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
                 </button>
             </div>
         `;
-        feather.replace(); // Naye icon ko render karne ke liye
+        feather.replace();
 
-        // Button par click event lagayein
         const installBtn = document.getElementById('installAppBtn');
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
@@ -169,13 +162,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
                 promptEvent.prompt();
                 await promptEvent.userChoice;
                 window.deferredInstallPrompt = null;
-                installContainer.innerHTML = ''; // Install hone ke baad button hata dein
+                installContainer.innerHTML = '';
             });
         }
     }
 });
-// === BADLAV SAMAPT ===
-
 
 // App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
