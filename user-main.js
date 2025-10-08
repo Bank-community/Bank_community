@@ -1,6 +1,6 @@
 // user-main.js
-// FINAL UPDATE: Is file ka kaam ab sirf PWA install prompt ko pakad kar
-// global variable (window.deferredInstallPrompt) me save karna hai.
+// FINAL UPDATE: PWA install button ab dynamically create hoga aur
+// header me inject kiya jayega jab 'beforeinstallprompt' event fire hoga.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -32,7 +32,7 @@ async function checkAuthAndInitialize() {
             runAppLogic(database);
         });
 
-    } catch (error) {
+    } catch (error)
         console.error("FATAL: Could not initialize application.", error);
         showLoadingError(`Application failed to initialize: ${error.message}`);
     }
@@ -132,14 +132,50 @@ async function registerForPushNotifications(database, memberId) {
     }
 }
 
-// PWA install event ko global window object par save karna
+// === YAHAN FINAL BADLAV KIYA GAYA HAI: PWA Install Logic ko update kiya gaya hai ===
+
+// Global variable jisme install prompt save hoga
 window.deferredInstallPrompt = null;
+
+// 'beforeinstallprompt' event ko sunein
 window.addEventListener('beforeinstallprompt', (e) => {
+    // Browser ka default prompt rokein
     e.preventDefault();
+    // Event ko global variable me save karein
     window.deferredInstallPrompt = e;
-    // Main page par install button ko dikhane ke liye event dispatch karein
-    window.dispatchEvent(new CustomEvent('pwa-install-ready'));
+    
+    // Ab install button ko banayein aur header me jodein
+    const installContainer = document.getElementById('install-button-container');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+    // Agar app pehle se install nahi hai, tabhi button banayein
+    if (installContainer && !isStandalone) {
+        installContainer.innerHTML = `
+            <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
+                <button id="installAppBtn" class="civil-button btn-glossy" style="background-color: var(--success-color); border: none; border-radius: 12px; width: auto;">
+                    <i data-feather="download-cloud"></i>
+                    <b>Install App</b>
+                </button>
+            </div>
+        `;
+        feather.replace(); // Naye icon ko render karne ke liye
+
+        // Button par click event lagayein
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                const promptEvent = window.deferredInstallPrompt;
+                if (!promptEvent) return;
+                promptEvent.prompt();
+                await promptEvent.userChoice;
+                window.deferredInstallPrompt = null;
+                installContainer.innerHTML = ''; // Install hone ke baad button hata dein
+            });
+        }
+    }
 });
+// === BADLAV SAMAPT ===
+
 
 // App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
