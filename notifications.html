@@ -209,37 +209,30 @@
         function setupPWAInstall() {
             const installContainer = document.getElementById('install-container');
             const installBtn = document.getElementById('install-btn');
-            let deferredInstallPrompt = window.deferredInstallPrompt;
 
             const showInstallButton = () => {
-                if (installContainer) {
+                // Check karein ki app standalone mode me chal raha hai ya nahi
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+                // Agar app standalone me NAHI chal raha hai, to button dikhayein
+                if (!isStandalone && installContainer) {
                     installContainer.style.display = 'block';
                 }
             };
-
-            // 1. Page load hote hi check karein ki global prompt pehle se hai ya nahi
-            if (deferredInstallPrompt) {
-                showInstallButton();
-            }
-
-            // 2. Agar global prompt nahi hai, to naye signal ka intezar karein
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredInstallPrompt = e;
-                window.deferredInstallPrompt = e; // Ise global me bhi save kar dein
-                showInstallButton();
-            });
+            
+            showInstallButton();
 
             if (installBtn) {
                 installBtn.addEventListener('click', async () => {
-                    if (deferredInstallPrompt) {
-                        deferredInstallPrompt.prompt();
-                        await deferredInstallPrompt.userChoice;
-                        deferredInstallPrompt = null;
-                        window.deferredInstallPrompt = null;
-                        if (installContainer) {
-                            installContainer.style.display = 'none';
-                        }
+                    const promptEvent = window.deferredInstallPrompt;
+                    if (!promptEvent) {
+                        alert("App cannot be installed right now. Please try again later or from the main page.");
+                        return;
+                    }
+                    promptEvent.prompt();
+                    await promptEvent.userChoice;
+                    window.deferredInstallPrompt = null;
+                    if (installContainer) {
+                        installContainer.style.display = 'none';
                     }
                 });
             }
