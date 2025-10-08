@@ -133,6 +133,34 @@
             color: var(--light-text);
             font-size: 1.1em;
         }
+
+        /* === YAHAN INSTALL BUTTON KE LIYE NAYA CSS JODA GAYA HAI === */
+        #install-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            background-color: var(--success-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        #install-btn:hover {
+            background-color: #218838; /* Darker green */
+        }
+        #install-btn img {
+            width: 28px;
+            height: 28px;
+            margin-right: 12px;
+        }
+        /* === CSS BADLAV SAMAPT === */
     </style>
 </head>
 <body>
@@ -145,11 +173,23 @@
     </header>
 
     <main id="notificationsContainer" class="notifications-container">
+        <!-- === YAHAN INSTALL BUTTON KE LIYE CONTAINER JODA GAYA HAI === -->
+        <div id="install-container" style="display: none; margin-bottom: 15px;">
+            <button id="install-btn">
+                <img src="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" alt="App Logo">
+                <span>BANK Install App</span>
+            </button>
+        </div>
+        <!-- === HTML BADLAV SAMAPT === -->
         <p class="loading-text">Loading notifications...</p>
     </main>
 
     <script>
         const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
+        
+        // === YAHAN PWA INSTALL LOGIC KE LIYE VARIABLE JODA GAYA HAI ===
+        let deferredInstallPrompt = null;
+        // === SCRIPT BADLAV SAMAPT ===
 
         async function initializeApp() {
             try {
@@ -172,6 +212,41 @@
                 container.innerHTML = `<p class="no-notifications">Error: ${error.message}</p>`;
             }
         }
+
+        // === YAHAN PWA INSTALL FUNCTION JODA GAYA HAI ===
+        function setupPWAInstall() {
+            const installContainer = document.getElementById('install-container');
+            const installBtn = document.getElementById('install-btn');
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Mini-infobar ko aane se rokein
+                e.preventDefault();
+                // Event ko store karein taki baad me istemal kar sakein
+                deferredInstallPrompt = e;
+                // Ab install button ko dikhayein
+                if (installContainer) {
+                    installContainer.style.display = 'block';
+                }
+            });
+
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredInstallPrompt) {
+                        // Install prompt dikhayein
+                        deferredInstallPrompt.prompt();
+                        // User ke jawab ka intezar karein
+                        await deferredInstallPrompt.userChoice;
+                        // Prompt ka istemal ho chuka hai, use clear kar dein
+                        deferredInstallPrompt = null;
+                        // Install button ko wapas chhipa dein
+                        if (installContainer) {
+                            installContainer.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+        // === SCRIPT BADLAV SAMAPT ===
 
         function getTodayDateStringLocal() {
             const today = new Date();
@@ -240,30 +315,33 @@
             
             const personalRemindersList = userReminders.map(item => ({ ...item, category: 'reminder', date: Date.now() }));
             
-            // === YAHAN BADLAV KIYA GAYA HAI: Aaj ke Transactions ko fetch karna ===
             const todayDateString = getTodayDateStringLocal();
             const todaysTransactionsList = Object.values(allTransactions).filter(tx => {
                 const txDate = new Date(tx.date);
                 const txDateString = `${txDate.getFullYear()}-${(txDate.getMonth() + 1).toString().padStart(2, '0')}-${txDate.getDate().toString().padStart(2, '0')}`;
                 return txDateString === todayDateString;
             }).map(tx => ({ ...tx, category: 'transaction', date: tx.timestamp || tx.date }));
-            // === BADLAV SAMAPT ===
 
             const allNotifications = [...manualNotificationsList, ...todaysTransactionsList, ...personalRemindersList];
             
-            // Sort: Manual first, then all others by date descending
             allNotifications.sort((a, b) => {
                 if (a.category === 'manual' && b.category !== 'manual') return -1;
                 if (a.category !== 'manual' && b.category === 'manual') return 1;
                 return new Date(b.date) - new Date(a.date);
             });
 
+            // Container se loading text hata dein
+            const loadingText = container.querySelector('.loading-text');
+            if(loadingText) loadingText.remove();
+            
             if (allNotifications.length === 0) {
-                container.innerHTML = `<p class="no-notifications">No new notifications for you.</p>`;
+                 if (container.children.length === 1 && container.querySelector('#install-container')) {
+                    // Sirf install button hai, koi notification nahi
+                 } else if (container.children.length === 0) {
+                    container.innerHTML += `<p class="no-notifications">No new notifications for you.</p>`;
+                 }
                 return;
             }
-
-            container.innerHTML = ''; 
 
             allNotifications.forEach(item => {
                 const card = document.createElement('div');
@@ -285,30 +363,20 @@
                     let bodyHTML = '';
                     if (item.type.includes('SIP Payment Reminder')) {
                         const today = new Date();
-                        const dueDate = new Date(today.getFullYear(), today.getMonth(), 10);
-                        let daysLeft = 0;
                         let daysLeftText = '';
-
-                        if (today.getDate() <= 10) {
-                            daysLeft = Math.max(0, 10 - today.getDate());
-                        }
-
-                        if (daysLeft > 1) {
-                            daysLeftText = `<strong style="color: var(--primary-color);">(Only ${daysLeft} days left)</strong>`;
-                        } else if (daysLeft === 1) {
-                             daysLeftText = `<strong style="color: var(--danger-color);">(Only 1 day left!)</strong>`;
-                        } else if (today.getDate() === 10) {
-                             daysLeftText = `<strong style="color: var(--danger-color);">(Today is the last day!)</strong>`;
-                        } else if (today.getDate() > 10) {
-                             daysLeftText = `<strong style="color: var(--danger-color);">(Due date has passed)</strong>`;
+                        const dueDate = 10;
+                        if (today.getDate() <= dueDate) {
+                            const daysLeft = dueDate - today.getDate();
+                            if (daysLeft > 1) daysLeftText = `<strong style="color: var(--primary-color);">(Only ${daysLeft} days left)</strong>`;
+                            else if (daysLeft === 1) daysLeftText = `<strong style="color: var(--danger-color);">(Only 1 day left!)</strong>`;
+                            else daysLeftText = `<strong style="color: var(--danger-color);">(Today is the last day!)</strong>`;
+                        } else {
+                            daysLeftText = `<strong style="color: var(--danger-color);">(Due date has passed)</strong>`;
                         }
                         
                         const sipAmountHTML = `<strong style="color: var(--danger-color);">₹${currentUser.sipAmount || 500}</strong>`;
-                        
-                        // === YAHAN BADLAV KIYA GAYA HAI: Naam aur "monthly" jodna ===
                         const reminderMessage = `<strong>Hi ${currentUser.fullName}</strong>, this is a monthly SIP reminder for your ${sipAmountHTML} SIP. ${daysLeftText}`;
-                        // === BADLAV SAMAPT ===
-
+                        
                         bodyHTML = `
                             <p class="notification-body">${reminderMessage}</p>
                             <div class="notification-footer">
@@ -328,11 +396,9 @@
                             </div>
                         </div>
                     `;
-                } 
-                // === YAHAN BADLAV KIYA GAYA HAI: Transaction card banane ka logic ===
-                else if (item.category === 'transaction') {
+                } else if (item.category === 'transaction') {
                     const member = allMembers[item.memberId];
-                    if (!member) return; // Skip if member data is missing
+                    if (!member) return;
 
                     let text = '', amount = '', typeClass = '';
                     switch(item.type) {
@@ -357,7 +423,6 @@
                         </div>
                     `;
                 }
-                // === BADLAV SAMAPT ===
 
                 container.appendChild(card);
             });
@@ -367,10 +432,12 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeApp();
+            // === YAHAN PWA INSTALL FUNCTION KO CALL KIYA GAYA HAI ===
+            setupPWAInstall(); 
+            // === SCRIPT BADLAV SAMAPT ===
             feather.replace();
         });
     </script>
 </body>
 </html>
-
 
