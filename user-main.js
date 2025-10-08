@@ -145,13 +145,14 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
     if (installContainer && !isStandalone) {
         installContainer.innerHTML = `
-            <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
-                <button id="installAppBtn" class="civil-button btn-glossy" style="background-color: var(--success-color); border: none; border-radius: 12px; width: auto;">
-                    <i data-feather="download-cloud"></i>
-                    <b>Install App</b>
-                </button>
-            </div>
-        `;
+    <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
+        <button id="installAppBtn" class="civil-button btn-glossy" style="background-color: var(--success-color); border: none; border-radius: 12px; width: auto;">
+            <i data-feather="download-cloud"></i>
+            <b>Install App</b>
+        </button>
+    </div>
+`;
+
         feather.replace();
 
         const installBtn = document.getElementById('installAppBtn');
