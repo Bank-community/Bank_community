@@ -36,8 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
             tag: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`,
             download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
-            // === Naya Icon Joda Gaya Hai ===
             product: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 0 1 3.375-3.375h1.5a1.125 1.125 0 0 1 1.125 1.125v-1.5a3.375 3.375 0 0 1 3.375-3.375h9.75" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>`,
+            // === Naye Icons Business Loan ke liye Jode Gaye Hain ===
+            processing: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>`,
+            interest: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V6h-1.755M19.5 10.5v.15a6 6 0 1 1-11.378-2.143" /></svg>`,
+            emi: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18M12 14.25h.008v.008H12v-.008Z" /></svg>`,
         };
 
         const state = {
@@ -54,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 openModalBtn: document.getElementById('generate-credit-btn'),
                 closeModalBtn: document.querySelector('.close-modal-btn'),
                 memberSelect: document.getElementById('member-select'),
-                // === BADLAV: Naya Dropdown Select kiya gaya hai ===
                 cardTypeSelect: document.getElementById('card-type-select'),
                 amountFields: document.getElementById('amount-fields'),
                 rechargeFields: document.getElementById('recharge-fields'),
@@ -87,14 +89,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 state.membersData = membersSnapshot.val();
                 const activeLoansData = loansSnapshot.val();
 
-                // === BADLAV: Loan ko purane se naye ke kram mein sort kiya gaya ===
                 state.allActiveLoans = Object.values(activeLoansData)
                     .filter(loan => loan.status === 'Active')
                     .map(loan => {
                         const memberInfo = state.membersData[loan.memberId] || {};
                         return { ...loan, memberName: memberInfo.fullName || 'Unknown', profilePicUrl: memberInfo.profilePicUrl || null };
                     })
-                    // Sabse purana loan sabse upar dikhega
                     .sort((a, b) => new Date(a.loanDate) - new Date(b.loanDate));
                 
                 populateMembersDropdown(); 
@@ -120,7 +120,6 @@ document.addEventListener("DOMContentLoaded", () => {
             totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
         }
         
-        // === BADLAV: Yeh function poori tarah se update kiya gaya hai ===
         function displayLoanCards(loans) {
             const { container } = state.ui;
             container.innerHTML = '';
@@ -138,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const daysAgo = Math.floor((new Date() - loanDate) / (1000 * 3600 * 24));
                 const today = new Date();
 
-                // Credit Card style loans
                 if (['10 Days Credit', 'Recharge', 'Grocery Credit'].includes(loan.loanType)) {
                     card.className = 'credit-card-wrapper';
                     let cardImageUrl, bannerClass, bannerText, extraContent = '';
@@ -159,7 +157,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             dueDate30.setDate(dueDate30.getDate() + 30);
                             const daysRemaining30 = Math.max(0, Math.ceil((dueDate30 - today) / (1000 * 3600 * 24)));
                             bannerText = `Due in ${daysRemaining30} ${daysRemaining30 === 1 ? 'day' : 'days'}`;
-                            // Pay Now text sirf 1 se 10 tarikh ke beech dikhega
                             if (today.getDate() >= 1 && today.getDate() <= 10) {
                                 extraContent = `<div class="cc-pay-now">Pay Now</div>`;
                             }
@@ -182,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
                         <div class="pending-banner ${bannerClass}">${ICONS.clock}<span>${bannerText}</span></div>`;
-                } else { // Normal Loan Card style (Personal, Business, EMI, etc.)
+                } else { 
                     card.className = 'loan-card';
                     const formattedDate = loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                     
@@ -193,6 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     let extraDetails = '';
                     let productImageHtml = '';
+
                     if (loan.loanType === 'Product on EMI' && loan.productDetails) {
                         extraDetails = `
                             <div class="detail-row">
@@ -209,7 +207,46 @@ document.addEventListener("DOMContentLoaded", () => {
                         } else {
                             productImageHtml = `<div class="cc-product-image">${ICONS.product}</div>`;
                         }
+                    } 
+                    // === YAHAN BUSINESS LOAN KE LIYE NAYA LOGIC SHURU HOTA HAI ===
+                    else if (loan.loanType === 'Business Loan') {
+                        const loanAmount = parseFloat(loan.outstandingAmount);
+                        let processingFee = 0;
+
+                        if (loanAmount > 9000) {
+                            processingFee = (loanAmount * 0.01) + 200;
+                        } else {
+                            processingFee = loanAmount * 0.01;
+                        }
+
+                        let monthlyPaymentHtml = '';
+                        const monthlyInterest = loanAmount * 0.015; // 1.5% monthly interest
+
+                        if (daysAgo <= 90) { // Pehle 3 mahine
+                            monthlyPaymentHtml = `
+                                <div class="detail-row">
+                                    <span class="detail-label">${ICONS.interest} Monthly Interest:</span>
+                                    <span class="detail-value amount">₹${monthlyInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>`;
+                        } else { // Chauthe mahine se
+                            const emiPrincipal = loanAmount / 6;
+                            const totalEmi = emiPrincipal + monthlyInterest;
+                            monthlyPaymentHtml = `
+                                <div class="detail-row">
+                                    <span class="detail-label">${ICONS.emi} Monthly EMI:</span>
+                                    <span class="detail-value amount">₹${totalEmi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>`;
+                        }
+
+                        extraDetails = `
+                            <div class="detail-row">
+                                <span class="detail-label">${ICONS.processing} Processing Fee:</span>
+                                <span class="detail-value amount">₹${processingFee.toLocaleString('en-IN')}</span>
+                            </div>
+                            ${monthlyPaymentHtml}
+                        `;
                     }
+                    // === BUSINESS LOAN KA LOGIC YAHAN KHATAM HOTA HAI ===
 
                     card.innerHTML = `
                         <div class="card-main-content">
@@ -256,7 +293,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // === BADLAV: Modal event listeners update kiye gaye hain ===
         function setupModalEventListeners() {
             const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer, cardTypeSelect, amountFields, rechargeFields } = state.ui;
 
@@ -285,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const isRecharge = (cardType === 'recharge');
                 
                 rechargeFields.style.display = isRecharge ? 'block' : 'none';
-                amountFields.style.display = 'block'; // Hamesha dikhega
+                amountFields.style.display = 'block';
                 
                 modalTitle.textContent = `Generate ${cardType.replace('-', ' ')} Card`;
                 generateCardBtn.textContent = `Generate ${cardType.replace('-', ' ')} Card`;
