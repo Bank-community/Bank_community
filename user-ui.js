@@ -4,6 +4,7 @@
 // 3. Rank medals/badges hata diye gaye hain.
 // 4. Amount ke colors ko set karne ka logic update kiya gaya hai.
 // 5. [USER REQUEST] Normal card (Rank 4+) ke liye naya frame-based design aur ranking number system joda gaya hai.
+// 6. [SOUND UPDATE] "View Balance" button par click karne par sound effect joda gaya hai.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -16,6 +17,10 @@ let allAutomatedQueue = {};
 let allProducts = {};
 let currentMemberForFullView = null;
 let deferredInstallPrompt = null;
+
+// [SOUND UPDATE] Sound effect ke liye audio object banaya gaya hai.
+// Path ko zaroorat ke anusaar badlein. Agar file root me hai to '/filename.wav' theek hai.
+const balanceClickSound = new Audio('/mixkit-clinking-coins-1993.wav');
 
 const getElement = (id) => document.getElementById(id);
 const elements = {
@@ -166,7 +171,7 @@ function displayMembers(members, adminSettings) {
         const isNegative = (member.balance || 0) < 0;
 
         if (index < 3) {
-            // === TOP 3 FRAMED CARDS (KOI BADLAV NAHI) ===
+            // === TOP 3 FRAMED CARDS ===
             const card = document.createElement('div');
             card.className = 'framed-card-wrapper animate-on-scroll'; 
             const rankType = ['gold', 'silver', 'bronze'][index];
@@ -191,12 +196,11 @@ function displayMembers(members, adminSettings) {
             elements.memberContainer.appendChild(card);
 
         } else {
-            // === NORMAL CARDS (RANK 4+) KE LIYE NAYA DESIGN ===
+            // === NORMAL CARDS (RANK 4+) ===
             const card = document.createElement('div');
             card.className = 'normal-framed-card-wrapper animate-on-scroll';
             const balanceClass = isNegative ? 'negative-balance' : '';
             
-            // Ranking number ke liye Suffix (4th, 5th, etc.)
             const getRankSuffix = (i) => {
                 const j = i % 10, k = i % 100;
                 if (j === 1 && k !== 11) return "st";
@@ -209,13 +213,8 @@ function displayMembers(members, adminSettings) {
 
             card.innerHTML = `
                 <div class="normal-card-content">
-                    <!-- Layer 1: Frame Image -->
                     <img src="${normalCardFrameUrl}" alt="Card Frame" class="normal-card-frame-image">
-                    
-                    <!-- Layer 2: Profile Picture -->
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="normal-framed-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                    
-                    <!-- Layer 3: Text Content & Rank -->
                     <div class="normal-card-rank">${rankText}</div>
                     <p class="normal-framed-name" title="${member.name}">${member.name}</p>
                     <p class="normal-framed-balance ${balanceClass}">${(member.balance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
@@ -542,7 +541,15 @@ function attachDynamicButtonListeners() {
     const viewPenaltyWalletBtn = getElement('viewPenaltyWalletBtn');
     
     if (sipStatusBtn) sipStatusBtn.onclick = showSipStatusModal;
-    if (viewBalanceBtn) viewBalanceBtn.onclick = showBalanceModal;
+    
+    // [SOUND UPDATE] Click handler ko sound play karne ke liye update kiya gaya hai.
+    if (viewBalanceBtn) {
+        viewBalanceBtn.onclick = () => {
+            balanceClickSound.play().catch(error => console.error("Audio play failed:", error)); // 1. Sound play karein
+            showBalanceModal();       // 2. Modal dikhayein
+        };
+    }
+    
     if (viewPenaltyWalletBtn) viewPenaltyWalletBtn.onclick = showPenaltyWalletModal;
     
     if (notificationBtn) {
