@@ -29,6 +29,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Main function that contains all the dashboard logic
     function runAppLogic() {
+        // Blinking animation ke liye CSS code joda gaya hai
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes blink {
+                0% { opacity: 1; }
+                50% { opacity: 0.4; }
+                100% { opacity: 1; }
+            }
+            .blinking-banner {
+                animation: blink 1.5s infinite;
+            }
+        `;
+        document.head.appendChild(style);
+
         // SVG Icons used in the UI
         const ICONS = {
             calendar: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>`,
@@ -37,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
             download: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`,
             clock: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`,
             product: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 0 1 3.375-3.375h1.5a1.125 1.125 0 0 1 1.125 1.125v-1.5a3.375 3.375 0 0 1 3.375-3.375h9.75" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>`,
-            // === Naye Icons Business Loan ke liye Jode Gaye Hain ===
             processing: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>`,
             interest: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V6h-1.755M19.5 10.5v.15a6 6 0 1 1-11.378-2.143" /></svg>`,
             emi: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18M12 14.25h.008v.008H12v-.008Z" /></svg>`,
@@ -191,7 +204,36 @@ document.addEventListener("DOMContentLoaded", () => {
                     let extraDetails = '';
                     let productImageHtml = '';
 
-                    if (loan.loanType === 'Product on EMI' && loan.productDetails) {
+                    if (loan.loanType === 'Personal Loan') {
+                        const loanAmount = parseFloat(loan.outstandingAmount);
+                        let interestRate = 0;
+
+                        if (daysAgo >= 1 && daysAgo <= 30) {
+                            interestRate = 0.01; // 1%
+                        } else if (daysAgo >= 31 && daysAgo <= 60) {
+                            interestRate = 0.03; // 3%
+                        } else if (daysAgo >= 61 && daysAgo <= 90) {
+                            interestRate = 0.05; // 5%
+                        } else if (daysAgo >= 91 && daysAgo <= 100) {
+                            interestRate = 0.055; // 5.5%
+                        } else if (daysAgo > 100) {
+                            interestRate = 0.06; // 6%
+                        }
+
+                        if (interestRate > 0) {
+                            const interestAmount = loanAmount * interestRate;
+                            extraDetails += `
+                                <div class="detail-row">
+                                    <span class="detail-label">${ICONS.interest} Interest Amount:</span>
+                                    <span class="detail-value amount">₹${interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>`;
+                        }
+                        
+                        if (daysAgo > 100) {
+                            bannerClass = 'danger blinking-banner';
+                        }
+                    }
+                    else if (loan.loanType === 'Product on EMI' && loan.productDetails) {
                         extraDetails = `
                             <div class="detail-row">
                                 <span class="detail-label">${ICONS.product} Product:</span>
@@ -208,29 +250,21 @@ document.addEventListener("DOMContentLoaded", () => {
                             productImageHtml = `<div class="cc-product-image">${ICONS.product}</div>`;
                         }
                     } 
-                    // === YAHAN BUSINESS LOAN KE LIYE NAYA LOGIC SHURU HOTA HAI ===
                     else if (loan.loanType === 'Business Loan') {
                         const loanAmount = parseFloat(loan.outstandingAmount);
-                        let processingFee = 0;
-
-                        if (loanAmount > 9000) {
-                            processingFee = (loanAmount * 0.01) + 200;
-                        } else {
-                            processingFee = loanAmount * 0.01;
-                        }
+                        let processingFee = (loanAmount > 9000) ? (loanAmount * 0.01) + 200 : (loanAmount * 0.01);
 
                         let monthlyPaymentHtml = '';
-                        const monthlyInterest = loanAmount * 0.015; // 1.5% monthly interest
+                        const monthlyInterest = loanAmount * 0.015;
 
-                        if (daysAgo <= 90) { // Pehle 3 mahine
+                        if (daysAgo <= 90) {
                             monthlyPaymentHtml = `
                                 <div class="detail-row">
                                     <span class="detail-label">${ICONS.interest} Monthly Interest:</span>
                                     <span class="detail-value amount">₹${monthlyInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>`;
-                        } else { // Chauthe mahine se
-                            const emiPrincipal = loanAmount / 6;
-                            const totalEmi = emiPrincipal + monthlyInterest;
+                        } else {
+                            const totalEmi = (loanAmount / 6) + monthlyInterest;
                             monthlyPaymentHtml = `
                                 <div class="detail-row">
                                     <span class="detail-label">${ICONS.emi} Monthly EMI:</span>
@@ -246,7 +280,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             ${monthlyPaymentHtml}
                         `;
                     }
-                    // === BUSINESS LOAN KA LOGIC YAHAN KHATAM HOTA HAI ===
 
                     card.innerHTML = `
                         <div class="card-main-content">
@@ -499,4 +532,5 @@ document.addEventListener("DOMContentLoaded", () => {
     
     checkAuthAndInitialize();
 });
+
 
