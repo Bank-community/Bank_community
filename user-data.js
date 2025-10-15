@@ -1,6 +1,5 @@
-// user-data.js
 // FINAL & CORRECTED UPDATE: "Available Community Balance" ki calculation ab
-// sirf (Total SIP Amount - Total Current Loan Amount) होगी। Extra transactions ka
+// sirf (Total SIP Amount - Total Current Loan Amount) hogi. Extra transactions ka
 // is par koi asar nahi hoga.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
@@ -148,5 +147,4 @@ function calculateCommunityStats(processedMembers, allTransactions, allActiveLoa
     };
     // === BADLAV SAMAPT ===
 }
-
 
