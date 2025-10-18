@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grocery Products</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2canvas library for downloading image -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -14,22 +13,17 @@
             background-color: #f7f8fc; 
         }
         .category-scroll {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            -ms-overflow-style: none; scrollbar-width: none;
         }
         .category-scroll::-webkit-scrollbar {
             display: none;
         }
         .category-btn.active {
-            background-color: #4f46e5;
-            color: white;
-            font-weight: 600;
+            background-color: #4f46e5; color: white; font-weight: 600;
         }
         .variant-btn.active {
-            background-color: #3b82f6;
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transform: scale(1.05);
+            background-color: #3b82f6; color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transform: scale(1.05);
         }
         #cart-modal {
             transition: opacity 0.3s ease-in-out;
@@ -38,61 +32,38 @@
             transition: transform 0.3s ease-in-out;
         }
         .add-btn {
-            background-color: #4f46e5;
-            color: white;
-            padding: 6px 16px;
-            border-radius: 9999px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.2s;
+            background-color: #4f46e5; color: white; padding: 6px 16px;
+            border-radius: 9999px; font-weight: 500; font-size: 14px; transition: all 0.2s;
         }
         .quantity-stepper {
-            display: flex;
-            align-items: center;
-            background-color: #4f46e5;
-            border-radius: 9999px;
-            color: white;
-            font-weight: 500;
+            display: flex; align-items: center; background-color: #4f46e5;
+            border-radius: 9999px; color: white; font-weight: 500;
         }
         .quantity-stepper button {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 18px;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            line-height: 1;
+            background: transparent; border: none; color: white;
+            font-size: 18px; width: 32px; height: 32px; cursor: pointer; line-height: 1;
         }
         .quantity-stepper .quantity {
-            min-width: 20px;
-            text-align: center;
-            font-size: 16px;
+            min-width: 20px; text-align: center; font-size: 16px;
         }
-        /* === BADLAV 1: Cart ke quantity buttons ke liye naya style === */
         .cart-stepper {
-            display: flex;
-            align-items: center;
-            background-color: #e5e7eb; /* Light gray background */
-            border-radius: 9999px;
-            font-weight: 500;
+            display: flex; align-items: center; background-color: #e5e7eb;
+            border-radius: 9999px; font-weight: 500;
         }
          .cart-stepper button {
-            background: transparent;
-            border: none;
-            color: #4f46e5; /* Darker, brand color for visibility */
-            font-weight: 600;
-            font-size: 18px;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            line-height: 1;
+            background: transparent; border: none; color: #4f46e5;
+            font-weight: 600; font-size: 18px; width: 32px; height: 32px;
+            cursor: pointer; line-height: 1;
         }
         .cart-stepper .quantity {
-            min-width: 20px;
-            text-align: center;
-            font-size: 16px;
-            color: #1f2937; /* Dark text color for number */
+            min-width: 20px; text-align: center; font-size: 16px; color: #1f2937;
+        }
+        /* === Naya Style: WhatsApp button ke liye === */
+        .bg-whatsapp-green {
+            background-color: #25D366;
+        }
+        .hover\:bg-whatsapp-dark-green:hover {
+            background-color: #128C7E;
         }
     </style>
 </head>
@@ -101,7 +72,10 @@
     <!-- Main Container -->
     <div id="main-container" class="container mx-auto max-w-3xl p-4">
         <header class="mb-4">
-            <img src="https://i.ibb.co/d01vhX49/IMG-20251018-124347.jpg" alt="Grocery Products Banner" class="w-full rounded-lg shadow-md" id="banner-image">
+            <!-- === BADLAV 1: Banner image par link lagaya gaya === -->
+            <a href="https://www.ramazone.in/Cashback/index.html" target="_blank" rel="noopener noreferrer">
+                <img src="https://i.ibb.co/d01vhX49/IMG-20251018-124347.jpg" alt="Grocery Products Banner" class="w-full rounded-lg shadow-md" id="banner-image">
+            </a>
             <p class="text-center text-sm text-gray-600 mt-4 font-medium">
                 Every month 1–10 tareekh tak payment karein, bina interest ke ₹5000 tak grocery kharidein.
             </p>
@@ -121,26 +95,34 @@
         <div class="modal-content bg-gray-100 rounded-2xl w-full max-w-md max-h-[90vh] shadow-xl flex flex-col transform scale-95">
             <div class="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 class="text-xl font-bold text-gray-800">Your Cart</h2>
-                <button id="close-cart-btn" class="text-gray-500 hover:text-gray-800">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                 <!-- === BADLAV 2: Clear Cart button add kiya gaya === -->
+                <div class="flex items-center gap-4">
+                    <button id="clear-cart-btn" title="Clear Cart" class="text-red-500 hover:text-red-700 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                    <button id="close-cart-btn" class="text-gray-500 hover:text-gray-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
             </div>
             <div id="cart-items-container" class="flex-grow p-4 overflow-y-auto"></div>
-            <div class="p-4 bg-white rounded-b-2xl shadow-inner">
-                 <div class="flex justify-between items-center mb-4">
+            <div class="p-4 bg-white rounded-b-2xl shadow-inner space-y-3">
+                 <div class="flex justify-between items-center">
                     <span class="text-lg font-medium text-gray-600">Total:</span>
                     <span id="cart-total-price" class="text-2xl font-bold text-indigo-600">₹0</span>
                 </div>
                 <button id="download-cart-btn" class="w-full bg-green-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-green-600 transition-all">
                     Download as Image
                 </button>
+                <!-- === BADLAV 3: WhatsApp share button add kiya gaya === -->
+                <a href="https://chat.whatsapp.com/E2HaPJMGCDm7ALrZ8FM1s5?mode=ems_copy_t" target="_blank" rel="noopener noreferrer" id="whatsapp-share-btn" class="hidden w-full bg-whatsapp-green text-white py-3 rounded-lg font-semibold text-lg hover:bg-whatsapp-dark-green transition-all text-center block">
+                    Share on Grocery Group
+                </a>
             </div>
         </div>
     </div>
     
-    <!-- Div for generating image -->
     <div id="download-content" class="fixed top-0 left-0 -z-50 opacity-0"></div>
-
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -163,11 +145,13 @@
         const categoryContainer = document.getElementById('category-filter-container');
         const openCartBtn = document.getElementById('open-cart-btn');
         const closeCartBtn = document.getElementById('close-cart-btn');
+        const clearCartBtn = document.getElementById('clear-cart-btn');
         const cartModal = document.getElementById('cart-modal');
         const cartItemCount = document.getElementById('cart-item-count');
         const cartItemsContainer = document.getElementById('cart-items-container');
         const cartTotalPriceEl = document.getElementById('cart-total-price');
         const downloadCartBtn = document.getElementById('download-cart-btn');
+        const whatsappShareBtn = document.getElementById('whatsapp-share-btn');
 
         let allGroceryProducts = {};
         let currentCategory = 'All';
@@ -215,6 +199,7 @@
 
             if(cartIds.length === 0) {
                 cartItemsContainer.innerHTML = '<p class="text-center text-gray-500 py-8">Your cart is empty.</p>';
+                whatsappShareBtn.classList.add('hidden'); // Cart khali hone par WhatsApp button chupayein
             } else {
                 cartIds.forEach(cartId => {
                     const item = cart[cartId];
@@ -227,7 +212,6 @@
                             <p class="text-sm text-gray-500">${item.variantName}</p>
                         </div>
                         <div class="flex items-center gap-4">
-                             <!-- === BADLAV 2: Cart ke buttons ke liye naya class lagaya === -->
                              <div class="cart-stepper">
                                 <button class="cart-quantity-btn" data-cart-id="${cartId}" data-change="-1">-</button>
                                 <span class="quantity">${item.quantity}</span>
@@ -246,6 +230,7 @@
         }
 
         function renderProducts() {
+            // This function's logic remains unchanged, re-rendering products based on cart state
             productContainer.innerHTML = '';
             const productsByCategory = {};
             Object.entries(allGroceryProducts).forEach(([id, product]) => {
@@ -253,12 +238,10 @@
                 if (!productsByCategory[category]) productsByCategory[category] = [];
                 productsByCategory[category].push({ id, ...product });
             });
-
             const categoriesToRender = (currentCategory === 'All') ? Object.keys(productsByCategory).sort() : [currentCategory];
             if (categoriesToRender.length === 0 || !productsByCategory[categoriesToRender[0]]) {
                  productContainer.innerHTML = `<div class="text-center p-8 text-gray-500">No products found.</div>`; return;
             }
-            
             categoriesToRender.forEach(category => {
                 const categoryProducts = productsByCategory[category];
                 if (!categoryProducts) return;
@@ -305,13 +288,13 @@
         onValue(ref(db, 'groceryProducts'), (snapshot) => {
             if (snapshot.exists()) {
                 allGroceryProducts = snapshot.val();
-                renderCategories();
-                loadCart();
+                renderCategories(); loadCart();
             } else {
                 productContainer.innerHTML = '<p class="text-center p-8 text-gray-500">No products found.</p>';
             }
         });
 
+        // --- Event Listeners ---
         categoryContainer.addEventListener('click', e => {
             if (e.target.classList.contains('category-btn')) {
                 currentCategory = e.target.textContent;
@@ -338,6 +321,7 @@
             if(target.classList.contains('product-quantity-btn')) updateQuantity(`${target.dataset.productId}_${target.dataset.variantKey}`, parseInt(target.dataset.change));
         });
 
+        // Cart Modal Event Listeners
         openCartBtn.addEventListener('click', () => {
             cartModal.classList.remove('hidden');
             setTimeout(() => { cartModal.classList.remove('opacity-0'); cartModal.querySelector('.modal-content').classList.remove('scale-95'); }, 10);
@@ -346,18 +330,22 @@
             cartModal.classList.add('opacity-0'); cartModal.querySelector('.modal-content').classList.add('scale-95');
             setTimeout(() => cartModal.classList.add('hidden'), 300);
         });
+        clearCartBtn.addEventListener('click', () => {
+            cart = {};
+            saveCart();
+        });
         cartItemsContainer.addEventListener('click', e => {
             if (e.target.classList.contains('cart-quantity-btn')) updateQuantity(e.target.dataset.cartId, parseInt(e.target.dataset.change));
         });
 
         downloadCartBtn.addEventListener('click', () => {
+            // Logic for invoice generation and download
             const content = document.getElementById('download-content');
             const bannerSrc = document.getElementById('banner-image').src;
             let totalPrice = 0;
             const now = new Date();
             const date = now.toLocaleDateString('en-GB');
             const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            
             let itemsHTML = Object.values(cart).map((item, index) => {
                 const itemTotal = item.price * item.quantity;
                 totalPrice += itemTotal;
@@ -372,8 +360,6 @@
                     <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">₹${itemTotal.toFixed(2)}</td>
                 </tr>`;
             }).join('');
-
-            // === BADLAV 3: Naya A4 jaisa professional layout ===
             content.innerHTML = `
                 <div style="width: 800px; background-color: white; font-family: 'Poppins', sans-serif; padding: 40px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
                     <img src="${bannerSrc}" alt="Banner" style="width: 100%; border-radius: 8px; margin-bottom: 25px;" crossorigin="anonymous" />
@@ -411,7 +397,6 @@
                     </div>
                     <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 30px;">Thank you for your purchase!</p>
                 </div>`;
-            
             content.classList.remove('fixed', 'top-0', 'left-0', '-z-50', 'opacity-0');
 
             html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
@@ -420,6 +405,10 @@
                 link.href = canvas.toDataURL('image/jpeg', 0.95);
                 link.click();
                 content.classList.add('fixed', 'top-0', 'left-0', '-z-50', 'opacity-0');
+                
+                // === BADLAV: Download ke baad WhatsApp button dikhayein ===
+                whatsappShareBtn.classList.remove('hidden');
+
             }).catch(err => {
                 console.error("Image generation failed:", err);
                 content.classList.add('fixed', 'top-0', 'left-0', '-z-50', 'opacity-0');
@@ -428,4 +417,5 @@
     </script>
 </body>
 </html>
+
 
