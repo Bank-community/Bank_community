@@ -3,7 +3,7 @@
 // =================================================================================
 
 const DEFAULT_IMAGE_DATA = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
-const PRIME_MEMBERS_DATA = ["Prince rama", "Amit kumar", "Mithilesh Sahni"];
+const PRIME_MEMBERS_DATA = ["Prince raama", "Amit kumar", "Mithilesh Sahni"];
 
 /**
  * Firebase se saara data fetch karta hai aur use process karta hai.
