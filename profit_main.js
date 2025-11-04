@@ -1,5 +1,5 @@
 // File: profit_main.js
-// Version 2.1: New Member Score display aur Profit Event Details modal ko theek kiya gaya.
+// Version 2.2: "Extra Withdraw" ko "Loan Taken" se alag kiya gaya.
 // Yeh file application ka mukhya controller hai.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -106,17 +106,25 @@ async function loadAndProcessData() {
                 id: idCounter++, date: new Date(tx.date), name: memberInfo.name,
                 imageUrl: memberInfo.imageUrl || logic.CONFIG.DEFAULT_PROFILE_PIC,
                 loan: 0, payment: 0, sipPayment: 0, returnAmount: 0,
+                loanType: null, // <-- BADLAV YAHAN (1/2): Loan type ko track karne ke liye.
             };
             
+            // <-- BADLAV YAHAN (2/2): 'Loan Taken' aur 'Extra Withdraw' ko alag-alag mark kiya.
             switch (tx.type) {
                 case 'SIP': record.sipPayment = tx.amount || 0; break;
-                case 'Loan Taken': record.loan = tx.amount || 0; break;
+                case 'Loan Taken': 
+                    record.loan = tx.amount || 0;
+                    record.loanType = 'Loan'; // Yeh ek asli loan hai
+                    break;
                 case 'Loan Payment':
                     record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
                     record.returnAmount = tx.interestPaid || 0;
                     break;
                 case 'Extra Payment': record.payment = tx.amount || 0; break;
-                case 'Extra Withdraw': record.loan = tx.amount || 0; break;
+                case 'Extra Withdraw': 
+                    record.loan = tx.amount || 0;
+                    record.loanType = 'Extra'; // Yeh sirf ek withdrawal hai
+                    break;
                 default: continue;
             }
             processedTransactions.push(record);
@@ -261,11 +269,21 @@ function populateMemberHistory(memberName) {
     memberData.forEach(r => {
         let type = '', amount = 0, sign = '';
         if (r.sipPayment > 0) { type = 'sip'; amount = r.sipPayment; balance += amount; sign = '+'; }
-        else if (r.loan > 0) { type = 'loan'; amount = r.loan; balance -= amount; sign = '-'; }
+        else if (r.loan > 0) { 
+            // Personal history mein dono dikhenge (Loan aur Extra)
+            type = (r.loanType === 'Extra') ? 'extra' : 'loan'; 
+            amount = r.loan; 
+            balance -= amount; 
+            sign = '-'; 
+        }
         else if (r.payment > 0) { type = 'payment'; amount = r.payment; balance += amount; sign = '+'; }
         else return;
+
+        let typeLabel = type.toUpperCase();
+        if (type === 'extra') typeLabel = 'EXTRA WITHDRAW';
+        
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${logic.formatDate(r.date)}</td><td class="transaction-type ${type}">${type.toUpperCase()}</td><td>${sign} ₹${amount.toFixed(2)}</td><td>₹${balance.toFixed(2)}</td>`;
+        row.innerHTML = `<td>${logic.formatDate(r.date)}</td><td class="transaction-type ${type}">${typeLabel}</td><td>${sign} ₹${amount.toFixed(2)}</td><td>₹${balance.toFixed(2)}</td>`;
         tableBody.appendChild(row);
     });
 }
@@ -319,7 +337,6 @@ function displayEligibilityRanking() {
 }
 
 /**
- * *** YAHAN DONO BADLAV KIYE GAYE HAIN ***
  * Sabhi prakar ke "Details" modal ke liye content generate karta hai.
  * @param {object} details - Details object jismein 'type' aur zaroori data ho.
  */
@@ -328,13 +345,11 @@ function showCalculationDetails(details) {
     const contentEl = document.getElementById('calculationDetailsContent');
     let html = '';
 
-    // --- FIX 1: New Member Capital Score Display ---
     if (details.type === 'score') {
         const { name, scores } = details.member;
         titleEl.textContent = `Score Calculation for ${name}`;
         
         if (scores.isNewMemberRuleApplied) {
-            // Naye sadasya ke liye: Base score aur 50% reduction dono dikhao
             html = `<div class="calc-row"><span class="calc-label">Capital Score (Base)</span> <span class="calc-value">${scores.originalCapitalScore.toFixed(2)}</span></div>`;
             html += `<div class="calc-row"><span class="calc-label" style="color:var(--negative-color);">New Member Rule (x50%)</span> <span class="calc-value">${scores.capitalScore.toFixed(2)}</span></div>`;
             
@@ -345,7 +360,6 @@ function showCalculationDetails(details) {
             html += `<div class="calc-row"><span class="calc-label" style="color:var(--negative-color);">New Member Rule (x50%)</span> <span class="calc-value">${scores.creditScore.toFixed(2)}</span></div>`;
 
         } else {
-            // Purane sadasya ke liye
             html = `<div class="calc-row"><span class="calc-label">Capital Score (SIP Target)</span> <span class="calc-value">${scores.capitalScore.toFixed(2)}</span></div><div class="calc-formula">(Total SIP in 180d / ₹${logic.CONFIG.CAPITAL_SCORE_TARGET_SIP}) * 100</div>`;
             html += `<div class="calc-row"><span class="calc-label">Consistency Score (1-Yr)</span> <span class="calc-value">${scores.consistencyScore.toFixed(2)}</span></div>`;
             html += `<div class="calc-row"><span class="calc-label">Credit Behavior (1-Yr)</span> <span class="calc-value">${scores.creditScore.toFixed(2)}</span></div>`;
@@ -353,7 +367,6 @@ function showCalculationDetails(details) {
         
         html += `<hr><div class="calc-row"><span class="calc-label">Weighted Capital (40%)</span> <span class="calc-value">${(scores.capitalScore * logic.CONFIG.CAPITAL_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Consistency (30%)</span> <span class="calc-value">${(scores.consistencyScore * logic.CONFIG.CONSISTENCY_WEIGHT).toFixed(2)}</span></div><div class="calc-row"><span class="calc-label">Weighted Credit (30%)</span> <span class="calc-value">${(scores.creditScore * logic.CONFIG.CREDIT_BEHAVIOR_WEIGHT).toFixed(2)}</span></div><div class="calc-final">Total Score: ${scores.totalScore.toFixed(2)}</div>`;
     
-    // --- FIX 2: Profit Event Details Display ---
     } else if (details.type === 'profit_event') {
         const { member, profitEvent } = details;
         titleEl.textContent = `Profit Share for ${member.name}`;
@@ -425,5 +438,4 @@ function showDistributionModal(profitEvent) {
     }
     modal.classList.remove('visually-hidden');
 }
-
 
