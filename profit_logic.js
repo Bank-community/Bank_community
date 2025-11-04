@@ -1,5 +1,5 @@
 // File: profit_logic.js
-// Version 2.1: New Member Rule ab Capital Score par bhi aadharit hai.
+// Version 2.2: Profit distribution ab sirf asli "Loan" transactions ko dekhega.
 // Yeh file system ka "dimag" hai. Ismein sabhi core calculation aur business logic hain.
 
 // --- CONFIGURATION & NIYAM (RULES) ---
@@ -43,9 +43,7 @@ export const CONFIG = {
 // --- CORE SCORE CALCULATION ENGINE ---
 
 /**
- * *** YAHAN BADLAV KIYA GAYA HAI ***
  * Member ka poora performance score calculate karta hai.
- * Ab naye sadasyon ke liye Capital Score bhi 50% kam ho jayega.
  * @param {string} memberName - Member ka naam.
  * @param {Date} untilDate - Kis tarikh tak ka score nikalna hai.
  * @param {Array} allData - Sabhi transactions ka data.
@@ -74,7 +72,7 @@ export function calculatePerformanceScore(memberName, untilDate, allData, active
 
     // Agar member naya hai, to sabhi scores ka prabhav 50% kam kar do
     if (isNewMemberRuleApplied) {
-        capitalScore *= 0.50;       // <-- YEH FIX HAI
+        capitalScore *= 0.50;
         consistencyScore *= 0.50;
         creditScore *= 0.50;
     }
@@ -90,7 +88,7 @@ export function calculatePerformanceScore(memberName, untilDate, allData, active
         consistencyScore, 
         creditScore, 
         isNewMemberRuleApplied, 
-        originalCapitalScore,       // <-- UI mein dikhane ke liye
+        originalCapitalScore,
         originalConsistencyScore, 
         originalCreditScore 
     };
@@ -265,7 +263,7 @@ function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoan
 }
 
 
-// --- OTHER CORE LOGIC FUNCTIONS (No changes needed below) ---
+// --- OTHER CORE LOGIC FUNCTIONS ---
 
 export function getLoanEligibility(memberName, score, allData) {
     const memberData = allData.filter(r => r.name === memberName);
@@ -283,7 +281,7 @@ export function getLoanEligibility(memberName, score, allData) {
     let multiplier = LOAN_LIMIT_TIER1_MAX;
     if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
     else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
-    else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
+    else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIEP3_MAX - LOAN_LIMIT_TIER2_MAX);
     else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
     return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
 }
@@ -292,7 +290,14 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
     const profit = paymentRecord.returnAmount * 0.90; 
     if (profit <= 0) return null;
 
-    const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date);
+    // <-- BADLAV YAHAN: Ab sirf 'Loan' type ke transactions ko dhoondhega, 'Extra' ko ignore karega.
+    const userLoansBeforePayment = allData.filter(r => 
+        r.name === paymentRecord.name && 
+        r.loan > 0 && 
+        r.date < paymentRecord.date &&
+        r.loanType === 'Loan' // Yeh line 'Extra Withdraw' ko filter kar degi
+    );
+
     if (userLoansBeforePayment.length === 0) return null; 
     const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1];
     const loanDate = relevantLoan.date;
@@ -349,5 +354,4 @@ export function formatDate(date) {
     if (!(date instanceof Date) || isNaN(date)) return "N/A"; 
     return date.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); 
 }
-
 
