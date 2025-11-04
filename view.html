@@ -256,7 +256,7 @@
                 <img id="card-profile-pic" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-100" src="">
                 <div>
                     <h2 id="card-name" class="text-gray-800 font-bold text-base leading-tight"></h2>
-                    <p class="text-gray-500 text-xs font-medium">Extra Balance Withdrawal</p>
+                    <p class="text-gray-500 text-xs font-medium">Extra Balance Withdrawal</l>
                 </div>
             </div>
             <div class="text-center my-2">
@@ -283,6 +283,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+    // *** NOTE: Database mein 'write' (set, update, push) ke function import NAHIN kiye gaye hain.
+    // *** Yeh page 'Read-Only' hai.
 
     // --- GLOBAL VARIABLES & STATE ---
     let db, auth;
@@ -376,8 +378,9 @@
 
                 if (!memberInfo) continue;
                 
-                // === BADLAV START: Record object ko initialize kiya gaya hai ===
-                // Ab yeh extraBalance aur extraWithdraw ko bhi shamil karega.
+                // // --- HINDI COMMENT ---
+                // // Yahan har transaction ko process kiya jaata hai.
+                // // Yeh record object is file ke liye bilkul sahi hai.
                 let record = {
                     id: idCounter++,
                     date: new Date(tx.date),
@@ -388,13 +391,14 @@
                     payment: 0,
                     sipPayment: 0,
                     returnAmount: 0,
-                    extraBalance: 0, // Admin dwara add kiya gaya balance
+                    extraBalance: 0, // Admin dwara add kiya gaya balance (Bonus)
                     extraWithdraw: 0, // Admin dwara nikala gaya balance
                 };
                 
-                // === BADLAV START: Switch statement ko update kiya gaya hai ===
-                // Ab yeh 'Extra Payment' aur 'Extra Withdraw' ko sahi dhang se process karega.
-                // Yeh ab loan ya payment mein nahi jayega.
+                // // --- HINDI COMMENT ---
+                // // YEH SWITCH STATEMENT BILKUL SAHI HAI.
+                // // Yeh 'Extra Payment' aur 'Extra Withdraw' ko 'loan' aur 'payment' se alag rakhta hai.
+                // // Isliye is file ko `loanType` wale update ki zaroorat NAHIN hai.
                 switch (tx.type) {
                     case 'SIP':
                         record.sipPayment = tx.amount || 0;
@@ -406,16 +410,15 @@
                         record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
                         record.returnAmount = tx.interestPaid || 0;
                         break;
-                    case 'Extra Payment': // YEH BADLAV HAI
+                    case 'Extra Payment': // Bonus
                         record.extraBalance = tx.amount || 0;
                         break;
-                    case 'Extra Withdraw': // YEH BADLAV HAI
+                    case 'Extra Withdraw': // Nikasi
                         record.extraWithdraw = tx.amount || 0;
                         break;
                     default:
                         continue; // Anjaan transaction types ko skip karein
                 }
-                // === BADLAV SAMAPT ===
                 processedTransactions.push(record);
             }
 
@@ -433,8 +436,15 @@
 
     // --- UI POPULATION ---
     function populateProfileData() {
+        // // --- HINDI COMMENT ---
+        // // Yahan Extra Balance calculate hota hai.
+        // // Yeh 'calculateTotalExtraBalance' function (neeche) ko call karta hai.
         const balanceResult = calculateTotalExtraBalance(currentMemberData.membershipId, currentMemberData.fullName);
         balanceHistory = balanceResult.history;
+        
+        // // --- HINDI COMMENT ---
+        // // Yahan Lifetime Profit calculate hota hai.
+        // // Yeh 'calculateTotalProfitForMember' function (neeche) ko call karta hai, jo Snapshot Score niyam ka paalan karta hai.
         const lifetimeProfit = calculateTotalProfitForMember(currentMemberData.fullName, allData, activeLoansData);
         
         const memberTransactions = allData.filter(tx => tx.memberId === currentMemberData.membershipId);
@@ -532,6 +542,11 @@
             withdrawalModal.classList.add('hidden');
             withdrawalModal.classList.remove('flex');
         });
+        
+        // // --- HINDI COMMENT ---
+        // // Yeh 'submitWithdrawal' function hai.
+        // // Yeh sirf card generate karta hai, jaisa ki aapne nirdesh diya hai.
+        // // Yeh database mein data SAVE NAHIN KARTA.
         document.getElementById('submit-withdrawal').addEventListener('click', submitWithdrawal);
 
         const historyModal = document.getElementById('historyModal');
@@ -575,22 +590,22 @@
         [...balanceHistory].reverse().forEach(item => {
             const div = document.createElement('div');
             const isCredit = item.amount > 0;
-            // === BADLAV START: History mein dikhne wale text ko behtar banaya gaya hai ===
+            // // --- HINDI COMMENT ---
+            // // History modal mein data ka label bhi bilkul sahi dikh raha hai.
             let title = '';
             switch(item.type) {
                 case 'profit':
                     title = `Profit from ${item.from}`;
                     break;
-                case 'manual_credit':
-                    title = 'Balance Added by Admin';
+                case 'manual_credit': // Bonus
+                    title = 'Balance Added by Admin (Bonus)';
                     break;
-                case 'withdrawal':
+                case 'withdrawal': // Nikasi
                     title = 'Balance Withdrawn by Admin';
                     break;
                 default:
                     title = 'Transaction';
             }
-            // === BADLAV SAMAPT ===
             div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
             div.innerHTML = `<div><p class="font-semibold text-gray-800">${title}</p><p class="text-xs text-gray-400">${item.date.toLocaleDateString('en-GB')}</p></div><span class="font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${Math.abs(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
             historyList.appendChild(div);
@@ -617,6 +632,9 @@
     }
 
     function submitWithdrawal() {
+        // // --- HINDI COMMENT ---
+        // // Yeh function Admin ke liye withdrawal card generate karta hai.
+        // // Yeh database mein SAVE NAHIN karta hai, jaisa ki user (aapne) ne nirdesh diya hai.
         const amountInput = document.getElementById('withdrawal-amount');
         const errorMsg = document.getElementById('withdrawal-error');
         const amount = parseFloat(amountInput.value);
@@ -660,6 +678,9 @@
     async function shareCard() { const blob = await getCardAsBlob(); const file = new File([blob], `withdrawal.png`, { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Withdrawal Receipt', text: `Withdrawal receipt for ${currentMemberData.fullName}.`}); } catch (error) { console.error('Share failed:', error); alert('Could not share the image.'); } } else { alert("Sharing is not supported."); } }
     
     // --- FINANCIAL CALCULATOR LOGIC (Imported from profit_logic.js) ---
+    // // --- HINDI COMMENT ---
+    // // Neeche diye gaye saare logic functions `profit_logic.js` se copy kiye gaye hain.
+    // // Yeh wahi functions hain jo humne pehle discuss kiye hain aur yeh bilkul sahi hain.
     const CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
         CAPITAL_SCORE_TARGET_SIP: 30000,
@@ -723,14 +744,21 @@
         else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
         return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
     }
+    
+    // // --- HINDI COMMENT ---
+    // // YEH 'calculateProfitDistribution' FUNCTION HAI. YEH WAHI SNAPSHOT SCORE WALA NIYAM HAI.
     function calculateProfitDistribution(paymentRecord, allData, activeLoansData) { const profit = paymentRecord.returnAmount * 0.90; if (profit <= 0) return null; const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date); if (userLoansBeforePayment.length === 0) return null; const relevantLoan = userLoansBeforePayment.pop(); const loanDate = relevantLoan.date; const snapshotScores = {}; let totalScoreInSnapshot = 0; const membersInSystemAtLoanDate = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))]; membersInSystemAtLoanDate.forEach(name => { const scoreObject = calculatePerformanceScore(name, loanDate, allData, activeLoansData); if (scoreObject.totalScore > 0) { snapshotScores[name] = scoreObject; totalScoreInSnapshot += scoreObject.totalScore; } }); if (totalScoreInSnapshot <= 0) return null; const distribution = []; for (const memberName in snapshotScores) { let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * profit; const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate).pop()?.date; const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; let appliedMultiplier = 1.0; if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) { appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; } else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) { appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; } memberShare *= appliedMultiplier; if (memberShare > 0) distribution.push({ name: memberName, share: memberShare }); } return { distribution }; }
+    
+    // // --- HINDI COMMENT ---
+    // // YEH 'calculateTotalProfitForMember' FUNCTION HAI. YEH UPAR WALE FUNCTION KO CALL KARKE TOTAL PROFIT NIKALTA HAI.
     function calculateTotalProfitForMember(memberName, allData, activeLoansData) { return allData.reduce((totalProfit, transaction) => { if (transaction.returnAmount > 0) { const result = calculateProfitDistribution(transaction, allData, activeLoansData); const memberShare = result?.distribution.find(d => d.name === memberName); if (memberShare) totalProfit += memberShare.share; } return totalProfit; }, 0); }
     
-    // === BADLAV START: Extra Balance calculation function ko update kiya gaya hai ===
-    // Ab yeh function profit ke saath-saath admin dwara kiye gaye Extra Payment aur Extra Withdraw ko bhi jodega.
+    // // --- HINDI COMMENT ---
+    // // YEH AAPKA 'Extra Balance' CALCULATOR HAI. YEH BILKUL SAHI HAI.
     function calculateTotalExtraBalance(memberId, memberFullName) {
         const history = [];
-        // Pehle, profit se aane wale balance ko calculate karein (yeh pehle jaisa hi hai)
+        
+        // 1. Pehle, profit se aane wale balance ko calculate karein (Snapshot niyam se)
         const profitEvents = allData.filter(r => r.returnAmount > 0);
         profitEvents.forEach(paymentRecord => {
             const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData);
@@ -740,22 +768,24 @@
             }
         });
         
-        // Ab, admin dwara kiye gaye manual adjustments ko calculate karein
+        // 2. Ab, admin dwara kiye gaye manual (Bonus/Withdrawal) adjustments ko calculate karein
         const manualAdjustments = allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
         manualAdjustments.forEach(tx => {
             if (tx.extraBalance > 0) {
+                // (Bonus)
                 history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
             }
             if (tx.extraWithdraw > 0) {
+                // (Nikasi)
                 history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
             }
         });
 
+        // 3. Sabko date ke hisaab se sort karke total nikaalein
         history.sort((a,b) => a.date - b.date);
         const total = history.reduce((acc, item) => acc + item.amount, 0);
         return { total, history };
     }
-    // === BADLAV SAMAPT ===
   </script>
 </body>
 </html>
