@@ -373,8 +373,6 @@
 
                 if (!memberInfo) continue;
                 
-                // // --- HINDI COMMENT (BADLAV YAHAN) ---
-                // // Ab 'loanType' ko bhi record kiya jaa raha hai, bilkul `profit_main.js` ki tarah.
                 let record = {
                     id: idCounter++,
                     date: new Date(tx.date),
@@ -387,29 +385,25 @@
                     returnAmount: 0,
                     extraBalance: 0, 
                     extraWithdraw: 0,
-                    loanType: null, // <-- BADLAV: Loan type ko track karne ke liye.
+                    loanType: null, 
                 };
                 
-                // // --- HINDI COMMENT (BADLAV YAHAN) ---
-                // // Is switch statement ko `profit_main.js` ke logic se mila diya gaya hai.
-                // // Ab 'Extra Withdraw' ko `record.loan` mein *nahin* daala jayega.
-                // // Aur 'Loan Taken' ko `loanType: 'Loan'` se mark kiya jayega.
                 switch (tx.type) {
                     case 'SIP':
                         record.sipPayment = tx.amount || 0;
                         break;
                     case 'Loan Taken':
                         record.loan = tx.amount || 0;
-                        record.loanType = 'Loan'; // <-- BADLAV: Asli loan ko mark kiya
+                        record.loanType = 'Loan'; 
                         break;
                     case 'Loan Payment':
                         record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
                         record.returnAmount = tx.interestPaid || 0;
                         break;
-                    case 'Extra Payment': // Bonus
+                    case 'Extra Payment': 
                         record.extraBalance = tx.amount || 0;
                         break;
-                    case 'Extra Withdraw': // Nikasi
+                    case 'Extra Withdraw': 
                         record.extraWithdraw = tx.amount || 0;
                         break;
                     default:
@@ -431,6 +425,7 @@
 
     // --- UI POPULATION ---
     function populateProfileData() {
+        // (Is function mein koi badlav nahi)
         const balanceResult = calculateTotalExtraBalance(currentMemberData.membershipId, currentMemberData.fullName);
         balanceHistory = balanceResult.history;
         const lifetimeProfit = calculateTotalProfitForMember(currentMemberData.fullName, allData, activeLoansData);
@@ -452,9 +447,6 @@
         document.getElementById('joining-date').textContent = formatDate(data.joiningDate);
         document.getElementById('guarantor-name').textContent = data.guarantorName || 'N/A';
         document.getElementById('total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
-        
-        // // --- HINDI COMMENT ---
-        // // Ab `lifetimeProfit` aur `extraBalance` donon mein same (sahi) logic se profit judega.
         document.getElementById('lifetime-profit').textContent = `₹${lifetimeProfit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('extra-balance').textContent = `₹${balanceResult.total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
@@ -479,12 +471,11 @@
     }
 
     function populateLoanHistory(memberName) {
+        // (Is function mein koi badlav nahi)
         const container = document.getElementById('loan-history-container');
         const memberData = allData.filter(r => r.name === memberName);
         
-        // // --- HINDI COMMENT ---
-        // // Yahan bhi 'loanType' check add kiya gaya hai, taaki history mein sirf asli loan dikhein.
-        const loans = memberData.filter(r => r.loan > 0 && r.loanType === 'Loan'); // <-- BADLAV YAHAN
+        const loans = memberData.filter(r => r.loan > 0 && r.loanType === 'Loan'); 
         
         if (loans.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-500 text-sm">No loan history found.</p>';
@@ -495,11 +486,9 @@
             let amountRepaid = 0;
             let repaymentDate = null;
             
-            // // --- HINDI COMMENT ---
-            // // Loan history mein bhi repayment check karne ke liye SIP ko joda gaya hai. (Yeh Naya Logic Hai)
-            memberData.filter(r => r.date > loan.date && (r.payment > 0 || r.sipPayment > 0)).forEach(p => { // <-- BADLAV YAHAN
+            memberData.filter(r => r.date > loan.date && (r.payment > 0 || r.sipPayment > 0)).forEach(p => { 
                 if(!repaymentDate) {
-                    amountRepaid += p.payment + p.sipPayment; // <-- BADLAV YAHAN
+                    amountRepaid += p.payment + p.sipPayment; 
                     if(amountRepaid >= loan.loan) repaymentDate = p.date;
                 }
             });
@@ -626,7 +615,7 @@
     }
 
     function submitWithdrawal() {
-        // (Is function mein koi badlav nahi, yeh abhi bhi sirf card banata hai)
+        // (Is function mein koi badlav nahi)
         const amountInput = document.getElementById('withdrawal-amount');
         const errorMsg = document.getElementById('withdrawal-error');
         const amount = parseFloat(amountInput.value);
@@ -688,6 +677,7 @@
     };
 
     function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
+        // (Yeh function pehle se hi sahi tha)
         const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
         if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0, isNewMemberRuleApplied: false, originalCapitalScore: 0, originalConsistencyScore: 0, originalCreditScore: 0 };
         const firstTransactionDate = memberData[0]?.date;
@@ -737,9 +727,7 @@
 
         const memberActiveLoans = Object.values(activeLoansData).filter(loan => loan.memberName === memberName);
         
-        // // --- HINDI COMMENT ---
-        // // Yahan 'loanType' check add kiya gaya hai, taaki sirf asli loan gine jaayein.
-        const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan'); // <-- BADLAV YAHAN
+        const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan'); 
 
         if (loansInLastYear.length === 0) {
             const firstTransactionDate = memberData[0]?.date;
@@ -809,13 +797,11 @@
                 }
             }
             else {
-                // // --- HINDI COMMENT ---
-                // // Yeh hai sabse zaroori badlav: Ab SIP ko bhi repayment mein gina ja raha hai.
                 let amountRepaid = 0;
                 let repaymentDate = null;
-                const paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0)); // <-- BADLAV YAHAN
+                const paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0)); 
                 for (const p of paymentsAfterLoan) {
-                    amountRepaid += p.payment + p.sipPayment; // <-- BADLAV YAHAN
+                    amountRepaid += p.payment + p.sipPayment; 
                     if (amountRepaid >= loanRecord.loan) {
                         repaymentDate = p.date;
                         break;
@@ -850,18 +836,21 @@
         if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
         const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
         if (daysSinceFirstSip < CONFIG.MINIMUM_MEMBERSHIP_DAYS) { const daysLeft = Math.ceil(CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip); return { eligible: false, reason: `${daysLeft} days left` }; }
+        
+        // // --- HINDI COMMENT (TYPO THEEK KIYA GAYA) ---
+        // // Yahan `LOAN_LIMIT_TIJ3_SCORE` ko theek karke `LOAN_LIMIT_TIER3_SCORE` kar diya gaya hai.
         const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CONFIG;
         let multiplier = LOAN_LIMIT_TIER1_MAX;
         if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
         else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
         else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
-        else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIJ3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
+        else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX); // <-- TYPO YAHAN THA
+        
         return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
     }
     
-    // // --- HINDI COMMENT (BADLAV YAHAN) ---
-    // // Is function ko bhi update kiya gaya hai taaki yeh `loanType === 'Loan'` check kare.
     function calculateProfitDistribution(paymentRecord, allData, activeLoansData) { 
+        // (Yeh function pehle se hi sahi tha)
         const profit = paymentRecord.returnAmount * 0.90; 
         if (profit <= 0) return null; 
         
@@ -869,7 +858,7 @@
             r.name === paymentRecord.name && 
             r.loan > 0 && 
             r.date < paymentRecord.date &&
-            r.loanType === 'Loan' // <-- BADLAV YAHAN
+            r.loanType === 'Loan' 
         ); 
         
         if (userLoansBeforePayment.length === 0) return null; 
@@ -890,7 +879,7 @@
         for (const memberName in snapshotScores) { 
             let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * profit; 
             
-            const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date; // <-- BADLAV YAHAN
+            const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date;
             
             const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
             let appliedMultiplier = 1.0; 
