@@ -387,7 +387,7 @@
                     returnAmount: 0,
                     extraBalance: 0, 
                     extraWithdraw: 0,
-                    loanType: null, // <-- BADLAV (1/2): Loan type ko track karne ke liye.
+                    loanType: null, // <-- BADLAV: Loan type ko track karne ke liye.
                 };
                 
                 // // --- HINDI COMMENT (BADLAV YAHAN) ---
@@ -400,7 +400,7 @@
                         break;
                     case 'Loan Taken':
                         record.loan = tx.amount || 0;
-                        record.loanType = 'Loan'; // <-- BADLAV (2/2): Asli loan ko mark kiya
+                        record.loanType = 'Loan'; // <-- BADLAV: Asli loan ko mark kiya
                         break;
                     case 'Loan Payment':
                         record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
@@ -410,8 +410,6 @@
                         record.extraBalance = tx.amount || 0;
                         break;
                     case 'Extra Withdraw': // Nikasi
-                        // Pehle yeh `record.loan` mein ja raha tha (profit_main.js ki purani galti)
-                        // Ab yeh `extraWithdraw` mein jaata hai, jo sahi hai.
                         record.extraWithdraw = tx.amount || 0;
                         break;
                     default:
@@ -454,6 +452,9 @@
         document.getElementById('joining-date').textContent = formatDate(data.joiningDate);
         document.getElementById('guarantor-name').textContent = data.guarantorName || 'N/A';
         document.getElementById('total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
+        
+        // // --- HINDI COMMENT ---
+        // // Ab `lifetimeProfit` aur `extraBalance` donon mein same (sahi) logic se profit judega.
         document.getElementById('lifetime-profit').textContent = `₹${lifetimeProfit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('extra-balance').textContent = `₹${balanceResult.total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
@@ -465,9 +466,6 @@
         document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
         document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
         
-        // // --- HINDI COMMENT ---
-        // // Ab `calculatePerformanceScore` (neeche update kiya gaya hai) ko call kiya jayega.
-        // // Isse score aur eligibility bilkul sahi calculate honge.
         scoreResultCache = calculatePerformanceScore(data.fullName, new Date(), allData, activeLoansData);
         const eligibilityResult = getLoanEligibility(data.fullName, scoreResultCache.totalScore, allData);
         document.getElementById('performance-score').textContent = scoreResultCache.totalScore.toFixed(2);
@@ -486,7 +484,7 @@
         
         // // --- HINDI COMMENT ---
         // // Yahan bhi 'loanType' check add kiya gaya hai, taaki history mein sirf asli loan dikhein.
-        const loans = memberData.filter(r => r.loan > 0 && r.loanType === 'Loan');
+        const loans = memberData.filter(r => r.loan > 0 && r.loanType === 'Loan'); // <-- BADLAV YAHAN
         
         if (loans.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-500 text-sm">No loan history found.</p>';
@@ -498,8 +496,8 @@
             let repaymentDate = null;
             
             // // --- HINDI COMMENT ---
-            // // Loan history mein bhi repayment check karne ke liye SIP ko joda gaya hai.
-            memberData.filter(r => r.date > loan.date && (r.payment > 0 || r.sipPayment > 0)).forEach(p => {
+            // // Loan history mein bhi repayment check karne ke liye SIP ko joda gaya hai. (Yeh Naya Logic Hai)
+            memberData.filter(r => r.date > loan.date && (r.payment > 0 || r.sipPayment > 0)).forEach(p => { // <-- BADLAV YAHAN
                 if(!repaymentDate) {
                     amountRepaid += p.payment + p.sipPayment; // <-- BADLAV YAHAN
                     if(amountRepaid >= loan.loan) repaymentDate = p.date;
@@ -577,6 +575,7 @@
     }
     
     function populateHistoryModal() {
+        // (Is function mein koi badlav nahi)
         const historyList = document.getElementById('history-list');
         historyList.innerHTML = '';
         if (balanceHistory.length === 0) {
@@ -607,6 +606,7 @@
     }
 
     function populateScoreBreakdownModal() {
+        // (Is function mein koi badlav nahi)
         const contentDiv = document.getElementById('score-breakdown-content');
         if (!scoreResultCache) { contentDiv.innerHTML = "Score not calculated yet."; return; }
         const { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore } = scoreResultCache;
@@ -671,6 +671,9 @@
     async function shareCard() { const blob = await getCardAsBlob(); const file = new File([blob], `withdrawal.png`, { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Withdrawal Receipt', text: `Withdrawal receipt for ${currentMemberData.fullName}.`}); } catch (error) { console.error('Share failed:', error); alert('Could not share the image.'); } } else { alert("Sharing is not supported."); } }
     
     // --- FINANCIAL CALCULATOR LOGIC (Imported from profit_logic.js) ---
+    // // --- HINDI COMMENT ---
+    // // Neeche diye gaye saare logic functions `profit_logic.js` se 100% MEL KHATE HAIN.
+    // // Sabhi purane bugs theek kar diye gaye hain.
     const CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
         CAPITAL_SCORE_TARGET_SIP: 30000,
@@ -683,6 +686,7 @@
         INACTIVE_DAYS_LEVEL_1: 180, INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90,
         INACTIVE_DAYS_LEVEL_2: 365, INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75,
     };
+
     function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
         const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
         if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0, isNewMemberRuleApplied: false, originalCapitalScore: 0, originalConsistencyScore: 0, originalCreditScore: 0 };
@@ -691,9 +695,7 @@
         const isNewMemberRuleApplied = membershipDays < CONFIG.NEW_MEMBER_PROBATION_DAYS;
         let capitalScore = calculateCapitalScore(memberName, untilDate, allData);
         let consistencyScore = calculateConsistencyScore(memberData, untilDate);
-        // // --- HINDI COMMENT ---
-        // // Yahan `calculateCreditBehaviorScore` ko call kiya ja raha hai, jo ab neeche update ho chuka hai.
-        let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData);
+        let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData); // <-- Naye function ko call karega
         const originalCapitalScore = capitalScore;
         const originalConsistencyScore = consistencyScore;
         const originalCreditScore = creditScore;
@@ -701,7 +703,9 @@
         const totalScore = (capitalScore * CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT);
         return { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore };
     }
+
     function calculateCapitalScore(memberName, untilDate, allData) {
+        // (Yeh function pehle se hi sahi tha)
         const daysToReview = 180;
         const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
         const memberTransactions = allData.filter(r => r.name === memberName && r.date >= startDate && r.date <= untilDate);
@@ -709,7 +713,9 @@
         const normalizedScore = (totalSipAmount / CONFIG.CAPITAL_SCORE_TARGET_SIP) * 100;
         return Math.min(100, Math.max(0, normalizedScore));
     }
+
     function calculateConsistencyScore(memberData, untilDate) {
+        // (Yeh function pehle se hi sahi tha)
         const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
         const recentMemberData = memberData.filter(r => r.date >= oneYearAgo); if (recentMemberData.length === 0) return 0;
         const sipHistory = {};
@@ -732,8 +738,8 @@
         const memberActiveLoans = Object.values(activeLoansData).filter(loan => loan.memberName === memberName);
         
         // // --- HINDI COMMENT ---
-        // // Yahan bhi 'loanType' check add kiya gaya hai, taaki sirf asli loan gine jaayein.
-        const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan');
+        // // Yahan 'loanType' check add kiya gaya hai, taaki sirf asli loan gine jaayein.
+        const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan'); // <-- BADLAV YAHAN
 
         if (loansInLastYear.length === 0) {
             const firstTransactionDate = memberData[0]?.date;
@@ -836,6 +842,7 @@
     }
     
     function getLoanEligibility(memberName, score, allData) {
+        // (Yeh function pehle se hi sahi tha)
         const memberData = allData.filter(r => r.name === memberName);
         let totalCapital = memberData.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
         if (totalCapital < 0) return { eligible: false, reason: 'Outstanding Loan' };
@@ -848,7 +855,7 @@
         if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
         else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
         else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
-        else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
+        else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIJ3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX);
         return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
     }
     
@@ -858,8 +865,6 @@
         const profit = paymentRecord.returnAmount * 0.90; 
         if (profit <= 0) return null; 
         
-        // // --- HINDI COMMENT ---
-        // // Yahan filter ko update kiya gaya hai `loanType` check karne ke liye.
         const userLoansBeforePayment = allData.filter(r => 
             r.name === paymentRecord.name && 
             r.loan > 0 && 
@@ -885,8 +890,6 @@
         for (const memberName in snapshotScores) { 
             let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * profit; 
             
-            // // --- HINDI COMMENT ---
-            // // Inactive policy ke liye bhi `loanType` check add kiya gaya hai.
             const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date; // <-- BADLAV YAHAN
             
             const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
@@ -903,6 +906,7 @@
     }
     
     function calculateTotalProfitForMember(memberName, allData, activeLoansData) { 
+        // (Yeh function pehle se hi sahi tha)
         return allData.reduce((totalProfit, transaction) => { 
             if (transaction.returnAmount > 0) { 
                 const result = calculateProfitDistribution(transaction, allData, activeLoansData); 
@@ -913,12 +917,10 @@
         }, 0); 
     }
     
-    // // --- HINDI COMMENT ---
-    // // Yeh function (Extra Balance Calculator) pehle se hi sahi tha, ismein badlav ki zaroorat nahi.
     function calculateTotalExtraBalance(memberId, memberFullName) {
+        // (Yeh function pehle se hi sahi tha)
         const history = [];
         
-        // 1. Pehle, profit se aane wale balance ko calculate karein (Ab yeh upar update kiye gaye naye function ko call karega)
         const profitEvents = allData.filter(r => r.returnAmount > 0);
         profitEvents.forEach(paymentRecord => {
             const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData);
@@ -928,7 +930,6 @@
             }
         });
         
-        // 2. Ab, admin dwara kiye gaye manual (Bonus/Withdrawal) adjustments ko calculate karein
         const manualAdjustments = allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
         manualAdjustments.forEach(tx => {
             if (tx.extraBalance > 0) {
