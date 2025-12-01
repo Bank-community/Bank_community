@@ -3,7 +3,7 @@
 // is par koi asar nahi hoga.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
-const PRIME_MEMBERS = ["Prince rama", "Amit kumar", "Mithilesh Sahni"];
+const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
 
 /**
  * Firebase se saara data fetch karta hai aur use process karta hai.
