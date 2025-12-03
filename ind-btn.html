@@ -3,33 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Index Buttons</title>
+    <title>Manage Index Buttons - Royal Admin</title>
     
-    <link rel="icon" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg" type="image/jpeg">
-    <link rel="apple-touch-icon" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg">
+    <!-- Updated Favicon to match App -->
+    <link rel="icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
     
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
+        
+        /* Royal Theme Inputs */
         .form-input, .form-select { 
-            background-color: #f8fafc; 
-            border: 1px solid #e2e8f0; 
+            background-color: #ffffff; 
+            border: 1px solid #d1d5db; 
             transition: all 0.3s ease; 
         }
         .form-input:focus, .form-select:focus { 
             outline: none; 
-            border-color: #4f46e5; 
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); 
+            border-color: #002366; /* Royal Blue */
+            box-shadow: 0 0 0 2px rgba(0, 35, 102, 0.2); 
         }
-        .btn-primary { background-color: #4f46e5; transition: background-color 0.3s ease; }
-        .btn-primary:hover { background-color: #4338ca; }
+
+        /* Royal Primary Button */
+        .btn-primary { 
+            background-color: #002366; /* Royal Blue */
+            border: 1px solid #001540;
+            transition: all 0.3s ease; 
+        }
+        .btn-primary:hover { 
+            background-color: #001540; 
+            box-shadow: 0 4px 10px rgba(0, 35, 102, 0.3);
+        }
         .btn-primary:disabled { background-color: #a5b4fc; cursor: not-allowed; }
+
         .loader { 
             border: 3px solid rgba(255,255,255,0.3); 
-            border-top: 3px solid #fff; 
+            border-top: 3px solid #D4AF37; /* Gold Loader */
             border-radius: 50%; 
             width: 16px; 
             height: 16px; 
@@ -45,8 +58,9 @@
             width: 2.5rem; 
             height: 2.5rem; 
             padding: 0.25rem; 
-            border: none; 
-            background: none; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 0.375rem;
+            background: #fff; 
             cursor: pointer; 
         }
         .color-input-group input[type="text"] { flex-grow: 1; }
@@ -57,13 +71,14 @@
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
             transition: all 0.3s ease;
+            border: 2px dashed #cbd5e1;
         }
 
-        /* Base Button Style */
+        /* Base Button Style matching User App */
         .preview-btn {
-            padding: 12px 25px;
+            padding: 12px 28px;
             font-size: 1em;
-            font-weight: 600;
+            font-weight: 700;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -73,38 +88,41 @@
             border: none;
             transition: all 0.3s ease;
             flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .preview-btn svg {
             width: 20px;
             height: 20px;
         }
 
-        /* Preset Styles */
+        /* Royal Glossy Preset */
         .btn-glossy {
-            background-image: linear-gradient(to top, #5a67d8, #7f9cf5);
-            box-shadow: inset 0 1px 1px #a3bffa, 0 4px 6px rgba(0,0,0,0.2);
+            /* Matches app.css .btn-glossy logic but dynamic based on color */
+            background-image: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             text-shadow: 0 1px 1px rgba(0,0,0,0.3);
-            border-bottom: 1px solid #4c51bf;
+            border-top: 1px solid rgba(255,255,255,0.3);
         }
+        
         .btn-neumorphic {
             background: #e0e5ec;
             box-shadow: 9px 9px 16px #a3b1c6, -9px -9px 16px #ffffff;
             border: none;
+            color: #333;
         }
         .btn-outline {
             background-color: transparent;
             border-style: solid;
         }
 
-        /* Responsive form layout */
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr; /* Default to 1 column */
+            grid-template-columns: 1fr;
             gap: 1.5rem;
         }
         @media (min-width: 1024px) {
             .form-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 columns on large screens */
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
         #auth-loader {
@@ -113,31 +131,35 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f9fafb;
+            background-color: #f4f6f9;
         }
         .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
+            border: 4px solid rgba(0, 35, 102, 0.1);
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            border-left-color: #4f46e5;
+            border-left-color: #D4AF37; /* Gold Spinner */
             animation: spin 1s ease infinite;
         }
+        
+        /* Template Button Colors */
+        .template-btn { transition: transform 0.1s; }
+        .template-btn:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="bg-gray-100 antialiased">
+<body class="antialiased text-gray-800">
 
     <div id="auth-loader">
         <div class="spinner"></div>
-        <p class="mt-4 text-gray-600">Authenticating...</p>
+        <p class="mt-4 text-gray-600 font-medium">Verifying Admin Access...</p>
     </div>
 
     <div id="app-container" class="hidden">
-        <header class="bg-white shadow-md sticky top-0 z-10">
+        <header class="bg-white shadow-md sticky top-0 z-10 border-b-4 border-[#D4AF37]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Index Button Manager</h1>
-                <a href="admin.html" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                    <i class="ph-arrow-left"></i> Back to Admin
+                <h1 class="text-xl sm:text-2xl font-bold text-[#002366]">Index Button Manager</h1>
+                <a href="admin.html" class="text-sm font-medium text-[#002366] hover:text-[#D4AF37] flex items-center gap-1 transition-colors">
+                    <i class="ph-arrow-left text-lg"></i> Back to Admin
                 </a>
             </div>
         </header>
@@ -145,11 +167,11 @@
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Left Column: Button List -->
-                <div class="lg:col-span-1 bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                <div class="lg:col-span-1 bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-gray-900">Button List</h2>
-                        <button id="add-new-button-btn" class="btn-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm">
-                            <i class="ph-plus-circle"></i> Add New
+                        <h2 class="text-lg font-bold text-[#002366]">Active Buttons</h2>
+                        <button id="add-new-button-btn" class="btn-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow-md">
+                            <i class="ph-plus-circle text-lg"></i> Add New
                         </button>
                     </div>
                     <div id="buttons-list" class="space-y-3">
@@ -159,67 +181,70 @@
 
                 <!-- Right Column: Editor and Preview -->
                 <div id="editor-column" class="lg:col-span-2 space-y-8 hidden">
-                    <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-                        <h2 id="editor-title" class="text-lg font-semibold text-gray-900 mb-4">Add New Button</h2>
-                        <div class="mb-4 p-3 bg-indigo-50 rounded-lg">
-                            <p class="text-sm font-medium text-indigo-800 mb-2">Quick Add Templates:</p>
+                    <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg border-t-4 border-[#002366]">
+                        <h2 id="editor-title" class="text-lg font-bold text-[#002366] mb-4">Add New Button</h2>
+                        
+                        <!-- Quick Templates -->
+                        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">One-Click Templates (Royal Theme)</p>
                             <div class="flex flex-wrap gap-2">
-                                <button data-template="sip" class="template-btn text-xs bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-full hover:bg-indigo-300">SIP Status</button>
-                                <button data-template="notification" class="template-btn text-xs bg-indigo-200 text-indigo-800 font-semibold px-3 py-1 rounded-full hover:bg-indigo-300">Notification</button>
-                                <button data-template="balance" class="template-btn text-xs bg-green-200 text-green-800 font-semibold px-3 py-1 rounded-full hover:bg-green-300">View Balance</button>
-                                <button data-template="wallet" class="template-btn text-xs bg-yellow-200 text-yellow-800 font-semibold px-3 py-1 rounded-full hover:bg-yellow-300">Bank Wallet</button>
-                                <button data-template="install" class="template-btn text-xs bg-blue-200 text-blue-800 font-semibold px-3 py-1 rounded-full hover:bg-blue-300">Install App</button>
+                                <button data-template="sip" class="template-btn text-xs bg-[#002366] text-white font-semibold px-4 py-2 rounded-full shadow hover:bg-[#001540] border border-[#D4AF37]">SIP Status</button>
+                                <button data-template="balance" class="template-btn text-xs bg-white text-[#002366] font-semibold px-4 py-2 rounded-full shadow hover:bg-gray-50 border border-[#D4AF37]">View Balance</button>
+                                <button data-template="wallet" class="template-btn text-xs bg-white text-[#002366] font-semibold px-4 py-2 rounded-full shadow hover:bg-gray-50 border border-[#D4AF37]">Penalty Wallet</button>
+                                <button data-template="install" class="template-btn text-xs bg-gradient-to-t from-green-700 to-green-500 text-white font-semibold px-4 py-2 rounded-full shadow hover:opacity-90">Install App</button>
+                                <button data-template="notification" class="template-btn text-xs bg-[#D4AF37] text-[#002366] font-semibold px-4 py-2 rounded-full shadow hover:bg-yellow-500">Notification</button>
                             </div>
                         </div>
+
                         <form id="button-form">
                             <div class="form-grid">
                                 <!-- Left side of form -->
                                 <div class="space-y-4">
-                                    <h3 class="font-medium text-gray-700 border-b pb-2">Content & Function</h3>
+                                    <h3 class="font-bold text-gray-800 border-b pb-2 text-sm uppercase tracking-wide">Content</h3>
                                     <div>
-                                        <label for="btn-name" class="block text-sm font-medium text-gray-700 mb-1">Button Name (Optional)</label>
-                                        <input type="text" id="btn-name" class="form-input w-full p-2 rounded-lg">
+                                        <label for="btn-name" class="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                                        <input type="text" id="btn-name" class="form-input w-full p-2.5 rounded-lg" placeholder="e.g. View Balance">
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label for="btn-url" class="block text-sm font-medium text-gray-700 mb-1">Link (URL)</label>
-                                            <input type="text" id="btn-url" class="form-input w-full p-2 rounded-lg" placeholder="gallery.html">
+                                            <label for="btn-url" class="block text-sm font-medium text-gray-700 mb-1">Link URL</label>
+                                            <input type="text" id="btn-url" class="form-input w-full p-2.5 rounded-lg" placeholder="page.html">
                                         </div>
                                         <div>
-                                            <label for="btn-id" class="block text-sm font-medium text-gray-700 mb-1">Action ID</label>
-                                            <input type="text" id="btn-id" class="form-input w-full p-2 rounded-lg" placeholder="sipStatusBtn">
+                                            <label for="btn-id" class="block text-sm font-medium text-gray-700 mb-1">Action ID (Important)</label>
+                                            <input type="text" id="btn-id" class="form-input w-full p-2.5 rounded-lg" placeholder="e.g. sipStatusBtn">
                                         </div>
                                     </div>
                                     <div>
-                                        <label for="btn-icon" class="block text-sm font-medium text-gray-700 mb-1">Icon (SVG Code)</label>
-                                        <textarea id="btn-icon" class="form-input w-full p-2 rounded-lg font-mono text-xs" rows="5"></textarea>
+                                        <label for="btn-icon" class="block text-sm font-medium text-gray-700 mb-1">Icon SVG Code</label>
+                                        <textarea id="btn-icon" class="form-input w-full p-2 rounded-lg font-mono text-xs text-gray-600 bg-gray-50" rows="4" placeholder="<svg>...</svg>"></textarea>
                                     </div>
                                 </div>
+
                                 <!-- Right side of form -->
                                 <div class="space-y-4">
-                                    <h3 class="font-medium text-gray-700 border-b pb-2">Styling & Layout</h3>
+                                    <h3 class="font-bold text-gray-800 border-b pb-2 text-sm uppercase tracking-wide">Design</h3>
                                     <div>
                                         <label for="btn-style-preset" class="block text-sm font-medium text-gray-700 mb-1">Style Preset</label>
-                                        <select id="btn-style-preset" class="form-select w-full p-2 rounded-lg">
-                                            <option value="">Custom (Default)</option>
-                                            <option value="btn-glossy">Glossy</option>
-                                            <option value="btn-neumorphic">Neumorphic</option>
-                                            <option value="btn-outline">Outline</option>
+                                        <select id="btn-style-preset" class="form-select w-full p-2.5 rounded-lg">
+                                            <option value="">Custom (Flat)</option>
+                                            <option value="btn-glossy">Royal Glossy (Gradient)</option>
+                                            <option value="btn-outline">Outline (Border Only)</option>
                                         </select>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
                                             <div class="color-input-group">
-                                                <input type="color" id="btn-color-picker" value="#ffc107">
-                                                <input type="text" id="btn-color-hex" class="form-input rounded-md" value="#ffc107">
+                                                <input type="color" id="btn-color-picker" value="#002366">
+                                                <input type="text" id="btn-color-hex" class="form-input rounded-md p-1 pl-2 text-sm" value="#002366">
                                             </div>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Text Color</label>
                                             <div class="color-input-group">
-                                                <input type="color" id="btn-text-color-picker" value="#333333">
-                                                <input type="text" id="btn-text-color-hex" class="form-input rounded-md" value="#333333">
+                                                <input type="color" id="btn-text-color-picker" value="#ffffff">
+                                                <input type="text" id="btn-text-color-hex" class="form-input rounded-md p-1 pl-2 text-sm" value="#ffffff">
                                             </div>
                                         </div>
                                     </div>
@@ -227,52 +252,45 @@
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Border Color</label>
                                             <div class="color-input-group">
-                                                <input type="color" id="btn-border-color-picker" value="#ffc107">
-                                                <input type="text" id="btn-border-color-hex" class="form-input rounded-md" value="#ffc107">
+                                                <input type="color" id="btn-border-color-picker" value="#D4AF37">
+                                                <input type="text" id="btn-border-color-hex" class="form-input rounded-md p-1 pl-2 text-sm" value="#D4AF37">
                                             </div>
                                         </div>
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-1">Border</label>
-                                                <input type="text" id="btn-border-width" class="form-input w-full p-2 rounded-lg" placeholder="0px" value="0px">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Border Width</label>
+                                                <input type="text" id="btn-border-width" class="form-input w-full p-2.5 rounded-lg" value="0px">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Radius</label>
-                                                <input type="text" id="btn-border-radius" class="form-input w-full p-2 rounded-lg" placeholder="50px" value="50px">
+                                                <input type="text" id="btn-border-radius" class="form-input w-full p-2.5 rounded-lg" value="50px">
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    
+                                    <div class="flex items-center justify-between pt-2">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Width</label>
-                                            <input type="text" id="btn-width" class="form-input w-full p-2 rounded-lg" placeholder="auto" value="auto">
+                                            <label for="btn-order" class="block text-sm font-medium text-gray-700">Order</label>
+                                            <input type="number" id="btn-order" class="form-input w-20 p-2 rounded-lg" value="0">
                                         </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
-                                            <input type="text" id="btn-height" class="form-input w-full p-2 rounded-lg" placeholder="auto" value="auto">
+                                        <div class="flex items-center">
+                                            <input id="btn-transparent-bg" type="checkbox" class="h-5 w-5 text-[#002366] border-gray-300 rounded focus:ring-[#002366]">
+                                            <label for="btn-transparent-bg" class="ml-2 block text-sm text-gray-900 font-medium">Transparent BG</label>
                                         </div>
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <label for="btn-order" class="block text-sm font-medium text-gray-700">Display Order</label>
-                                        <input type="number" id="btn-order" class="form-input w-24 p-2 rounded-lg" value="0">
-                                    </div>
-                                    <div class="flex items-center">
-                                        <input id="btn-transparent-bg" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                        <label for="btn-transparent-bg" class="ml-2 block text-sm text-gray-900">Transparent Background</label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex justify-end gap-3 pt-4 border-t mt-4">
-                                <button type="button" id="cancel-edit-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-                                <button type="submit" id="save-button-btn" class="btn-primary flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md">
+                            <div class="flex justify-end gap-3 pt-6 border-t mt-6">
+                                <button type="button" id="cancel-edit-btn" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm">Cancel</button>
+                                <button type="submit" id="save-button-btn" class="btn-primary flex items-center justify-center px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-md">
                                     Save Button <span class="loader hidden"></span>
                                 </button>
                             </div>
                         </form>
                     </div>
                      <div class="sticky bottom-8">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Preview</h3>
-                        <div class="button-preview-wrapper p-8 rounded-lg flex items-center justify-center min-h-[120px] shadow-lg">
+                        <h3 class="text-lg font-bold text-[#002366] mb-4">Live Preview</h3>
+                        <div class="button-preview-wrapper p-8 rounded-xl flex items-center justify-center min-h-[140px] shadow-inner bg-gray-50 border-2 border-dashed border-gray-300">
                             <button id="button-preview" class="preview-btn">Preview</button>
                         </div>
                     </div>
@@ -282,7 +300,6 @@
     </div>
 
     <script type="module">
-        // --- Authentication and Firebase Setup ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getDatabase, ref, onValue, set, remove, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
@@ -293,7 +310,6 @@
 
         async function startApp() {
             try {
-                // Fetch config from your API endpoint
                 const response = await fetch('/api/firebase-config');
                 if (!response.ok) throw new Error('Config fetch failed');
                 const firebaseConfig = await response.json();
@@ -323,7 +339,6 @@
             attachEventListeners();
         }
 
-        // --- Data Fetching and Rendering ---
         function loadButtons() {
             const buttonsRef = ref(db, 'admin/header_buttons');
             onValue(buttonsRef, (snapshot) => {
@@ -331,7 +346,7 @@
                 buttonsListContainer.innerHTML = '';
                 const data = snapshot.val();
                 if (!data) {
-                    buttonsListContainer.innerHTML = '<p class="text-center text-gray-500 py-4">No buttons created yet.</p>';
+                    buttonsListContainer.innerHTML = '<p class="text-center text-gray-500 py-4 text-sm">No buttons active on Home Page.</p>';
                     return;
                 }
                 
@@ -339,21 +354,20 @@
 
                 sortedButtons.forEach(([key, btn]) => {
                     const div = document.createElement('div');
-                    div.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg border";
-                    // Using innerHTML for the SVG and icon font for simplicity
+                    div.className = "flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow";
                     div.innerHTML = `
                         <div class="flex items-center gap-3 overflow-hidden">
-                            <div class="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: ${btn.transparent ? 'transparent' : (btn.color || '#ccc')}; color: ${btn.textColor || '#000'}; border: 1px solid ${btn.borderColor || 'transparent'}">
-                                ${btn.icon_svg ? btn.icon_svg.includes('<svg') ? btn.icon_svg : `<i class="ph-${btn.icon_svg} text-2xl"></i>` : '<i class="ph-button text-2xl"></i>'}
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm" style="background-color: ${btn.transparent ? 'transparent' : (btn.color || '#002366')}; color: ${btn.textColor || '#fff'}; border: 1px solid ${btn.borderColor || 'transparent'}">
+                                ${btn.icon_svg ? btn.icon_svg.includes('<svg') ? btn.icon_svg : `<i class="ph-${btn.icon_svg} text-xl"></i>` : '<i class="ph-button text-xl"></i>'}
                             </div>
                             <div class="truncate">
-                                <p class="font-semibold text-gray-800 truncate">${btn.name || '(No Name)'}</p>
-                                <p class="text-xs text-gray-500 truncate">${btn.url || `Action ID: ${btn.id || 'N/A'}`}</p>
+                                <p class="font-bold text-[#002366] truncate text-sm">${btn.name || '(No Name)'}</p>
+                                <p class="text-xs text-gray-500 truncate">${btn.url || `ID: ${btn.id || 'N/A'}`}</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <button class="edit-btn text-gray-500 hover:text-indigo-600 p-1" data-key="${key}"><i class="ph-pencil-simple text-xl"></i></button>
-                            <button class="delete-btn text-gray-500 hover:text-red-600 p-1" data-key="${key}" data-name="${btn.name}"><i class="ph-trash text-xl"></i></button>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="edit-btn text-gray-400 hover:text-[#002366] p-2 transition-colors" data-key="${key}" title="Edit"><i class="ph-pencil-simple text-lg"></i></button>
+                            <button class="delete-btn text-gray-400 hover:text-[#dc3545] p-2 transition-colors" data-key="${key}" data-name="${btn.name}" title="Delete"><i class="ph-trash text-lg"></i></button>
                         </div>
                     `;
                     buttonsListContainer.appendChild(div);
@@ -361,13 +375,12 @@
             });
         }
 
-        // --- Form and UI Logic ---
         function showEditor(isNew = true, data = {}, key = null) {
             currentEditKey = isNew ? null : key;
             const form = document.getElementById('button-form');
             form.reset();
             
-            document.getElementById('editor-title').textContent = isNew ? 'Add New Button' : `Edit: ${data.name || 'Icon Button'}`;
+            document.getElementById('editor-title').textContent = isNew ? 'Add New Button' : `Edit: ${data.name || 'Button'}`;
             
             document.getElementById('btn-name').value = data.name || '';
             document.getElementById('btn-url').value = data.url || '';
@@ -375,11 +388,10 @@
             document.getElementById('btn-icon').value = data.icon_svg || '';
             document.getElementById('btn-order').value = data.order || 0;
             document.getElementById('btn-style-preset').value = data.style_preset || '';
-            document.getElementById('btn-width').value = data.width || 'auto';
-            document.getElementById('btn-height').value = data.height || 'auto';
-            document.getElementById('btn-color-hex').value = data.color || '#ffc107';
-            document.getElementById('btn-text-color-hex').value = data.textColor || '#333333';
-            document.getElementById('btn-border-color-hex').value = data.borderColor || '#ffc107';
+            
+            document.getElementById('btn-color-hex').value = data.color || '#002366';
+            document.getElementById('btn-text-color-hex').value = data.textColor || '#ffffff';
+            document.getElementById('btn-border-color-hex').value = data.borderColor || '#D4AF37';
             document.getElementById('btn-border-width').value = data.borderWidth || '0px';
             document.getElementById('btn-border-radius').value = data.borderRadius || '50px';
             document.getElementById('btn-transparent-bg').checked = data.transparent || false;
@@ -391,6 +403,7 @@
 
             updateButtonPreview();
             document.getElementById('editor-column').classList.remove('hidden');
+            document.getElementById('editor-column').scrollIntoView({ behavior: 'smooth' });
         }
 
         function hideEditor() {
@@ -410,8 +423,6 @@
             const borderColor = document.getElementById('btn-border-color-hex').value;
             const borderWidth = document.getElementById('btn-border-width').value;
             const preset = document.getElementById('btn-style-preset').value;
-            const width = document.getElementById('btn-width').value;
-            const height = document.getElementById('btn-height').value;
             const isTransparent = document.getElementById('btn-transparent-bg').checked;
             
             preview.className = `preview-btn ${preset}`;
@@ -421,19 +432,11 @@
             preview.style.borderColor = borderColor;
             preview.style.borderWidth = borderWidth;
             preview.style.borderStyle = (parseFloat(borderWidth) > 0 || preset === 'btn-outline') ? 'solid' : 'none';
-            preview.style.width = width;
-            preview.style.height = height;
 
             if (preset === 'btn-glossy' && !isTransparent) {
-                preview.style.backgroundImage = `linear-gradient(to top, ${color}, #ffffff)`;
+                preview.style.backgroundImage = `linear-gradient(to top, ${color}, rgba(255,255,255,0.2))`;
             } else {
                 preview.style.backgroundImage = 'none';
-            }
-             if (preset === 'btn-neumorphic') {
-                preview.style.boxShadow = isTransparent ? 'none' : `9px 9px 16px #a3b1c6, -9px -9px 16px #ffffff`;
-                preview.style.background = isTransparent ? 'transparent' : '#e0e5ec';
-            } else {
-                 preview.style.boxShadow = '';
             }
 
             preview.innerHTML = `${icon} ${name ? `<b>${name}</b>` : ''}`;
@@ -441,22 +444,73 @@
 
         function syncColorInputs(source, target) {
             target.value = source.value;
+            updateButtonPreview();
         }
         
         function populateWithTemplate(type) {
-            // Updated templates for consistency with main app
+            // Updated Templates for Royal Blue & Gold Theme
             const templates = {
-                sip: { name: 'SIP Status', id: 'sipStatusBtn', color: '#ffc107', textColor: '#333333', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>', base_class: 'civil-button', borderRadius: '50px' },
-                notification: { name: '', id: 'notificationBtn', color: '#ffc107', textColor: '#333333', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>', borderRadius: '50%', width: '48px', height: '48px', base_class: 'notification-btn' },
-                balance: { name: 'View Balance', id: 'viewBalanceBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>', color: '#ffffff', textColor: '#0056b3', borderWidth: '1px', borderColor: '#dee2e6', base_class: 'view-balance-btn', borderRadius: '25px' },
-                wallet: { name: 'Bank Wallet', id: 'viewPenaltyWalletBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.58V8.5C20 7.12 18.88 6 17.5 6H8.5C7.12 6 6 7.12 6 8.5v8C6 17.88 7.12 19 8.5 19h4.08"></path><path d="M2 12.58V8.5C2 7.12 3.12 6 4.5 6H6"></path><path d="M22 17h-6"></path><path d="M19 14l-3 3 3 3"></path><path d="M22 12.58V8.5C22 7.12 20.88 6 19.5 6H18"></path></svg>', color: '#ffffff', textColor: '#0056b3', borderWidth: '1px', borderColor: '#dee2e6', base_class: 'view-balance-btn', borderRadius: '25px' },
-                install: { name: 'Install App', id: 'installAppBtn', icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>', color: '#28a745', textColor: '#ffffff', borderWidth: '2px', borderColor: '#ffffff', borderRadius: '8px', style_preset: 'btn-glossy', base_class: 'install-button' }
+                sip: { 
+                    name: 'SIP Status', 
+                    id: 'sipStatusBtn', 
+                    color: '#002366', 
+                    textColor: '#ffffff', 
+                    borderColor: '#D4AF37',
+                    borderWidth: '1px',
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>', 
+                    base_class: 'civil-button', 
+                    borderRadius: '50px' 
+                },
+                balance: { 
+                    name: 'View Balance', 
+                    id: 'viewBalanceBtn', 
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>', 
+                    color: '#ffffff', 
+                    textColor: '#002366', 
+                    borderWidth: '1px', 
+                    borderColor: '#D4AF37', 
+                    base_class: 'view-balance-btn', 
+                    borderRadius: '25px' 
+                },
+                wallet: { 
+                    name: 'Penalty Wallet', 
+                    id: 'viewPenaltyWalletBtn', 
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.58V8.5C20 7.12 18.88 6 17.5 6H8.5C7.12 6 6 7.12 6 8.5v8C6 17.88 7.12 19 8.5 19h4.08"></path><path d="M2 12.58V8.5C2 7.12 3.12 6 4.5 6H6"></path><path d="M22 17h-6"></path><path d="M19 14l-3 3 3 3"></path><path d="M22 12.58V8.5C22 7.12 20.88 6 19.5 6H18"></path></svg>', 
+                    color: '#ffffff', 
+                    textColor: '#002366', 
+                    borderWidth: '1px', 
+                    borderColor: '#D4AF37', 
+                    base_class: 'view-balance-btn', 
+                    borderRadius: '25px' 
+                },
+                install: { 
+                    name: 'Install App', 
+                    id: 'installAppBtn', 
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>', 
+                    color: '#28a745', 
+                    textColor: '#ffffff', 
+                    borderWidth: '0px', 
+                    borderColor: '#ffffff', 
+                    borderRadius: '12px', 
+                    style_preset: 'btn-glossy', 
+                    base_class: 'install-button' 
+                },
+                notification: { 
+                    name: '', 
+                    id: 'notificationBtn', 
+                    color: '#D4AF37', /* Gold */
+                    textColor: '#002366', 
+                    icon_svg: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>', 
+                    borderRadius: '50%', 
+                    width: '48px', 
+                    height: '48px', 
+                    base_class: 'notification-btn' 
+                }
             };
             const template = templates[type] || {};
             showEditor(true, template, null);
         }
 
-        // --- Event Handlers ---
         function attachEventListeners() {
             const form = document.getElementById('button-form');
             form.addEventListener('submit', handleSaveButton);
@@ -518,23 +572,19 @@
                 icon_svg: document.getElementById('btn-icon').value,
                 order: parseInt(document.getElementById('btn-order').value) || 0,
                 style_preset: document.getElementById('btn-style-preset').value,
-                width: document.getElementById('btn-width').value,
-                height: document.getElementById('btn-height').value,
                 color: document.getElementById('btn-color-hex').value,
                 textColor: document.getElementById('btn-text-color-hex').value,
                 borderColor: document.getElementById('btn-border-color-hex').value,
                 borderWidth: document.getElementById('btn-border-width').value,
                 borderRadius: document.getElementById('btn-border-radius').value,
                 transparent: document.getElementById('btn-transparent-bg').checked,
-                base_class: 'civil-button' // Ensure a base class is always present
+                base_class: 'civil-button' 
             };
             
-            // Override base_class if a specific one is part of the template/preset logic
             const preset = document.getElementById('btn-style-preset').value;
             if (btnData.id === 'installAppBtn') btnData.base_class = 'install-button';
             if (btnData.id === 'notificationBtn') btnData.base_class = 'notification-btn';
             if (['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) btnData.base_class = 'view-balance-btn';
-
 
             const dbRef = currentEditKey 
                 ? ref(db, `admin/header_buttons/${currentEditKey}`) 
@@ -552,8 +602,8 @@
             }
         }
 
-        // --- Start the application ---
         startApp();
     </script>
 </body>
 </html>
+
