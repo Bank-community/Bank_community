@@ -1,10 +1,7 @@
-// FINAL UPDATE:
-// 1. Top 3 cards ke liye HTML structure ko layering ke liye badla gaya hai (Photo neeche, Frame upar).
-// 2. Framed cards aur Normal cards ke liye alag-alag classes ka istemal kiya gaya hai.
-// 3. Rank medals/badges hata diye gaye hain.
-// 4. Amount ke colors ko set karne ka logic update kiya gaya hai.
-// 5. [USER REQUEST] Normal card (Rank 4+) ke liye naya frame-based design aur ranking number system joda gaya hai.
-// 6. [SOUND UPDATE] "View Balance" button par click karne par sound effect joda gaya hai.
+// FINAL STRICT UPDATE V3:
+// 1. Penalty Wallet Logic Updated (Toggle History, Colors).
+// 2. All Members: Image Zoom logic retained.
+// 3. Top 3 Cards Specific Classes retained.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -17,9 +14,9 @@ let allAutomatedQueue = {};
 let allProducts = {};
 let currentMemberForFullView = null;
 let deferredInstallPrompt = null;
+let currentOpenModal = null; // Track open modal for back button
 
-// [SOUND UPDATE] Sound effect ke liye audio object banaya gaya hai.
-// Path ko zaroorat ke anusaar badlein. Agar file root me hai to '/filename.wav' theek hai.
+// Sound file path check
 const balanceClickSound = new Audio('/mixkit-clinking-coins-1993.wav');
 
 const getElement = (id) => document.getElementById(id);
@@ -48,14 +45,30 @@ const elements = {
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const WHATSAPP_NUMBER = '7903698180';
-const BANK_LOGO_URL = 'https://i.ibb.co/pjB1bQ7J/1752978674430.jpg';
+const BANK_LOGO_URL = 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg';
 
 // --- Initialization ---
 export function initUI(database) {
     setupEventListeners(database);
     setupPWA();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
+    
+    // FAILSAFE: Force visibility after a short delay
+    setTimeout(() => {
+        document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
+    }, 500);
+
     if (elements.currentYear) elements.currentYear.textContent = new Date().getFullYear();
+    
+    // Handle Browser Back Button for Modals
+    window.onpopstate = function(event) {
+        if (currentOpenModal) {
+            // If a modal is open, close it visually but don't call history.back() again
+            currentOpenModal.classList.remove('show');
+            document.body.style.overflow = '';
+            currentOpenModal = null;
+        }
+    };
 }
 
 export function renderPage(data) {
@@ -71,7 +84,6 @@ export function renderPage(data) {
     displayHeaderButtons(data.headerButtons || {});
     
     const approvedMembers = allMembersData.filter(m => m.status === 'Approved');
-    // Pass adminSettings to displayMembers to get the normal card frame URL
     displayMembers(approvedMembers, data.adminSettings || {});
 
     displayCustomCards((data.adminSettings && data.adminSettings.custom_cards) || {});
@@ -83,6 +95,12 @@ export function renderPage(data) {
     renderProducts();
 
     feather.replace();
+    
+    const newAnimatedElements = document.querySelectorAll('.animate-on-scroll:not(.is-visible)');
+    observeElements(newAnimatedElements);
+    setTimeout(() => {
+        newAnimatedElements.forEach(el => el.classList.add('is-visible'));
+    }, 300);
 }
 
 export function showLoadingError(message) {
@@ -133,16 +151,15 @@ function displayHeaderButtons(buttons) {
 
         element.innerHTML = `${btnData.icon_svg || ''}<b>${btnData.name || ''}</b>` + (btnData.id === 'notificationBtn' ? '<span id="notificationDot" class="notification-dot"></span>' : '');
         
-        Object.assign(element.style, {
-            backgroundColor: btnData.transparent ? 'transparent' : (btnData.color || 'var(--primary-color)'),
-            color: btnData.textColor || 'white',
-            width: btnData.width || 'auto',
-            height: btnData.height || 'auto',
-            borderRadius: btnData.borderRadius || '50px',
-            borderColor: btnData.borderColor,
-            borderWidth: btnData.borderWidth,
-            borderStyle: (parseFloat(btnData.borderWidth) > 0 || btnData.style_preset === 'btn-outline') ? 'solid' : 'none'
-        });
+        if (!['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
+            Object.assign(element.style, {
+                backgroundColor: btnData.transparent ? 'transparent' : (btnData.color || 'var(--primary-color)'),
+                color: btnData.textColor || 'white',
+                borderColor: btnData.borderColor,
+                borderWidth: btnData.borderWidth,
+                borderStyle: (parseFloat(btnData.borderWidth) > 0 || btnData.style_preset === 'btn-outline') ? 'solid' : 'none'
+            });
+        }
 
         if (['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
             elements.staticHeaderButtonsContainer.appendChild(element);
@@ -152,7 +169,6 @@ function displayHeaderButtons(buttons) {
     });
     
     elements.headerActionsContainer.appendChild(buttonWrapper);
-    
     attachDynamicButtonListeners();
 }
 
@@ -164,42 +180,41 @@ function displayMembers(members, adminSettings) {
         return;
     }
 
-    // Naya normal card frame URL database se lein, fallback URL bhi dein
     const normalCardFrameUrl = adminSettings.normal_card_frame_url || 'https://i.ibb.co/Y7LYKDcb/20251007-103318.png';
 
     members.forEach((member, index) => {
-        const isNegative = (member.balance || 0) < 0;
-
         if (index < 3) {
-            // === TOP 3 FRAMED CARDS ===
             const card = document.createElement('div');
-            card.className = 'framed-card-wrapper animate-on-scroll'; 
+            // CHANGE: Added specific classes 'gold-card', 'silver-card', 'bronze-card'
+            const rankClasses = ['gold-card', 'silver-card', 'bronze-card'];
+            const rankClass = rankClasses[index] || '';
+            card.className = `framed-card-wrapper ${rankClass} animate-on-scroll`; 
+            
             const rankType = ['gold', 'silver', 'bronze'][index];
             const frameImageUrls = {
-                gold: 'https://i.ibb.co/8L3P0Ctv/20251007-080918.png',
-                silver: 'https://i.ibb.co/MxphKkV5/20251007-053941.png',
-                bronze: 'https://i.ibb.co/ZzL1SJYn/20251007-053807.png'
+                gold: 'https://ik.imagekit.io/kdtvm0r78/1764742107098.png',
+                silver: 'https://ik.imagekit.io/kdtvm0r78/20251203_134510.png',
+                bronze: 'https://ik.imagekit.io/kdtvm0r78/20251203_133726.png'
             };
-            let balanceClass = isNegative ? 'negative-balance' : '';
-            balanceClass += ` balance-${rankType}`;
 
             card.innerHTML = `
                 <div class="framed-card-content">
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="framed-member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
                     <img src="${frameImageUrls[rankType]}" alt="${rankType} frame" class="card-frame-image">
-                    <p class="framed-member-name" title="${member.name}">${member.name}</p>
-                    <p class="framed-member-balance ${balanceClass}">${(member.balance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
+                    <div class="framed-info-container">
+                        <p class="framed-member-name ${rankType}-text" title="${member.name}">${member.name}</p>
+                        <div class="framed-balance-badge ${rankType}-bg">
+                            ${(member.balance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+                        </div>
+                    </div>
                     ${member.isPrime ? '<div class="framed-prime-tag">Prime</div>' : ''}
-                </div>
-            `;
+                </div>`;
             card.onclick = () => showMemberProfileModal(member.id);
             elements.memberContainer.appendChild(card);
 
         } else {
-            // === NORMAL CARDS (RANK 4+) ===
             const card = document.createElement('div');
             card.className = 'normal-framed-card-wrapper animate-on-scroll';
-            const balanceClass = isNegative ? 'negative-balance' : '';
             
             const getRankSuffix = (i) => {
                 const j = i % 10, k = i % 100;
@@ -213,19 +228,21 @@ function displayMembers(members, adminSettings) {
 
             card.innerHTML = `
                 <div class="normal-card-content">
-                    <img src="${normalCardFrameUrl}" alt="Card Frame" class="normal-card-frame-image">
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="normal-framed-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    <img src="${normalCardFrameUrl}" alt="Card Frame" class="normal-card-frame-image">
                     <div class="normal-card-rank">${rankText}</div>
-                    <p class="normal-framed-name" title="${member.name}">${member.name}</p>
-                    <p class="normal-framed-balance ${balanceClass}">${(member.balance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
+                    <div class="normal-info-container">
+                        <p class="normal-framed-name" title="${member.name}">${member.name}</p>
+                        <div class="normal-framed-balance">
+                            ${(member.balance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+                        </div>
+                    </div>
                     ${member.isPrime ? '<div class="normal-prime-tag">Prime</div>' : ''}
-                </div>
-            `;
+                </div>`;
             card.onclick = () => showMemberProfileModal(member.id);
             elements.memberContainer.appendChild(card);
         }
     });
-    observeElements(document.querySelectorAll('.animate-on-scroll'));
 }
 
 function renderProducts() {
@@ -234,15 +251,13 @@ function renderProducts() {
     const productEntries = Object.entries(allProducts);
     if (productEntries.length === 0) {
         const productSection = container.closest('.products-section');
-        if (productSection) {
-            productSection.style.display = 'none';
-        }
+        if (productSection) productSection.style.display = 'none';
         return;
     }
     container.innerHTML = '';
     productEntries.forEach(([id, product]) => {
         const card = document.createElement('div');
-        card.className = 'product-card';
+        card.className = 'product-card animate-on-scroll';
         const price = parseFloat(product.price) || 0;
         const mrp = parseFloat(product.mrp) || 0;
 
@@ -259,7 +274,6 @@ function renderProducts() {
         const productLink = product.exploreLink || 'Not available';
         const finalMessage = `Hello, I want to know more about *${product.name}*.\n\n*Price:* ₹${price.toLocaleString('en-IN')}\n*Product Link:* ${productLink}${emiText}`;
         const whatsappMessage = encodeURIComponent(finalMessage);
-        
         const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
         
         card.innerHTML = `
@@ -279,8 +293,7 @@ function renderProducts() {
                     <img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp">
                 </a>
                 <a href="${product.exploreLink || '#'}" target="_blank" class="product-btn explore">Explore</a>
-            </div>
-        `;
+            </div>`;
 
         const emiLink = card.querySelector('.product-emi-link');
         if (emiLink) {
@@ -331,7 +344,7 @@ function displayCustomCards(cards) {
     section.style.display = 'block';
     cardArray.forEach(cardData => {
         const cardElement = document.createElement('div');
-        cardElement.className = 'custom-card';
+        cardElement.className = 'custom-card animate-on-scroll';
         cardElement.innerHTML = `
             <div class="custom-card-img-wrapper">
                 <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || ''}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
@@ -438,6 +451,7 @@ function showBalanceModal() {
     animateValue(getElement('availableAmountDisplay'), 0, communityStats.availableCommunityBalance || 0, 1200);
 }
 
+// FIXED: SIP Status List
 function showSipStatusModal() {
     const container = getElement('sipStatusListContainer');
     if (!container) return;
@@ -456,43 +470,91 @@ function showSipStatusModal() {
     openModal(elements.sipStatusModal);
 }
 
+// FIXED: All Members - Small Card Grid Layout WITH IMAGE ZOOM
 function showAllMembersModal() {
     const container = getElement('allMembersListContainer');
     if (!container) return;
     container.innerHTML = '';
+    // Use Grid Class
+    container.className = 'all-members-grid'; 
+    
     const sortedMembers = [...allMembersData].filter(m => m.status === 'Approved').sort((a, b) => a.name.localeCompare(b.name));
+    
     sortedMembers.forEach(member => {
         const item = document.createElement('div');
-        item.className = 'sip-status-item';
-        item.innerHTML = `
-            <img src="${member.profilePicUrl || DEFAULT_IMAGE}" alt="${member.name}">
-            <span class="sip-status-name">${member.name}</span>`;
+        item.className = 'small-member-card';
+        
+        // CLICK 1: Card click opens Profile (Default behavior)
+        item.onclick = () => { 
+            closeModal(elements.allMembersModal); 
+            showMemberProfileModal(member.id); 
+        }; 
+        
+        // Create Image element manually to add specific Event Listener
+        const img = document.createElement('img');
+        img.src = member.displayImageUrl;
+        img.alt = member.name;
+        img.onerror = function() { this.src = DEFAULT_IMAGE; };
+        
+        // CLICK 2: Image click opens Full Image (Zoom) - STOPS PROPAGATION
+        img.onclick = (e) => {
+            e.stopPropagation(); // Prevents card click (profile open)
+            showFullImage(member.displayImageUrl, member.name);
+        };
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = member.name;
+
+        item.appendChild(img);
+        item.appendChild(nameSpan);
         container.appendChild(item);
     });
     openModal(elements.allMembersModal);
 }
 
+// LUXURY UPDATE: Penalty Wallet Modal Logic
 function showPenaltyWalletModal() {
     const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
     const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
     const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    
+    // Main Balance Update
     getElement('penaltyBalance').textContent = `₹${(communityStats.totalPenaltyBalance || 0).toLocaleString('en-IN')}`;
+    
+    // List Logic
     const list = getElement('penaltyHistoryList');
     list.innerHTML = '';
-    list.classList.remove('visible');
+    
+    // Ensure Hidden initially
+    list.style.display = 'none';
     getElement('viewHistoryBtn').textContent = 'View History';
+    
     if (history.length === 0) {
-        list.innerHTML = `<li class="no-penalty-history">No records found.</li>`;
+        list.innerHTML = `<li class="no-penalty-history" style="text-align: center; color: #777;">No records found.</li>`;
     } else {
         history.forEach(tx => {
             const isIncome = tx.type === 'income';
+            
+            // Logic: Income = Green, Expense = Red
+            const amountClass = isIncome ? 'green-text' : 'red-text';
+            const sign = isIncome ? '+' : '-';
+            
+            // Date Formatting
+            const dateObj = new Date(tx.timestamp);
+            const dateStr = dateObj.toLocaleDateString('en-GB'); // DD/MM/YYYY
+            const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
             list.innerHTML += `
-                <li class="penalty-history-item">
-                    <div class="penalty-details">
-                        <p class="penalty-text"><strong>${isIncome ? tx.from : tx.reason}</strong></p>
-                        <div class="penalty-time">${isIncome ? tx.reason : ''} · ${new Date(tx.timestamp).toLocaleString('en-GB')}</div>
+                <li class="luxury-history-item">
+                    <div class="history-main">
+                        <span class="history-name">${isIncome ? tx.from : (tx.reason || 'Admin Expense')}</span>
+                        <div class="history-meta">
+                            ${isIncome ? tx.reason : 'Expense'} · ${dateStr}, ${timeStr}
+                        </div>
                     </div>
-                    <span class="penalty-amount ${isIncome ? 'income' : 'expense'}">${isIncome ? '+' : '-'} ₹${(tx.amount || 0).toLocaleString('en-IN')}</span>
+                    <span class="history-amount ${amountClass}">
+                        ${sign} ₹${(tx.amount || 0).toLocaleString('en-IN')}
+                    </span>
                 </li>`;
         });
     }
@@ -501,22 +563,34 @@ function showPenaltyWalletModal() {
 
 function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
-        if (e.target.matches('.close, .close *')) {
+        // Close Modal Logic (Updated for better target detection)
+        if (e.target.matches('.close') || e.target.matches('.close *')) {
             const modal = e.target.closest('.modal');
             if (modal) closeModal(modal);
         }
-        if (e.target.matches('.modal')) closeModal(e.target);
+        if (e.target.classList.contains('modal')) closeModal(e.target);
+        
         if (e.target.closest('#totalMembersCard')) showAllMembersModal();
         if (e.target.closest('#fullViewBtn')) {
             closeModal(elements.memberProfileModal);
             openModal(elements.passwordPromptModal);
         }
         if (e.target.closest('#submitPasswordBtn')) handlePasswordCheck(database);
+        
+        // LUXURY UPDATE: View History Toggle Logic
         if (e.target.closest('#viewHistoryBtn')) {
             const list = getElement('penaltyHistoryList');
-            list.classList.toggle('visible');
-            e.target.textContent = list.classList.contains('visible') ? 'Hide History' : 'View History';
+            const btn = e.target.closest('#viewHistoryBtn');
+            
+            if (list.style.display === 'none' || list.style.display === '') {
+                list.style.display = 'block';
+                btn.textContent = 'Hide History';
+            } else {
+                list.style.display = 'none';
+                btn.textContent = 'View History';
+            }
         }
+        
         if (e.target.closest('#profileModalHeader')) {
             const imgSrc = getElement('profileModalImage').src;
             if (imgSrc) showFullImage(imgSrc, getElement('profileModalName').textContent);
@@ -542,11 +616,12 @@ function attachDynamicButtonListeners() {
     
     if (sipStatusBtn) sipStatusBtn.onclick = showSipStatusModal;
     
-    // [SOUND UPDATE] Click handler ko sound play karne ke liye update kiya gaya hai.
     if (viewBalanceBtn) {
         viewBalanceBtn.onclick = () => {
-            balanceClickSound.play().catch(error => console.error("Audio play failed:", error)); // 1. Sound play karein
-            showBalanceModal();       // 2. Modal dikhayein
+            if(balanceClickSound) {
+                balanceClickSound.play().catch(error => console.warn("Audio play failed:", error));
+            }
+            showBalanceModal();
         };
     }
     
@@ -714,7 +789,7 @@ function buildInfoSlider() {
         let content = card.text ? `<p>${card.text}</p>` : card.htmlContent;
         
         elements.infoSlider.innerHTML += `
-            <div class="info-card-slide">
+            <div class="info-card-slide animate-on-scroll">
                 <h3><i data-feather="${card.icon}"></i> ${card.title}</h3>
                 ${content}
                 ${imageHTML} 
@@ -852,8 +927,31 @@ async function handlePasswordCheck(database) {
     }
 }
 
-function openModal(modal) { if (modal) { modal.classList.add('show'); document.body.style.overflow = 'hidden'; } }
-function closeModal(modal) { if (modal) { modal.classList.remove('show'); document.body.style.overflow = ''; } }
+// === HISTORY API LOGIC FOR MODALS ===
+function openModal(modal) { 
+    if (modal) { 
+        modal.classList.add('show'); 
+        document.body.style.overflow = 'hidden'; 
+        
+        // Push state to history
+        window.history.pushState({modalOpen: true}, "", "");
+        currentOpenModal = modal;
+    } 
+}
+
+function closeModal(modal) { 
+    if (modal) { 
+        modal.classList.remove('show'); 
+        document.body.style.overflow = ''; 
+        currentOpenModal = null;
+        
+        // Only go back if state was pushed (avoid double back)
+        if (window.history.state && window.history.state.modalOpen) {
+            window.history.back();
+        }
+    } 
+}
+
 function showFullImage(src, alt) {
     const fullImageSrc = getElement('fullImageSrc');
     const imageModal = getElement('imageModal');
@@ -863,7 +961,21 @@ function showFullImage(src, alt) {
         openModal(imageModal);
     }
 }
-const scrollObserver = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('is-visible'); }); }, { threshold: 0.1 });
-function observeElements(elements) { elements.forEach(el => scrollObserver.observe(el)); }
+
+// Fixed Observer
+const scrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            scrollObserver.unobserve(entry.target); 
+        }
+    });
+}, { threshold: 0.1 });
+
+function observeElements(elements) {
+    if(!elements || elements.length === 0) return;
+    elements.forEach(el => scrollObserver.observe(el));
+}
+
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
 
