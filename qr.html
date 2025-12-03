@@ -3,349 +3,367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bank Community Loan - UPI Payment</title>
-    <!-- Tailwind CSS for styling -->
+    <title>Premium Payment - Trust Community Fund</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- QR Code generation library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        :root {
+            --royal-blue: #002366;
+            --luxury-gold: #D4AF37;
+            --gold-gradient: linear-gradient(135deg, #D4AF37, #F9F1D8, #D4AF37);
         }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
+        body { font-family: 'Manrope', sans-serif; background: #f4f6f9; }
+        .luxury-font { font-family: 'Playfair Display', serif; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 25px 50px rgba(0, 35, 102, 0.15);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .gold-border { border: 2px solid var(--luxury-gold); }
+        .gold-text { color: var(--luxury-gold); }
+        .royal-text { color: var(--royal-blue); }
+        
+        .whatsapp-gradient {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
         }
+        
+        /* Custom Range Slider for Premium Feel */
         input[type=range] {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb; /* gray-200 */
-            border-radius: 5px;
-            outline: none;
-            transition: background .2s;
-        }
-        input[type=range]:hover {
-            background: #d1d5db; /* gray-300 */
+            -webkit-appearance: none; width: 100%; height: 6px; 
+            background: rgba(212, 175, 55, 0.2); border-radius: 5px; outline: none;
         }
         input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            background: #3730a3; /* indigo-800 */
-            cursor: pointer;
-            border-radius: 50%;
-        }
-        input[type=range]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            background: #3730a3; /* indigo-800 */
-            cursor: pointer;
-            border-radius: 50%;
-        }
-        /* Custom class to prevent layout shift during message display */
-        #message:empty {
-            min-height: 24px; /* Adjust based on font size and line height */
+            -webkit-appearance: none; width: 22px; height: 22px;
+            background: var(--luxury-gold); border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.3);
+            border: 2px solid white;
         }
     </style>
 </head>
-<body class="bg-white">
+<body class="flex items-center justify-center min-h-screen p-4 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
 
-    <div class="w-full max-w-lg mx-auto bg-white p-6 min-h-screen flex flex-col md:min-h-0 md:my-8 md:rounded-xl md:shadow-lg">
-        
-        <header class="text-center mb-6">
-            <img src="https://i.ibb.co/m5TkbLgF/1000027139.png" alt="Bank Community Loan Logo" class="mx-auto h-20 w-auto mb-4">
-            <h1 class="text-2xl md:text-3xl font-bold text-indigo-800">BANK COMMUNITY LOAN</h1>
-            <p class="text-gray-500 mt-2">Prince Kumar ko Payment Karein</p>
+    <div class="w-full max-w-lg glass-card rounded-3xl overflow-hidden relative">
+        <!-- Luxury Gold Accent Top -->
+        <div class="h-2 w-full bg-gradient-to-r from-[#002366] via-[#D4AF37] to-[#002366]"></div>
+
+        <header class="text-center pt-8 pb-4 px-6 relative">
+            <!-- Correct Logo -->
+            <div class="relative inline-block">
+                <img id="logo-img" src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" alt="TCF Logo" class="w-24 h-24 rounded-full border-4 border-[#D4AF37] shadow-lg object-cover mx-auto p-1 bg-white" crossorigin="anonymous">
+                <div class="absolute bottom-1 right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
+            </div>
+            
+            <!-- Correct Name -->
+            <h1 class="text-3xl font-black royal-text mt-4 tracking-tight luxury-font">TRUST COMMUNITY FUND</h1>
+            <p class="text-[#D4AF37] text-xs font-bold uppercase tracking-[0.2em] mt-1">Premium Financial Partner</p>
         </header>
 
-        <main class="flex-grow">
-            <!-- Default Payment Section -->
-            <section id="default-payment" class="fade-in text-center">
-                <p class="font-semibold text-gray-700 text-lg mb-4">Scan karke ₹<span id="display-amount">500</span> Pay Karein</p>
+        <main class="px-6 pb-8">
+            <!-- Payment Card -->
+            <div class="bg-white p-6 rounded-2xl border-2 border-[#D4AF37]/20 shadow-sm text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50"></div>
                 
-                <!-- QR Code Container -->
-                <div id="qrcode" class="flex justify-center p-3 bg-white rounded-lg border shadow-md w-fit mx-auto"></div>
+                <p class="text-gray-500 font-semibold text-sm mb-2 uppercase tracking-wider">Total Payable Amount</p>
+                <h2 class="text-5xl font-black text-[#d32f2f] mb-6 luxury-font">₹<span id="display-amount">0</span></h2>
                 
-                <!-- Payment Instructions with Icons -->
-                <div class="mt-6">
-                    <div class="flex items-center justify-center space-x-2 text-gray-600">
-                        <!-- Step 1 Icon -->
-                        <svg class="h-8 w-8 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
-                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                        
-                        <!-- Step 2 Icon -->
-                        <svg class="h-8 w-8 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5zM13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5z" /></svg>
-                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                        
-                        <!-- Step 3 Icon -->
-                        <svg class="h-8 w-8 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                <!-- QR Code Area -->
+                <div class="flex justify-center mb-6 relative">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#D4AF37]/10 to-[#002366]/5 rounded-xl transform rotate-3 scale-105 -z-10"></div>
+                    <div id="qrcode" class="p-3 bg-white border-2 border-[#D4AF37] rounded-xl shadow-md"></div>
+                </div>
 
-                        <!-- Step 4 Icon -->
-                        <svg class="h-8 w-8 text-indigo-700" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    </div>
-                     <p class="text-center text-xs text-gray-500 mt-2">
-                        UPI App kholen → Scan Karen → Payment Karen → Group mein bhejें
-                    </p>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button id="download-btn" class="w-full bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-800 flex items-center justify-center space-x-2">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>Download Generic QR</span>
-                    </button>
-                     <button id="copy-upi-btn" class="w-full bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 flex items-center justify-center space-x-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        <span>Copy UPI ID</span>
-                    </button>
-                </div>
-            </section>
+                <p class="text-xs text-gray-500 flex items-center justify-center gap-1.5 font-medium">
+                    <svg class="w-4 h-4 text-[#D4AF37]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    Official UPI: <span class="font-mono royal-text font-bold">princekumar954684-1@okicici</span>
+                </p>
+            </div>
 
-            <!-- Custom Amount Section -->
-            <section class="mt-6 pt-6 border-t">
-                <p class="text-center text-gray-600 font-semibold">Ya apni marzi ka amount bharein (Min. ₹500)</p>
-                <div class="mt-4">
-                    <label for="amount" class="sr-only">Amount (₹)</label>
-                    <div class="relative rounded-md shadow-sm">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                            <span class="text-gray-500 sm:text-sm">₹</span>
-                        </div>
-                        <input type="number" id="amount" class="block w-full rounded-md border-gray-300 pl-7 pr-12 py-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg" placeholder="500.00">
-                    </div>
+            <!-- Premium Amount Slider & Input -->
+            <div class="mt-6 bg-[#002366]/5 rounded-2xl p-5 border border-[#D4AF37]/30">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-xs font-bold royal-text uppercase tracking-wider">Adjust Amount</label>
+                    <span class="text-xs text-[#D4AF37] font-bold bg-white px-2 py-1 rounded-md border border-[#D4AF37]">Min: ₹1</span>
                 </div>
-                <div class="mt-4">
-                     <input type="range" id="amount-slider" min="500" max="5000" step="100" value="500" class="w-full">
-                     <div class="flex justify-between text-xs text-gray-500 mt-1">
-                         <span>₹500</span>
-                         <span>₹5000</span>
-                     </div>
+                <div class="relative flex items-center">
+                    <span class="absolute left-4 text-xl font-bold royal-text">₹</span>
+                    <input type="number" id="amount" class="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-[#D4AF37]/40 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 font-bold text-xl royal-text outline-none transition-all bg-white" value="0">
                 </div>
-                <div class="mt-6">
-                    <button id="generate-btn" class="w-full bg-indigo-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-700">
-                        Custom Amount ka QR Banayein
-                    </button>
+                <div class="mt-5 px-1">
+                    <input type="range" id="amount-slider" min="1" max="20000" step="100" value="0">
                 </div>
-            </section>
+            </div>
+
+            <!-- Premium Actions -->
+            <div class="grid grid-cols-1 gap-4 mt-8">
+                <!-- WhatsApp Share Button -->
+                <button id="whatsapp-btn" class="w-full whatsapp-gradient text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200/50 hover:shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 text-lg">
+                    <img src="https://www.svgrepo.com/show/513060/whatsapp-128.svg" class="w-7 h-7 filter brightness-0 invert" alt="WhatsApp">
+                    <span>Share Payment Screenshot</span>
+                </button>
+
+                <!-- Download Button -->
+                <button id="download-btn" class="w-full bg-white text-royal-text border-2 border-[#D4AF37] font-bold py-4 rounded-2xl hover:bg-[#D4AF37]/10 transition-all flex items-center justify-center gap-2 text-lg relative overflow-hidden group">
+                    <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-[#D4AF37]/0 via-[#D4AF37]/20 to-[#D4AF37]/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    <span>Download QR Card</span>
+                </button>
+            </div>
         </main>
-        
-        <footer class="mt-6 pt-6 border-t text-center fade-in">
-             <p class="text-gray-600">Payment ke baad, group mein confirm karein.</p>
-             <a id="whatsapp-confirm-link" href="#" target="_blank" class="mt-4 inline-block w-full bg-green-500 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-600 transition-colors duration-300 flex items-center justify-center space-x-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                <span>WhatsApp par Confirmation Bhejein</span>
-            </a>
-        </footer>
-        
-        <div id="message" class="text-center font-medium mt-4"></div>
-
+        <div id="message" class="text-center pb-6 text-sm font-bold h-6 royal-text"></div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const upiId = 'princekumar954684-1@okicici';
-        const payeeName = 'Prince Kumar';
+        const payeeName = 'Trust Community Fund';
         const whatsappNumber = '917903698180';
-        const defaultAmount = 500;
-        const minAmount = 500;
-        
-        // --- ELEMENT REFERENCES ---
-        const generateBtn = document.getElementById('generate-btn');
-        const downloadBtn = document.getElementById('download-btn');
-        const copyUpiBtn = document.getElementById('copy-upi-btn');
+
         const amountInput = document.getElementById('amount');
         const amountSlider = document.getElementById('amount-slider');
-        const qrCodeContainer = document.getElementById('qrcode');
-        const whatsappConfirmLink = document.getElementById('whatsapp-confirm-link');
-        const messageDiv = document.getElementById('message');
         const displayAmount = document.getElementById('display-amount');
+        const qrContainer = document.getElementById('qrcode');
+        const msgBox = document.getElementById('message');
 
-        let currentAmount = 0;
-
-        // --- INITIALIZATION ---
         window.onload = function() {
-            amountInput.value = defaultAmount;
-            amountSlider.value = defaultAmount;
-            handleGeneration(defaultAmount);
+            const params = new URLSearchParams(window.location.search);
+            let amt = parseFloat(params.get('amount')) || 0;
+            if (amt < 0) amt = 0;
+            updateState(amt);
         };
 
-        // --- EVENT LISTENERS ---
-        generateBtn.addEventListener('click', () => handleGeneration());
-        downloadBtn.addEventListener('click', handleDownloadFormattedQR);
-        copyUpiBtn.addEventListener('click', copyUpiIdToClipboard);
-
-        amountSlider.addEventListener('input', (e) => {
-            amountInput.value = e.target.value;
+        amountInput.addEventListener('input', (e) => updateState(e.target.value));
+        amountInput.addEventListener('change', (e) => updateState(e.target.value)); 
+        amountSlider.addEventListener('input', (e) => updateState(e.target.value));
+        
+        document.getElementById('whatsapp-btn').addEventListener('click', () => {
+            const amt = amountInput.value;
+            if(parseFloat(amt) <= 0) { showMessage("Please enter a valid amount.", "error"); return; }
+            const text = `*Payment Confirmation*\nTo: ${payeeName}\nAmount: ₹${amt}\n\nPlease verify this transaction.`;
+            window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`, '_blank');
         });
 
-        amountInput.addEventListener('input', (e) => {
-            const value = e.target.value;
-            if (value >= minAmount) {
-                amountSlider.value = Math.min(value, 5000);
-            }
-        });
-        amountInput.addEventListener('blur', (e) => {
-            if (e.target.value < minAmount) {
-                 messageDiv.textContent = `Minimum amount is ₹${minAmount}.`;
-                 messageDiv.className = 'text-center font-medium mt-4 text-red-500';
-                 e.target.value = minAmount;
-                 amountSlider.value = minAmount;
-            }
-        });
+        document.getElementById('download-btn').addEventListener('click', downloadQRCard);
 
-        // --- FUNCTIONS ---
-        function handleGeneration(presetAmount = null) {
-            const amountValue = presetAmount !== null ? presetAmount : parseFloat(amountInput.value);
-            
-            messageDiv.textContent = ''; 
+        function updateState(val) {
+            let amount = parseFloat(val);
+            if(isNaN(amount) || amount < 0) amount = 0;
 
-            if (isNaN(amountValue) || amountValue < minAmount) {
-                messageDiv.textContent = `Please enter a valid amount. Minimum is ₹${minAmount}.`;
-                messageDiv.className = 'text-center font-medium mt-4 text-red-500';
-                return;
-            }
-            
-            currentAmount = amountValue.toFixed(2);
-            amountInput.value = currentAmount;
-            amountSlider.value = currentAmount;
-            displayAmount.textContent = currentAmount;
-            
-            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${currentAmount}&cu=INR`;
-            
-            generateAndDisplayQR(upiUrl);
-            updateWhatsAppLink();
+            amountInput.value = amount;
+            amountSlider.value = amount;
+            displayAmount.innerText = amount.toLocaleString('en-IN');
+
+            generateQR(amount);
         }
 
-        function generateAndDisplayQR(url) {
-            qrCodeContainer.innerHTML = ''; 
-            new QRCode(qrCodeContainer, {
-                text: url,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+        function generateQR(amount) {
+            qrContainer.innerHTML = '';
+            const url = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+            
+            new QRCode(qrContainer, {
+                text: url, width: 200, height: 200,
+                colorDark : "#002366", colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
             });
         }
-        
-        function updateWhatsAppLink() {
-            const message = `Maine ₹${currentAmount} ka payment successfully kar diya hai, please check.`;
-            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-            whatsappConfirmLink.href = whatsappUrl;
+
+        function showMessage(text, type='success') {
+            msgBox.innerText = text;
+            msgBox.className = `text-center pb-6 text-sm font-bold h-6 ${type === 'error' ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => msgBox.innerText = '', 3000);
         }
 
-        function copyUpiIdToClipboard() {
-            // Using the clipboard API for modern browsers
-            if (navigator.clipboard) {
-                 navigator.clipboard.writeText(upiId).then(() => {
-                    showMessage('UPI ID Copied!', 'success');
-                }).catch(err => {
-                    showMessage('Failed to copy UPI ID.', 'error');
-                });
-            } else {
-                // Fallback for older browsers
-                const textArea = document.createElement("textarea");
-                textArea.value = upiId;
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showMessage('UPI ID Copied!', 'success');
-                } catch (err) {
-                    showMessage('Failed to copy UPI ID.', 'error');
-                }
-                document.body.removeChild(textArea);
-            }
-        }
-        
-        function showMessage(msg, type = 'error') {
-            messageDiv.textContent = msg;
-            if (type === 'success') {
-                messageDiv.className = 'text-center font-medium mt-4 text-green-500';
-            } else {
-                messageDiv.className = 'text-center font-medium mt-4 text-red-500';
-            }
-            setTimeout(() => { 
-                messageDiv.textContent = '';
-            }, 3000);
-        }
+        // --- UPDATED PREMIUM DOWNLOAD CARD GENERATOR (Single Box Layout) ---
+        function downloadQRCard() {
+            const amount = parseFloat(amountInput.value);
+            if(amount <= 0) { showMessage("Enter an amount to download.", "error"); return; }
 
-        function handleDownloadFormattedQR() {
-            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&cu=INR`;
+            showMessage("Generating Premium Card...", "success");
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const logoImage = new Image();
-            logoImage.crossOrigin = "Anonymous"; // Important for cross-domain images
-            logoImage.src = 'https://i.ibb.co/m5TkbLgF/1000027139.png';
             
-            logoImage.onload = () => {
-                const canvasSize = 512;
-                const qrCodeSize = 380;
-                const padding = (canvasSize - qrCodeSize) / 2;
-                const headerHeight = 100;
+            // Canvas Size (High Resolution)
+            const width = 800;
+            const height = 1200;
 
-                canvas.width = canvasSize;
-                canvas.height = canvasSize + headerHeight;
+            canvas.width = width;
+            canvas.height = height;
 
-                // 1. Draw background
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // 2. Draw Header with Logo and Text
-                ctx.fillStyle = '#3730a3'; // Indigo-800
-                ctx.fillRect(0, 0, canvas.width, headerHeight);
-                
-                const logoSize = 60;
-                ctx.drawImage(logoImage, (canvas.width / 2) - (logoSize / 2), 10, logoSize, logoSize);
-                
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 20px Inter, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('Scan to Pay', canvas.width / 2, headerHeight - 15);
-
-                // 3. Generate QR code in a temporary element
-                const tempQrContainer = document.createElement('div');
-                new QRCode(tempQrContainer, {
-                    text: upiUrl,
-                    width: qrCodeSize,
-                    height: qrCodeSize,
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-
-                // 4. Draw the QR code onto the main canvas (needs a timeout for QRCode.js to render)
-                setTimeout(() => {
-                    const qrCanvas = tempQrContainer.querySelector('canvas');
-                    if (qrCanvas) {
-                        ctx.drawImage(qrCanvas, padding, headerHeight + padding / 2);
-                        
-                        // 5. Trigger download
-                        const dataUrl = canvas.toDataURL('image/png');
-                        const link = document.createElement('a');
-                        link.href = dataUrl;
-                        link.download = `Bank-Community-Loan-UPI-QR.png`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    } else {
-                        showMessage("QR Download failed. Please try again.");
-                    }
-                }, 100);
-            };
-            logoImage.onerror = () => {
-                 showMessage("Could not load logo for QR download.");
+            // 1. Background & Subtle Pattern
+            const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+            bgGradient.addColorStop(0, '#ffffff');
+            bgGradient.addColorStop(1, '#f0f2f5');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.fillStyle = 'rgba(212, 175, 55, 0.03)';
+            for(let i=0; i<width; i+=30) {
+                for(let j=0; j<height; j+=30) {
+                    ctx.fillRect(i, j, 4, 4);
+                }
             }
+
+            // Luxury Top Bar
+            const topBarGrad = ctx.createLinearGradient(0, 0, width, 0);
+            topBarGrad.addColorStop(0, '#002366');
+            topBarGrad.addColorStop(0.5, '#D4AF37');
+            topBarGrad.addColorStop(1, '#002366');
+            ctx.fillStyle = topBarGrad;
+            ctx.fillRect(0, 0, width, 30);
+
+            // 2. Load Assets & Draw
+            const logo = new Image();
+            logo.crossOrigin = "Anonymous";
+            logo.src = document.getElementById('logo-img').src;
+            
+            logo.onload = () => {
+                ctx.textAlign = 'center';
+
+                // Header Positions (Shifted up slightly)
+                const logoY = 110;
+                const logoSize = 130;
+                const titleY = 220;
+                const subtitleY = 255;
+
+                // Draw Logo
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(width/2, logoY, logoSize/2, 0, Math.PI * 2, true);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(logo, width/2 - logoSize/2, logoY - logoSize/2, logoSize, logoSize);
+                ctx.restore();
+                
+                // Gold Border for Logo
+                ctx.beginPath();
+                ctx.arc(width/2, logoY, logoSize/2, 0, Math.PI * 2, true);
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#D4AF37';
+                ctx.stroke();
+
+                // Main Title & Subtitle
+                ctx.fillStyle = '#002366';
+                ctx.font = '900 38px "Playfair Display", serif';
+                ctx.fillText('TRUST COMMUNITY FUND', width/2, titleY);
+                ctx.fillStyle = '#D4AF37';
+                ctx.font = 'bold 18px Manrope, sans-serif';
+                ctx.fillText('PREMIUM FINANCIAL PARTNER', width/2, subtitleY);
+
+                // --- 3. MAIN SINGLE PREMIUM BOX (The core change) ---
+                const mainBoxTop = 300;
+                const mainBoxHeight = 680;
+                const mainBoxWidth = 700;
+                const mainBoxX = (width - mainBoxWidth) / 2;
+                const boxRadius = 20; // Corner radius
+
+                // Main Box Shadow
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 35, 102, 0.2)';
+                ctx.shadowBlur = 40;
+                ctx.shadowOffsetY = 20;
+                ctx.fillStyle = '#ffffff';
+                
+                // Draw Rounded Rectangle for Main Box background
+                ctx.beginPath();
+                ctx.roundRect(mainBoxX, mainBoxTop, mainBoxWidth, mainBoxHeight, boxRadius);
+                ctx.fill();
+                ctx.restore();
+
+                // Main Box Gold Border
+                ctx.save();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(212, 175, 55, 0.6)';
+                ctx.beginPath();
+                ctx.roundRect(mainBoxX, mainBoxTop, mainBoxWidth, mainBoxHeight, boxRadius);
+                ctx.stroke();
+                ctx.restore();
+                
+                // Inner Top Gradient Accent
+                const boxGrad = ctx.createLinearGradient(mainBoxX, mainBoxTop, mainBoxX + mainBoxWidth, mainBoxTop);
+                boxGrad.addColorStop(0, 'transparent');
+                boxGrad.addColorStop(0.5, 'rgba(212, 175, 55, 0.3)');
+                boxGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = boxGrad;
+                ctx.fillRect(mainBoxX, mainBoxTop, mainBoxWidth, 4);
+
+
+                // --- 4. CONTENT INSIDE MAIN BOX ---
+                
+                // Amount Label & Value (Shifted Up)
+                const amountLabelY = mainBoxTop + 60;
+                const amountValueY = mainBoxTop + 135;
+
+                ctx.fillStyle = '#666';
+                ctx.font = '600 22px Manrope, sans-serif';
+                ctx.fillText('TOTAL PAYABLE AMOUNT', width/2, amountLabelY);
+
+                ctx.fillStyle = '#d32f2f';
+                ctx.font = '900 75px "Playfair Display", serif';
+                ctx.fillText(`₹${amount.toLocaleString('en-IN')}`, width/2, amountValueY);
+
+                // QR Code (MASSIVE SIZE & Priority Placement)
+                const qrCanvas = qrContainer.querySelector('canvas');
+                if (qrCanvas) {
+                    // QR Size increased significantly
+                    const qrSize = 450; 
+                    // Positioned below amount text with good spacing
+                    const qrY = amountValueY + 50; 
+                    const qrX = (width - qrSize) / 2;
+                    const qrPadding = 20;
+
+                    // QR Background Box (White with Gold Border inside main box)
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(0,0,0,0.05)';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(qrX - qrPadding, qrY - qrPadding, qrSize + qrPadding*2, qrSize + qrPadding*2);
+                    
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#D4AF37';
+                    ctx.strokeRect(qrX - qrPadding, qrY - qrPadding, qrSize + qrPadding*2, qrSize + qrPadding*2);
+                    ctx.restore();
+
+                    // Draw QR
+                    ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+                }
+
+                // --- 5. Footer Section (Below Main Box) ---
+                const footerY = mainBoxTop + mainBoxHeight + 50;
+
+                ctx.fillStyle = '#002366';
+                ctx.font = 'bold 24px Manrope, sans-serif';
+                ctx.fillText('Scan via any UPI App to Pay', width/2, footerY);
+                
+                ctx.fillStyle = '#555';
+                ctx.font = '20px monospace';
+                ctx.fillText('UPI ID: princekumar954684-1@okicici', width/2, footerY + 35);
+
+                ctx.fillStyle = '#D4AF37';
+                ctx.font = 'bold 18px Manrope, sans-serif';
+                ctx.fillText('Thank you for your trust.', width/2, height - 40);
+
+                // 6. Trigger Download
+                try {
+                    const link = document.createElement('a');
+                    link.download = `TCF_Premium_Payment_₹${amount}.png`;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showMessage("Premium Card Downloaded!", "success");
+                } catch (err) {
+                    console.error("Download failed:", err);
+                    showMessage("Download failed. Please try again.", "error");
+                }
+            };
+
+            logo.onerror = (err) => {
+                console.error("Logo load failed:", err);
+                showMessage("Error loading logo for download.", "error");
+            };
         }
-
     </script>
-
 </body>
 </html>
 
