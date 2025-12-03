@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>बैंक कम्युनिटी लोन</title>
+    <meta name="theme-color" content="#002366"> <!-- Royal Blue Theme -->
+    <title>Trust Community Fund</title>
+    
+    <!-- Speed Optimization -->
+    <link rel="preload" href="user-style.css" as="style">
+    <link rel="preload" href="https://ik.imagekit.io/kdtvm0r78/1764742107098.png" as="image">
     
     <link rel="manifest" href="/manifest-user.json">
-    <link rel="shortcut icon" href="https://i.ibb.co/pjB1bQ7J/1752978674430.jpg" type="image/x-icon">
-    <link rel="apple-touch-icon" href="https://i.ibb.co/9HF2cM4w/1752676628661.jpg" sizes="180x180">
+    
+    <!-- NEW LOGO -->
+    <link rel="shortcut icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" type="image/x-icon">
+    <link rel="apple-touch-icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" sizes="180x180">
     
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -24,10 +32,10 @@
         <div id="headerDisplay" class="header-display">
             <div class="ad-content"></div>
             <div class="ticker-wrap">
-                <div class="ticker" id="newsTicker">Welcome to Bank Community Loan... Your trusted financial partner...</div>
+                <div class="ticker" id="newsTicker">Welcome to Trust Community Fund... Your trusted financial partner...</div>
             </div>
         </div>
-        <h1>Bank Community Loan</h1>
+        <h1>Trust Community Fund</h1>
         <h4>ESTD: 23 June 2024</h4>
         <div class="header-actions" id="headerActionsContainer">
             <p class="loading-text" style="color: white;">Loading Actions...</p>
@@ -40,7 +48,7 @@
     <main class="content-wrapper">
         <section class="bank-members animate-on-scroll"> 
             <div class="header-container"> 
-                <h2 class="bank-headline">BANK MEMBERS</h2> 
+                <h2 class="bank-headline">COMMUNITY MEMBERS</h2> 
                 <div class="header-buttons-wrapper" id="staticHeaderButtons">
                 </div>
             </div> 
@@ -50,11 +58,13 @@
         <section class="action-cards-section animate-on-scroll"> 
             <h2>Quick Actions</h2> 
             <div class="action-cards"> 
+                <!-- FIRST CARD IMAGE (GOLD COIN) -->
                 <div class="action-card info-card animate-on-scroll" id="totalMembersCard" style="cursor: pointer;">
-                    <i data-feather="users" class="action-card-icon"></i>
+                    <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" class="action-card-icon-img" alt="TCF Coin" style="width: 55px; height: 55px; margin-bottom: 8px;">
                     <span class="info-card-label">All members</span>
                     <span class="info-card-value" id="totalMembersValue">--</span>
                 </div> 
+                
                 <div class="action-card info-card animate-on-scroll" id="totalLoanCard" onclick="window.open('loan_dashbord.html')" style="cursor: pointer;">
                     <i data-feather="trending-up" class="action-card-icon"></i>
                     <span class="info-card-label">All time loan<br><small style="color: var(--primary-color); font-weight: bold; font-size: 0.9em;">Click here</small></span>
@@ -82,34 +92,54 @@
     </main>
 
     <footer>
-        <p>© <span id="currentYear"></span> Bank Community Loan. All rights reserved.<a href="Exit_Letter.html" style="color: #a0aec0; text-decoration: none; font-size: 0.8em; opacity: 0.7;" title="Exit Community Letter">Exit</a></p>
+        <p>© <span id="currentYear"></span> Trust Community Fund. All rights reserved. <a href="Exit_Letter.html" style="color: #a0aec0; text-decoration: none; font-size: 0.8em; opacity: 0.7;" title="Exit Community Letter">Exit</a></p>
     </footer>
 
+    <!-- LUXURY BALANCE MODAL -->
     <div id="balanceModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content luxury-modal">
             <span class="close" id="closeBalanceModal">×</span>
-            <h2>Community Funds</h2>
-            <div id="totalSipAmountDisplay" class="balance-display" style="color: var(--info-color); font-size: 2.4em;">₹0</div>
-            <small class="balance-label">Total SIP Amount</small>
-            <div id="totalCurrentLoanDisplay" class="balance-display" style="color: var(--danger-color); font-size: 2.2em; margin-top: 15px;">₹0</div>
-            <small class="balance-label">Total Current Loan Amount</small>
-            <div id="netReturnAmountDisplay" class="balance-display return" style="margin-top: 15px;">₹0</div>
-            <small class="balance-label">Net Return Amount (After 10% Deduction)</small>
-            <hr style="margin: 20px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
-            <div id="availableAmountDisplay" class="balance-display total">₹0</div>
-            <small class="balance-label">Available Community Balance</small>
+            <h2 class="luxury-title">Community Funds</h2>
+            
+            <div class="balance-group">
+                <p class="balance-label">Total SIP Amount</p>
+                <div id="totalSipAmountDisplay" class="balance-value green-text">₹0</div>
+            </div>
+
+            <div class="balance-group">
+                <p class="balance-label">Total Current Loan Amount</p>
+                <div id="totalCurrentLoanDisplay" class="balance-value red-text">₹0</div>
+            </div>
+
+            <div class="balance-group">
+                <p class="balance-label">Net Return Amount (After 10% Deduction)</p>
+                <div id="netReturnAmountDisplay" class="balance-value gold-text-value">₹0</div>
+            </div>
+
+            <hr class="luxury-divider">
+
+            <div class="balance-group total-group">
+                <p class="balance-label total-label">Available Community Balance</p>
+                <div id="availableAmountDisplay" class="balance-value green-text large-text">₹0</div>
+            </div>
         </div>
     </div>
     
+    <!-- LUXURY PENALTY WALLET MODAL (UPDATED) -->
     <div id="penaltyWalletModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content luxury-modal">
             <span class="close" id="closePenaltyWalletModal">×</span>
-            <h2>Bank Penalty Wallet</h2>
-            <div id="penaltyBalance" class="balance-display" style="color: var(--danger-color);">₹0</div>
-            <small class="balance-label">Current Penalty Balance</small>
-            <hr style="margin: 15px auto; width: 80%; border: 0; height: 1px; background: var(--border-color);">
-            <button id="viewHistoryBtn" class="view-history-btn">View History</button>
-            <ul class="penalty-history-list" id="penaltyHistoryList"></ul>
+            <h2 class="luxury-title">PENALTY WALLET</h2>
+            
+            <div class="balance-group total-group">
+                <div id="penaltyBalance" class="balance-value red-text large-text">₹0</div>
+                <p class="balance-label">Current Penalty Balance</p>
+            </div>
+
+            <hr class="luxury-divider">
+            
+            <button id="viewHistoryBtn" class="civil-button" style="margin-bottom: 20px; width: 100%; border-radius: 8px;">View History</button>
+            <ul class="penalty-history-list" id="penaltyHistoryList" style="display: none;"></ul>
         </div>
     </div>
 
@@ -200,8 +230,8 @@
     
     <div id="notification-popup-container"></div>
 
-    <!-- YAHAN BADLAV KIYA GAYA HAI: Ab sirf ek file app.js load hogi -->
-    <script src="app.js"></script>
+    <!-- FIXED SCRIPT LOADING: Pointing to user-main.js as module -->
+    <script type="module" src="user-main.js"></script>
 
 </body>
 </html>
