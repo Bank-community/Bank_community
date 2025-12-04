@@ -173,3 +173,4 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
 
+
