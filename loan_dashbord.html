@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Loan Dashboard | Royal Edition</title>
     
-    <!-- Fonts: Premium Serif for Headings -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -24,18 +24,18 @@
             --royal-gold: #D4AF37; /* The Main Gold */
             --light-gold: #F4C430;
             --pale-gold: #fff9e6;
-            --bg-color: #f4f7fa;
+            --bg-color: #f8f9fc;
             --card-bg: #ffffff;
             --text-dark: #1a1a1a;
             --text-grey: #666;
             --success-green: #0d5f26;
             --danger-red: #8b0000;
-            --font-heading: 'Cinzel', serif; /* Royal Font */
-            --font-body: 'Manrope', sans-serif; /* Clean Modern Font */
+            --font-heading: 'Cinzel', serif;
+            --font-body: 'Manrope', sans-serif;
         }
 
         * {
-            box-sizing: border-box; /* Fixes the 'khisakna' issue */
+            box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -45,89 +45,88 @@
             margin: 0; 
             padding: 0;
             color: var(--text-dark); 
-            overflow-x: hidden; /* Prevent horizontal scroll */
+            overflow-x: hidden; 
         }
 
         .main-wrapper {
             width: 100%;
-            max-width: 600px; /* Mobile View Optimization */
+            max-width: 600px; 
             margin: 0 auto;
-            padding: 0 0 80px 0; /* Bottom padding for scroll */
+            padding-bottom: 80px;
         }
 
-        /* === 1. HEADER SECTION (Full Screen Width Feel) === */
+        /* === 1. PREMIUM HEADER (Full Width) === */
         .premium-header {
             background: linear-gradient(170deg, var(--primary-blue) 0%, var(--dark-navy) 100%);
-            padding: 40px 20px 30px 20px;
+            padding: 40px 20px 45px 20px; /* Extra padding bottom for overlap */
             text-align: center;
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
+            border-bottom-left-radius: 35px;
+            border-bottom-right-radius: 35px;
             box-shadow: 0 10px 30px rgba(0, 35, 102, 0.4);
             position: relative;
             overflow: hidden;
             border-bottom: 3px solid var(--royal-gold);
         }
 
-        /* Gold decoration circle */
-        .premium-header::before {
+        /* Decorative Element */
+        .premium-header::after {
             content: '';
             position: absolute;
-            top: -50px; left: -50px; width: 150px; height: 150px;
-            background: radial-gradient(circle, rgba(212, 175, 55, 0.2), transparent 70%);
+            top: -20%; right: -20%; width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15), transparent 70%);
             border-radius: 50%;
         }
 
-        .header-title-top {
+        .header-super-title {
             font-family: var(--font-heading);
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: var(--royal-gold);
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             text-transform: uppercase;
-            margin-bottom: 5px;
             display: block;
+            margin-bottom: 5px;
             opacity: 0.9;
         }
 
-        .header-title-main {
+        .header-main-title {
             font-family: var(--font-heading);
-            font-size: 2.2rem;
-            color: #ffffff;
-            font-weight: 700;
-            text-transform: uppercase;
-            line-height: 1.1;
+            font-size: 2rem;
+            color: white;
             margin: 0;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            background: linear-gradient(to right, #fff, #e0e0e0);
+            line-height: 1.2;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(to bottom, #fff, #ddd);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* Generate Button (Floating) */
+        /* Floating Generate Button */
         #generate-credit-btn {
             background: linear-gradient(135deg, var(--royal-gold), #B8860B);
             color: var(--dark-navy);
             border: none;
-            padding: 12px 30px;
+            padding: 12px 28px;
             border-radius: 50px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 800;
             margin-top: 20px;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-            transition: transform 0.2s ease;
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            position: relative;
+            z-index: 5;
         }
-
         #generate-credit-btn:active { transform: scale(0.96); }
 
-        /* === 2. COMBINED STATS CARD (Left/Right) === */
-        .stats-container {
-            padding: 0 15px; /* Reduced padding for wider look */
-            margin-top: -25px; /* Overlap header */
+        /* === 2. COMBINED STATS CARD (Merged) === */
+        .stats-wrapper {
+            padding: 0 20px;
+            margin-top: -30px; /* Overlap effect */
             position: relative;
             z-index: 10;
         }
@@ -137,252 +136,212 @@
             border-radius: 20px;
             display: flex;
             align-items: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 15px 35px rgba(149, 157, 165, 0.2);
+            border: 1px solid rgba(255,255,255,0.5);
             overflow: hidden;
             position: relative;
         }
 
-        /* Gold Top Border Line */
-        .combined-stats-card::after {
+        /* Gold Accent Line on Top */
+        .combined-stats-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0; width: 100%; height: 3px;
             background: linear-gradient(90deg, transparent, var(--royal-gold), transparent);
         }
 
-        .stat-box {
+        .stat-part {
             flex: 1;
             text-align: center;
             padding: 20px 10px;
         }
 
-        .stat-box h3 {
-            font-size: 0.75rem;
-            color: var(--text-grey);
+        .stat-label {
+            font-size: 0.7rem;
+            color: #888;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin: 0 0 5px 0;
-            font-weight: 600;
+            margin-bottom: 5px;
+            font-weight: 700;
         }
 
-        .stat-box p {
-            font-size: 1.6rem;
+        .stat-value {
+            font-size: 1.5rem;
             font-weight: 800;
-            margin: 0;
             color: var(--primary-blue);
+            margin: 0;
             font-family: var(--font-body);
         }
 
-        /* The Vertical Divider */
-        .stat-divider {
+        .stat-separator {
             width: 1px;
-            height: 50px;
-            background: linear-gradient(to bottom, transparent, #ddd, transparent);
+            height: 40px;
+            background: #eee;
         }
 
         /* === 3. CONTROLS === */
-        .controls-area {
-            padding: 25px 15px 15px 15px;
+        .search-area {
+            padding: 25px 20px 15px 20px;
         }
-
         #search-input {
             width: 100%;
             padding: 15px 20px;
-            border-radius: 15px;
+            border-radius: 12px;
             border: 1px solid #e0e0e0;
-            background: #fff;
+            background: white;
             font-size: 1rem;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            font-family: var(--font-body);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
             outline: none;
-            transition: border 0.3s;
+            transition: 0.3s;
         }
         #search-input:focus { border-color: var(--royal-gold); }
 
-        /* === 4. WIDER LOAN CARDS === */
+        /* === 4. WIDE CARDS === */
         #outstanding-loans-container {
-            padding: 0 10px; /* Very minimal padding so cards look wide */
+            padding: 0 15px;
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
 
+        /* Generic Card Base */
         .loan-card, .credit-card-wrapper {
             width: 100%;
             background: white;
             border-radius: 18px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.04);
             position: relative;
-            transition: transform 0.2s;
         }
-        
-        .loan-card:active { transform: scale(0.99); }
 
-        /* Card Header */
-        .card-header-row {
+        /* --- Standard Loan Card Styling --- */
+        .loan-card-header {
             display: flex;
             align-items: center;
             padding: 15px;
-            background: linear-gradient(to right, #ffffff, #fafafa);
-            border-bottom: 1px dashed #eee;
+            background: #fff;
+            border-bottom: 1px dashed #f0f0f0;
         }
 
-        .card-profile-pic {
-            width: 50px;
-            height: 50px;
+        .l-profile-img {
+            width: 50px; height: 50px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--royal-gold);
             padding: 2px;
             background: white;
-            margin-right: 12px;
+            margin-right: 15px;
         }
 
-        .card-user-info { flex: 1; }
-        .card-user-info h4 {
-            margin: 0;
-            font-size: 1.1rem;
-            color: var(--primary-blue);
-            font-weight: 800;
+        .l-info h4 {
+            margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--primary-blue);
         }
-        .card-date {
-            font-size: 0.8rem;
-            color: #888;
-            margin-top: 2px;
-            display: flex; align-items: center; gap: 4px;
-        }
-
-        /* Download Button (Icon only) */
-        .card-dl-btn {
+        .l-date { font-size: 0.8rem; color: #999; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+        
+        /* Download Icon Button */
+        .l-dl-btn {
+            margin-left: auto;
             background: #f4f7fa;
             border: none;
-            width: 36px; height: 36px;
+            width: 38px; height: 38px;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             color: var(--primary-blue);
             cursor: pointer;
         }
 
-        /* Card Body */
-        .card-body {
-            padding: 15px;
-            background: white;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
+        .loan-card-body { padding: 15px; }
+        .lc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
+        .lc-label { color: #666; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .lc-val { font-weight: 700; color: var(--text-dark); }
+        .lc-val.amount { font-size: 1.1rem; color: var(--primary-blue); }
         
-        .info-label { color: #666; font-weight: 500; display: flex; align-items: center; gap: 5px; }
-        .info-value { font-weight: 700; color: var(--text-dark); }
-        .info-value.amount { font-size: 1.2rem; color: var(--primary-blue); }
-        .info-value.badge { 
-            background: var(--pale-gold); color: #8a6d0b; 
-            padding: 2px 10px; border-radius: 20px; font-size: 0.8rem;
+        .lc-tag { 
+            background: var(--pale-gold); color: #9e7c0b; 
+            padding: 3px 10px; border-radius: 20px; 
+            font-size: 0.75rem; font-weight: 700;
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        /* Pending Banner */
-        .card-footer-banner {
-            padding: 10px;
-            text-align: center;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: white;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
+        .card-footer-strip {
+            padding: 10px; text-align: center;
+            font-size: 0.8rem; font-weight: 700;
+            color: white; display: flex; align-items: center; justify-content: center; gap: 6px;
         }
-        .banner-green { background: var(--success-green); }
-        .banner-red { background: var(--danger-red); }
-        .banner-gold { background: #b8860b; }
+        .bg-green { background: var(--success-green); }
+        .bg-gold { background: #b8860b; }
+        .bg-red { background: var(--danger-red); }
 
-        /* === CREDIT CARD VISUAL === */
-        .cc-visual {
+        /* --- Credit Card / Recharge Card Visual --- */
+        .cc-container {
             position: relative;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            /* Aspect ratio enforced by padding trick in JS/Inline */
+            background-size: cover; background-position: center;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
         }
         .cc-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+            background: rgba(0,0,0,0.3); /* Darken bg image */
             padding: 15px;
             display: flex; flex-direction: column; justify-content: space-between;
         }
-        .cc-text-shadow { text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
 
-        /* === MODAL === */
+        /* Modal Styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,18,51,0.85); /* Dark Blue Overlay */
-            backdrop-filter: blur(4px);
+            background: rgba(0, 18, 51, 0.9);
+            backdrop-filter: blur(5px);
             z-index: 9999;
             display: flex; align-items: center; justify-content: center;
-            opacity: 0; visibility: hidden; transition: 0.3s;
+            opacity: 0; visibility: hidden; transition: 0.3s ease;
             padding: 20px;
         }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
-        
-        .modal-card {
+
+        .modal-box {
             background: white;
-            width: 100%;
-            max-width: 400px;
+            width: 100%; max-width: 380px;
             border-radius: 24px;
             padding: 25px;
-            position: relative;
             border: 2px solid var(--royal-gold);
             box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+            position: relative;
         }
 
         .modal-close {
             position: absolute; top: 15px; right: 15px;
-            background: #eee; border: none; font-size: 20px;
+            background: #f0f0f0; border: none; font-size: 20px;
             width: 32px; height: 32px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-
-        .modal-h2 {
-            font-family: var(--font-heading);
-            color: var(--primary-blue);
-            margin: 0 0 20px 0;
-            text-align: center;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
 
         .form-group { margin-bottom: 15px; }
-        .form-label { display: block; font-size: 0.85rem; font-weight: 700; color: #555; margin-bottom: 5px; }
-        .form-input { 
-            width: 100%; padding: 12px; 
-            border: 1px solid #ddd; border-radius: 10px;
-            font-family: var(--font-body); font-size: 1rem;
-        }
-
-        .btn-full {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary-blue);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1rem;
-            margin-top: 10px;
-        }
-
-        /* Loader */
-        .loader-container { text-align: center; padding: 40px; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--royal-gold); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 700; color: #555; margin-bottom: 6px; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: var(--font-body); font-size: 1rem; }
         
-        /* Blinking text for danger */
-        .blink-danger { animation: blink 1.5s infinite; background: var(--danger-red); }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .btn-action {
+            width: 100%; padding: 14px;
+            background: var(--primary-blue); color: white;
+            border: none; border-radius: 12px;
+            font-weight: 700; font-size: 1rem;
+            margin-top: 10px; cursor: pointer;
+        }
+
+        /* Loader & Animations */
+        #loader { text-align: center; padding: 40px; }
+        .spinner { 
+            width: 35px; height: 35px; border: 4px solid #eee; 
+            border-top: 4px solid var(--royal-gold); 
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; 
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* THIS CLASS IS CRITICAL FOR HIDING LOADER */
+        .hidden { display: none !important; }
+
+        .blink-me { animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
     </style>
 </head>
@@ -390,10 +349,10 @@
 
     <div class="main-wrapper">
         
-        <!-- 1. HEADER (Full Screen Width Feel) -->
+        <!-- HEADER -->
         <header class="premium-header">
-            <span class="header-title-top">Smart</span>
-            <h1 class="header-title-main">Loan Dashboard</h1>
+            <span class="header-super-title">Smart</span>
+            <h1 class="header-main-title">Loan Dashboard</h1>
             
             <button id="generate-credit-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
@@ -401,54 +360,53 @@
             </button>
         </header>
 
-        <!-- 2. STATS (Combined Card Left/Right) -->
-        <div class="stats-container">
+        <!-- STATS (Merged Card) -->
+        <div class="stats-wrapper">
             <div class="combined-stats-card">
-                <div class="stat-box">
-                    <h3>Outstanding Loans</h3>
-                    <p id="total-outstanding-count">0</p>
+                <div class="stat-part">
+                    <div class="stat-label">Outstanding Loans</div>
+                    <div class="stat-value" id="total-outstanding-count">0</div>
                 </div>
-                <div class="stat-divider"></div> <!-- The Line in Middle -->
-                <div class="stat-box">
-                    <h3>Total Amount Due</h3>
-                    <p id="total-outstanding-amount">₹0</p>
+                <div class="stat-separator"></div>
+                <div class="stat-part">
+                    <div class="stat-label">Total Amount Due</div>
+                    <div class="stat-value" id="total-outstanding-amount">₹0</div>
                 </div>
             </div>
         </div>
 
-        <!-- 3. CONTROLS -->
-        <div class="controls-area">
-            <input type="text" id="search-input" placeholder="🔍 Search member name...">
+        <!-- SEARCH -->
+        <div class="search-area">
+            <input type="text" id="search-input" placeholder="Search member name...">
         </div>
 
-        <!-- 4. LOAN CARDS LIST -->
-        <div id="loader" class="loader-container hidden">
+        <!-- LOADER (Will be hidden by JS) -->
+        <div id="loader">
             <div class="spinner"></div>
-            <small>Loading Data...</small>
+            <small style="color: #666; font-weight:600;">Loading Data...</small>
         </div>
 
-        <div id="outstanding-loans-container">
-            <!-- Cards Injected Here -->
-        </div>
+        <!-- CARD CONTAINER -->
+        <div id="outstanding-loans-container"></div>
 
-    </div> <!-- End Main Wrapper -->
+    </div>
 
     <!-- MODAL -->
     <div class="modal-overlay" id="credit-modal">
-        <div class="modal-card">
-            <button class="modal-close close-modal-btn">&times;</button>
-            <h2 class="modal-h2">Generate Card</h2>
+        <div class="modal-box">
+            <button class="modal-close">&times;</button>
+            <h2 style="font-family: var(--font-heading); color: var(--primary-blue); margin: 0 0 20px 0; text-align: center;">Generate Card</h2>
 
             <div class="form-group">
                 <label class="form-label">Select Member</label>
-                <select id="member-select" class="form-input">
+                <select id="member-select" class="form-control">
                     <option value="">Loading...</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Card Type</label>
-                <select id="card-type-select" class="form-input">
+                <label class="form-label">Type</label>
+                <select id="card-type-select" class="form-control">
                     <option value="credit">10-Day Credit (Gold)</option>
                     <option value="grocery">Grocery Credit</option>
                     <option value="recharge">Recharge Card</option>
@@ -457,12 +415,12 @@
             
             <div id="amount-fields" class="form-group">
                 <label class="form-label">Amount (₹)</label>
-                <input type="number" id="credit-amount" class="form-input" placeholder="Enter amount" disabled>
+                <input type="number" id="credit-amount" class="form-control" placeholder="Enter amount" disabled>
             </div>
 
             <div id="recharge-fields" class="form-group" style="display: none;">
                 <label class="form-label">Provider</label>
-                <select id="telecom-select" class="form-input">
+                <select id="telecom-select" class="form-control">
                     <option value="Jio">Jio</option>
                     <option value="Airtel">Airtel</option>
                     <option value="Vi">Vi</option>
@@ -470,324 +428,14 @@
                 </select>
             </div>
 
-            <button class="btn-full" id="generate-card-btn">Generate Card</button>
-            <div id="modal-status" style="text-align:center; margin-top:10px; font-size:0.9rem;"></div>
+            <button class="btn-action" id="generate-card-btn">Generate Card</button>
+            <div id="modal-status" style="text-align:center; margin-top:10px; font-size:0.85rem;"></div>
             <div id="generated-card-container" style="margin-top:20px;"></div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            
-            // --- SVGs for Icons ---
-            const ICONS = {
-                cal: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
-                money: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
-                tag: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`,
-                dl: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
-                clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
-            };
-
-            const state = {
-                allActiveLoans: [],
-                membersData: {},
-                ui: {
-                    loader: document.getElementById('loader'),
-                    container: document.getElementById('outstanding-loans-container'),
-                    totalCountEl: document.getElementById('total-outstanding-count'),
-                    totalAmountEl: document.getElementById('total-outstanding-amount'),
-                    searchInput: document.getElementById('search-input'),
-                    modal: document.getElementById('credit-modal'),
-                    openModalBtn: document.getElementById('generate-credit-btn'),
-                    closeModalBtn: document.querySelector('.close-modal-btn'),
-                    memberSelect: document.getElementById('member-select'),
-                    cardTypeSelect: document.getElementById('card-type-select'),
-                    amountFields: document.getElementById('amount-fields'),
-                    rechargeFields: document.getElementById('recharge-fields'),
-                    creditAmountInput: document.getElementById('credit-amount'),
-                    telecomSelect: document.getElementById('telecom-select'),
-                    generateCardBtn: document.getElementById('generate-card-btn'),
-                    generatedCardContainer: document.getElementById('generated-card-container'),
-                    modalStatus: document.getElementById('modal-status'),
-                },
-            };
-
-            // Initialize Firebase (Assuming Config available from user-main environment or fetched)
-            async function checkAuthAndInitialize() {
-                try {
-                    const response = await fetch('/api/firebase-config');
-                    if (!response.ok) throw new Error('Config failed');
-                    const config = await response.json();
-                    
-                    if (!firebase.apps.length) firebase.initializeApp(config);
-                    
-                    firebase.auth().onAuthStateChanged(user => {
-                        if (user) {
-                            fetchAndProcessData();
-                            setupEvents();
-                        } else {
-                            window.location.href = `/login.html?redirect=${window.location.pathname}`;
-                        }
-                    });
-                } catch (error) {
-                    console.error("Init Error", error);
-                    state.ui.loader.innerHTML = "App Init Failed";
-                }
-            }
-
-            async function fetchAndProcessData() {
-                state.ui.loader.classList.remove('hidden');
-                state.ui.container.innerHTML = '';
-                try {
-                    const db = firebase.database();
-                    const [loansSnap, membersSnap] = await Promise.all([
-                        db.ref('activeLoans').once('value'),
-                        db.ref('members').once('value')
-                    ]);
-
-                    if (!loansSnap.exists()) throw new Error('No data');
-                    
-                    state.membersData = membersSnap.val() || {};
-                    const rawLoans = loansSnap.val();
-
-                    state.allActiveLoans = Object.values(rawLoans)
-                        .filter(l => l.status === 'Active')
-                        .map(l => {
-                            const m = state.membersData[l.memberId] || {};
-                            return { ...l, memberName: m.fullName || 'Unknown', profilePicUrl: m.profilePicUrl || null };
-                        })
-                        .sort((a, b) => new Date(a.loanDate) - new Date(b.loanDate));
-                    
-                    populateDropdown(); 
-                    renderUI(state.allActiveLoans);
-
-                } catch (e) {
-                    state.ui.container.innerHTML = `<div style="text-align:center; padding:20px;">No Active Loans Found</div>`;
-                } finally {
-                    state.ui.loader.classList.add('hidden');
-                }
-            }
-
-            function renderUI(loans) {
-                // Summary
-                const total = loans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount), 0);
-                state.ui.totalCountEl.textContent = loans.length;
-                state.ui.totalAmountEl.textContent = `₹${total.toLocaleString('en-IN')}`;
-
-                // List
-                const { container } = state.ui;
-                container.innerHTML = '';
-                
-                loans.forEach(loan => {
-                    const card = document.createElement('div');
-                    const cardId = `card-${loan.loanId}`;
-                    card.id = cardId;
-                    
-                    const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=002366&color=fff`;
-                    const pic = loan.profilePicUrl || defaultPic;
-                    const dateObj = new Date(loan.loanDate);
-                    const daysAgo = Math.floor((new Date() - dateObj) / (1000 * 3600 * 24));
-                    
-                    // Logic for Credit/Recharge (Visual Card) vs Normal Loan
-                    const isCreditCard = ['10 Days Credit', 'Recharge', 'Grocery Credit'].includes(loan.loanType);
-                    
-                    if (isCreditCard) {
-                        card.className = 'credit-card-wrapper';
-                        
-                        let bgImg = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg"; // Default 10 day
-                        let bannerText = `Free period ends in ${10 - daysAgo} days`;
-                        let bannerClass = 'banner-green';
-                        let extraHtml = '';
-
-                        if(loan.loanType === 'Grocery Credit') {
-                            bgImg = "https://i.ibb.co/60sXyybn/20251006-155008.png";
-                            bannerText = `Due in ${30 - daysAgo} days`;
-                            bannerClass = 'banner-gold';
-                        } else if(loan.loanType === 'Recharge') {
-                            bgImg = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                            bannerText = `Taken ${daysAgo} days ago`;
-                            bannerClass = 'banner-gold';
-                            extraHtml = `<div style="position:absolute; top:15px; right:15px; color:white; font-weight:bold; font-size:1.2rem; text-shadow:1px 1px 2px black;">${loan.telecomCompany || ''}</div>`;
-                        }
-
-                        card.innerHTML = `
-                            <div class="cc-visual" style="background-image: url('${bgImg}'); background-size: cover; background-position: center; padding-bottom: 56.25%;">
-                                <div class="cc-overlay">
-                                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                        <img src="${pic}" style="width:50px; height:50px; border-radius:50%; border:2px solid #D4AF37;">
-                                        ${extraHtml}
-                                    </div>
-                                    <div>
-                                        <div class="cc-text-shadow" style="color:white; font-size:1.2rem; font-weight:bold;">${loan.memberName}</div>
-                                        <div class="cc-text-shadow" style="color:white; font-size:1.6rem; font-weight:800; text-align:right;">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer-banner ${bannerClass}">${ICONS.clock} ${bannerText}</div>
-                        `;
-                    } else {
-                        // Standard Loan Card
-                        card.className = 'loan-card';
-                        let bannerClass = 'banner-green';
-                        if (daysAgo > 60) bannerClass = 'banner-gold';
-                        if (daysAgo > 90) bannerClass = 'banner-red blink-danger';
-                        
-                        let formattedDate = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-
-                        let extraDetails = '';
-                        if (loan.loanType === 'Personal Loan' && daysAgo > 30) {
-                             const interest = parseFloat(loan.outstandingAmount) * 0.03; // Simple 3% logic for display
-                             extraDetails = `<div class="info-row"><span class="info-label">Est. Interest</span><span class="info-value">₹${interest.toFixed(0)}</span></div>`;
-                        }
-
-                        card.innerHTML = `
-                            <div class="card-header-row">
-                                <img src="${pic}" class="card-profile-pic">
-                                <div class="card-user-info">
-                                    <h4>${loan.memberName}</h4>
-                                    <div class="card-date">${ICONS.cal} ${formattedDate}</div>
-                                </div>
-                                <button class="card-dl-btn" data-card-id="${cardId}">${ICONS.dl}</button>
-                            </div>
-                            <div class="card-body">
-                                <div class="info-row">
-                                    <span class="info-label">${ICONS.money} Outstanding</span>
-                                    <span class="info-value amount">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">${ICONS.tag} Type</span>
-                                    <span class="info-value badge">${loan.loanType}</span>
-                                </div>
-                                ${extraDetails}
-                            </div>
-                            <div class="card-footer-banner ${bannerClass}">
-                                ${ICONS.clock} Active for ${daysAgo} days
-                            </div>
-                        `;
-                    }
-                    container.appendChild(card);
-                });
-            }
-
-            function populateDropdown() {
-                const sel = state.ui.memberSelect;
-                sel.innerHTML = '<option value="">-- Select --</option>';
-                Object.entries(state.membersData)
-                    .filter(([_, m]) => m.status === 'Approved')
-                    .sort((a,b) => a[1].fullName.localeCompare(b[1].fullName))
-                    .forEach(([id, m]) => {
-                        const opt = document.createElement('option');
-                        opt.value = id;
-                        opt.textContent = m.fullName;
-                        opt.dataset.pic = m.profilePicUrl;
-                        sel.appendChild(opt);
-                    });
-            }
-
-            function setupEvents() {
-                const { ui } = state;
-                
-                ui.searchInput.addEventListener('input', (e) => {
-                    const term = e.target.value.toLowerCase();
-                    const filtered = state.allActiveLoans.filter(l => l.memberName.toLowerCase().includes(term));
-                    renderUI(filtered);
-                });
-
-                ui.container.addEventListener('click', (e) => {
-                    const btn = e.target.closest('.card-dl-btn');
-                    if(btn) downloadCard(btn.dataset.cardId);
-                });
-
-                // Modal
-                ui.openModalBtn.addEventListener('click', () => {
-                    ui.modal.classList.add('visible');
-                    ui.generatedCardContainer.innerHTML = '';
-                    ui.modalStatus.textContent = '';
-                });
-                
-                ui.closeModalBtn.addEventListener('click', () => ui.modal.classList.remove('visible'));
-
-                ui.memberSelect.addEventListener('change', () => {
-                    ui.creditAmountInput.disabled = !ui.memberSelect.value;
-                    if(ui.memberSelect.value) ui.creditAmountInput.focus();
-                });
-
-                ui.cardTypeSelect.addEventListener('change', () => {
-                   ui.rechargeFields.style.display = (ui.cardTypeSelect.value === 'recharge') ? 'block' : 'none';
-                });
-
-                ui.generateCardBtn.addEventListener('click', generateCardLogic);
-            }
-
-            function generateCardLogic() {
-                const { ui } = state;
-                const mId = ui.memberSelect.value;
-                if(!mId) return alert('Select Member');
-                
-                const amt = ui.creditAmountInput.value;
-                if(!amt) return alert('Enter Amount');
-
-                const memberName = ui.memberSelect.options[ui.memberSelect.selectedIndex].text;
-                const pic = ui.memberSelect.options[ui.memberSelect.selectedIndex].dataset.pic;
-                const type = ui.cardTypeSelect.value;
-                
-                let bgUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
-                let extra = "";
-                
-                if(type === 'grocery') bgUrl = "https://i.ibb.co/60sXyybn/20251006-155008.png";
-                if(type === 'recharge') {
-                    bgUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                    extra = `<div style="position:absolute; top:20px; right:20px; font-weight:bold; color:white; font-size:1.4em; text-shadow:1px 1px 2px black;">${ui.telecomSelect.value}</div>`;
-                }
-
-                // Visual Generation
-                const html = `
-                    <div id="gen-card" style="position:relative; width:100%; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
-                        <div style="background-image:url('${bgUrl}'); background-size:cover; background-position:center; padding-bottom:56.25%; position:relative;">
-                             <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.1);">
-                                <img src="${pic || 'https://ui-avatars.com/api/?name='+memberName}" style="position:absolute; top:20px; left:20px; width:60px; height:60px; border-radius:50%; border:3px solid #D4AF37;">
-                                ${extra}
-                                <div style="position:absolute; bottom:50px; left:25px; color:white; font-weight:bold; font-size:1.4em; text-shadow:2px 2px 4px black;">${memberName}</div>
-                                <div style="position:absolute; bottom:25px; right:25px; color:white; font-weight:800; font-size:2em; text-shadow:2px 2px 4px black;">₹${parseInt(amt).toLocaleString('en-IN')}</div>
-                             </div>
-                        </div>
-                    </div>
-                    <button onclick="downloadGenCard()" class="btn-full" style="background:#28a745; margin-top:15px;">Download Image</button>
-                `;
-                ui.generatedCardContainer.innerHTML = html;
-                ui.modalStatus.innerHTML = "<span style='color:green'>Card Generated!</span>";
-            }
-
-            // Global function for onclick in generated HTML
-            window.downloadGenCard = function() {
-                const el = document.getElementById('gen-card');
-                html2canvas(el, {useCORS:true, scale:3}).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'LoanCard.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                });
-            };
-
-            function downloadCard(cardId) {
-                const el = document.getElementById(cardId);
-                // Temporarily hide button
-                const btn = el.querySelector('.card-dl-btn');
-                if(btn) btn.style.display = 'none';
-                
-                html2canvas(el, {useCORS:true, scale:3}).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'LoanStatus.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    if(btn) btn.style.display = 'flex';
-                });
-            }
-
-            checkAuthAndInitialize();
-        });
-    </script>
+    <!-- Logic Script Connected Here -->
+    <script src="loan_dashboard.js"></script>
 </body>
 </html>
 
