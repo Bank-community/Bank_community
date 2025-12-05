@@ -2,13 +2,13 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Loan Dashboard | Premium</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Loan Dashboard | Royal Edition</title>
     
-    <!-- Fonts -->
+    <!-- Fonts: Premium Serif for Headings -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -19,884 +19,776 @@
     <style>
         /* === ROYAL LUXURY THEME VARIABLES === */
         :root {
-            --primary-color: #002366; /* Royal Blue */
-            --primary-dark: #001540;
-            --accent-gold: #D4AF37; /* Royal Gold */
-            --accent-gold-light: #F4C430;
-            --bg-color: #f4f6f9;
+            --primary-blue: #002366; /* Royal Blue */
+            --dark-navy: #001233;
+            --royal-gold: #D4AF37; /* The Main Gold */
+            --light-gold: #F4C430;
+            --pale-gold: #fff9e6;
+            --bg-color: #f4f7fa;
             --card-bg: #ffffff;
             --text-dark: #1a1a1a;
-            --text-light: #555;
-            --border-color: rgba(212, 175, 55, 0.3); /* Subtle Gold Border */
-            --shadow-soft: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
-            --shadow-gold: 0 8px 20px rgba(212, 175, 55, 0.2);
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --font-main: 'Roboto', sans-serif;
-            --font-heading: 'Times New Roman', serif;
+            --text-grey: #666;
+            --success-green: #0d5f26;
+            --danger-red: #8b0000;
+            --font-heading: 'Cinzel', serif; /* Royal Font */
+            --font-body: 'Manrope', sans-serif; /* Clean Modern Font */
+        }
+
+        * {
+            box-sizing: border-box; /* Fixes the 'khisakna' issue */
+            -webkit-tap-highlight-color: transparent;
         }
 
         body { 
-            font-family: var(--font-main); 
+            font-family: var(--font-body); 
             background-color: var(--bg-color); 
             margin: 0; 
             padding: 0;
             color: var(--text-dark); 
-            line-height: 1.6;
+            overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
-        .container { 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            padding: 20px;
+        .main-wrapper {
+            width: 100%;
+            max-width: 600px; /* Mobile View Optimization */
+            margin: 0 auto;
+            padding: 0 0 80px 0; /* Bottom padding for scroll */
         }
 
-        /* === PREMIUM HEADER === */
-        .header-section {
-            background: linear-gradient(160deg, #002366 0%, #001233 100%);
-            padding: 30px 20px;
-            border-radius: 20px;
-            margin-bottom: 30px;
-            box-shadow: var(--shadow-soft);
-            border-bottom: 4px solid var(--accent-gold);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            color: white;
+        /* === 1. HEADER SECTION (Full Screen Width Feel) === */
+        .premium-header {
+            background: linear-gradient(170deg, var(--primary-blue) 0%, var(--dark-navy) 100%);
+            padding: 40px 20px 30px 20px;
+            text-align: center;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0, 35, 102, 0.4);
+            position: relative;
+            overflow: hidden;
+            border-bottom: 3px solid var(--royal-gold);
         }
 
-        .header-content h1 {
+        /* Gold decoration circle */
+        .premium-header::before {
+            content: '';
+            position: absolute;
+            top: -50px; left: -50px; width: 150px; height: 150px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.2), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .header-title-top {
             font-family: var(--font-heading);
-            font-size: 2.2em;
-            margin: 0;
+            font-size: 1.2rem;
+            color: var(--royal-gold);
+            letter-spacing: 3px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            background: linear-gradient(to right, #FFD700, #D4AF37, #FFF);
+            margin-bottom: 5px;
+            display: block;
+            opacity: 0.9;
+        }
+
+        .header-title-main {
+            font-family: var(--font-heading);
+            font-size: 2.2rem;
+            color: #ffffff;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1.1;
+            margin: 0;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            background: linear-gradient(to right, #fff, #e0e0e0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .header-content p {
-            margin: 5px 0 0 0;
-            opacity: 0.8;
-            font-size: 0.95em;
+        /* Generate Button (Floating) */
+        #generate-credit-btn {
+            background: linear-gradient(135deg, var(--royal-gold), #B8860B);
+            color: var(--dark-navy);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            margin-top: 20px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            transition: transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #ddd;
         }
 
-        /* === GLOSSY BUTTON === */
-        #generate-credit-btn {
-            background: linear-gradient(135deg, #D4AF37, #B8860B);
-            color: #001540;
-            border: none;
-            border-radius: 50px;
-            padding: 12px 25px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
+        #generate-credit-btn:active { transform: scale(0.96); }
+
+        /* === 2. COMBINED STATS CARD (Left/Right) === */
+        .stats-container {
+            padding: 0 15px; /* Reduced padding for wider look */
+            margin-top: -25px; /* Overlap header */
+            position: relative;
+            z-index: 10;
+        }
+
+        .combined-stats-card {
+            background: #ffffff;
+            border-radius: 20px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        #generate-credit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
-            background: linear-gradient(135deg, #FFD700, #D4AF37);
-        }
-
-        #generate-credit-btn svg { stroke: #001540; stroke-width: 2.5; }
-
-        /* === SUMMARY CARDS (GOLD PLAQUES) === */
-        .summary-section { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 20px; 
-            margin-bottom: 30px; 
-        }
-        
-        .summary-card { 
-            background: white;
-            border-radius: 16px; 
-            padding: 20px; 
-            text-align: center; 
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-soft);
-            position: relative;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
             overflow: hidden;
-            transition: transform 0.3s ease;
+            position: relative;
         }
 
-        .summary-card::before {
+        /* Gold Top Border Line */
+        .combined-stats-card::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; width: 4px; height: 100%;
-            background: var(--accent-gold);
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--royal-gold), transparent);
         }
 
-        .summary-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-gold); }
+        .stat-box {
+            flex: 1;
+            text-align: center;
+            padding: 20px 10px;
+        }
 
-        .summary-card h3 { 
-            margin: 0 0 5px 0; 
-            font-size: 0.9em; 
-            color: var(--text-light); 
-            font-weight: 600; 
+        .stat-box h3 {
+            font-size: 0.75rem;
+            color: var(--text-grey);
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin: 0 0 5px 0;
+            font-weight: 600;
         }
 
-        .summary-card p { 
-            margin: 0; 
-            font-size: 2em; 
-            font-weight: 800; 
-            color: var(--primary-color);
-            font-family: var(--font-main);
+        .stat-box p {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0;
+            color: var(--primary-blue);
+            font-family: var(--font-body);
         }
 
-        /* === SEARCH INPUT === */
-        .filter-controls { margin-bottom: 30px; }
-        #search-input { 
-            width: 100%; 
-            padding: 15px 20px; 
-            border: 2px solid #e0e0e0; 
-            border-radius: 50px; 
-            font-size: 16px; 
-            background-color: white;
-            transition: all 0.3s ease;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+        /* The Vertical Divider */
+        .stat-divider {
+            width: 1px;
+            height: 50px;
+            background: linear-gradient(to bottom, transparent, #ddd, transparent);
+        }
+
+        /* === 3. CONTROLS === */
+        .controls-area {
+            padding: 25px 15px 15px 15px;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             outline: none;
+            transition: border 0.3s;
         }
-        #search-input:focus { 
-            border-color: var(--accent-gold); 
-            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+        #search-input:focus { border-color: var(--royal-gold); }
+
+        /* === 4. WIDER LOAN CARDS === */
+        #outstanding-loans-container {
+            padding: 0 10px; /* Very minimal padding so cards look wide */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        /* === LOAN CARDS GRID === */
-        #outstanding-loans-container { 
-            display: grid; 
-            gap: 25px; 
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        }
-
-        .loan-card, .credit-card-wrapper { width: 100%; position: relative; }
-
-        /* Normal Loan Card Styling */
-        .loan-card { 
-            background-color: var(--card-bg); 
-            border-radius: 18px; 
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-soft);
-            transition: all 0.3s ease; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
+        .loan-card, .credit-card-wrapper {
+            width: 100%;
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            transition: transform 0.2s;
         }
         
-        .loan-card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: var(--shadow-gold); 
-            border-color: var(--accent-gold);
+        .loan-card:active { transform: scale(0.99); }
+
+        /* Card Header */
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(to right, #ffffff, #fafafa);
+            border-bottom: 1px dashed #eee;
         }
 
-        .card-main-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
-        
-        .card-top { display: flex; align-items: center; margin-bottom: 15px; }
-        
-        .profile-picture { 
-            width: 55px; height: 55px; 
-            border-radius: 50%; 
-            overflow: hidden; 
-            margin-right: 15px; 
-            flex-shrink: 0; 
-            border: 3px solid var(--accent-gold); /* Gold Ring */
+        .card-profile-pic {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--royal-gold);
             padding: 2px;
             background: white;
-        }
-        .profile-picture img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        
-        .user-details h3 { 
-            margin: 0; font-size: 1.1em; font-weight: 700; color: var(--primary-color); 
-        }
-        .loan-date { font-size: 0.85em; color: var(--text-light); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
-        .loan-date svg { width: 14px; height: 14px; color: var(--accent-gold); }
-
-        .card-middle { 
-            background-color: #fcfcfc; 
-            border-radius: 12px; 
-            padding: 15px; 
-            border: 1px solid #eee; 
-            margin-top: auto; 
+            margin-right: 12px;
         }
 
-        .detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; margin-bottom: 8px; }
-        .detail-row:last-child { margin-bottom: 0; }
-        .detail-label { color: var(--text-light); font-weight: 500; display: flex; align-items: center; gap: 6px; }
-        .detail-label svg { color: var(--primary-color); width: 16px; height: 16px; }
-        .detail-value { font-weight: 700; color: var(--text-dark); }
-        .detail-value.amount { font-size: 1.1em; color: var(--primary-color); }
-        
-        /* Loan Type Badge */
-        .detail-value.loan-type-value { 
-            background: linear-gradient(135deg, #002366, #003399);
-            color: white; 
-            padding: 3px 10px; 
-            border-radius: 50px; 
-            font-size: 0.8em; 
+        .card-user-info { flex: 1; }
+        .card-user-info h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--primary-blue);
+            font-weight: 800;
+        }
+        .card-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 2px;
+            display: flex; align-items: center; gap: 4px;
         }
 
-        /* Status Banners */
-        .pending-banner { 
-            padding: 10px; text-align: center; font-weight: 700; font-size: 0.85em;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            color: white; letter-spacing: 0.5px;
-        }
-        .pending-banner svg { width: 16px; height: 16px; }
-        .pending-banner.green { background: linear-gradient(135deg, #28a745, #218838); }
-        .pending-banner.warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: #000; }
-        .pending-banner.danger { background: linear-gradient(135deg, #dc3545, #c82333); }
-
-        /* === CREDIT CARD STYLE (UPDATED) === */
-        .credit-card-wrapper { 
-            border-radius: 18px; 
-            transition: transform 0.3s ease;
-        }
-        .credit-card-image-bg {
-            border-radius: 16px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.2);
-            /* Aspect ratio handled by padding-bottom in JS provided code, ensured here */
-        }
-        .cc-profile-pic { border: 2px solid var(--accent-gold) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-        .cc-member-name { 
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); 
-            font-family: var(--font-heading); 
-            letter-spacing: 1px;
-            font-size: 1.2em;
-        }
-        .cc-value { 
-            color: var(--accent-gold); 
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
-        }
-
-        /* === MODAL (LUXURY) === */
-        .modal-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-            z-index: 2000; opacity: 0; visibility: hidden; 
-            transition: all 0.3s ease;
+        /* Download Button (Icon only) */
+        .card-dl-btn {
+            background: #f4f7fa;
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
+            color: var(--primary-blue);
+            cursor: pointer;
+        }
+
+        /* Card Body */
+        .card-body {
+            padding: 15px;
+            background: white;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .info-label { color: #666; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+        .info-value { font-weight: 700; color: var(--text-dark); }
+        .info-value.amount { font-size: 1.2rem; color: var(--primary-blue); }
+        .info-value.badge { 
+            background: var(--pale-gold); color: #8a6d0b; 
+            padding: 2px 10px; border-radius: 20px; font-size: 0.8rem;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        /* Pending Banner */
+        .card-footer-banner {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: white;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .banner-green { background: var(--success-green); }
+        .banner-red { background: var(--danger-red); }
+        .banner-gold { background: #b8860b; }
+
+        /* === CREDIT CARD VISUAL === */
+        .cc-visual {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            /* Aspect ratio enforced by padding trick in JS/Inline */
+        }
+        .cc-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+            padding: 15px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .cc-text-shadow { text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+
+        /* === MODAL === */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,18,51,0.85); /* Dark Blue Overlay */
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: 0.3s;
+            padding: 20px;
         }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
         
-        .modal-content { 
-            background: linear-gradient(145deg, #ffffff, #f9fcff);
-            border-radius: 20px; 
-            padding: 30px; 
-            width: 90%; max-width: 420px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
-            border: 2px solid var(--accent-gold);
-            transform: scale(0.9); transition: transform 0.3s ease;
-        }
-        .modal-overlay.visible .modal-content { transform: scale(1); }
-
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .modal-header h2 { 
-            margin: 0; 
-            font-family: var(--font-heading); 
-            color: var(--primary-color); 
-            text-transform: uppercase;
-        }
-        .close-modal-btn { 
-            background: var(--danger-color); color: white; border: none; 
-            width: 32px; height: 32px; border-radius: 50%; 
-            font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        .modal-card {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 24px;
+            padding: 25px;
+            position: relative;
+            border: 2px solid var(--royal-gold);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
         }
 
-        .form-group label { font-weight: 600; color: var(--primary-color); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group select, .form-group input { 
-            border: 1px solid #ccc; border-radius: 10px; padding: 12px; 
-            background: #fff; font-family: var(--font-main);
+        .modal-close {
+            position: absolute; top: 15px; right: 15px;
+            background: #eee; border: none; font-size: 20px;
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
         }
-        .form-group select:focus, .form-group input:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px rgba(0, 35, 102, 0.1); }
 
-        .modal-btn { 
-            background: var(--primary-color); 
-            color: white; 
-            font-weight: 700; 
-            padding: 14px; 
-            border-radius: 50px; 
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 10px rgba(0, 35, 102, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .modal-h2 {
+            font-family: var(--font-heading);
+            color: var(--primary-blue);
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 0.85rem; font-weight: 700; color: #555; margin-bottom: 5px; }
+        .form-input { 
+            width: 100%; padding: 12px; 
+            border: 1px solid #ddd; border-radius: 10px;
+            font-family: var(--font-body); font-size: 1rem;
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
             margin-top: 10px;
         }
-        .modal-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
 
         /* Loader */
-        #loader { text-align: center; color: var(--primary-color); font-weight: 600; padding: 40px; }
-        .spinner { border: 4px solid rgba(0, 35, 102, 0.1); border-left-color: var(--accent-gold); width: 40px; height: 40px; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loader-container { text-align: center; padding: 40px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--royal-gold); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Blinking Animation for Late Loans */
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .blinking-banner { animation: blink 1.5s infinite; }
-        .hidden { display: none !important; }
-        
-        /* Specific Action Buttons */
-        #share-btn { background-color: #25D366; border-color: #128C7E; }
-        #download-btn { background-color: var(--primary-color); }
-        .card-download-btn { background: white; color: var(--primary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        /* Blinking text for danger */
+        .blink-danger { animation: blink 1.5s infinite; background: var(--danger-red); }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Premium Header -->
-        <div class="header-section">
-            <div class="header-content">
-                <h1>Smart Loan Dashboard</h1>
-                <p>Track Outstanding Loans & Generate Cards</p>
-            </div>
+
+    <div class="main-wrapper">
+        
+        <!-- 1. HEADER (Full Screen Width Feel) -->
+        <header class="premium-header">
+            <span class="header-title-top">Smart</span>
+            <h1 class="header-title-main">Loan Dashboard</h1>
+            
             <button id="generate-credit-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                 Generate Card
             </button>
-        </div>
+        </header>
 
-        <div class="summary-section">
-            <div class="summary-card">
-                <h3>Total Outstanding Loans</h3>
-                <p id="total-outstanding-count">0</p>
+        <!-- 2. STATS (Combined Card Left/Right) -->
+        <div class="stats-container">
+            <div class="combined-stats-card">
+                <div class="stat-box">
+                    <h3>Outstanding Loans</h3>
+                    <p id="total-outstanding-count">0</p>
+                </div>
+                <div class="stat-divider"></div> <!-- The Line in Middle -->
+                <div class="stat-box">
+                    <h3>Total Amount Due</h3>
+                    <p id="total-outstanding-amount">₹0</p>
+                </div>
             </div>
-            <div class="summary-card">
-                <h3>Total Amount Due</h3>
-                <p id="total-outstanding-amount">₹0</p>
-            </div>
         </div>
 
-        <div class="filter-controls">
-            <input type="text" id="search-input" placeholder="🔍 Search member by name...">
+        <!-- 3. CONTROLS -->
+        <div class="controls-area">
+            <input type="text" id="search-input" placeholder="🔍 Search member name...">
         </div>
 
-        <div id="loader" class="hidden">
+        <!-- 4. LOAN CARDS LIST -->
+        <div id="loader" class="loader-container hidden">
             <div class="spinner"></div>
-            <span>Synchronizing with Bank Database...</span>
+            <small>Loading Data...</small>
         </div>
 
         <div id="outstanding-loans-container">
-            <!-- Cards will be injected here via JS -->
+            <!-- Cards Injected Here -->
         </div>
-    </div>
 
-    <!-- Modal for Generating Cards -->
+    </div> <!-- End Main Wrapper -->
+
+    <!-- MODAL -->
     <div class="modal-overlay" id="credit-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Generate Card</h2>
-                <button class="close-modal-btn">&times;</button>
-            </div>
+        <div class="modal-card">
+            <button class="modal-close close-modal-btn">&times;</button>
+            <h2 class="modal-h2">Generate Card</h2>
 
             <div class="form-group">
-                <label for="member-select">Select Member</label>
-                <select id="member-select">
-                    <option value="">-- Loading members --</option>
+                <label class="form-label">Select Member</label>
+                <select id="member-select" class="form-input">
+                    <option value="">Loading...</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="card-type-select">Card Type</label>
-                <select id="card-type-select">
+                <label class="form-label">Card Type</label>
+                <select id="card-type-select" class="form-input">
                     <option value="credit">10-Day Credit (Gold)</option>
                     <option value="grocery">Grocery Credit</option>
                     <option value="recharge">Recharge Card</option>
                 </select>
             </div>
             
-            <div id="amount-fields">
-                <div class="form-group">
-                    <label for="credit-amount">Amount (₹)</label>
-                    <input type="number" id="credit-amount" placeholder="Select a member first" disabled>
-                </div>
+            <div id="amount-fields" class="form-group">
+                <label class="form-label">Amount (₹)</label>
+                <input type="number" id="credit-amount" class="form-input" placeholder="Enter amount" disabled>
             </div>
 
-            <div id="recharge-fields" style="display: none;">
-                <div class="form-group">
-                    <label for="telecom-select">Telecom Provider</label>
-                    <select id="telecom-select">
-                        <option value="Jio">Jio</option>
-                        <option value="Airtel">Airtel</option>
-                        <option value="Vi">Vi</option>
-                        <option value="BSNL">BSNL</option>
-                    </select>
-                </div>
+            <div id="recharge-fields" class="form-group" style="display: none;">
+                <label class="form-label">Provider</label>
+                <select id="telecom-select" class="form-input">
+                    <option value="Jio">Jio</option>
+                    <option value="Airtel">Airtel</option>
+                    <option value="Vi">Vi</option>
+                    <option value="BSNL">BSNL</option>
+                </select>
             </div>
 
-            <button class="modal-btn" id="generate-card-btn">Generate Card</button>
-            <div id="modal-status"></div>
-            <div id="generated-card-container"></div>
+            <button class="btn-full" id="generate-card-btn">Generate Card</button>
+            <div id="modal-status" style="text-align:center; margin-top:10px; font-size:0.9rem;"></div>
+            <div id="generated-card-container" style="margin-top:20px;"></div>
         </div>
     </div>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-    
-    // --- ICONS (Feather Style SVGs) ---
-    const ICONS = {
-        calendar: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
-        money: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
-        tag: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`,
-        download: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
-        clock: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
-        product: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>`,
-        processing: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
-        interest: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`, 
-        emi: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
-    };
-
-    const state = {
-        allActiveLoans: [],
-        membersData: {},
-        ui: {
-            loader: document.getElementById('loader'),
-            container: document.getElementById('outstanding-loans-container'),
-            totalCountEl: document.getElementById('total-outstanding-count'),
-            totalAmountEl: document.getElementById('total-outstanding-amount'),
-            searchInput: document.getElementById('search-input'),
-            modal: document.getElementById('credit-modal'),
-            modalTitle: document.getElementById('modal-title'),
-            openModalBtn: document.getElementById('generate-credit-btn'),
-            closeModalBtn: document.querySelector('.close-modal-btn'),
-            memberSelect: document.getElementById('member-select'),
-            cardTypeSelect: document.getElementById('card-type-select'),
-            amountFields: document.getElementById('amount-fields'),
-            rechargeFields: document.getElementById('recharge-fields'),
-            creditAmountInput: document.getElementById('credit-amount'),
-            telecomSelect: document.getElementById('telecom-select'),
-            generateCardBtn: document.getElementById('generate-card-btn'),
-            generatedCardContainer: document.getElementById('generated-card-container'),
-            modalStatus: document.getElementById('modal-status'),
-        },
-    };
-
-    async function checkAuthAndInitialize() {
-        try {
-            const response = await fetch('/api/firebase-config');
-            if (!response.ok) throw new Error('Configuration failed to load.');
-            const config = await response.json();
             
-            if (!firebase.apps.length) {
-                firebase.initializeApp(config);
-            }
-            
-            firebase.auth().onAuthStateChanged(user => {
-                if (user) {
-                    fetchAndProcessData();
-                    setupEventListeners();
-                    setupModalEventListeners();
-                } else {
-                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
-                }
-            });
-
-        } catch (error) {
-            console.error("Initialization Error:", error);
-            state.ui.loader.innerHTML = `<p style="color: red;">Application failed to initialize: ${error.message}</p>`;
-            state.ui.loader.classList.remove('hidden');
-        }
-    }
-
-    async function fetchAndProcessData() {
-        state.ui.loader.classList.remove('hidden');
-        state.ui.container.innerHTML = '';
-        try {
-            const db = firebase.database();
-            const [loansSnapshot, membersSnapshot] = await Promise.all([
-                db.ref('activeLoans').once('value'),
-                db.ref('members').once('value')
-            ]);
-
-            if (!loansSnapshot.exists() || !membersSnapshot.exists()) {
-                throw new Error('No active loans or member data found.');
-            }
-            
-            state.membersData = membersSnapshot.val();
-            const activeLoansData = loansSnapshot.val();
-
-            state.allActiveLoans = Object.values(activeLoansData)
-                .filter(loan => loan.status === 'Active')
-                .map(loan => {
-                    const memberInfo = state.membersData[loan.memberId] || {};
-                    return { ...loan, memberName: memberInfo.fullName || 'Unknown', profilePicUrl: memberInfo.profilePicUrl || null };
-                })
-                .sort((a, b) => new Date(a.loanDate) - new Date(b.loanDate));
-            
-            populateMembersDropdown(); 
-            displayAllData();
-
-        } catch (error) {
-            console.error("Data fetch failed:", error);
-            state.ui.container.innerHTML = `<p style="color: red; text-align: center;">Data could not be loaded: ${error.message}</p>`;
-        } finally {
-            state.ui.loader.classList.add('hidden');
-        }
-    }
-    
-    function displayAllData() {
-        displaySummary(state.allActiveLoans);
-        displayLoanCards(state.allActiveLoans);
-    }
-
-    function displaySummary(loans) {
-        const { totalCountEl, totalAmountEl } = state.ui;
-        const totalAmount = loans.reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount), 0);
-        totalCountEl.textContent = loans.length;
-        totalAmountEl.textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
-    }
-    
-    function displayLoanCards(loans) {
-        const { container } = state.ui;
-        container.innerHTML = '';
-        if (loans.length === 0) {
-            container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-light);"><h3>All Clear!</h3><p>There are no outstanding loans.</p></div>`;
-            return;
-        }
-        loans.forEach(loan => {
-            const card = document.createElement('div');
-            const cardId = `loan-card-${loan.loanId}`;
-            card.id = cardId;
-            const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=002366&color=fff&size=50`;
-            const profilePic = loan.profilePicUrl || defaultPic;
-            const loanDate = new Date(loan.loanDate);
-            const daysAgo = Math.floor((new Date() - loanDate) / (1000 * 3600 * 24));
-            const today = new Date();
-
-            if (['10 Days Credit', 'Recharge', 'Grocery Credit'].includes(loan.loanType)) {
-                card.className = 'credit-card-wrapper';
-                let cardImageUrl, bannerClass, bannerText, extraContent = '';
-
-                switch(loan.loanType) {
-                    case '10 Days Credit':
-                        cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
-                        bannerClass = 'green';
-                        const dueDate10 = new Date(loanDate);
-                        dueDate10.setDate(dueDate10.getDate() + 10);
-                        const daysRemaining10 = Math.max(0, Math.ceil((dueDate10 - today) / (1000 * 3600 * 24)));
-                        bannerText = `Free period ends in ${daysRemaining10} days`;
-                        break;
-                    case 'Grocery Credit':
-                        cardImageUrl = "https://i.ibb.co/60sXyybn/20251006-155008.png";
-                        bannerClass = 'warning';
-                        const dueDate30 = new Date(loanDate);
-                        dueDate30.setDate(dueDate30.getDate() + 30);
-                        const daysRemaining30 = Math.max(0, Math.ceil((dueDate30 - today) / (1000 * 3600 * 24)));
-                        bannerText = `Due in ${daysRemaining30} days`;
-                        if (today.getDate() >= 1 && today.getDate() <= 10) {
-                            extraContent = `<div class="cc-pay-now">Pay Now</div>`;
-                        }
-                        break;
-                    case 'Recharge':
-                        cardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                        bannerClass = 'warning';
-                        bannerText = `Taken ${daysAgo} days ago`;
-                        extraContent = `<div style="position:absolute; top:20px; right:20px; color:white; font-weight:bold; font-size:1.2em; text-shadow:1px 1px 2px black;">${loan.telecomCompany || ''}</div>`;
-                        break;
-                }
-
-                card.innerHTML = `
-                    <div class="credit-card-image-bg" style="background-image: url('${cardImageUrl}'); background-size: cover; background-position: center; padding-bottom: 56.25%; position: relative;">
-                        <div class="cc-content" style="position: absolute; top:0; left:0; width:100%; height:100%;">
-                            <div class="cc-profile-pic" style="position:absolute; top:20px; left:20px; width:50px; height:50px; border-radius:50%; overflow:hidden;"><img src="${profilePic}" style="width:100%; height:100%; object-fit:cover;" alt="${loan.memberName}"></div>
-                            ${extraContent}
-                            <div class="cc-member-name" style="position:absolute; bottom:45px; left:25px; color:white; font-weight:bold;">${loan.memberName}</div>
-                            <div class="cc-amount-group" style="position:absolute; bottom:25px; right:25px;"><div class="cc-value" style="font-size:1.6em; font-weight:800; color:#fff;">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</div></div>
-                        </div>
-                    </div>
-                    <div class="pending-banner ${bannerClass}">${ICONS.clock} <span>${bannerText}</span></div>`;
-            } else { 
-                card.className = 'loan-card';
-                const formattedDate = loanDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                
-                let bannerClass = 'green';
-                if (daysAgo > 85) bannerClass = 'danger';
-                else if (daysAgo > 60) bannerClass = 'warning';
-                const bannerText = `Active for ${daysAgo} days`;
-                
-                let extraDetails = '';
-                let productImageHtml = '';
-
-                if (loan.loanType === 'Personal Loan') {
-                    const loanAmount = parseFloat(loan.outstandingAmount);
-                    let interestRate = 0;
-                    if (daysAgo >= 1 && daysAgo <= 30) interestRate = 0.01;
-                    else if (daysAgo >= 31 && daysAgo <= 60) interestRate = 0.03;
-                    else if (daysAgo > 60) interestRate = 0.05;
-
-                    if (interestRate > 0) {
-                        const interestAmount = loanAmount * interestRate;
-                        extraDetails += `
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.interest} Interest:</span>
-                                <span class="detail-value amount" style="font-size:1em;">₹${interestAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                            </div>`;
-                    }
-                    if (daysAgo > 100) bannerClass = 'danger blinking-banner';
-                }
-                else if (loan.loanType === 'Product on EMI' && loan.productDetails) {
-                    extraDetails = `
-                        <div class="detail-row">
-                            <span class="detail-label">${ICONS.product} Product:</span>
-                            <span class="detail-value">${loan.productDetails.name}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">${ICONS.money} EMI:</span>
-                            <span class="detail-value amount">₹${parseFloat(loan.productDetails.monthlyEmi).toLocaleString('en-IN')}</span>
-                        </div>`;
-                } 
-
-                card.innerHTML = `
-                    <div class="card-main-content">
-                        <button class="card-download-btn" data-card-id="${cardId}" style="position:absolute; top:15px; right:15px; border:none; border-radius:50%; width:35px; height:35px; cursor:pointer;">${ICONS.download}</button>
-                        <div class="card-top">
-                            <div class="profile-picture"><img src="${profilePic}" alt="${loan.memberName}"></div>
-                            <div class="user-details">
-                                <h3>${loan.memberName}</h3>
-                                <div class="loan-date">${ICONS.calendar} ${formattedDate}</div>
-                            </div>
-                        </div>
-                        <div class="card-middle">
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.money} Outstanding:</span>
-                                <span class="detail-value amount">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">${ICONS.tag} Type:</span>
-                                <span class="detail-value loan-type-value">${loan.loanType}</span>
-                            </div>
-                            ${extraDetails}
-                        </div>
-                    </div>
-                    <div class="pending-banner ${bannerClass}">${ICONS.clock} <span>${bannerText}</span></div>`;
-            }
-            container.appendChild(card);
-        });
-    }
-    
-    function populateMembersDropdown() {
-        const { memberSelect } = state.ui;
-        memberSelect.innerHTML = '<option value="">-- Choose a member --</option>';
-        const sortedMembers = Object.entries(state.membersData)
-            .filter(([id, member]) => member.status === 'Approved')
-            .sort(([, a], [, b]) => a.fullName.localeCompare(b.fullName));
-
-        sortedMembers.forEach(([memberId, member]) => {
-            const option = document.createElement('option');
-            option.value = memberId;
-            option.textContent = member.fullName;
-            option.dataset.profilePic = member.profilePicUrl || '';
-            memberSelect.appendChild(option);
-        });
-    }
-
-    function setupModalEventListeners() {
-        const { modal, openModalBtn, closeModalBtn, memberSelect, creditAmountInput, generateCardBtn, modalStatus, generatedCardContainer, cardTypeSelect, amountFields, rechargeFields, modalTitle, telecomSelect } = state.ui;
-
-        openModalBtn.addEventListener('click', () => {
-            cardTypeSelect.value = 'credit';
-            cardTypeSelect.dispatchEvent(new Event('change'));
-            memberSelect.value = '';
-            creditAmountInput.value = '';
-            creditAmountInput.disabled = true;
-            creditAmountInput.placeholder = 'Select a member first';
-            generatedCardContainer.innerHTML = '';
-            modalStatus.textContent = '';
-            modal.classList.add('visible');
-        });
-        
-        closeModalBtn.addEventListener('click', () => modal.classList.remove('visible'));
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
-
-        memberSelect.addEventListener('change', () => {
-            creditAmountInput.disabled = !memberSelect.value;
-            creditAmountInput.placeholder = memberSelect.value ? 'Enter amount' : 'Select a member first';
-        });
-        
-        cardTypeSelect.addEventListener('change', () => {
-            const cardType = cardTypeSelect.value;
-            const isRecharge = (cardType === 'recharge');
-            
-            rechargeFields.style.display = isRecharge ? 'block' : 'none';
-            amountFields.style.display = 'block';
-            
-            modalTitle.textContent = `Generate ${cardType.charAt(0).toUpperCase() + cardType.slice(1)} Card`;
-        });
-        
-        generateCardBtn.addEventListener('click', () => {
-            const cardType = cardTypeSelect.value;
-            const memberId = memberSelect.value;
-            const selectedOption = memberSelect.options[memberSelect.selectedIndex];
-
-            if (!memberId) {
-                modalStatus.textContent = 'Please select a member.';
-                modalStatus.style.color = 'red';
-                return;
-            }
-            
-            const amount = parseFloat(creditAmountInput.value);
-            if (isNaN(amount) || amount <= 0) {
-                modalStatus.textContent = 'Please enter a valid amount.';
-                modalStatus.style.color = 'red';
-                return;
-            }
-            
-            modalStatus.textContent = 'Generating card...';
-            modalStatus.style.color = '#555';
-
-            let loanType;
-            if(cardType === 'credit') loanType = '10 Days Credit';
-            else if (cardType === 'grocery') loanType = 'Grocery Credit';
-            else loanType = 'Recharge';
-
-            const loanData = {
-                memberName: selectedOption.textContent,
-                loanType: loanType,
-                originalAmount: amount,
-                telecomCompany: (cardType === 'recharge') ? telecomSelect.value : null
+            // --- SVGs for Icons ---
+            const ICONS = {
+                cal: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+                money: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+                tag: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`,
+                dl: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+                clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
             };
 
-            generateVisualCard(loanData, selectedOption.dataset.profilePic);
-            modalStatus.textContent = 'Card generated successfully!';
-            modalStatus.style.color = 'var(--success-color)';
-        });
-    }
-    
-    function generateVisualCard(loanData, profilePicUrl) {
-        const { generatedCardContainer } = state.ui;
-        let cardImageUrl = '';
-        let extraContent = '';
-        
-        const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loanData.memberName)}&background=002366&color=fff&size=50`;
-        const profilePic = profilePicUrl || defaultPic;
-        
-        switch(loanData.loanType) {
-            case '10 Days Credit':
-                cardImageUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
-                break;
-            case 'Grocery Credit':
-                cardImageUrl = "https://i.ibb.co/60sXyybn/20251006-155008.png";
-                break;
-            case 'Recharge':
-                cardImageUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
-                extraContent = `<div style="position:absolute; top:20px; right:20px; color:white; font-weight:bold; font-size:1.2em; text-shadow:1px 1px 2px black;">${loanData.telecomCompany}</div>`;
-                break;
-        }
+            const state = {
+                allActiveLoans: [],
+                membersData: {},
+                ui: {
+                    loader: document.getElementById('loader'),
+                    container: document.getElementById('outstanding-loans-container'),
+                    totalCountEl: document.getElementById('total-outstanding-count'),
+                    totalAmountEl: document.getElementById('total-outstanding-amount'),
+                    searchInput: document.getElementById('search-input'),
+                    modal: document.getElementById('credit-modal'),
+                    openModalBtn: document.getElementById('generate-credit-btn'),
+                    closeModalBtn: document.querySelector('.close-modal-btn'),
+                    memberSelect: document.getElementById('member-select'),
+                    cardTypeSelect: document.getElementById('card-type-select'),
+                    amountFields: document.getElementById('amount-fields'),
+                    rechargeFields: document.getElementById('recharge-fields'),
+                    creditAmountInput: document.getElementById('credit-amount'),
+                    telecomSelect: document.getElementById('telecom-select'),
+                    generateCardBtn: document.getElementById('generate-card-btn'),
+                    generatedCardContainer: document.getElementById('generated-card-container'),
+                    modalStatus: document.getElementById('modal-status'),
+                },
+            };
 
-        let cardContentHtml = `
-            <div style="position:absolute; top:20px; left:20px; width:50px; height:50px; border-radius:50%; overflow:hidden; border:2px solid #D4AF37;"><img src="${profilePic}" style="width:100%; height:100%; object-fit:cover;" alt="${loanData.memberName}"></div>
-            ${extraContent}
-            <div style="position:absolute; bottom:45px; left:25px; color:white; font-weight:bold; font-size:1.1em; text-shadow:1px 1px 2px black;">${loanData.memberName}</div>
-            <div style="position:absolute; bottom:25px; right:25px;"><div style="font-size:1.6em; font-weight:800; color:#fff; text-shadow:1px 1px 2px black;">₹${loanData.originalAmount.toLocaleString('en-IN')}</div></div>
-        `;
-
-        generatedCardContainer.innerHTML = `
-            <div id="card-to-share" style="margin: 0 auto; width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-               <div style="background-image: url('${cardImageUrl}'); background-size: cover; background-position: center; padding-bottom: 56.25%; position: relative;">
-                  ${cardContentHtml}
-               </div>
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="modal-btn" id="download-btn" style="flex:1;">Download</button>
-                <button class="modal-btn" id="share-btn" style="flex:1;">Share</button>
-            </div>`;
-        
-        document.getElementById('download-btn').addEventListener('click', () => handleCardAction('download'));
-        document.getElementById('share-btn').addEventListener('click', () => handleCardAction('share'));
-    }
-
-    async function handleCardAction(action) {
-        const cardElement = document.getElementById('card-to-share');
-        const statusEl = state.ui.modalStatus;
-        statusEl.textContent = "Processing High Quality Image...";
-        
-        try {
-            const canvas = await html2canvas(cardElement, { 
-                useCORS: true, 
-                scale: 3, 
-                backgroundColor: null
-            });
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            
-            if (action === 'download') {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `TCF_Card_${Date.now()}.png`;
-                link.click();
-                statusEl.textContent = "Download started!";
-            } else if (action === 'share') {
-                const file = new File([blob], 'card.png', { type: 'image/png' });
-                if (navigator.share && navigator.canShare({ files: [file] })) {
-                     await navigator.share({ files: [file], title: 'TCF Smart Card' });
-                     statusEl.textContent = "Shared!";
-                } else {
-                    statusEl.textContent = 'Sharing not supported on this device.';
+            // Initialize Firebase (Assuming Config available from user-main environment or fetched)
+            async function checkAuthAndInitialize() {
+                try {
+                    const response = await fetch('/api/firebase-config');
+                    if (!response.ok) throw new Error('Config failed');
+                    const config = await response.json();
+                    
+                    if (!firebase.apps.length) firebase.initializeApp(config);
+                    
+                    firebase.auth().onAuthStateChanged(user => {
+                        if (user) {
+                            fetchAndProcessData();
+                            setupEvents();
+                        } else {
+                            window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                        }
+                    });
+                } catch (error) {
+                    console.error("Init Error", error);
+                    state.ui.loader.innerHTML = "App Init Failed";
                 }
             }
-        } catch (err) {
-            console.error('Action failed:', err);
-            statusEl.textContent = 'Error processing image.';
-        }
-    }
-    
-    function downloadCardAsImage(cardId) {
-        const cardElement = document.getElementById(cardId);
-        if (!cardElement) return;
 
-        html2canvas(cardElement, { 
-            useCORS: true,
-            scale: 3,
-            backgroundColor: null,
-            onclone: (doc) => {
-                const btn = doc.querySelector(`#${cardId} .card-download-btn`);
+            async function fetchAndProcessData() {
+                state.ui.loader.classList.remove('hidden');
+                state.ui.container.innerHTML = '';
+                try {
+                    const db = firebase.database();
+                    const [loansSnap, membersSnap] = await Promise.all([
+                        db.ref('activeLoans').once('value'),
+                        db.ref('members').once('value')
+                    ]);
+
+                    if (!loansSnap.exists()) throw new Error('No data');
+                    
+                    state.membersData = membersSnap.val() || {};
+                    const rawLoans = loansSnap.val();
+
+                    state.allActiveLoans = Object.values(rawLoans)
+                        .filter(l => l.status === 'Active')
+                        .map(l => {
+                            const m = state.membersData[l.memberId] || {};
+                            return { ...l, memberName: m.fullName || 'Unknown', profilePicUrl: m.profilePicUrl || null };
+                        })
+                        .sort((a, b) => new Date(a.loanDate) - new Date(b.loanDate));
+                    
+                    populateDropdown(); 
+                    renderUI(state.allActiveLoans);
+
+                } catch (e) {
+                    state.ui.container.innerHTML = `<div style="text-align:center; padding:20px;">No Active Loans Found</div>`;
+                } finally {
+                    state.ui.loader.classList.add('hidden');
+                }
+            }
+
+            function renderUI(loans) {
+                // Summary
+                const total = loans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount), 0);
+                state.ui.totalCountEl.textContent = loans.length;
+                state.ui.totalAmountEl.textContent = `₹${total.toLocaleString('en-IN')}`;
+
+                // List
+                const { container } = state.ui;
+                container.innerHTML = '';
+                
+                loans.forEach(loan => {
+                    const card = document.createElement('div');
+                    const cardId = `card-${loan.loanId}`;
+                    card.id = cardId;
+                    
+                    const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=002366&color=fff`;
+                    const pic = loan.profilePicUrl || defaultPic;
+                    const dateObj = new Date(loan.loanDate);
+                    const daysAgo = Math.floor((new Date() - dateObj) / (1000 * 3600 * 24));
+                    
+                    // Logic for Credit/Recharge (Visual Card) vs Normal Loan
+                    const isCreditCard = ['10 Days Credit', 'Recharge', 'Grocery Credit'].includes(loan.loanType);
+                    
+                    if (isCreditCard) {
+                        card.className = 'credit-card-wrapper';
+                        
+                        let bgImg = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg"; // Default 10 day
+                        let bannerText = `Free period ends in ${10 - daysAgo} days`;
+                        let bannerClass = 'banner-green';
+                        let extraHtml = '';
+
+                        if(loan.loanType === 'Grocery Credit') {
+                            bgImg = "https://i.ibb.co/60sXyybn/20251006-155008.png";
+                            bannerText = `Due in ${30 - daysAgo} days`;
+                            bannerClass = 'banner-gold';
+                        } else if(loan.loanType === 'Recharge') {
+                            bgImg = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                            bannerText = `Taken ${daysAgo} days ago`;
+                            bannerClass = 'banner-gold';
+                            extraHtml = `<div style="position:absolute; top:15px; right:15px; color:white; font-weight:bold; font-size:1.2rem; text-shadow:1px 1px 2px black;">${loan.telecomCompany || ''}</div>`;
+                        }
+
+                        card.innerHTML = `
+                            <div class="cc-visual" style="background-image: url('${bgImg}'); background-size: cover; background-position: center; padding-bottom: 56.25%;">
+                                <div class="cc-overlay">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                        <img src="${pic}" style="width:50px; height:50px; border-radius:50%; border:2px solid #D4AF37;">
+                                        ${extraHtml}
+                                    </div>
+                                    <div>
+                                        <div class="cc-text-shadow" style="color:white; font-size:1.2rem; font-weight:bold;">${loan.memberName}</div>
+                                        <div class="cc-text-shadow" style="color:white; font-size:1.6rem; font-weight:800; text-align:right;">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer-banner ${bannerClass}">${ICONS.clock} ${bannerText}</div>
+                        `;
+                    } else {
+                        // Standard Loan Card
+                        card.className = 'loan-card';
+                        let bannerClass = 'banner-green';
+                        if (daysAgo > 60) bannerClass = 'banner-gold';
+                        if (daysAgo > 90) bannerClass = 'banner-red blink-danger';
+                        
+                        let formattedDate = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+
+                        let extraDetails = '';
+                        if (loan.loanType === 'Personal Loan' && daysAgo > 30) {
+                             const interest = parseFloat(loan.outstandingAmount) * 0.03; // Simple 3% logic for display
+                             extraDetails = `<div class="info-row"><span class="info-label">Est. Interest</span><span class="info-value">₹${interest.toFixed(0)}</span></div>`;
+                        }
+
+                        card.innerHTML = `
+                            <div class="card-header-row">
+                                <img src="${pic}" class="card-profile-pic">
+                                <div class="card-user-info">
+                                    <h4>${loan.memberName}</h4>
+                                    <div class="card-date">${ICONS.cal} ${formattedDate}</div>
+                                </div>
+                                <button class="card-dl-btn" data-card-id="${cardId}">${ICONS.dl}</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-row">
+                                    <span class="info-label">${ICONS.money} Outstanding</span>
+                                    <span class="info-value amount">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">${ICONS.tag} Type</span>
+                                    <span class="info-value badge">${loan.loanType}</span>
+                                </div>
+                                ${extraDetails}
+                            </div>
+                            <div class="card-footer-banner ${bannerClass}">
+                                ${ICONS.clock} Active for ${daysAgo} days
+                            </div>
+                        `;
+                    }
+                    container.appendChild(card);
+                });
+            }
+
+            function populateDropdown() {
+                const sel = state.ui.memberSelect;
+                sel.innerHTML = '<option value="">-- Select --</option>';
+                Object.entries(state.membersData)
+                    .filter(([_, m]) => m.status === 'Approved')
+                    .sort((a,b) => a[1].fullName.localeCompare(b[1].fullName))
+                    .forEach(([id, m]) => {
+                        const opt = document.createElement('option');
+                        opt.value = id;
+                        opt.textContent = m.fullName;
+                        opt.dataset.pic = m.profilePicUrl;
+                        sel.appendChild(opt);
+                    });
+            }
+
+            function setupEvents() {
+                const { ui } = state;
+                
+                ui.searchInput.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    const filtered = state.allActiveLoans.filter(l => l.memberName.toLowerCase().includes(term));
+                    renderUI(filtered);
+                });
+
+                ui.container.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.card-dl-btn');
+                    if(btn) downloadCard(btn.dataset.cardId);
+                });
+
+                // Modal
+                ui.openModalBtn.addEventListener('click', () => {
+                    ui.modal.classList.add('visible');
+                    ui.generatedCardContainer.innerHTML = '';
+                    ui.modalStatus.textContent = '';
+                });
+                
+                ui.closeModalBtn.addEventListener('click', () => ui.modal.classList.remove('visible'));
+
+                ui.memberSelect.addEventListener('change', () => {
+                    ui.creditAmountInput.disabled = !ui.memberSelect.value;
+                    if(ui.memberSelect.value) ui.creditAmountInput.focus();
+                });
+
+                ui.cardTypeSelect.addEventListener('change', () => {
+                   ui.rechargeFields.style.display = (ui.cardTypeSelect.value === 'recharge') ? 'block' : 'none';
+                });
+
+                ui.generateCardBtn.addEventListener('click', generateCardLogic);
+            }
+
+            function generateCardLogic() {
+                const { ui } = state;
+                const mId = ui.memberSelect.value;
+                if(!mId) return alert('Select Member');
+                
+                const amt = ui.creditAmountInput.value;
+                if(!amt) return alert('Enter Amount');
+
+                const memberName = ui.memberSelect.options[ui.memberSelect.selectedIndex].text;
+                const pic = ui.memberSelect.options[ui.memberSelect.selectedIndex].dataset.pic;
+                const type = ui.cardTypeSelect.value;
+                
+                let bgUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
+                let extra = "";
+                
+                if(type === 'grocery') bgUrl = "https://i.ibb.co/60sXyybn/20251006-155008.png";
+                if(type === 'recharge') {
+                    bgUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                    extra = `<div style="position:absolute; top:20px; right:20px; font-weight:bold; color:white; font-size:1.4em; text-shadow:1px 1px 2px black;">${ui.telecomSelect.value}</div>`;
+                }
+
+                // Visual Generation
+                const html = `
+                    <div id="gen-card" style="position:relative; width:100%; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+                        <div style="background-image:url('${bgUrl}'); background-size:cover; background-position:center; padding-bottom:56.25%; position:relative;">
+                             <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.1);">
+                                <img src="${pic || 'https://ui-avatars.com/api/?name='+memberName}" style="position:absolute; top:20px; left:20px; width:60px; height:60px; border-radius:50%; border:3px solid #D4AF37;">
+                                ${extra}
+                                <div style="position:absolute; bottom:50px; left:25px; color:white; font-weight:bold; font-size:1.4em; text-shadow:2px 2px 4px black;">${memberName}</div>
+                                <div style="position:absolute; bottom:25px; right:25px; color:white; font-weight:800; font-size:2em; text-shadow:2px 2px 4px black;">₹${parseInt(amt).toLocaleString('en-IN')}</div>
+                             </div>
+                        </div>
+                    </div>
+                    <button onclick="downloadGenCard()" class="btn-full" style="background:#28a745; margin-top:15px;">Download Image</button>
+                `;
+                ui.generatedCardContainer.innerHTML = html;
+                ui.modalStatus.innerHTML = "<span style='color:green'>Card Generated!</span>";
+            }
+
+            // Global function for onclick in generated HTML
+            window.downloadGenCard = function() {
+                const el = document.getElementById('gen-card');
+                html2canvas(el, {useCORS:true, scale:3}).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'LoanCard.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            };
+
+            function downloadCard(cardId) {
+                const el = document.getElementById(cardId);
+                // Temporarily hide button
+                const btn = el.querySelector('.card-dl-btn');
                 if(btn) btn.style.display = 'none';
+                
+                html2canvas(el, {useCORS:true, scale:3}).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'LoanStatus.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    if(btn) btn.style.display = 'flex';
+                });
             }
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `Loan_Card_${cardId}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        });
-    }
 
-    function setupEventListeners() {
-            state.ui.searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase().trim();
-            const filteredLoans = state.allActiveLoans.filter(loan => 
-                loan.memberName.toLowerCase().includes(searchTerm)
-            );
-            displayLoanCards(filteredLoans);
+            checkAuthAndInitialize();
         });
-        
-        state.ui.container.addEventListener('click', function(event) {
-            const downloadButton = event.target.closest('.card-download-btn');
-            if (downloadButton) {
-                const cardId = downloadButton.dataset.cardId;
-                downloadCardAsImage(cardId);
-            }
-        });
-    }
-    
-    checkAuthAndInitialize();
-});
     </script>
 </body>
 </html>
+
 
