@@ -180,7 +180,7 @@ function displayMembers(members, adminSettings) {
         return;
     }
 
-    const normalCardFrameUrl = adminSettings.normal_card_frame_url || 'https://ik.imagekit.io/nsyr92pse/20251205_160240.png';
+    const normalCardFrameUrl = adminSettings.normal_card_frame_url || 'https://ik.imagekit.io/nsyr92pse/20251007_103318.png';
 
     members.forEach((member, index) => {
         if (index < 3) {
