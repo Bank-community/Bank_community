@@ -79,7 +79,7 @@
 
         .header-super-title {
             font-family: var(--font-heading);
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: var(--royal-gold);
             letter-spacing: 4px;
             text-transform: uppercase;
@@ -434,8 +434,350 @@
         </div>
     </div>
 
-    <!-- Logic Script Connected Here -->
-    <script src="loan_dashboard.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        
+        // --- ICONS (SVGs) ---
+        const ICONS = {
+            cal: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+            money: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+            tag: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`,
+            dl: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+            clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+        };
+
+        const state = {
+            allActiveLoans: [],
+            membersData: {},
+            ui: {
+                loader: document.getElementById('loader'),
+                container: document.getElementById('outstanding-loans-container'),
+                totalCountEl: document.getElementById('total-outstanding-count'),
+                totalAmountEl: document.getElementById('total-outstanding-amount'),
+                searchInput: document.getElementById('search-input'),
+                
+                // Modal Elements
+                modal: document.getElementById('credit-modal'),
+                openModalBtn: document.getElementById('generate-credit-btn'),
+                closeModalBtn: document.querySelector('.modal-close'),
+                memberSelect: document.getElementById('member-select'),
+                cardTypeSelect: document.getElementById('card-type-select'),
+                amountFields: document.getElementById('amount-fields'),
+                rechargeFields: document.getElementById('recharge-fields'),
+                creditAmountInput: document.getElementById('credit-amount'),
+                telecomSelect: document.getElementById('telecom-select'),
+                generateCardBtn: document.getElementById('generate-card-btn'),
+                generatedCardContainer: document.getElementById('generated-card-container'),
+                modalStatus: document.getElementById('modal-status'),
+            },
+        };
+
+        // --- 1. INITIALIZE & FETCH ---
+        async function initApp() {
+            try {
+                // Config fetch karne ki koshish karein
+                const response = await fetch('/api/firebase-config');
+                if (response.ok) {
+                    const config = await response.json();
+                    if (!firebase.apps.length) firebase.initializeApp(config);
+                } else {
+                    console.warn("Config fetch failed, assuming Firebase already loaded in parent context.");
+                }
+
+                // Auth Check
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        fetchData(); // User login hai, data laao
+                        setupListeners(); // Buttons active karo
+                    } else {
+                        // Agar login nahi hai, to login page par bhejo
+                        window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Init Error:", error);
+                if(state.ui.loader) {
+                    state.ui.loader.innerHTML = `<p style="color:red">Failed to start app.</p>`;
+                }
+            }
+        }
+
+        async function fetchData() {
+            // Spinner dikhao
+            if(state.ui.loader) state.ui.loader.classList.remove('hidden');
+            
+            try {
+                const db = firebase.database();
+                const [loansSnap, membersSnap] = await Promise.all([
+                    db.ref('activeLoans').once('value'),
+                    db.ref('members').once('value')
+                ]);
+
+                // Data Validate karo
+                if (!loansSnap.exists()) {
+                    renderUI([]); // Empty state
+                    return;
+                }
+                
+                state.membersData = membersSnap.val() || {};
+                const rawLoans = loansSnap.val();
+
+                // Loans ko array mein convert karo aur sort karo
+                state.allActiveLoans = Object.values(rawLoans)
+                    .filter(l => l.status === 'Active')
+                    .map(l => {
+                        const m = state.membersData[l.memberId] || {};
+                        return { 
+                            ...l, 
+                            memberName: m.fullName || 'Unknown Member', 
+                            profilePicUrl: m.profilePicUrl || null 
+                        };
+                    })
+                    .sort((a, b) => new Date(a.loanDate) - new Date(b.loanDate));
+                
+                // Dropdown bharo modal ke liye
+                populateDropdown(); 
+                
+                // Cards dikhao
+                renderUI(state.allActiveLoans);
+
+            } catch (e) {
+                console.error("Fetch Error:", e);
+                state.ui.container.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No Active Loans Found.</div>`;
+            } finally {
+                // *** CRITICAL FIX: Spinner ko hamesha hide karo ***
+                if(state.ui.loader) {
+                    state.ui.loader.classList.add('hidden');
+                }
+            }
+        }
+
+        // --- 2. RENDER UI ---
+        function renderUI(loans) {
+            // Stats Update
+            const total = loans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount), 0);
+            state.ui.totalCountEl.textContent = loans.length;
+            state.ui.totalAmountEl.textContent = `₹${total.toLocaleString('en-IN')}`;
+
+            // Container Clear
+            const { container } = state.ui;
+            container.innerHTML = '';
+            
+            if(loans.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:30px; color:#aaa;">All clear! No pending loans.</div>`;
+                return;
+            }
+
+            loans.forEach(loan => {
+                const card = document.createElement('div');
+                const cardId = `card-${loan.loanId}`;
+                card.id = cardId;
+                
+                const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=002366&color=fff`;
+                const pic = loan.profilePicUrl || defaultPic;
+                const dateObj = new Date(loan.loanDate);
+                const daysAgo = Math.floor((new Date() - dateObj) / (1000 * 3600 * 24));
+                
+                // Determine Card Type (Visual vs Standard)
+                const isCreditCard = ['10 Days Credit', 'Recharge', 'Grocery Credit'].includes(loan.loanType);
+                
+                if (isCreditCard) {
+                    // VISUAL CARD RENDER
+                    card.className = 'credit-card-wrapper';
+                    
+                    let bgImg = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg"; // Default
+                    let bannerText = `Ends in ${10 - daysAgo} days`;
+                    let bannerClass = 'bg-green';
+                    let extraHtml = '';
+
+                    if(loan.loanType === 'Grocery Credit') {
+                        bgImg = "https://i.ibb.co/60sXyybn/20251006-155008.png";
+                        bannerText = `Due in ${30 - daysAgo} days`;
+                        bannerClass = 'bg-gold';
+                    } else if(loan.loanType === 'Recharge') {
+                        bgImg = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                        bannerText = `Taken ${daysAgo} days ago`;
+                        bannerClass = 'bg-gold';
+                        extraHtml = `<div style="position:absolute; top:15px; right:15px; color:white; font-weight:bold; font-size:1.2rem; text-shadow:1px 1px 2px black;">${loan.telecomCompany || ''}</div>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="cc-container" style="background-image: url('${bgImg}');">
+                            <div class="cc-overlay">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                    <img src="${pic}" style="width:50px; height:50px; border-radius:50%; border:2px solid #D4AF37;">
+                                    ${extraHtml}
+                                </div>
+                                <div>
+                                    <div style="color:white; font-size:1.1rem; font-weight:bold; text-shadow:1px 1px 2px black;">${loan.memberName}</div>
+                                    <div style="color:white; font-size:1.5rem; font-weight:800; text-align:right; text-shadow:1px 1px 2px black;">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer-strip ${bannerClass}">${ICONS.clock} ${bannerText}</div>
+                    `;
+                } else {
+                    // STANDARD CARD RENDER
+                    card.className = 'loan-card';
+                    let bannerClass = 'bg-green';
+                    if (daysAgo > 60) bannerClass = 'bg-gold';
+                    if (daysAgo > 90) bannerClass = 'bg-red blink-me';
+                    
+                    let formattedDate = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+
+                    let extraDetails = '';
+                    // Interest logic for display only
+                    if (loan.loanType === 'Personal Loan' && daysAgo > 30) {
+                        const interest = parseFloat(loan.outstandingAmount) * 0.03; 
+                        extraDetails = `<div class="lc-row"><span class="lc-label">Interest (Est.)</span><span class="lc-val">₹${interest.toFixed(0)}</span></div>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="loan-card-header">
+                            <img src="${pic}" class="l-profile-img">
+                            <div class="l-info">
+                                <h4>${loan.memberName}</h4>
+                                <div class="l-date">${ICONS.cal} ${formattedDate}</div>
+                            </div>
+                            <button class="l-dl-btn" onclick="downloadSingleCard('${cardId}')">${ICONS.dl}</button>
+                        </div>
+                        <div class="loan-card-body">
+                            <div class="lc-row">
+                                <span class="lc-label">${ICONS.money} Outstanding</span>
+                                <span class="lc-val amount">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</span>
+                            </div>
+                            <div class="lc-row">
+                                <span class="lc-label">${ICONS.tag} Type</span>
+                                <span class="lc-tag">${loan.loanType}</span>
+                            </div>
+                            ${extraDetails}
+                        </div>
+                        <div class="card-footer-strip ${bannerClass}">
+                            ${ICONS.clock} Active for ${daysAgo} days
+                        </div>
+                    `;
+                }
+                container.appendChild(card);
+            });
+        }
+
+        // --- 3. HELPER FUNCTIONS ---
+        function populateDropdown() {
+            const sel = state.ui.memberSelect;
+            sel.innerHTML = '<option value="">-- Choose Member --</option>';
+            Object.entries(state.membersData)
+                .filter(([_, m]) => m.status === 'Approved')
+                .sort((a,b) => a[1].fullName.localeCompare(b[1].fullName))
+                .forEach(([id, m]) => {
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = m.fullName;
+                    opt.dataset.pic = m.profilePicUrl;
+                    sel.appendChild(opt);
+                });
+        }
+
+        // Global function for onclick in generated HTML
+        window.downloadSingleCard = function(cardId) {
+            const el = document.getElementById(cardId);
+            // Hide button temporarily
+            const btn = el.querySelector('.l-dl-btn');
+            if(btn) btn.style.display = 'none';
+            
+            html2canvas(el, {useCORS:true, scale:2}).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'LoanStatus.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                if(btn) btn.style.display = 'flex';
+            });
+        };
+        
+        window.downloadGenCard = function() {
+            const el = document.getElementById('gen-card');
+            html2canvas(el, {useCORS:true, scale:2}).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'CreditCard.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        };
+
+        // --- 4. EVENT LISTENERS ---
+        function setupListeners() {
+            const { ui } = state;
+            
+            // Search
+            ui.searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = state.allActiveLoans.filter(l => l.memberName.toLowerCase().includes(term));
+                renderUI(filtered);
+            });
+
+            // Modal Open/Close
+            ui.openModalBtn.addEventListener('click', () => {
+                ui.modal.classList.add('visible');
+                ui.generatedCardContainer.innerHTML = '';
+                ui.modalStatus.textContent = '';
+            });
+            
+            ui.closeModalBtn.addEventListener('click', () => ui.modal.classList.remove('visible'));
+
+            // Form Logic
+            ui.memberSelect.addEventListener('change', () => {
+                ui.creditAmountInput.disabled = !ui.memberSelect.value;
+                if(ui.memberSelect.value) ui.creditAmountInput.focus();
+            });
+
+            ui.cardTypeSelect.addEventListener('change', () => {
+            ui.rechargeFields.style.display = (ui.cardTypeSelect.value === 'recharge') ? 'block' : 'none';
+            });
+
+            // Generate Logic
+            ui.generateCardBtn.addEventListener('click', () => {
+                const mId = ui.memberSelect.value;
+                if(!mId) { alert('Select Member'); return; }
+                
+                const amt = ui.creditAmountInput.value;
+                if(!amt) { alert('Enter Amount'); return; }
+
+                const memberName = ui.memberSelect.options[ui.memberSelect.selectedIndex].text;
+                const pic = ui.memberSelect.options[ui.memberSelect.selectedIndex].dataset.pic;
+                const type = ui.cardTypeSelect.value;
+                
+                let bgUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
+                let extra = "";
+                
+                if(type === 'grocery') bgUrl = "https://i.ibb.co/60sXyybn/20251006-155008.png";
+                if(type === 'recharge') {
+                    bgUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                    extra = `<div style="position:absolute; top:20px; right:20px; font-weight:bold; color:white; font-size:1.4em; text-shadow:1px 1px 2px black;">${ui.telecomSelect.value}</div>`;
+                }
+
+                // Visual Generation for Download
+                const html = `
+                    <div id="gen-card" style="position:relative; width:100%; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+                        <div style="background-image:url('${bgUrl}'); background-size:cover; background-position:center; padding-bottom:56.25%; position:relative;">
+                            <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.1);">
+                                <img src="${pic || 'https://ui-avatars.com/api/?name='+memberName}" style="position:absolute; top:20px; left:20px; width:60px; height:60px; border-radius:50%; border:3px solid #D4AF37;">
+                                ${extra}
+                                <div style="position:absolute; bottom:50px; left:25px; color:white; font-weight:bold; font-size:1.4em; text-shadow:2px 2px 4px black;">${memberName}</div>
+                                <div style="position:absolute; bottom:25px; right:25px; color:white; font-weight:800; font-size:2em; text-shadow:2px 2px 4px black;">₹${parseInt(amt).toLocaleString('en-IN')}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="downloadGenCard()" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:10px; margin-top:15px; font-weight:bold; cursor:pointer;">Download Image</button>
+                `;
+                ui.generatedCardContainer.innerHTML = html;
+                ui.modalStatus.innerHTML = "<span style='color:green'>Card Generated!</span>";
+            });
+        }
+
+        // Start App
+        initApp();
+    });
+    </script>
 </body>
 </html>
 
