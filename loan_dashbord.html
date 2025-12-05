@@ -58,7 +58,7 @@
         /* === 1. PREMIUM HEADER (Full Width) === */
         .premium-header {
             background: linear-gradient(170deg, var(--primary-blue) 0%, var(--dark-navy) 100%);
-            padding: 40px 20px 45px 20px; /* Extra padding bottom for overlap */
+            padding: 40px 20px 45px 20px; 
             text-align: center;
             border-bottom-left-radius: 35px;
             border-bottom-right-radius: 35px;
@@ -68,7 +68,6 @@
             border-bottom: 3px solid var(--royal-gold);
         }
 
-        /* Decorative Element */
         .premium-header::after {
             content: '';
             position: absolute;
@@ -100,7 +99,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Floating Generate Button */
         #generate-credit-btn {
             background: linear-gradient(135deg, var(--royal-gold), #B8860B);
             color: var(--dark-navy);
@@ -123,10 +121,10 @@
         }
         #generate-credit-btn:active { transform: scale(0.96); }
 
-        /* === 2. COMBINED STATS CARD (Merged) === */
+        /* === 2. COMBINED STATS CARD === */
         .stats-wrapper {
             padding: 0 20px;
-            margin-top: -30px; /* Overlap effect */
+            margin-top: -30px; 
             position: relative;
             z-index: 10;
         }
@@ -142,7 +140,6 @@
             position: relative;
         }
 
-        /* Gold Accent Line on Top */
         .combined-stats-card::before {
             content: '';
             position: absolute;
@@ -205,7 +202,6 @@
             gap: 15px;
         }
 
-        /* Generic Card Base */
         .loan-card, .credit-card-wrapper {
             width: 100%;
             background: white;
@@ -235,12 +231,9 @@
             margin-right: 15px;
         }
 
-        .l-info h4 {
-            margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--primary-blue);
-        }
+        .l-info h4 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--primary-blue); }
         .l-date { font-size: 0.8rem; color: #999; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
         
-        /* Download Icon Button */
         .l-dl-btn {
             margin-left: auto;
             background: #f4f7fa;
@@ -274,15 +267,15 @@
         .bg-gold { background: #b8860b; }
         .bg-red { background: var(--danger-red); }
 
-        /* --- Credit Card / Recharge Card Visual --- */
+        /* --- Credit Card Visual --- */
         .cc-container {
             position: relative;
             background-size: cover; background-position: center;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            padding-bottom: 56.25%; 
         }
         .cc-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.3); /* Darken bg image */
+            background: rgba(0,0,0,0.3); 
             padding: 15px;
             display: flex; flex-direction: column; justify-content: space-between;
         }
@@ -328,7 +321,7 @@
             margin-top: 10px; cursor: pointer;
         }
 
-        /* Loader & Animations */
+        /* Loader */
         #loader { text-align: center; padding: 40px; }
         .spinner { 
             width: 35px; height: 35px; border: 4px solid #eee; 
@@ -337,7 +330,6 @@
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         
-        /* THIS CLASS IS CRITICAL FOR HIDING LOADER */
         .hidden { display: none !important; }
 
         .blink-me { animation: blink 1.5s infinite; }
@@ -360,7 +352,7 @@
             </button>
         </header>
 
-        <!-- STATS (Merged Card) -->
+        <!-- STATS -->
         <div class="stats-wrapper">
             <div class="combined-stats-card">
                 <div class="stat-part">
@@ -380,7 +372,7 @@
             <input type="text" id="search-input" placeholder="Search member name...">
         </div>
 
-        <!-- LOADER (Will be hidden by JS) -->
+        <!-- LOADER -->
         <div id="loader">
             <div class="spinner"></div>
             <small style="color: #666; font-weight:600;">Loading Data...</small>
@@ -437,7 +429,6 @@
     <script>
     document.addEventListener("DOMContentLoaded", () => {
         
-        // --- ICONS (SVGs) ---
         const ICONS = {
             cal: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
             money: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
@@ -455,8 +446,6 @@
                 totalCountEl: document.getElementById('total-outstanding-count'),
                 totalAmountEl: document.getElementById('total-outstanding-amount'),
                 searchInput: document.getElementById('search-input'),
-                
-                // Modal Elements
                 modal: document.getElementById('credit-modal'),
                 openModalBtn: document.getElementById('generate-credit-btn'),
                 closeModalBtn: document.querySelector('.modal-close'),
@@ -472,39 +461,29 @@
             },
         };
 
-        // --- 1. INITIALIZE & FETCH ---
         async function initApp() {
             try {
-                // Config fetch karne ki koshish karein
                 const response = await fetch('/api/firebase-config');
                 if (response.ok) {
                     const config = await response.json();
                     if (!firebase.apps.length) firebase.initializeApp(config);
-                } else {
-                    console.warn("Config fetch failed, assuming Firebase already loaded in parent context.");
                 }
-
-                // Auth Check
+                
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
-                        fetchData(); // User login hai, data laao
-                        setupListeners(); // Buttons active karo
+                        fetchData();
+                        setupListeners();
                     } else {
-                        // Agar login nahi hai, to login page par bhejo
                         window.location.href = `/login.html?redirect=${window.location.pathname}`;
                     }
                 });
-
             } catch (error) {
                 console.error("Init Error:", error);
-                if(state.ui.loader) {
-                    state.ui.loader.innerHTML = `<p style="color:red">Failed to start app.</p>`;
-                }
+                if(state.ui.loader) state.ui.loader.innerHTML = `<p style="color:red">App Error. Please Refresh.</p>`;
             }
         }
 
         async function fetchData() {
-            // Spinner dikhao
             if(state.ui.loader) state.ui.loader.classList.remove('hidden');
             
             try {
@@ -514,53 +493,44 @@
                     db.ref('members').once('value')
                 ]);
 
-                // Data Validate karo
                 if (!loansSnap.exists()) {
-                    renderUI([]); // Empty state
+                    renderUI([]); 
                     return;
                 }
                 
                 state.membersData = membersSnap.val() || {};
                 const rawLoans = loansSnap.val();
 
-                // Loans ko array mein convert karo aur sort karo
+                // *** STRICT LOGIC: FILTER ONLY 'Active' STATUS ***
                 state.allActiveLoans = Object.values(rawLoans)
-                    .filter(l => l.status === 'Active')
+                    .filter(l => l.status === 'Active') // STRICT CHECK
                     .map(l => {
                         const m = state.membersData[l.memberId] || {};
                         return { 
                             ...l, 
-                            memberName: m.fullName || 'Unknown Member', 
+                            memberName: m.fullName || 'Unknown', 
                             profilePicUrl: m.profilePicUrl || null 
                         };
                     })
                     .sort((a, b) => new Date(a.loanDate) - new Date(b.loanDate));
                 
-                // Dropdown bharo modal ke liye
                 populateDropdown(); 
-                
-                // Cards dikhao
                 renderUI(state.allActiveLoans);
 
             } catch (e) {
                 console.error("Fetch Error:", e);
-                state.ui.container.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No Active Loans Found.</div>`;
+                state.ui.container.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No Data Found.</div>`;
             } finally {
-                // *** CRITICAL FIX: Spinner ko hamesha hide karo ***
-                if(state.ui.loader) {
-                    state.ui.loader.classList.add('hidden');
-                }
+                // *** FIX: FORCE HIDE SPINNER ***
+                if(state.ui.loader) state.ui.loader.classList.add('hidden');
             }
         }
 
-        // --- 2. RENDER UI ---
         function renderUI(loans) {
-            // Stats Update
             const total = loans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount), 0);
             state.ui.totalCountEl.textContent = loans.length;
             state.ui.totalAmountEl.textContent = `₹${total.toLocaleString('en-IN')}`;
 
-            // Container Clear
             const { container } = state.ui;
             container.innerHTML = '';
             
@@ -579,14 +549,11 @@
                 const dateObj = new Date(loan.loanDate);
                 const daysAgo = Math.floor((new Date() - dateObj) / (1000 * 3600 * 24));
                 
-                // Determine Card Type (Visual vs Standard)
                 const isCreditCard = ['10 Days Credit', 'Recharge', 'Grocery Credit'].includes(loan.loanType);
                 
                 if (isCreditCard) {
-                    // VISUAL CARD RENDER
                     card.className = 'credit-card-wrapper';
-                    
-                    let bgImg = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg"; // Default
+                    let bgImg = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg"; 
                     let bannerText = `Ends in ${10 - daysAgo} days`;
                     let bannerClass = 'bg-green';
                     let extraHtml = '';
@@ -618,7 +585,6 @@
                         <div class="card-footer-strip ${bannerClass}">${ICONS.clock} ${bannerText}</div>
                     `;
                 } else {
-                    // STANDARD CARD RENDER
                     card.className = 'loan-card';
                     let bannerClass = 'bg-green';
                     if (daysAgo > 60) bannerClass = 'bg-gold';
@@ -627,7 +593,6 @@
                     let formattedDate = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
                     let extraDetails = '';
-                    // Interest logic for display only
                     if (loan.loanType === 'Personal Loan' && daysAgo > 30) {
                         const interest = parseFloat(loan.outstandingAmount) * 0.03; 
                         extraDetails = `<div class="lc-row"><span class="lc-label">Interest (Est.)</span><span class="lc-val">₹${interest.toFixed(0)}</span></div>`;
@@ -662,7 +627,6 @@
             });
         }
 
-        // --- 3. HELPER FUNCTIONS ---
         function populateDropdown() {
             const sel = state.ui.memberSelect;
             sel.innerHTML = '<option value="">-- Choose Member --</option>';
@@ -678,13 +642,10 @@
                 });
         }
 
-        // Global function for onclick in generated HTML
         window.downloadSingleCard = function(cardId) {
             const el = document.getElementById(cardId);
-            // Hide button temporarily
             const btn = el.querySelector('.l-dl-btn');
             if(btn) btn.style.display = 'none';
-            
             html2canvas(el, {useCORS:true, scale:2}).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'LoanStatus.png';
@@ -704,18 +665,14 @@
             });
         };
 
-        // --- 4. EVENT LISTENERS ---
         function setupListeners() {
             const { ui } = state;
-            
-            // Search
             ui.searchInput.addEventListener('input', (e) => {
                 const term = e.target.value.toLowerCase();
                 const filtered = state.allActiveLoans.filter(l => l.memberName.toLowerCase().includes(term));
                 renderUI(filtered);
             });
 
-            // Modal Open/Close
             ui.openModalBtn.addEventListener('click', () => {
                 ui.modal.classList.add('visible');
                 ui.generatedCardContainer.innerHTML = '';
@@ -724,38 +681,31 @@
             
             ui.closeModalBtn.addEventListener('click', () => ui.modal.classList.remove('visible'));
 
-            // Form Logic
             ui.memberSelect.addEventListener('change', () => {
                 ui.creditAmountInput.disabled = !ui.memberSelect.value;
                 if(ui.memberSelect.value) ui.creditAmountInput.focus();
             });
 
             ui.cardTypeSelect.addEventListener('change', () => {
-            ui.rechargeFields.style.display = (ui.cardTypeSelect.value === 'recharge') ? 'block' : 'none';
+               ui.rechargeFields.style.display = (ui.cardTypeSelect.value === 'recharge') ? 'block' : 'none';
             });
 
-            // Generate Logic
             ui.generateCardBtn.addEventListener('click', () => {
                 const mId = ui.memberSelect.value;
                 if(!mId) { alert('Select Member'); return; }
-                
                 const amt = ui.creditAmountInput.value;
                 if(!amt) { alert('Enter Amount'); return; }
-
                 const memberName = ui.memberSelect.options[ui.memberSelect.selectedIndex].text;
                 const pic = ui.memberSelect.options[ui.memberSelect.selectedIndex].dataset.pic;
                 const type = ui.cardTypeSelect.value;
-                
                 let bgUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
                 let extra = "";
-                
                 if(type === 'grocery') bgUrl = "https://i.ibb.co/60sXyybn/20251006-155008.png";
                 if(type === 'recharge') {
                     bgUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
                     extra = `<div style="position:absolute; top:20px; right:20px; font-weight:bold; color:white; font-size:1.4em; text-shadow:1px 1px 2px black;">${ui.telecomSelect.value}</div>`;
                 }
 
-                // Visual Generation for Download
                 const html = `
                     <div id="gen-card" style="position:relative; width:100%; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
                         <div style="background-image:url('${bgUrl}'); background-size:cover; background-position:center; padding-bottom:56.25%; position:relative;">
@@ -774,7 +724,6 @@
             });
         }
 
-        // Start App
         initApp();
     });
     </script>
