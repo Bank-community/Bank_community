@@ -23,11 +23,15 @@
             --dark-navy: #001233;
             --royal-gold: #D4AF37; /* The Main Gold */
             --light-gold: #F4C430;
+            --pale-gold: #fff9e6;
             --bg-color: #f8f9fc;
+            --card-bg: #ffffff;
             --text-dark: #1a1a1a;
+            --text-grey: #666;
+            --success-green: #0d5f26;
+            --danger-red: #8b0000;
             --font-heading: 'Cinzel', serif;
             --font-body: 'Manrope', sans-serif;
-            --font-tech: 'Orbitron', sans-serif;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -108,8 +112,52 @@
         .spinner { width: 35px; height: 35px; border: 4px solid #eee; border-top: 4px solid var(--royal-gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .hidden { display: none !important; }
-        .blink-me { animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        
+        /* === NEW GROCERY CARD STYLES === */
+        .grocery-card-gen {
+            width: 100%;
+            border-radius: 16px;
+            /* Green Gradient */
+            background: linear-gradient(135deg, #8dc643 0%, #6abf5b 40%, #44a69b 100%);
+            position: relative;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 1.586; /* Credit Card Ratio */
+        }
+        
+        .grocery-card-gen::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.2) 0%, transparent 20%),
+                        radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0%, transparent 20%);
+            opacity: 0.6; pointer-events: none;
+        }
+
+        .g-top-header { display: flex; justify-content: center; width: 100%; margin-bottom: 5px; position: relative; }
+        .g-bank-name { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-family: 'Cinzel', serif; }
+        
+        .g-chip-container { display: flex; align-items: center; margin-top: 15px; justify-content: space-between; position: relative; }
+        
+        /* Date above Title */
+        .g-date-label { 
+            position: absolute; top: -18px; left: 75px; 
+            font-size: 10px; color: #f0f0f0; letter-spacing: 1px; 
+        }
+
+        .g-main-text { flex-grow: 1; text-align: left; margin-left: 15px; }
+        .g-title { font-size: 22px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 5px rgba(0,0,0,0.2); line-height: 1; }
+        .g-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; margin-top: 2px; text-align: right; margin-right: 5px; }
+
+        .g-details-row { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 2; margin-bottom: 25px; }
+        .g-profile-pic { width: 55px; height: 55px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .g-amount { font-size: 24px; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: 'Manrope', sans-serif; }
+        .g-name { position: absolute; left: 70px; bottom: 5px; font-size: 16px; font-weight: 700; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+        .g-footer { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.2); text-align: center; padding: 6px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; backdrop-filter: blur(2px); }
 
     </style>
 </head>
@@ -117,7 +165,7 @@
 
     <div class="main-wrapper">
         <header class="premium-header">
-            <span class="header-super-title">Smart</span>
+            <span class="header-super-title">Trust Community Fund</span>
             <h1 class="header-main-title">Loan Dashboard</h1>
             <button id="generate-credit-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
@@ -269,12 +317,9 @@
                 state.membersData = membersSnap.val() || {};
                 const rawLoans = loansSnap.val();
 
-                // *** STRICT LOGIC: FILTER ONLY 'Active' ***
+                // *** STRICT FILTER: 'Active' ONLY ***
                 state.allActiveLoans = Object.values(rawLoans)
-                    .filter(l => {
-                        // Check exact status string and ensure it is not paid
-                        return l.status && l.status.trim() === 'Active'; 
-                    })
+                    .filter(l => l.status && l.status.trim() === 'Active') 
                     .map(l => {
                         const m = state.membersData[l.memberId] || {};
                         return { 
@@ -292,7 +337,7 @@
                 console.error("Fetch Error:", e);
                 state.ui.container.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No Data Found.</div>`;
             } finally {
-                // *** FIX: FORCE HIDE SPINNER ***
+                // FORCE HIDE LOADER
                 if(state.ui.loader) state.ui.loader.classList.add('hidden');
             }
         }
@@ -324,20 +369,17 @@
                 
                 if (isCreditCard) {
                     card.className = 'credit-card-wrapper';
-                    // Default Logic (Gold/10-Days)
                     let bgImg = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg"; 
                     let bannerText = `Ends in ${10 - daysAgo} days`;
                     let bannerClass = 'bg-green';
                     let extraHtml = '';
 
-                    // Grocery Logic (If active grocery loan is found)
                     if(loan.loanType === 'Grocery Credit') {
-                        bgImg = ""; 
+                        // Keep dashboard list simple with image, can match green theme if needed but image is safer for list
+                        bgImg = "https://i.ibb.co/60sXyybn/20251006-155008.png";
                         bannerText = `Due in ${30 - daysAgo} days`;
                         bannerClass = 'bg-gold';
-                    } 
-                    // Recharge Logic
-                    else if(loan.loanType === 'Recharge') {
+                    } else if(loan.loanType === 'Recharge') {
                         bgImg = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
                         bannerText = `Taken ${daysAgo} days ago`;
                         bannerClass = 'bg-gold';
@@ -432,9 +474,9 @@
         
         window.downloadGenCard = function() {
             const el = document.getElementById('gen-card');
-            html2canvas(el, {useCORS:true, scale:2}).then(canvas => {
+            html2canvas(el, {useCORS:true, scale:3}).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'CreditCard.png';
+                link.download = 'GroceryCard.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
@@ -474,56 +516,82 @@
                 const pic = ui.memberSelect.options[ui.memberSelect.selectedIndex].dataset.pic;
                 const type = ui.cardTypeSelect.value;
                 
-                let bgStyle = "background-image:url('https://i.ibb.co/bjWtdV0L/1757738358948.jpg');";
-                let headerText = "GROCERY CREDIT";
-                let footerText = "Pay within 10 Days • No Interest";
-                let topExtra = "";
-                let isGreenCard = false;
+                let html = '';
 
-                // GROCERY CARD GREEN THEME LOGIC
+                // === GROCERY CARD GENERATION (NEW GREEN DESIGN) ===
                 if(type === 'grocery') {
-                    isGreenCard = true;
-                    bgStyle = "background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);";
-                    headerText = "Trust Community Fund";
-                    footerText = "Pay within 1st-15th monthly. Get 6000 credit no interest rate amount.";
-                }
+                    // Logic to find if this member has an existing Active Grocery Loan
+                    // This fixes the date issue
+                    const activeGroceryLoan = state.allActiveLoans.find(l => l.memberId === mId && l.loanType === 'Grocery Credit');
+                    
+                    // If active loan exists, use its date. Otherwise use today's date.
+                    const dateToDisplay = activeGroceryLoan 
+                        ? new Date(activeGroceryLoan.loanDate).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})
+                        : new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
-                if(type === 'recharge') {
-                    bgStyle = "background-image:url('https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg');";
-                    topExtra = `<div style="position:absolute; top:20px; right:20px; font-weight:bold; color:white; font-size:1.4em; text-shadow:1px 1px 2px black;">${ui.telecomSelect.value}</div>`;
-                }
+                    html = `
+                    <div id="gen-card" class="grocery-card-gen">
+                        <div class="g-top-header">
+                            <div class="g-bank-name">TRUST COMMUNITY FUND</div>
+                        </div>
 
-                // Date Logic for Green Card
-                const today = new Date();
-                const dateStr = today.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-                const dateHtml = isGreenCard ? `<div style="position:absolute; top:20px; right:20px; color:white; font-size:0.9rem; font-weight:600; opacity:0.9;">${dateStr}</div>` : topExtra;
-                
-                // Font setup for Green Card
-                const headerHtml = isGreenCard ? `<div style="position:absolute; top:20px; left:20px; color:#FFD700; font-family:'Cinzel', serif; font-size:0.9rem; letter-spacing:1px; font-weight:700;">${headerText}</div>` : '';
-
-                // Main Center Text for Green Card
-                const centerText = isGreenCard ? `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:rgba(255,255,255,0.1); font-size:2.5rem; font-weight:900; white-space:nowrap;">GROCERY</div>` : '';
-
-                const html = `
-                    <div id="gen-card" style="position:relative; width:100%; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
-                        <div style="${bgStyle} background-size:cover; background-position:center; padding-bottom:56.25%; position:relative;">
-                            <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.05);">
-                                
-                                ${headerHtml}
-                                ${dateHtml}
-                                ${centerText}
-
-                                <img src="${pic || 'https://ui-avatars.com/api/?name='+memberName}" style="position:absolute; top:${isGreenCard?'60px':'20px'}; left:20px; width:${isGreenCard?'70px':'60px'}; height:${isGreenCard?'70px':'60px'}; border-radius:50%; border:3px solid #D4AF37; box-shadow:0 5px 15px rgba(0,0,0,0.3);">
-                                
-                                <div style="position:absolute; bottom:60px; left:25px; color:white; font-weight:bold; font-size:1.3em; text-shadow:2px 2px 4px black; font-family:'Manrope', sans-serif;">${memberName}</div>
-                                <div style="position:absolute; bottom:${isGreenCard?'55px':'25px'}; right:25px; color:white; font-weight:800; font-size:2em; text-shadow:2px 2px 4px black; font-family:'Manrope', sans-serif;">₹${parseInt(amt).toLocaleString('en-IN')}</div>
-                                
-                                ${isGreenCard ? `<div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.3); padding:8px; text-align:center; color:#FFD700; font-size:0.65rem; font-weight:600; letter-spacing:0.5px;">${footerText}</div>` : ''}
+                        <div class="g-chip-container">
+                            <!-- SVG Chip -->
+                            <svg width="60" height="40" viewBox="0 0 50 35">
+                                <rect width="50" height="35" rx="5" fill="url(#goldGradient)" stroke="#b88a3b" stroke-width="1"/>
+                                <defs>
+                                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#fceabb;stop-opacity:1" />
+                                        <stop offset="50%" style="stop-color:#f8b500;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#fceabb;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <path d="M10,0 L10,35 M40,0 L40,35 M0,17.5 L15,17.5 M35,17.5 L50,17.5 M25,8 L25,27 M15,10 Q25,10 25,17.5 Q25,25 15,25 M35,10 Q25,10 25,17.5 Q25,25 35,25" fill="none" stroke="#8a6e2f" stroke-width="1" />
+                                <rect x="18" y="12" width="14" height="11" rx="2" fill="none" stroke="#8a6e2f" stroke-width="1"/>
+                            </svg>
+                            
+                            <div class="g-main-text">
+                                <div class="g-date-label">${dateToDisplay}</div>
+                                <h1 class="g-title">GROCERY CREDIT</h1>
+                                <div class="g-subtitle">CARD</div>
                             </div>
                         </div>
-                    </div>
-                    <button onclick="downloadGenCard()" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:10px; margin-top:15px; font-weight:bold; cursor:pointer;">Download Image</button>
-                `;
+
+                        <div class="g-details-row">
+                            <img src="${pic || 'https://ui-avatars.com/api/?name='+memberName}" class="g-profile-pic">
+                            <div class="g-name">${memberName}</div>
+                            <div class="g-amount">₹${parseInt(amt).toLocaleString('en-IN')}</div>
+                        </div>
+
+                        <div class="g-footer">
+                            Pay within 1st-15th monthly, Get 6000 credit for No intrest.
+                        </div>
+                    </div>`;
+                
+                } else {
+                    // === OLD STYLE FOR OTHER CARDS ===
+                    let bgUrl = "https://i.ibb.co/bjWtdV0L/1757738358948.jpg";
+                    let extra = "";
+                    if(type === 'recharge') {
+                        bgUrl = "https://i.ibb.co/p7pVDLx/IMG-20250922-104425.jpg";
+                        extra = `<div style="position:absolute; top:20px; right:20px; font-weight:bold; color:white; font-size:1.4em; text-shadow:1px 1px 2px black;">${ui.telecomSelect.value}</div>`;
+                    }
+
+                    html = `
+                        <div id="gen-card" style="position:relative; width:100%; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+                            <div style="background-image:url('${bgUrl}'); background-size:cover; background-position:center; padding-bottom:56.25%; position:relative;">
+                                <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.1);">
+                                    <img src="${pic || 'https://ui-avatars.com/api/?name='+memberName}" style="position:absolute; top:20px; left:20px; width:60px; height:60px; border-radius:50%; border:3px solid #D4AF37;">
+                                    ${extra}
+                                    <div style="position:absolute; bottom:50px; left:25px; color:white; font-weight:bold; font-size:1.4em; text-shadow:2px 2px 4px black;">${memberName}</div>
+                                    <div style="position:absolute; bottom:25px; right:25px; color:white; font-weight:800; font-size:2em; text-shadow:2px 2px 4px black;">₹${parseInt(amt).toLocaleString('en-IN')}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+                html += `<button onclick="downloadGenCard()" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:10px; margin-top:15px; font-weight:bold; cursor:pointer;">Download Image</button>`;
+                
                 ui.generatedCardContainer.innerHTML = html;
                 ui.modalStatus.innerHTML = "<span style='color:green'>Card Generated!</span>";
             });
