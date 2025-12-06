@@ -1,8 +1,8 @@
-// FINAL STRICT UPDATE V3:
-// 1. Penalty Wallet Logic Updated (Toggle History, Colors).
+// FINAL STRICT UPDATE V4:
+// 1. Penalty Wallet Logic Updated.
 // 2. All Members: Image Zoom logic retained.
-// 3. Top 3 Cards Specific Classes retained.
-// 4. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML Structure.
+// 3. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML.
+// 4. SMART MODAL SWAP: Fixes "Full View" redirect crash issue.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -575,10 +575,14 @@ function setupEventListeners(database) {
         if (e.target.classList.contains('modal')) closeModal(e.target);
         
         if (e.target.closest('#totalMembersCard')) showAllMembersModal();
+        
+        // --- FIXED: SMART SWAP FOR FULL VIEW ---
         if (e.target.closest('#fullViewBtn')) {
-            closeModal(elements.memberProfileModal);
-            openModal(elements.passwordPromptModal);
+            // OLD: closeModal(elements.memberProfileModal); openModal(elements.passwordPromptModal);
+            // NEW: Use smart swap to prevent history back collision
+            swapModals(elements.memberProfileModal, elements.passwordPromptModal);
         }
+        
         if (e.target.closest('#submitPasswordBtn')) handlePasswordCheck(database);
         
         // LUXURY UPDATE: View History Toggle Logic
@@ -981,6 +985,7 @@ async function handlePasswordCheck(database) {
         const correctPassword = snapshot.val();
         if (password === correctPassword) {
             closeModal(elements.passwordPromptModal);
+            // This redirect is standard, assuming view.html handles itself (which we fixed in last step)
             window.location.href = `view.html?memberId=${currentMemberForFullView}`;
         } else {
             alert('Incorrect password.');
@@ -1002,6 +1007,19 @@ function openModal(modal) {
         window.history.pushState({modalOpen: true}, "", "");
         currentOpenModal = modal;
     } 
+}
+
+// --- NEW FUNCTION: SMART SWAP (PREVENTS BACK LOOP CRASH) ---
+function swapModals(fromModal, toModal) {
+    if (fromModal) {
+        fromModal.classList.remove('show');
+    }
+    if (toModal) {
+        toModal.classList.add('show');
+        // Update the reference so back button closes the NEW modal
+        currentOpenModal = toModal;
+        // KEY FIX: We DO NOT push a new state. We reuse the existing state.
+    }
 }
 
 function closeModal(modal) { 
@@ -1043,4 +1061,5 @@ function observeElements(elements) {
 }
 
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
+
 
