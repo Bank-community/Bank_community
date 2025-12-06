@@ -378,7 +378,7 @@
       </div>
   </div>
   
-  <!-- History Modal -->
+  <!-- History Modal (UPDATED WITH SOURCE NAME) -->
   <div id="historyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col border-t-4 border-royal-blue">
           <h3 class="text-xl font-bold text-center mb-4 text-royal-blue">Transaction History</h3>
@@ -743,6 +743,7 @@
         document.getElementById('share-card-btn').addEventListener('click', shareCard);
     }
     
+    // --- UPDATED HISTORY FUNCTION (SHOW SOURCE NAME) ---
     function populateHistoryModal() {
         const historyList = document.getElementById('history-list');
         historyList.innerHTML = '';
@@ -753,15 +754,23 @@
         [...balanceHistory].reverse().forEach(item => {
             const div = document.createElement('div');
             const isCredit = item.amount > 0;
-            let title = '', icon = '';
+            let title = '', icon = '', subText = '';
             
             switch(item.type) {
-                case 'profit': title = `Profit: ${item.from}`; icon="fa-chart-line"; break;
+                case 'profit': 
+                    title = 'Profit Share'; 
+                    subText = `From: ${item.from}`;
+                    icon="fa-chart-line"; 
+                    break;
                 case 'manual_credit': title = 'Admin Bonus'; icon="fa-gift"; break;
                 case 'withdrawal': title = 'Withdrawal'; icon="fa-arrow-circle-up"; break;
                 case 'Self Return (10%)': title = 'Self Interest (10%)'; icon="fa-undo"; break;
-                case 'Guarantor Commission (10%)': title = `Guarantor Comm.`; icon="fa-handshake"; break;
-                default: title = `Profit Share`; icon="fa-coins";
+                case 'Guarantor Commission (10%)': 
+                    title = `Guarantor Comm.`; 
+                    subText = `Source: ${item.from}`;
+                    icon="fa-handshake"; 
+                    break;
+                default: title = `Transaction`; icon="fa-coins";
             }
             
             div.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors';
@@ -772,6 +781,7 @@
                     </div>
                     <div>
                         <p class="font-semibold text-gray-800 text-sm">${title}</p>
+                        ${subText ? `<p class="text-[10px] text-gray-500 font-medium truncate w-24 sm:w-auto">${subText}</p>` : ''}
                         <p class="text-[10px] text-gray-400">${item.date.toLocaleDateString('en-GB')}</p>
                     </div>
                 </div>
