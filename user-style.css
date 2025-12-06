@@ -5,6 +5,7 @@ FINAL LUXURY THEME UPDATE:
 3. Close Button: Floating Circle Logic.
 4. Member Cards: Royal Gold Rings.
 5. All Members Grid: Fixed 3 Columns per row.
+6. NOTIFICATION UPDATE: Royal Toast Popup (Top Center).
 */
 
 :root {
@@ -572,4 +573,123 @@ footer a:hover { color: white !important; text-decoration: underline; }
 .large-text {
     font-size: 2.2em; /* Bigger for main balance */
 }
+
+/* === 6. ROYAL NOTIFICATION POPUP (Toast Style) === */
+#notification-popup-container {
+    position: fixed;
+    top: 20px; /* Top Position */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none; /* Allows clicking through empty space */
+}
+
+.notification-popup {
+    background: linear-gradient(145deg, #001540, #002366); /* Royal Blue Gradient */
+    border: 2px solid var(--accent-gold); /* Gold Border */
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); /* Strong Shadow */
+    position: relative;
+    pointer-events: auto; /* Enable clicking on the toast */
+    animation: slideDownFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; /* Smooth Slide */
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Glass Shine Effect */
+.notification-popup::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -50%;
+    width: 100%; height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+    transform: skewX(-25deg);
+    animation: shine 3s infinite;
+}
+
+@keyframes slideDownFade {
+    from { opacity: 0; transform: translateY(-50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shine {
+    0% { left: -50%; }
+    100% { left: 150%; }
+}
+
+.notification-popup-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent-gold); /* Gold Ring */
+    flex-shrink: 0;
+}
+
+.notification-popup-content {
+    flex-grow: 1;
+    color: white;
+    font-size: 0.9em;
+    line-height: 1.3;
+}
+
+.notification-popup-content p {
+    margin: 0;
+    padding: 0;
+    color: #e0e0e0;
+}
+
+.notification-popup-content strong {
+    color: var(--accent-gold); /* Name in Gold */
+    font-size: 1.05em;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.notification-popup-amount {
+    font-weight: 800;
+    font-size: 1.1em;
+    margin-top: 4px !important;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.3);
+}
+
+.notification-popup-amount.sip { color: #4caf50; border: 1px solid #4caf50; } /* Green */
+.notification-popup-amount.loan { color: #ff5252; border: 1px solid #ff5252; } /* Red */
+.notification-popup-amount.payment { color: #4caf50; border: 1px solid #4caf50; }
+
+.notification-popup-close {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 5px;
+    transition: color 0.3s;
+}
+
+.notification-popup-close:hover {
+    color: white;
+}
+
+.notification-popup.closing {
+    animation: fadeOutNotification 0.5s forwards;
+}
+
+@keyframes fadeOutNotification {
+    to { opacity: 0; transform: translateY(-30px); }
+}
+
 
