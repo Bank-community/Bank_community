@@ -4,280 +4,364 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Loan Application - Trust Community Fund</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Professional Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Icons & Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  
+  <!-- HTML2Canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
     :root {
         --royal-blue: #002366;
-        --royal-gold: #D4AF37;
         --deep-blue: #001233;
+        --royal-gold: #D4AF37;
+        --gold-light: #F8E71C;
+        --gold-gradient: linear-gradient(135deg, #FFD700 0%, #D4AF37 100%);
+        --text-white: #ffffff;
     }
 
     body {
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-      color: #1f2937;
+        font-family: 'Poppins', sans-serif;
+        background: radial-gradient(circle at center, #003399 0%, #001233 100%);
+        min-height: 100vh;
+        margin: 0;
+        color: #333;
     }
 
-    /* === FORM UI (Mobile Friendly) === */
+    /* ==============================
+       1. LUXURY INPUT FORM (UI)
+       ============================== */
     .form-wrapper {
-        background: white;
-        border-top: 5px solid var(--royal-blue);
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-    
-    .input-field {
-        background-color: #f9fafb;
-        border: 1px solid #d1d5db;
-        color: #111827;
-        transition: all 0.3s;
-    }
-    .input-field:focus {
-        border-color: var(--royal-blue);
-        ring: 2px solid rgba(0, 35, 102, 0.2);
-    }
-
-    .btn-submit {
-        background: linear-gradient(to right, var(--royal-blue), #003399);
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 500px;
+        margin: 20px auto;
         color: white;
-        transition: transform 0.2s;
-    }
-    .btn-submit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 35, 102, 0.3);
     }
 
-    /* === A4 PAPER LAYOUT (Professional Print Style) === */
-    #capture {
-      width: 210mm;
-      min-height: 290mm; /* A4 Height */
-      background-color: #ffffff;
-      margin: 0 auto;
-      position: relative;
-      /* Professional Double Border */
-      border: 2px solid var(--royal-blue);
-      outline: 5px solid white;
-      outline-offset: -10px;
-      padding: 15mm;
-      box-sizing: border-box; 
-      display: flex;
-      flex-direction: column;
+    .form-title {
+        font-family: 'Playfair Display', serif;
+        color: var(--royal-gold);
+        text-align: center;
+        font-size: 1.8rem;
+        margin-bottom: 5px;
+        text-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
     
-    /* Inner Gold Border for Luxury Touch */
-    #capture::after {
-        content: '';
+    .form-subtitle {
+        text-align: center;
+        color: #ccc;
+        font-size: 0.9rem;
+        margin-bottom: 25px;
+    }
+
+    label {
+        color: #e0e0e0;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        display: block;
+        font-weight: 500;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
+    }
+
+    .luxury-input {
+        width: 100%;
+        padding: 12px 15px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        color: white;
+        font-size: 1rem;
+        transition: 0.3s;
+    }
+
+    .luxury-input:focus {
+        outline: none;
+        border-color: var(--royal-gold);
+        background: rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+    }
+    
+    .luxury-input option {
+        background-color: var(--deep-blue);
+        color: white;
+    }
+
+    .btn-gold {
+        background: var(--gold-gradient);
+        color: var(--deep-blue);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: none;
+        width: 100%;
+        padding: 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 10px;
+    }
+
+    .btn-gold:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+    }
+
+    /* ==============================
+       2. A4 GENERATED LETTER (Output)
+       ============================== */
+    #letter-preview-section {
+        display: none; /* Hidden initially */
+        justify-content: center;
+        padding: 20px;
+        background: #f0f2f5; /* Light bg for preview context */
+    }
+
+    #capture {
+        width: 210mm;
+        height: 297mm; /* Exact A4 */
+        background: #ffffff;
+        color: #1f2937;
+        position: relative;
+        padding: 15mm;
+        box-sizing: border-box;
+        box-shadow: 0 0 30px rgba(0,0,0,0.1);
+        font-family: 'Roboto', sans-serif;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* Prevent spill */
+    }
+
+    /* Professional Border */
+    .border-frame {
         position: absolute;
-        top: 10mm; left: 10mm; right: 10mm; bottom: 10mm;
+        top: 0; left: 0; right: 0; bottom: 0;
+        border: 3px solid var(--royal-blue);
+        pointer-events: none;
+        z-index: 10;
+    }
+    .inner-gold-frame {
+        position: absolute;
+        top: 6px; left: 6px; right: 6px; bottom: 6px;
         border: 1px solid var(--royal-gold);
         pointer-events: none;
-        z-index: 1;
+        z-index: 10;
     }
 
     /* Watermark */
     .watermark {
         position: absolute;
-        top: 50%; left: 50%;
+        top: 55%;
+        left: 50%;
         transform: translate(-50%, -50%);
-        width: 300px;
-        opacity: 0.04;
-        pointer-events: none;
+        width: 60%;
+        opacity: 0.05;
         z-index: 0;
+        pointer-events: none;
     }
 
-    /* Header */
-    .doc-header {
-        text-align: center;
-        margin-bottom: 20px;
+    /* Header Section */
+    .letter-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 25px;
         position: relative;
         z-index: 2;
     }
-    
-    .brand-logo {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 10px;
-        display: block;
+
+    .header-logo {
+        width: 90px;
+        height: 90px;
+        object-fit: contain;
+        margin-bottom: 10px;
     }
 
-    .brand-title {
+    .header-title {
         font-family: 'Playfair Display', serif;
-        color: var(--royal-blue);
-        font-size: 26px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin: 0;
+        font-size: 28px;
         font-weight: 700;
-        border-bottom: 2px solid var(--royal-gold);
-        display: inline-block;
-        padding-bottom: 5px;
-    }
-    
-    .loan-badge {
-        background: white;
-        color: #166534; /* Green Text */
-        border: 1px solid #166534;
-        padding: 4px 12px;
-        border-radius: 4px;
-        font-weight: bold;
+        color: var(--royal-blue);
         text-transform: uppercase;
-        font-size: 14px;
-        margin-top: 10px;
-        display: inline-block;
+        letter-spacing: 0.5px;
+        margin: 0;
     }
 
-    .date-tag {
+    .header-loan-type {
+        font-size: 18px;
+        color: #166534; /* Professional Green */
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 5px;
+        border-bottom: 2px solid #166534;
+        padding-bottom: 2px;
+    }
+    
+    .date-text {
         position: absolute;
         top: 0;
         right: 0;
-        font-size: 12px;
+        font-size: 13px;
         color: #555;
     }
 
-    /* Main Content Box (Like Bank Community) */
-    .details-container {
-        border: 1px solid #e5e7eb;
+    /* Content Box */
+    .content-box {
+        border: 1px solid #cbd5e1;
         border-radius: 8px;
         padding: 20px;
-        margin-top: 10px;
-        background-color: #f8fafc; /* Very light blue/gray */
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        background-color: #f8fafc;
         position: relative;
         z-index: 2;
+        margin-bottom: 20px;
     }
 
-    .details-list {
-        flex: 1;
-        padding-right: 20px;
+    .details-left {
+        width: 68%;
+        padding-right: 15px;
     }
 
-    .detail-item {
+    .photo-right {
+        width: 30%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* Data Rows */
+    .data-row {
         display: flex;
         align-items: center;
         margin-bottom: 12px;
         font-size: 14px;
-        color: #374151;
-        border-bottom: 1px dashed #e5e7eb;
-        padding-bottom: 4px;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 5px;
     }
-    
-    .detail-item:last-child {
-        border-bottom: none;
-    }
+    .data-row:last-child { border-bottom: none; }
 
-    .detail-icon {
-        width: 20px;
+    .data-icon {
+        width: 24px;
+        color: var(--royal-blue);
         text-align: center;
         margin-right: 10px;
-        color: var(--royal-blue);
     }
-
-    .detail-label {
-        width: 130px;
+    .data-label {
         font-weight: 500;
-        color: #4b5563;
+        color: #64748b;
+        width: 140px;
     }
-
-    .detail-value {
+    .data-value {
         font-weight: 700;
-        color: #111827;
+        color: #1e293b;
         flex: 1;
     }
-
-    .photo-box {
-        width: 100px;
-        text-align: center;
-        background: white;
-        padding: 5px;
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
     
-    .photo-label {
-        font-size: 10px;
-        color: #6b7280;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
+    .highlight-gold { color: #b45309; }
+    .highlight-red { color: #dc2626; }
+    .highlight-green { color: #15803d; }
 
-    .applicant-img {
-        width: 90px;
-        height: 110px;
+    /* Photo Frame */
+    .applicant-photo-frame {
+        width: 110px;
+        height: 130px;
+        border: 1px solid #94a3b8;
+        background: #fff;
+        padding: 5px;
+        margin-top: 5px;
+        border-radius: 4px;
+    }
+    .applicant-photo-frame img {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
-        background-color: #e5e7eb;
-        display: block;
-        margin: 0 auto;
+    }
+    .photo-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 2px;
     }
 
-    /* Additional Doc */
-    .doc-section {
-        margin-top: 20px;
-        text-align: center;
-        border: 1px dashed #9ca3af;
-        padding: 10px;
+    /* Extra Doc */
+    .doc-preview-area {
+        border: 2px dashed #cbd5e1;
         border-radius: 8px;
-        position: relative;
-        z-index: 2;
+        margin: 10px auto;
+        width: 90%;
+        height: 160px; /* Fixed height for layout */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         background: rgba(255,255,255,0.8);
+        z-index: 2;
+        position: relative;
+    }
+    .doc-preview-area img {
+        max-height: 130px;
+        max-width: 95%;
+        object-fit: contain;
     }
 
     /* Footer */
-    .doc-footer {
+    .letter-footer {
         margin-top: auto;
-        padding-top: 20px;
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
+        padding-top: 20px;
         position: relative;
         z-index: 2;
     }
-
-    .stamp-box {
+    .stamp-container, .sign-container {
         text-align: center;
     }
+    .stamp-img { width: 110px; opacity: 0.9; mix-blend-mode: multiply; }
+    .sign-img { width: 140px; margin-bottom: -15px; }
     
-    .signature-box {
-        text-align: center;
-    }
-
-    .stamp-img {
-        width: 100px;
-        opacity: 0.9;
-        mix-blend-mode: multiply;
-    }
-
-    .sign-img {
-        width: 140px;
-        margin-bottom: -10px;
-    }
-
-    .footer-label {
-        font-size: 12px;
-        color: var(--royal-blue);
-        font-weight: bold;
-        text-transform: uppercase;
+    .footer-line {
         border-top: 1px solid var(--royal-blue);
-        padding-top: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--royal-blue);
+        text-transform: uppercase;
+        margin-top: 5px;
+        padding-top: 2px;
         display: inline-block;
         min-width: 120px;
     }
-    
-    /* Loader */
-    .loader {
+
+    .declaration-text {
+        text-align: center;
+        font-size: 12px;
+        font-style: italic;
+        color: #64748b;
+        margin-top: 15px;
+        z-index: 2;
+    }
+
+    /* Loading Spinner */
+    .spinner {
         border: 3px solid rgba(255,255,255,0.3);
         border-top: 3px solid #fff;
         border-radius: 50%;
@@ -285,29 +369,39 @@
         height: 20px;
         animation: spin 1s linear infinite;
         display: inline-block;
+        margin-left: 10px;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+    /* Success Box */
+    #successMessage {
+        display: none;
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        max-width: 400px;
+        margin: 50px auto;
+    }
   </style>
 </head>
-<body class="p-4">
+<body>
 
-  <!-- === STEP 1: INPUT FORM === -->
-  <div id="main-form-container" class="form-wrapper w-full max-w-lg mx-auto p-6 mb-10">
-    <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800" style="color: var(--royal-blue);">Trust Community Fund</h1>
-        <p class="text-sm text-gray-500">Loan Application Form</p>
-    </div>
+  <!-- STEP 1: LUXURY INPUT FORM -->
+  <div id="main-form-container" class="form-wrapper">
+    <h1 class="form-title">TRUST COMMUNITY FUND</h1>
+    <p class="form-subtitle">Premium Loan Application Service</p>
 
-    <form id="loanForm" class="space-y-4">
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Applicant Name</label>
-            <select id="nameSelect" required class="input-field w-full p-3 rounded-lg"><option>Loading...</option></select>
+    <form id="loanForm">
+        <div class="input-group">
+            <label>Applicant Name</label>
+            <select id="nameSelect" required class="luxury-input"><option>Loading...</option></select>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Loan Category</label>
-            <select id="loanCategory" required class="input-field w-full p-3 rounded-lg">
+        <div class="input-group">
+            <label>Loan Category</label>
+            <select id="loanCategory" required class="luxury-input">
                 <option value="personal">Personal Loan</option>
                 <option value="business">Business Loan</option>
                 <option value="gold">Gold Loan</option>
@@ -315,191 +409,181 @@
             </select>
         </div>
 
-        <div id="goldCollateralSection" class="hidden">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Collateral Item Name</label>
-            <input type="text" id="goldCollateral" class="input-field w-full p-3 rounded-lg" placeholder="Item Name">
+        <div id="goldCollateralSection" class="input-group hidden">
+            <label>Collateral Item</label>
+            <input type="text" id="goldCollateral" class="luxury-input" placeholder="e.g. Gold Chain">
         </div>
 
-        <div id="guarantorSection" class="hidden">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Guarantor Name</label>
-            <select id="guarantorSelect" class="input-field w-full p-3 rounded-lg"><option>Select Guarantor</option></select>
+        <div id="guarantorSection" class="input-group hidden">
+            <label>Guarantor Name</label>
+            <select id="guarantorSelect" class="luxury-input"><option>Select Guarantor</option></select>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Loan Amount (₹)</label>
-            <input type="number" id="amount" required class="input-field w-full p-3 rounded-lg" placeholder="5000">
+        <div class="input-group">
+            <label>Loan Amount (₹)</label>
+            <input type="number" id="amount" required class="luxury-input" placeholder="e.g. 5000">
         </div>
 
-        <div>
-            <label id="durationRateLabel" class="block text-sm font-medium text-gray-700 mb-1">Interest & Duration</label>
-            <select id="durationRateSelect" required class="input-field w-full p-3 rounded-lg"></select>
+        <div class="input-group">
+            <label id="durationRateLabel">Interest & Duration</label>
+            <select id="durationRateSelect" required class="luxury-input"></select>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Additional Document (Optional)</label>
-            <input type="file" id="imageUpload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        <div class="input-group">
+            <label>Additional Document (Optional)</label>
+            <input type="file" id="imageUpload" accept="image/*" class="luxury-input" style="padding: 8px;">
         </div>
 
-        <button type="submit" class="btn-submit w-full p-4 rounded-lg font-bold text-lg mt-4 shadow-lg">
-            Generate Application Letter
+        <button type="submit" class="btn-gold">
+            Generate Letter <i class="fas fa-arrow-right ml-2"></i>
         </button>
-        
-        <!-- Info Box -->
-        <div id="loanInfoNotification" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-gray-700 hidden"></div>
     </form>
   </div>
 
-  <!-- === SUCCESS SCREEN === -->
-  <div id="successMessage" class="hidden w-full max-w-md mx-auto bg-white p-8 rounded-xl shadow-xl text-center">
-      <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <i class="fas fa-check text-3xl"></i>
+  <!-- STEP 2: LETTER PREVIEW & GENERATION (Hidden initially) -->
+  <div id="letter-preview-section">
+      <div class="flex flex-col items-center">
+          
+          <!-- A4 CANVAS -->
+          <div id="capture">
+            <div class="border-frame"></div>
+            <div class="inner-gold-frame"></div>
+            
+            <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" class="watermark" crossorigin="anonymous">
+
+            <!-- Header -->
+            <div class="letter-header">
+                <div class="date-text">Date: <span id="currentDate"></span></div>
+                <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" class="header-logo" crossorigin="anonymous">
+                <h1 class="header-title">TRUST COMMUNITY FUND</h1>
+                <div id="letterLoanCategory" class="header-loan-type">PERSONAL LOAN</div>
+            </div>
+
+            <!-- Main Content: Left Details, Right Photo -->
+            <div class="content-box">
+                <div class="details-left">
+                    <div class="data-row">
+                        <div class="data-icon"><i class="fas fa-user"></i></div>
+                        <div class="data-label">Applicant:</div>
+                        <div class="data-value highlight-gold" id="displayName">--</div>
+                    </div>
+                    
+                    <div class="data-row" id="guarantorRow">
+                        <div class="data-icon"><i class="fas fa-user-shield"></i></div>
+                        <div class="data-label">Guarantor:</div>
+                        <div class="data-value highlight-red" id="displayGuarantor">--</div>
+                    </div>
+
+                    <div class="data-row" id="collateralRow" style="display:none;">
+                        <div class="data-icon"><i class="fas fa-gem"></i></div>
+                        <div class="data-label">Collateral:</div>
+                        <div class="data-value" id="displayCollateral">--</div>
+                    </div>
+
+                    <div class="data-row">
+                        <div class="data-icon"><i class="fas fa-mobile-screen"></i></div>
+                        <div class="data-label">Mobile:</div>
+                        <div class="data-value" id="displayMobile">--</div>
+                    </div>
+
+                    <div class="data-row">
+                        <div class="data-icon"><i class="fas fa-indian-rupee-sign"></i></div>
+                        <div class="data-label">Amount:</div>
+                        <div class="data-value highlight-green" style="font-size: 1.1em;">₹<span id="displayAmount">0</span></div>
+                    </div>
+
+                    <div class="data-row">
+                        <div class="data-icon"><i class="fas fa-percent"></i></div>
+                        <div class="data-label">Interest Rate:</div>
+                        <div class="data-value" id="displayRate">--</div>
+                    </div>
+
+                    <!-- Hidden rows for specific loans -->
+                    <div class="data-row" id="processingFeeRow" style="display:none;">
+                        <div class="data-icon"><i class="fas fa-file-invoice"></i></div>
+                        <div class="data-label">Proc. Fee:</div>
+                        <div class="data-value">₹<span id="displayProcessingFee"></span></div>
+                    </div>
+                    <div class="data-row" id="emiRow" style="display:none;">
+                        <div class="data-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="data-label">Monthly EMI:</div>
+                        <div class="data-value">₹<span id="displayEMI"></span></div>
+                    </div>
+
+                    <div class="data-row">
+                        <div class="data-icon"><i class="fas fa-coins"></i></div>
+                        <div class="data-label">Total Payable:</div>
+                        <div class="data-value highlight-green">₹<span id="displayTotalAmount">0</span></div>
+                    </div>
+
+                    <div class="data-row">
+                        <div class="data-icon"><i class="fas fa-calendar-xmark text-red-600"></i></div>
+                        <div class="data-label">End Date:</div>
+                        <div class="data-value highlight-red" id="repaymentDate">--</div>
+                    </div>
+                </div>
+
+                <div class="photo-right">
+                    <div class="photo-label">Applicant Photo</div>
+                    <div class="applicant-photo-frame">
+                        <img id="apiApplicantPhoto" src="" crossorigin="anonymous">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Doc -->
+            <div id="manualUploadSection" class="doc-preview-area" style="display:none;">
+                <div class="photo-label" style="position:absolute; top:5px; left:10px;">Additional Document</div>
+                <img id="manualApplicantPhoto" src="" crossorigin="anonymous">
+            </div>
+
+            <p class="declaration-text">"I solemnly declare that I will repay the loan amount within the stipulated time mentioned above. I agree to all community rules."</p>
+
+            <!-- Footer -->
+            <div class="letter-footer">
+                <div class="stamp-container">
+                    <img src="https://ik.imagekit.io/kdtvm0r78/20251206_210616.png" class="stamp-img" crossorigin="anonymous">
+                    <div class="footer-line">Official Stamp</div>
+                </div>
+                <div class="sign-container">
+                    <img src="https://ik.imagekit.io/kdtvm0r78/image.png" class="sign-img" crossorigin="anonymous">
+                    <div class="footer-line">Prime Members</div>
+                </div>
+            </div>
+          </div>
+          
+          <!-- Confirm Actions -->
+          <div class="w-full max-w-md mt-6 flex flex-col gap-3">
+            <button id="submitForApprovalBtn" class="bg-blue-900 text-white p-4 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition flex justify-center items-center">
+                <span>Confirm & Download</span>
+                <div id="submitLoader" class="spinner hidden"></div>
+            </button>
+            <button onclick="window.location.reload()" class="text-gray-500 underline text-sm">Cancel & Edit</button>
+          </div>
       </div>
-      <h2 class="text-2xl font-bold text-gray-800">Submitted!</h2>
-      <p class="text-gray-500 mt-2 mb-6">Loan application created successfully.</p>
-      
-      <button id="successDownloadBtn" class="w-full p-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold mb-3 shadow">Download Letter</button>
-      <button id="successShareBtn" class="hidden w-full p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold shadow">Share on WhatsApp</button>
   </div>
 
-  <!-- === STEP 2: PREVIEW & GENERATION (A4 CANVAS) === -->
-  <div id="letter-preview-section" class="hidden w-full flex flex-col items-center mb-20">
+  <!-- STEP 3: SUCCESS -->
+  <div id="successMessage">
+      <div style="font-size: 3rem; color: #166534; margin-bottom: 10px;"><i class="fas fa-check-circle"></i></div>
+      <h2 style="font-size: 1.5rem; font-weight: 700; color: #333;">Successfully Created!</h2>
+      <p style="color: #666; margin-bottom: 20px;">The loan application letter has been downloaded.</p>
       
-      <!-- A4 CANVAS START -->
-      <div id="capture">
-        <!-- Watermark -->
-        <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" class="watermark" crossorigin="anonymous">
-
-        <!-- Header -->
-        <div class="doc-header">
-            <span class="date-tag">Date: <span id="currentDate"></span></span>
-            <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" class="brand-logo" crossorigin="anonymous">
-            <h1 class="brand-title">TRUST COMMUNITY FUND</h1>
-            <br>
-            <div class="loan-badge" id="letterLoanCategory">PERSONAL LOAN</div>
-        </div>
-
-        <!-- Main Body (Split Layout) -->
-        <div class="details-container">
-            <!-- Left: Details -->
-            <div class="details-list">
-                
-                <div class="detail-item">
-                    <div class="detail-icon"><i class="fas fa-user"></i></div>
-                    <div class="detail-label">Applicant:</div>
-                    <div class="detail-value highlight" id="displayName">--</div>
-                </div>
-
-                <div class="detail-item" id="guarantorRow">
-                    <div class="detail-icon"><i class="fas fa-user-shield text-red-600"></i></div>
-                    <div class="detail-label">Guarantor:</div>
-                    <div class="detail-value text-red-700" id="displayGuarantor">--</div>
-                </div>
-
-                <div class="detail-item" id="collateralRow" style="display: none;">
-                    <div class="detail-icon"><i class="fas fa-gem text-yellow-600"></i></div>
-                    <div class="detail-label">Collateral:</div>
-                    <div class="detail-value" id="displayCollateral">--</div>
-                </div>
-
-                <div class="detail-item">
-                    <div class="detail-icon"><i class="fas fa-mobile-alt"></i></div>
-                    <div class="detail-label">Mobile:</div>
-                    <div class="detail-value" id="displayMobile">--</div>
-                </div>
-
-                <div class="detail-item">
-                    <div class="detail-icon"><i class="fas fa-rupee-sign text-green-600"></i></div>
-                    <div class="detail-label">Loan Amount:</div>
-                    <div class="detail-value text-green-700 text-lg">₹<span id="displayAmount">0</span></div>
-                </div>
-
-                <div class="detail-item">
-                    <div class="detail-icon"><i class="fas fa-percent"></i></div>
-                    <div class="detail-label">Interest Rate:</div>
-                    <div class="detail-value" id="displayRate">--</div>
-                </div>
-
-                <!-- Business/Gold Fields Hidden Initially -->
-                <div class="detail-item" id="processingFeeRow" style="display: none;">
-                    <div class="detail-icon"><i class="fas fa-cog"></i></div>
-                    <div class="detail-label">Proc. Fee:</div>
-                    <div class="detail-value">₹<span id="displayProcessingFee"></span></div>
-                </div>
-
-                <div class="detail-item" id="emiRow" style="display: none;">
-                    <div class="detail-icon"><i class="fas fa-calendar-check"></i></div>
-                    <div class="detail-label">Monthly EMI:</div>
-                    <div class="detail-value">₹<span id="displayEMI"></span></div>
-                </div>
-
-                <div class="detail-item" style="background: #f0fdf4; margin-top: 5px;">
-                    <div class="detail-icon"><i class="fas fa-money-bill-wave text-green-600"></i></div>
-                    <div class="detail-label">Total Payable:</div>
-                    <div class="detail-value text-green-800">₹<span id="displayTotalAmount">0</span></div>
-                </div>
-
-                <div class="detail-item">
-                    <div class="detail-icon"><i class="fas fa-clock text-red-500"></i></div>
-                    <div class="detail-label">End Date:</div>
-                    <div class="detail-value text-red-600" id="repaymentDate">--</div>
-                </div>
-            </div>
-
-            <!-- Right: Photo -->
-            <div class="photo-box">
-                <div class="photo-label">Applicant</div>
-                <img id="apiApplicantPhoto" src="" class="applicant-img" crossorigin="anonymous">
-            </div>
-        </div>
-
-        <!-- Additional Document (If any) -->
-        <div id="manualUploadSection" class="doc-section" style="display: none;">
-            <div class="photo-label" style="font-size: 12px; margin-bottom: 5px;">Additional Document / ID Proof</div>
-            <img id="manualApplicantPhoto" src="" style="max-height: 200px; max-width: 100%; display: inline-block;" crossorigin="anonymous">
-        </div>
-
-        <p class="text-center text-xs text-gray-500 italic mt-8">"I solemnly declare that I will repay the loan amount within the stipulated time mentioned above."</p>
-
-        <!-- Footer -->
-        <div class="doc-footer">
-            <div class="stamp-box">
-                <img src="https://ik.imagekit.io/kdtvm0r78/20251206_210616.png" class="stamp-img" crossorigin="anonymous">
-                <div class="footer-label">Official Stamp</div>
-            </div>
-
-            <div class="signature-box">
-                <img src="https://ik.imagekit.io/kdtvm0r78/image.png" class="sign-img" crossorigin="anonymous">
-                <div class="footer-label">Prime Members</div>
-            </div>
-        </div>
-      </div>
-      <!-- A4 CANVAS END -->
-
-      <!-- Action Buttons -->
-      <div id="action-buttons" class="w-full max-w-md mt-6 space-y-3">
-        <button id="submitForApprovalBtn" class="w-full p-4 bg-blue-900 text-white rounded-lg font-bold shadow-lg flex justify-center items-center hover:bg-blue-800">
-            <span id="submitBtnText">Confirm & Submit</span>
-            <div id="submitLoader" class="loader ml-3 hidden"></div>
-        </button>
-        <button onclick="location.reload()" class="w-full text-gray-500 text-sm underline">Cancel & Edit</button>
-      </div>
-
+      <button id="successDownloadBtn" class="bg-green-600 text-white p-3 rounded-lg font-bold w-full mb-3 shadow">Download Again</button>
+      <button id="successShareBtn" class="bg-blue-600 text-white p-3 rounded-lg font-bold w-full shadow"><i class="fab fa-whatsapp"></i> Share on Group</button>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  
   <script>
     let IMGBB_API_KEY_FORM = null;
     let pendingLoanData = {};
     let generatedCanvas = null;
 
-    // --- INITIALIZATION ---
     async function init() {
         try {
             const res = await fetch('/api/config.js');
             const config = await res.json();
             IMGBB_API_KEY_FORM = config.imgbb.formApiKey;
-            
+
             if (!firebase.apps.length) firebase.initializeApp(config.firebase);
             
             firebase.auth().onAuthStateChanged(user => {
@@ -507,7 +591,7 @@
                 else window.location.href = `/login.html?redirect=${window.location.pathname}`;
             });
         } catch(e) {
-            alert('Initialization Error');
+            console.error(e);
         }
     }
 
@@ -530,10 +614,9 @@
                 gSelect.innerHTML += opt;
             });
             
-        updateFormUI(); // Initial UI State
+        updateFormUI();
     }
 
-    // --- UI UPDATES ---
     const loanOptions = {
         personal: { label: 'Interest & Duration', opts: [{v:'1-1', t:'1% - 1 Month'}, {v:'3-2', t:'3% - 2 Months'}, {v:'5-3', t:'5% - 3 Months'}] },
         business: { label: 'Duration (18% Annual)', opts: [{v:'3-6', t:'9 Months (3 Int + 6 EMI)'}, {v:'6-6', t:'12 Months (6 Int + 6 EMI)'}] },
@@ -545,34 +628,26 @@
         const cat = document.getElementById('loanCategory').value;
         const conf = loanOptions[cat];
         
-        // Update Options
         const durSelect = document.getElementById('durationRateSelect');
         durSelect.innerHTML = '';
         conf.opts.forEach(o => durSelect.innerHTML += `<option value="${o.v}">${o.t}</option>`);
         document.getElementById('durationRateLabel').innerText = conf.label;
 
-        // Toggle Sections
         document.getElementById('goldCollateralSection').style.display = (cat === 'gold') ? 'block' : 'none';
         
         const applicantName = document.getElementById('nameSelect').options[document.getElementById('nameSelect').selectedIndex]?.text || '';
         const needsGuarantor = cat === 'guarantor' || applicantName.toLowerCase().includes('bank');
         document.getElementById('guarantorSection').style.display = needsGuarantor ? 'block' : 'none';
         document.getElementById('guarantorSelect').required = needsGuarantor;
-        
-        // Show Info Box
-        const infoBox = document.getElementById('loanInfoNotification');
-        infoBox.style.display = 'block';
-        if(cat === 'personal') infoBox.innerHTML = '<strong>Personal Loan:</strong> 1.5x Limit of Deposit. 1-3 Months duration.';
-        else if(cat === 'business') infoBox.innerHTML = '<strong>Business Loan:</strong> 18% Annual Interest + 1% Processing Fee.';
-        else infoBox.innerHTML = '<strong>Secured Loan:</strong> 3% Monthly Interest.';
     }
 
-    // --- GENERATE PREVIEW ---
+    // --- STEP 1: PREVIEW ---
     document.getElementById('loanForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // 1. Gather Data
         const uid = document.getElementById('nameSelect').value;
+        if(!uid) return alert("Select Applicant");
+
         const amount = parseFloat(document.getElementById('amount').value);
         const cat = document.getElementById('loanCategory').value;
         const rateVal = document.getElementById('durationRateSelect').value;
@@ -581,8 +656,8 @@
         const snap = await db.ref(`members/${uid}`).once('value');
         const member = snap.val();
         
-        // 2. Calculate Logic (Simplified for brevity, logic remains same)
-        let interest = 0, months = 0, total = 0, emi = 0, procFee = 0, endLabel = '';
+        // Calculations
+        let total=0, emi=0, procFee=0, endLabel='', months=0;
         
         if(cat === 'personal') {
             const [r, m] = rateVal.split('-').map(Number);
@@ -592,20 +667,16 @@
         } else if(cat === 'business') {
             const [intMos, emiMos] = rateVal.split('-').map(Number);
             procFee = amount * 0.01 + (amount>9000?200:0);
-            const rate = 0.015; // 1.5% monthly
-            // Business Logic Approximation for preview
-            const monthlyInt = amount * rate;
+            const rate = 0.015;
             const emiVal = (amount * rate * Math.pow(1+rate, emiMos))/(Math.pow(1+rate, emiMos)-1);
-            total = (monthlyInt * intMos) + (emiVal * emiMos);
+            total = (amount*rate*intMos) + (emiVal*emiMos);
             endLabel = '18% Annual';
             months = intMos + emiMos;
-            
             document.getElementById('processingFeeRow').style.display = 'flex';
             document.getElementById('displayProcessingFee').innerText = procFee.toFixed(0);
             document.getElementById('emiRow').style.display = 'flex';
             document.getElementById('displayEMI').innerText = emiVal.toFixed(0);
         } else {
-            // Gold/Guarantor
             const [r, m] = rateVal.split('-').map(Number);
             const rate = r/100;
             const fullEmi = (amount * rate * Math.pow(1+rate, m))/(Math.pow(1+rate, m)-1);
@@ -616,7 +687,7 @@
             document.getElementById('displayEMI').innerText = fullEmi.toFixed(0);
         }
 
-        // 3. Fill Preview
+        // Fill Data
         const date = new Date();
         document.getElementById('currentDate').innerText = date.toLocaleDateString('en-GB');
         date.setMonth(date.getMonth() + months);
@@ -628,30 +699,28 @@
         document.getElementById('displayRate').innerText = endLabel;
         document.getElementById('displayTotalAmount').innerText = total.toLocaleString('en-IN', {maximumFractionDigits: 0});
         document.getElementById('letterLoanCategory').innerText = cat.toUpperCase() + ' LOAN';
-        
+
         // Guarantor
-        const gRow = document.getElementById('guarantorRow');
         let gName = member.guarantorName || 'N/A';
         if(document.getElementById('guarantorSection').style.display === 'block') {
              const gid = document.getElementById('guarantorSelect').value;
-             const gSnap = await db.ref(`members/${gid}`).once('value');
-             gName = gSnap.val().fullName;
+             if(gid) {
+                 const gSnap = await db.ref(`members/${gid}`).once('value');
+                 gName = gSnap.val().fullName;
+             }
         }
         document.getElementById('displayGuarantor').innerText = gName;
-        gRow.style.display = (cat === 'personal' && !gName) ? 'none' : 'flex'; // Hide if no guarantor for personal
+        document.getElementById('guarantorRow').style.display = (cat === 'personal' && gName === 'N/A') ? 'none' : 'flex';
 
         // Collateral
-        const cRow = document.getElementById('collateralRow');
         const colItem = document.getElementById('goldCollateral').value;
         if(cat === 'gold') {
             document.getElementById('displayCollateral').innerText = colItem;
-            cRow.style.display = 'flex';
-        } else {
-            cRow.style.display = 'none';
+            document.getElementById('collateralRow').style.display = 'flex';
         }
 
-        // Images
-        const proxy = url => url ? `https://images.weserv.nl/?url=${url.replace(/^https?:\/\//, '')}` : 'https://placehold.co/100x100?text=No+Img';
+        // Proxy Image
+        const proxy = url => url ? `https://images.weserv.nl/?url=${url.replace(/^https?:\/\//, '')}` : 'https://placehold.co/100x120?text=No+Img';
         document.getElementById('apiApplicantPhoto').src = proxy(member.profilePicUrl);
         
         // Manual Upload
@@ -661,29 +730,25 @@
             const reader = new FileReader();
             reader.onload = e => {
                 document.getElementById('manualApplicantPhoto').src = e.target.result;
-                manualSec.style.display = 'block';
+                manualSec.style.display = 'flex';
             };
             reader.readAsDataURL(file);
         } else {
             manualSec.style.display = 'none';
         }
 
-        // Store Data
         pendingLoanData = {
-            applicantId: uid,
-            applicantName: member.fullName,
-            amount, category: cat, total,
-            docFile: file,
-            date: new Date().toISOString()
+            applicantId: uid, applicantName: member.fullName, amount, category: cat, 
+            total, docFile: file, date: new Date().toISOString()
         };
 
-        // Switch View
+        // Switch
         document.getElementById('main-form-container').style.display = 'none';
-        document.getElementById('letter-preview-section').classList.remove('hidden');
+        document.getElementById('letter-preview-section').style.display = 'flex';
         window.scrollTo(0,0);
     });
 
-    // --- SUBMIT ---
+    // --- STEP 2: GENERATE & SUBMIT ---
     document.getElementById('submitForApprovalBtn').addEventListener('click', async () => {
         const btn = document.getElementById('submitForApprovalBtn');
         const loader = document.getElementById('submitLoader');
@@ -691,32 +756,37 @@
         loader.classList.remove('hidden');
 
         try {
-            // Wait for images
+            // Wait images
             const imgs = document.querySelectorAll('#capture img');
             await Promise.all([...imgs].map(img => {
                 if(img.complete) return;
                 return new Promise(r => { img.onload=r; img.onerror=r; });
             }));
 
-            // Capture
+            // Generate
             const canvas = await html2canvas(document.getElementById('capture'), {
-                scale: 2, 
-                useCORS: true,
-                backgroundColor: '#ffffff' 
+                scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff'
             });
             generatedCanvas = canvas;
             
-            // Upload Letter
-            const blob = await new Promise(r => canvas.toBlob(r));
+            // Upload
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
             const formData = new FormData();
             formData.append('image', blob);
-            const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY_FORM}`, {method:'POST', body:formData});
-            const json = await res.json();
-            const letterUrl = json.data.url;
             
-            // Upload Extra Doc
+            let letterUrl = null;
+            if(IMGBB_API_KEY_FORM) {
+                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY_FORM}`, {method:'POST', body:formData});
+                 const json = await res.json();
+                 letterUrl = json.data.url;
+            } else {
+                 console.warn("No ImgBB Key, skipping upload but allowing download");
+                 letterUrl = "offline_generated"; 
+            }
+
+            // Doc upload
             let docUrl = null;
-            if(pendingLoanData.docFile) {
+            if(pendingLoanData.docFile && IMGBB_API_KEY_FORM) {
                 const fd = new FormData();
                 fd.append('image', pendingLoanData.docFile);
                 const r2 = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY_FORM}`, {method:'POST', body:fd});
@@ -724,17 +794,20 @@
                 docUrl = j2.data.url;
             }
 
-            // Save to DB
+            // Save DB
             await firebase.database().ref('pendingLoans').push({
-                ...pendingLoanData,
-                letterUrl, docUrl,
-                status: 'pending'
+                ...pendingLoanData, letterUrl, docUrl, status: 'pending'
             });
 
-            // Show Success
-            document.getElementById('letter-preview-section').classList.add('hidden');
-            document.getElementById('successMessage').classList.remove('hidden');
-            document.getElementById('successDownloadBtn').classList.remove('hidden');
+            // Trigger Download
+            const link = document.createElement('a');
+            link.download = `Loan_${pendingLoanData.applicantName}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+
+            // Success View
+            document.getElementById('letter-preview-section').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'block';
 
         } catch(e) {
             alert('Error: ' + e.message);
@@ -743,13 +816,12 @@
         }
     });
 
-    // --- DOWNLOAD ---
     document.getElementById('successDownloadBtn').addEventListener('click', () => {
+        if(!generatedCanvas) return;
         const link = document.createElement('a');
-        link.download = `Loan_App_${Date.now()}.png`;
+        link.download = `Loan_Copy.png`;
         link.href = generatedCanvas.toDataURL();
         link.click();
-        document.getElementById('successShareBtn').classList.remove('hidden');
     });
 
     document.getElementById('successShareBtn').addEventListener('click', () => {
