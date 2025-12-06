@@ -1,20 +1,25 @@
 // File: profit_logic.js
-// Version 3.2: Fixed 10% Penalty Deduction Logic Added.
-// Breakdown: 10% Self, 10% Guarantor, 10% Penalty, 70% Pool.
+// Version 3.3: FIXED 70% POOL RULE (Matches view.html exactly).
+// Logic: 10% Self, 10% Guarantor (if any), 70% Pool (Fixed). Rest is Penalty.
 
 // --- CONFIGURATION & RULES ---
 export const CONFIG = {
     PASSWORD: "7536",
     DEFAULT_PROFILE_PIC: 'https://i.postimg.cc/XNpR3cN1/20241030-065157.png',
     
+    // Performance Score Weights
     CAPITAL_WEIGHT: 0.40, 
     CONSISTENCY_WEIGHT: 0.30, 
     CREDIT_BEHAVIOR_WEIGHT: 0.30,
+
+    // Capital Score Target
     CAPITAL_SCORE_TARGET_SIP: 30000, 
 
+    // Loan Eligibility Tiers
     LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
     LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
     
+    // Credit Behavior & Membership Rules
     MINIMUM_MEMBERSHIP_DAYS: 60,
     MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE: 30,
     SIP_ON_TIME_LIMIT: 10,
@@ -23,18 +28,23 @@ export const CONFIG = {
     LOAN_TERM_GOOD: 90,
     TEN_DAY_CREDIT_GRACE_DAYS: 15,
     BUSINESS_LOAN_TERM_DAYS: 365,
+
+    // New member probation period
     NEW_MEMBER_PROBATION_DAYS: 180,
 
+    // Inactive Policy Tiers
     INACTIVE_DAYS_LEVEL_1: 180,
     INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90, 
     INACTIVE_DAYS_LEVEL_2: 365,
     INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75, 
 };
 
-// --- SCORE CALCULATION (UNCHANGED) ---
+// --- CORE SCORE CALCULATION ENGINE ---
 export function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
-    if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0, isNewMemberRuleApplied: false, originalCapitalScore: 0, originalConsistencyScore: 0, originalCreditScore: 0 };
+    if (memberData.length === 0) {
+        return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0, isNewMemberRuleApplied: false, originalCapitalScore: 0, originalConsistencyScore: 0, originalCreditScore: 0 };
+    }
     
     const firstTransactionDate = memberData[0]?.date;
     const membershipDays = firstTransactionDate ? (untilDate - firstTransactionDate) / (1000 * 3600 * 24) : 0;
@@ -48,9 +58,16 @@ export function calculatePerformanceScore(memberName, untilDate, allData, active
     const originalConsistencyScore = consistencyScore;
     const originalCreditScore = creditScore;
 
-    if (isNewMemberRuleApplied) { capitalScore *= 0.50; consistencyScore *= 0.50; creditScore *= 0.50; }
+    if (isNewMemberRuleApplied) {
+        capitalScore *= 0.50;
+        consistencyScore *= 0.50;
+        creditScore *= 0.50;
+    }
 
-    const totalScore = (capitalScore * CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT);
+    const totalScore = (capitalScore * CONFIG.CAPITAL_WEIGHT) + 
+                       (consistencyScore * CONFIG.CONSISTENCY_WEIGHT) + 
+                       (creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT);
+
     return { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore };
 }
 
@@ -68,7 +85,10 @@ function calculateConsistencyScore(memberData, untilDate) {
     const recentMemberData = memberData.filter(r => r.date >= oneYearAgo);
     if (recentMemberData.length === 0) return 0;
     const sipHistory = {};
-    recentMemberData.filter(r => r.sipPayment > 0).forEach(r => { const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`; if (!sipHistory[monthKey]) { sipHistory[monthKey] = r.date.getDate() <= CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5; } });
+    recentMemberData.filter(r => r.sipPayment > 0).forEach(r => { 
+        const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`; 
+        if (!sipHistory[monthKey]) { sipHistory[monthKey] = r.date.getDate() <= CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5; } 
+    });
     if (Object.keys(sipHistory).length === 0) return 0;
     const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
     const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
@@ -127,7 +147,7 @@ function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoan
     return Math.max(0, Math.min(100, (totalPoints / (loansProcessed * 25)) * 100));
 }
 
-// --- PROFIT DISTRIBUTION (UPDATED LOGIC) ---
+// --- PROFIT DISTRIBUTION (MATCHING VIEW.HTML) ---
 
 export function getLoanEligibility(memberName, score, allData) {
     const memberData = allData.filter(r => r.name === memberName);
@@ -147,6 +167,7 @@ export function getLoanEligibility(memberName, score, allData) {
     return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
 }
 
+// Logic: view.html uses HARDCODED 70% for pool.
 export function calculateProfitDistribution(paymentRecord, allData, activeLoansData, guarantorName = null) {
     const totalInterest = paymentRecord.returnAmount; 
     if (totalInterest <= 0) return null;
@@ -157,23 +178,21 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
     const selfShare = totalInterest * 0.10;
     distribution.push({ name: paymentRecord.name, share: selfShare, type: 'Self Return (10%)' });
     
-    // 2. Penalty Wallet Fixed Deduction (10%) - NEW
-    const fixedPenaltyShare = totalInterest * 0.10;
-    
-    // 3. Guarantor Share (10%)
+    // 2. Guarantor Share (10%)
     let guarantorShare = 0;
     if (guarantorName && guarantorName !== 'Xxxxx' && guarantorName !== 'N/A') {
         guarantorShare = totalInterest * 0.10;
         distribution.push({ name: guarantorName, share: guarantorShare, type: 'Guarantor Commission (10%)' });
     }
     
-    // 4. Community Pool (Remainder)
-    // Formula: Total - Self - FixedPenalty - Guarantor
-    const communityPool = totalInterest - selfShare - fixedPenaltyShare - guarantorShare;
+    // 3. Community Pool (Fixed 70%) - As per view.html logic
+    const communityPool = totalInterest * 0.70;
     
-    // ... Find relevant loan ...
+    // 4. Calculate Penalty (Whatever is left)
+    const penaltyShare = totalInterest - selfShare - guarantorShare - communityPool;
+    
     const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan');
-    if (userLoansBeforePayment.length === 0) return { profit: totalInterest, relevantLoan: {loan: 0, name: 'Unknown'}, distribution, breakdown: { self: selfShare, guarantor: guarantorShare, pool: communityPool, penalty: fixedPenaltyShare } };
+    if (userLoansBeforePayment.length === 0) return { profit: totalInterest, relevantLoan: {loan: 0, name: 'Unknown'}, distribution, breakdown: { self: selfShare, guarantor: guarantorShare, pool: communityPool, penalty: penaltyShare } };
     
     const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1];
     const loanDate = relevantLoan.date;
@@ -205,7 +224,6 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
             const originalShare = memberShare;
             memberShare *= appliedMultiplier; 
             
-            // Add deducted amount to penalty pool (implicitly)
             if (appliedMultiplier < 1) {
                 undistributedAmount += (originalShare - memberShare);
             }
@@ -229,7 +247,7 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
             self: selfShare,
             guarantor: guarantorShare,
             pool: communityPool,
-            penalty: fixedPenaltyShare + undistributedAmount // Fixed 10% + Inactive Deductions
+            penalty: penaltyShare + undistributedAmount 
         }
     };
 }
