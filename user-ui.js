@@ -1,8 +1,9 @@
-// FINAL STRICT UPDATE V4:
+// FINAL STRICT UPDATE V5:
 // 1. Penalty Wallet Logic Updated.
 // 2. All Members: Image Zoom logic retained.
 // 3. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML.
 // 4. SMART MODAL SWAP: Fixes "Full View" redirect crash issue.
+// 5. PASSWORD FIX: Auto-Reconnect Database & Trim Logic added.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -976,16 +977,34 @@ function animateValue(el, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
+// --- FIXED: AUTO-RECONNECT & ROBUST PASSWORD CHECK ---
 async function handlePasswordCheck(database) {
     const input = getElement('passwordInput');
     const password = input.value;
     if (!password) return alert('Please enter password.');
+    
+    // Fallback: If initUI was called with null, use global firebase
+    let dbInstance = database;
+    if (!dbInstance) {
+        try {
+            if (typeof firebase !== 'undefined') {
+                dbInstance = firebase.database();
+            } else {
+                throw new Error("Firebase SDK not loaded");
+            }
+        } catch (e) {
+            console.error("Database auto-connect failed:", e);
+            return alert("System Error: Database not connected. Please refresh page.");
+        }
+    }
+
     try {
-        const snapshot = await database.ref(`members/${currentMemberForFullView}/password`).once('value');
+        const snapshot = await dbInstance.ref(`members/${currentMemberForFullView}/password`).once('value');
         const correctPassword = snapshot.val();
-        if (password === correctPassword) {
+        
+        // Fix: Use trim() to ignore accidental spaces and String() for type safety
+        if (String(password).trim() === String(correctPassword).trim()) {
             closeModal(elements.passwordPromptModal);
-            // This redirect is standard, assuming view.html handles itself (which we fixed in last step)
             window.location.href = `view.html?memberId=${currentMemberForFullView}`;
         } else {
             alert('Incorrect password.');
