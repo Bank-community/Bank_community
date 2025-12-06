@@ -1,6 +1,5 @@
 // File: profit_logic.js
-// Version 3.0: Full Synchronization with view.html logic.
-// Includes: New Member Rule, Business Loan Logic, Inactive Policy, Extra Balance Calculation.
+// Version 3.1: 100% Synced with view.html (Guarantor Logic + Extra Balance Fix)
 
 // --- CONFIGURATION & RULES ---
 export const CONFIG = {
@@ -39,9 +38,7 @@ export const CONFIG = {
     INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75, // 25% penalty
 };
 
-
 // --- CORE SCORE CALCULATION ENGINE ---
-
 export function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
     if (memberData.length === 0) {
@@ -70,16 +67,7 @@ export function calculatePerformanceScore(memberName, untilDate, allData, active
                        (consistencyScore * CONFIG.CONSISTENCY_WEIGHT) + 
                        (creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT);
 
-    return { 
-        totalScore, 
-        capitalScore, 
-        consistencyScore, 
-        creditScore, 
-        isNewMemberRuleApplied, 
-        originalCapitalScore,
-        originalConsistencyScore, 
-        originalCreditScore 
-    };
+    return { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore };
 }
 
 function calculateCapitalScore(memberName, untilDate, allData) {
@@ -161,7 +149,7 @@ function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoan
     return Math.max(0, Math.min(100, (totalPoints / (loansProcessed * 25)) * 100));
 }
 
-// --- PROFIT & BALANCE LOGIC ---
+// --- PROFIT DISTRIBUTION LOGIC (UPDATED WITH GUARANTOR LOGIC) ---
 
 export function getLoanEligibility(memberName, score, allData) {
     const memberData = allData.filter(r => r.name === memberName);
@@ -181,23 +169,35 @@ export function getLoanEligibility(memberName, score, allData) {
     return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
 }
 
-export function calculateProfitDistribution(paymentRecord, allData, activeLoansData) {
+// NOTE: This function needs access to memberDataMap for Guarantor lookup. 
+// We will pass memberDataMap as an argument or handle it via a callback if needed.
+// For now, we assume the caller provides the guarantorName if known.
+export function calculateProfitDistribution(paymentRecord, allData, activeLoansData, guarantorName = null) {
     const totalInterest = paymentRecord.returnAmount; 
     if (totalInterest <= 0) return null;
     
     const distribution = [];
+    
+    // 1. Self Share (10%)
     const selfShare = totalInterest * 0.10;
-    // Note: In view.html logic, distribution items have specific 'type'
     distribution.push({ name: paymentRecord.name, share: selfShare, type: 'Self Return (10%)' });
     
-    // Check for Guarantor using helper function if passed or rely on data presence (This part is tricky without direct memberMap access in logic file, assuming logic matches View.html's simplified flow or we skip guarantor check here if data missing, but let's stick to core profit logic)
-    // NOTE: view.html accesses memberDataMap inside the function. Here we don't have it globally. 
-    // For consistency with profit_main.js structure, we will calculate the Community Pool share which is the complex part.
+    let remainingForPool = totalInterest - selfShare;
+
+    // 2. Guarantor Share (10%) - Checks if Guarantor exists and is valid
+    let guarantorShare = 0;
+    if (guarantorName && guarantorName !== 'Xxxxx' && guarantorName !== 'N/A') {
+        guarantorShare = totalInterest * 0.10;
+        distribution.push({ name: guarantorName, share: guarantorShare, type: 'Guarantor Commission (10%)' });
+        remainingForPool -= guarantorShare;
+    }
     
-    const communityPool = totalInterest * 0.70; // Assuming 70% goes to pool as per View.html standard logic flow
+    // 3. Community Pool (Remaining ~70-80%)
+    const communityPool = remainingForPool;
     
+    // Find relevant loan to calculate scores at that time
     const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan');
-    if (userLoansBeforePayment.length === 0) return { profit: totalInterest, relevantLoan: {loan: 0, name: 'Unknown'}, distribution };
+    if (userLoansBeforePayment.length === 0) return { profit: totalInterest, relevantLoan: {loan: 0, name: 'Unknown'}, distribution, breakdown: { self: selfShare, guarantor: guarantorShare, pool: communityPool } };
     
     const relevantLoan = userLoansBeforePayment[userLoansBeforePayment.length - 1];
     const loanDate = relevantLoan.date;
@@ -206,7 +206,7 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
     const membersInSystemAtLoanDate = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))];
     
     membersInSystemAtLoanDate.forEach(name => {
-        if (name === paymentRecord.name) return;
+        if (name === paymentRecord.name) return; // Exclude payer from pool
         const scoreObject = calculatePerformanceScore(name, loanDate, allData, activeLoansData);
         if (scoreObject.totalScore > 0) {
             snapshotScores[name] = scoreObject;
@@ -224,7 +224,10 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
             if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
             else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
             
-            memberShare *= appliedMultiplier;
+            memberShare *= appliedMultiplier; // Apply Penalty directly to share
+            
+            // Note: The deducted amount (Penalty) stays in Penalty Wallet (implicitly, as it's not distributed)
+            
             if (memberShare > 0) {
                 distribution.push({ 
                     name: memberName, share: memberShare, type: 'Community Profit',
@@ -235,14 +238,29 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
             }
         }
     }
-    // Sort descending by share
-    return { profit: totalInterest, relevantLoan, distribution: distribution.sort((a,b) => b.share - a.share) };
+    
+    return { 
+        profit: totalInterest, 
+        relevantLoan, 
+        distribution: distribution.sort((a,b) => b.share - a.share),
+        breakdown: {
+            self: selfShare,
+            guarantor: guarantorShare,
+            pool: communityPool,
+            penalty: (communityPool - distribution.filter(d => d.type === 'Community Profit').reduce((sum, item) => sum + item.share, 0)) // Calculated penalty leftover
+        }
+    };
 }
 
-export function calculateTotalProfitForMember(memberName, allData, activeLoansData) {
+export function calculateTotalProfitForMember(memberName, allData, activeLoansData, memberDataMap) {
     return allData.reduce((totalProfit, transaction) => {
         if (transaction.returnAmount > 0) {
-            const result = calculateProfitDistribution(transaction, allData, activeLoansData);
+            // Find guarantor for this transaction's payer
+            const payerId = transaction.memberId;
+            const payerInfo = memberDataMap.get(payerId);
+            const guarantorName = payerInfo ? payerInfo.guarantorName : null;
+
+            const result = calculateProfitDistribution(transaction, allData, activeLoansData, guarantorName);
             const memberShare = result?.distribution.find(d => d.name === memberName);
             if (memberShare) totalProfit += memberShare.share;
         }
@@ -250,12 +268,18 @@ export function calculateTotalProfitForMember(memberName, allData, activeLoansDa
     }, 0);
 }
 
-export function calculateTotalExtraBalance(memberId, memberFullName, allData, activeLoansData) {
+// Logic copied exactly from view.html for consistency
+export function calculateTotalExtraBalance(memberId, memberFullName, allData, activeLoansData, memberDataMap) {
     const history = [];
     const profitEvents = allData.filter(r => r.returnAmount > 0);
     
     profitEvents.forEach(paymentRecord => {
-        const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData);
+        // We need guarantor name to calculate distribution correctly
+        const payerId = paymentRecord.memberId;
+        const payerInfo = memberDataMap.get(payerId);
+        const guarantorName = payerInfo ? payerInfo.guarantorName : null;
+
+        const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData, guarantorName);
         const memberShare = result?.distribution.find(d => d.name === memberFullName);
         if(memberShare && memberShare.share > 0) {
             history.push({ type: memberShare.type || 'profit', from: paymentRecord.name, date: paymentRecord.date, amount: memberShare.share });
@@ -276,4 +300,5 @@ export function formatDate(date) {
     if (!(date instanceof Date) || isNaN(date)) return "N/A"; 
     return date.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); 
 }
+
 
