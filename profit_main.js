@@ -1,5 +1,5 @@
 // File: profit_main.js
-// Version 3.2: Handles New Penalty Breakdown.
+// Version 3.3: UI Cleaned (No Graph), Breakdown Modal Updated.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
