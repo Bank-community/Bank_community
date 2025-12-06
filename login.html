@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>लॉगिन - बैंक कम्युनिटी लोन</title>
+    <title>लॉगिन - TRUST COMMUNITY FUND</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -51,13 +51,13 @@
         async function initializeAppWithConfig() {
             try {
                 // Vercel se config laayein
-                const response = await fetch('/api/config'); // Aapka config endpoint
+                const response = await fetch('/api/firebase-config'); // Aapka config endpoint
                 if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल।');
                 
                 const config = await response.json();
                 
                 // Firebase v8 tarike se initialize karein
-                firebase.initializeApp(config.firebase);
+                firebase.initializeApp(config);
                 
                 setupLoginListener();
 
@@ -100,7 +100,8 @@
                             sessionStorage.setItem('isAdminLoggedIn', 'true');
                             window.location.href = redirectUrl || '/admin.html'; 
                         } else {
-                            window.location.href = '/index.html'; 
+                            // FIXED: Redirect to the original requested page OR index.html
+                            window.location.href = redirectUrl || '/index.html'; 
                         }
                     })
                     .catch((error) => {
@@ -121,3 +122,4 @@
     </script>
 </body>
 </html>
+
