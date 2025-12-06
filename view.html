@@ -280,7 +280,6 @@
 
   <script type="module">
     // --- Firebase SDKs (Modular v9) ---
-    // FIXED: Added signInAnonymously to fix redirect loop issue
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
@@ -309,12 +308,9 @@
                 if (user) {
                     runAppLogic();
                 } else {
-                    // FIXED: Instead of redirecting to login.html (which causes loop),
-                    // we silently sign in anonymously.
                     console.log("No user found, signing in anonymously...");
                     signInAnonymously(auth).catch(error => {
                         console.error("Anonymous auth failed:", error);
-                        // Only redirect if anon auth completely fails
                         window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
                     });
                 }
@@ -368,6 +364,7 @@
                      memberDataMap.set(id, {
                         name: members[id].fullName,
                         imageUrl: members[id].profilePicUrl,
+                        guarantorName: members[id].guarantorName // Store guarantor for profit calc
                     });
                 }
             }
@@ -589,8 +586,14 @@
                 case 'withdrawal':
                     title = 'Balance Withdrawn by Admin';
                     break;
+                case 'Self Return (10%)':
+                    title = 'Self Interest Return (10%)';
+                    break;
+                case 'Guarantor Commission (10%)':
+                    title = `Guarantor Commission (${item.from})`;
+                    break;
                 default:
-                    title = 'Transaction';
+                    title = `Transaction: ${item.type || ''}`;
             }
             div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
             div.innerHTML = `<div><p class="font-semibold text-gray-800">${title}</p><p class="text-xs text-gray-400">${item.date.toLocaleDateString('en-GB')}</p></div><span class="font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${Math.abs(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
@@ -838,10 +841,29 @@
         return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
     }
     
+    // --- UPDATED PROFIT DISTRIBUTION LOGIC (10% Self / 10% Guarantor / 70% Community) ---
     function calculateProfitDistribution(paymentRecord, allData, activeLoansData) { 
-        const profit = paymentRecord.returnAmount * 0.90; 
-        if (profit <= 0) return null; 
+        const totalInterest = paymentRecord.returnAmount; 
+        if (totalInterest <= 0) return null; 
         
+        const distribution = [];
+
+        // 1. Self Share (10%)
+        const selfShare = totalInterest * 0.10;
+        distribution.push({ name: paymentRecord.name, share: selfShare, type: 'Self Return (10%)' });
+
+        // 2. Guarantor Share (10%)
+        // Need to lookup guarantor name using memberId from paymentRecord
+        const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
+        if (payerMemberInfo && payerMemberInfo.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
+             distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
+        }
+        // If no guarantor, 10% is implicitly left for penalty (not added to distribution)
+
+        // 3. Community Pool (70%)
+        const communityPool = totalInterest * 0.70;
+        
+        // Find the loan date to calculate scores
         const userLoansBeforePayment = allData.filter(r => 
             r.name === paymentRecord.name && 
             r.loan > 0 && 
@@ -849,36 +871,46 @@
             r.loanType === 'Loan' 
         ); 
         
-        if (userLoansBeforePayment.length === 0) return null; 
+        if (userLoansBeforePayment.length === 0) return { distribution }; // Return what we have (Self/Guarantor)
+        
         const relevantLoan = userLoansBeforePayment.pop(); 
         const loanDate = relevantLoan.date; 
         const snapshotScores = {}; 
         let totalScoreInSnapshot = 0; 
+        
+        // Get all members active at that time
         const membersInSystemAtLoanDate = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))]; 
+        
         membersInSystemAtLoanDate.forEach(name => { 
+            // EXCLUDE SELF from community pool
+            if (name === paymentRecord.name) return;
+
             const scoreObject = calculatePerformanceScore(name, loanDate, allData, activeLoansData); 
             if (scoreObject.totalScore > 0) { 
                 snapshotScores[name] = scoreObject; 
                 totalScoreInSnapshot += scoreObject.totalScore; 
             } 
         }); 
-        if (totalScoreInSnapshot <= 0) return null; 
-        const distribution = []; 
-        for (const memberName in snapshotScores) { 
-            let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * profit; 
-            
-            const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date;
-            
-            const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
-            let appliedMultiplier = 1.0; 
-            if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) { 
-                appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; 
-            } else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) { 
-                appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; 
+        
+        if (totalScoreInSnapshot > 0) {
+            for (const memberName in snapshotScores) { 
+                let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * communityPool; 
+                
+                // Inactivity Penalty Logic (Keep as is)
+                const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date;
+                const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
+                let appliedMultiplier = 1.0; 
+                if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) { 
+                    appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; 
+                } else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) { 
+                    appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; 
+                } 
+                memberShare *= appliedMultiplier; 
+                
+                if (memberShare > 0) distribution.push({ name: memberName, share: memberShare, type: 'Community Profit' }); 
             } 
-            memberShare *= appliedMultiplier; 
-            if (memberShare > 0) distribution.push({ name: memberName, share: memberShare }); 
-        } 
+        }
+        
         return { distribution }; 
     }
     
@@ -901,7 +933,8 @@
             const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData);
             const memberShare = result?.distribution.find(d => d.name === memberFullName);
             if(memberShare && memberShare.share > 0) {
-                history.push({ type: 'profit', from: paymentRecord.name, date: paymentRecord.date, amount: memberShare.share });
+                // Use the type from distribution or default to 'profit'
+                history.push({ type: memberShare.type || 'profit', from: paymentRecord.name, date: paymentRecord.date, amount: memberShare.share });
             }
         });
         
@@ -922,4 +955,5 @@
   </script>
 </body>
 </html>
+
 
