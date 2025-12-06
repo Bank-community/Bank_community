@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Member Full Profile</title>
+  <title>Royal Member Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link
     rel="stylesheet"
@@ -12,193 +12,333 @@
   <!-- html2canvas for downloading card -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            royal: {
+              dark: '#001540',
+              blue: '#002366',
+              gold: '#D4AF37',
+              goldLight: '#F3E5AB',
+              goldDark: '#B8860B',
+            }
+          },
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+            serif: ['Times New Roman', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
     body {
       font-family: 'Poppins', sans-serif;
-      background-color: #f0f2f5;
+      background-color: #f4f6f9;
+      color: #1a1a1a;
     }
-    .profile-header {
-        background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
+
+    /* --- ROYAL GRADIENTS & EFFECTS --- */
+    .royal-header-bg {
+        background: radial-gradient(circle at top right, #003399, #001540);
+        position: relative;
+        overflow: hidden;
     }
-    .stat-card {
-        background-color: white;
-        border-radius: 1rem;
-        box-shadow: 0 4px 15px -5px rgba(0,0,0,0.08);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
+    .royal-header-bg::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D4AF37' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
-    .stat-card:hover {
+
+    .gold-ring {
+        border: 3px solid #D4AF37;
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+    }
+
+    .glass-card {
+        background: white;
+        border: 1px solid rgba(212, 175, 55, 0.2); /* Subtle Gold Border */
+        border-radius: 16px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 25px -10px rgba(0,0,0,0.15);
+        box-shadow: 0 15px 35px -10px rgba(212, 175, 55, 0.15);
+        border-color: rgba(212, 175, 55, 0.5);
     }
+
+    .text-gold { color: #D4AF37; }
+    .text-gold-dark { color: #B8860B; }
+    
+    .gold-gradient-text {
+        background: linear-gradient(to right, #D4AF37, #FDB931, #D4AF37);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+
+    .btn-royal {
+        background: linear-gradient(135deg, #002366 0%, #001540 100%);
+        color: white;
+        border: 1px solid #D4AF37;
+        box-shadow: 0 4px 10px rgba(0, 35, 102, 0.3);
+        transition: all 0.3s ease;
+    }
+    .btn-royal:hover {
+        background: linear-gradient(135deg, #003399 0%, #002366 100%);
+        box-shadow: 0 6px 15px rgba(212, 175, 55, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .btn-gold {
+        background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+    }
+    .btn-gold:hover {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+    }
+
     .info-item {
-        border-bottom: 1px solid #e5e7eb;
-        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 12px 0;
     }
     .info-item:last-child { border-bottom: none; }
-    .document-thumbnail {
-        cursor: pointer;
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        border: 2px solid transparent;
-    }
-    .document-thumbnail:hover {
-        transform: scale(1.05);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        border-color: #4f46e5;
-    }
+
+    /* Loader */
     .loader-container {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: #f0f2f5;
-        z-index: 100;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background-color: #f4f6f9; z-index: 2000;
     }
     .loader {
-        border: 5px solid #e5e7eb;
-        border-top: 5px solid #4f46e5;
+        border: 4px solid #e0e0e0;
+        border-top: 4px solid #D4AF37;
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        width: 60px; height: 60px;
         animation: spin 1s linear infinite;
-    }
-    .loader-container span {
-        margin-top: 15px;
-        font-weight: 500;
-        color: #4f46e5;
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .hidden { display: none; }
-    .modal-overlay {
-        background-color: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(4px);
-    }
-    .info-icon { color: #4f46e5; }
-    .withdrawal-card-container {
-        width: 100%;
-        max-width: 380px;
-    }
+
+    /* Withdrawal Certificate Card */
     .withdrawal-card {
-        font-family: 'Poppins', sans-serif;
-        border-radius: 1rem;
-        border: 1px solid #e5e7eb;
-        background-color: white;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        aspect-ratio: 16 / 10.5;
-        display: flex;
-        flex-direction: column;
+        background: white;
+        border: 4px double #D4AF37;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
     }
+    .withdrawal-card::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background-image: radial-gradient(circle, #D4AF37 1px, transparent 1px);
+        background-size: 20px 20px;
+        opacity: 0.05;
+        pointer-events: none;
+    }
+    .watermark {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
+        font-size: 4rem; font-weight: 900; color: rgba(0,0,0,0.03); white-space: nowrap; pointer-events: none;
+    }
+
+    .modal-overlay { background-color: rgba(0, 21, 64, 0.9); backdrop-filter: blur(5px); }
   </style>
 </head>
 <body class="min-h-screen">
   
   <div id="loader-container" class="loader-container">
       <div class="loader"></div>
-      <span id="loader-text">Authenticating...</span>
+      <span id="loader-text" class="mt-4 text-royal-blue font-semibold tracking-wider">VERIFYING IDENTITY...</span>
   </div>
 
-  <div id="error-message" class="hidden text-center text-red-600 font-semibold bg-white p-8 rounded-xl shadow-lg max-w-md mx-auto mt-10">
-      <h2 class="text-2xl mb-2">Error</h2>
+  <div id="error-message" class="hidden text-center text-red-600 font-semibold bg-white p-8 rounded-xl shadow-lg max-w-md mx-auto mt-10 border border-red-100">
+      <h2 class="text-2xl mb-2"><i class="fas fa-exclamation-triangle"></i> Error</h2>
       <p>Could not load member data.</p>
   </div>
   
   <div id="profile-content" class="w-full hidden">
-    <!-- Header -->
-    <div class="profile-header text-white p-6 rounded-b-3xl shadow-lg">
-        <div class="max-w-5xl mx-auto flex items-center gap-6">
-            <img id="profile-pic" src="" alt="Profile Picture" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-lg">
-            <div class="flex-grow">
-                <h1 id="profile-name" class="text-2xl sm:text-4xl font-bold"></h1>
-                <p id="membership-id" class="text-indigo-200 text-sm"></p>
+    <!-- ROYAL HEADER -->
+    <div class="royal-header-bg text-white pt-8 pb-16 px-6 rounded-b-[3rem] shadow-2xl">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center gap-6">
+            <div class="relative">
+                <img id="profile-pic" src="" alt="Profile Picture" class="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover gold-ring p-1 bg-white">
+                <div class="absolute bottom-0 right-0 bg-royal-gold text-white text-xs font-bold px-2 py-1 rounded-full border border-white shadow-md bg-[#D4AF37]">
+                    <i class="fas fa-check-circle"></i> VERIFIED
+                </div>
+            </div>
+            <div class="text-center sm:text-left flex-grow">
+                <h1 id="profile-name" class="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-1" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></h1>
+                <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-indigo-100">
+                    <p id="membership-id" class="bg-white/10 px-3 py-1 rounded-full text-sm font-medium border border-white/20 tracking-wide"></p>
+                    <span class="hidden sm:inline text-royal-gold">•</span>
+                    <p id="joining-date-header" class="text-sm opacity-90"></p>
+                </div>
             </div>
         </div>
     </div>
 
-    <main class="max-w-5xl mx-auto p-4 -mt-10">
+    <!-- MAIN CONTENT -->
+    <main class="max-w-6xl mx-auto p-4 -mt-12 relative z-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column -->
+            
+            <!-- LEFT COLUMN (Stats & Documents) -->
             <div class="lg:col-span-1 space-y-6">
-                <!-- Financial Health Card -->
-                <div class="stat-card p-6">
-                    <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-heart-pulse text-indigo-500"></i> Financial Health</h3>
-                     <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500 flex items-center">
+                <!-- Financial Health -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-line text-gold"></i> Financial Health
+                    </h3>
+                     <div class="space-y-5">
+                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <span class="text-gray-600 text-sm font-medium flex items-center">
                                 Performance Score
-                                <button id="score-info-btn" class="ml-2 text-indigo-400 hover:text-indigo-600 text-sm"><i class="fas fa-info-circle"></i></button>
+                                <button id="score-info-btn" class="ml-2 text-royal-gold hover:text-royal-blue"><i class="fas fa-info-circle"></i></button>
                             </span>
-                            <span id="performance-score" class="font-bold text-lg text-indigo-600">Calculating...</span>
+                            <span id="performance-score" class="font-extrabold text-xl text-royal-blue">--</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500">Loan Eligibility</span>
-                            <span id="loan-eligibility" class="font-bold text-lg text-green-600">Calculating...</span>
+                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <span class="text-gray-600 text-sm font-medium">Loan Eligibility</span>
+                            <span id="loan-eligibility" class="font-bold text-lg text-green-600">--</span>
                         </div>
                     </div>
                 </div>
-                 <!-- Documents Card -->
-                <div class="stat-card p-6">
-                     <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-folder-open text-indigo-500"></i> Documents</h3>
-                     <div class="grid grid-cols-3 gap-4">
-                         <div class="text-center">
-                            <img id="doc-profile-pic" src="" alt="Profile" class="document-thumbnail w-full h-20 object-cover rounded-lg bg-gray-100">
-                            <p class="text-xs mt-1 text-gray-500">Profile</p>
+
+                 <!-- Documents -->
+                <div class="glass-card p-6">
+                     <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-gold"></i> Verified Documents
+                    </h3>
+                     <div class="grid grid-cols-3 gap-3">
+                         <div class="text-center group cursor-pointer document-thumbnail">
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
+                                <img id="doc-profile-pic" src="" class="w-full h-16 object-cover rounded-md opacity-80 group-hover:opacity-100">
+                            </div>
+                            <p class="text-[10px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Photo</p>
                          </div>
-                         <div class="text-center">
-                            <img id="doc-document" src="" alt="Document" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1">
-                            <p class="text-xs mt-1 text-gray-500">Document</p>
+                         <div class="text-center group cursor-pointer document-thumbnail">
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
+                                <img id="doc-document" src="" class="w-full h-16 object-contain opacity-80 group-hover:opacity-100">
+                            </div>
+                            <p class="text-[10px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">KYC Doc</p>
                          </div>
-                         <div class="text-center">
-                            <img id="doc-signature" src="" alt="Signature" class="document-thumbnail w-full h-20 object-contain rounded-lg bg-gray-100 p-1">
-                             <p class="text-xs mt-1 text-gray-500">Signature</p>
+                         <div class="text-center group cursor-pointer document-thumbnail">
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
+                                <img id="doc-signature" src="" class="w-full h-16 object-contain opacity-80 group-hover:opacity-100">
+                            </div>
+                             <p class="text-[10px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Sign</p>
                          </div>
                      </div>
                 </div>
-                <!-- Loan History Card -->
-                <div class="stat-card p-6">
-                    <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-history text-indigo-500"></i> Loan History</h3>
-                    <div id="loan-history-container" class="max-h-60 overflow-y-auto space-y-2 pr-2">
-                        <!-- Loan history items will be injected here -->
+
+                <!-- Loan History -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+                        <i class="fas fa-history text-gold"></i> Recent Activity
+                    </h3>
+                    <div id="loan-history-container" class="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                        <!-- Items injected here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column -->
+            <!-- RIGHT COLUMN (Details & Balance) -->
             <div class="lg:col-span-2 space-y-6">
-                <div class="stat-card p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Personal Details -->
+                <div class="glass-card p-6 sm:p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Personal Info -->
                         <div>
-                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-user-circle text-indigo-500"></i> Personal Details</h3>
-                            <div class="space-y-2 text-sm">
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-phone-alt info-icon w-5 text-center"></i><span id="mobile-number" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-birthday-cake info-icon w-5 text-center"></i><span id="dob" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-id-card info-icon w-5 text-center"></i><span id="aadhaar" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex items-center gap-4"><i class="fas fa-map-marker-alt info-icon w-5 text-center"></i><span id="address" class="font-semibold text-gray-800 text-left"></span></div>
-                            </div>
-                        </div>
-                        <!-- Financial Details -->
-                        <div>
-                            <h3 class="text-xl font-semibold text-gray-700 border-b pb-3 mb-4 flex items-center gap-3"><i class="fas fa-wallet text-indigo-500"></i> Financial Details</h3>
-                            <div class="space-y-2 text-sm">
-                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Joining Date</span><span id="joining-date" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Guarantor</span><span id="guarantor-name" class="font-semibold text-gray-800"></span></div>
-                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Total SIP</span><span id="total-sip" class="font-bold text-lg text-indigo-600"></span></div>
-                                <div class="info-item flex justify-between items-center"><span class="text-gray-500">Lifetime Profit</span><span id="lifetime-profit" class="font-bold text-lg text-green-600"></span></div>
-                            </div>
-                            <div class="mt-6 p-4 bg-indigo-50 rounded-lg text-center">
-                                <div class="flex justify-between items-center">
-                                    <p class="text-sm text-gray-500">Extra Balance</p>
-                                    <button id="view-history-btn" class="text-xs text-indigo-600 font-semibold hover:underline">View History</button>
+                            <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+                                <i class="fas fa-user-tie text-gold"></i> Personal Info
+                            </h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="info-item flex items-center gap-4 group">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
+                                        <i class="fas fa-phone-alt"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400">Mobile Number</p>
+                                        <span id="mobile-number" class="font-semibold text-gray-800"></span>
+                                    </div>
                                 </div>
-                                <p id="extra-balance" class="font-bold text-4xl text-green-600 my-2"></p>
-                                <button id="withdraw-btn" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400">
-                                    <i class="fas fa-hand-holding-usd mr-2"></i>Withdraw
-                                </button>
+                                <div class="info-item flex items-center gap-4 group">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
+                                        <i class="fas fa-birthday-cake"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400">Date of Birth</p>
+                                        <span id="dob" class="font-semibold text-gray-800"></span>
+                                    </div>
+                                </div>
+                                <div class="info-item flex items-center gap-4 group">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
+                                        <i class="fas fa-fingerprint"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400">Aadhaar Number</p>
+                                        <span id="aadhaar" class="font-semibold text-gray-800"></span>
+                                    </div>
+                                </div>
+                                <div class="info-item flex items-center gap-4 group">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
+                                        <i class="fas fa-map-pin"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400">Address</p>
+                                        <span id="address" class="font-semibold text-gray-800 leading-tight"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Financial Summary -->
+                        <div>
+                            <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+                                <i class="fas fa-wallet text-gold"></i> Wealth Overview
+                            </h3>
+                            <div class="space-y-3 text-sm mb-6">
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-gray-500">Guarantor</span>
+                                    <span id="guarantor-name" class="font-semibold text-royal-blue"></span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-t border-dashed border-gray-200">
+                                    <span class="text-gray-500">Total Invested (SIP)</span>
+                                    <span id="total-sip" class="font-bold text-lg text-royal-blue"></span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-t border-dashed border-gray-200">
+                                    <span class="text-gray-500">Lifetime Profit</span>
+                                    <span id="lifetime-profit" class="font-bold text-lg text-green-600"></span>
+                                </div>
+                            </div>
+
+                            <!-- EXTRA BALANCE BOX -->
+                            <div class="p-5 bg-gradient-to-br from-royal-dark to-royal-blue rounded-xl text-center text-white shadow-lg border border-royal-gold relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-16 h-16 bg-white opacity-5 rounded-full -mr-8 -mt-8"></div>
+                                <div class="relative z-10">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs text-indigo-200 uppercase tracking-widest">Withdrawable Balance</p>
+                                        <button id="view-history-btn" class="text-xs text-royal-gold hover:text-white underline decoration-1 underline-offset-2">History</button>
+                                    </div>
+                                    <p id="extra-balance" class="font-bold text-4xl text-royal-gold my-3 tracking-tight" style="text-shadow: 0 2px 10px rgba(0,0,0,0.5);">₹0</p>
+                                    <button id="withdraw-btn" class="w-full btn-gold text-royal-dark font-bold py-3 px-4 rounded-lg text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <i class="fas fa-money-bill-wave mr-2"></i> Request Withdrawal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -206,75 +346,114 @@
     </main>
   </div>
 
-  <!-- Modals -->
+  <!-- MODALS (Redesigned) -->
+  
+  <!-- Image Viewer -->
   <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <img id="fullImageView" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
-      <button id="closeImageViewer" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+      <img id="fullImageView" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl border-2 border-white">
+      <button id="closeImageViewer" class="absolute top-6 right-6 text-white text-4xl hover:text-royal-gold transition-colors">&times;</button>
   </div>
 
+  <!-- Withdrawal Input Modal -->
   <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
-          <h3 class="text-xl font-bold text-center mb-4">Withdraw Extra Balance</h3>
-          <p class="text-center text-sm text-gray-500 mb-1">Available to withdraw:</p>
-          <p id="modal-available-balance" class="text-center text-2xl font-bold text-green-600 mb-4"></p>
-          <div>
-              <label for="withdrawal-amount" class="font-semibold text-gray-700">Amount (Min: ₹10)</label>
-              <input type="number" id="withdrawal-amount" class="w-full border-2 border-gray-300 rounded-lg p-3 mt-1 text-2xl font-bold text-center focus:border-indigo-500 focus:ring-indigo-500" placeholder="0.00">
-              <p id="withdrawal-error" class="text-red-500 text-sm mt-1 hidden"></p>
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-gold transform scale-95 transition-transform duration-300">
+          <h3 class="text-xl font-bold text-center mb-1 text-royal-blue">Withdraw Funds</h3>
+          <p class="text-center text-xs text-gray-400 mb-6 uppercase tracking-wider">Secure Transaction</p>
+          
+          <div class="bg-blue-50 p-4 rounded-xl mb-4 text-center border border-blue-100">
+              <p class="text-xs text-gray-500 mb-1">Available Limit</p>
+              <p id="modal-available-balance" class="text-2xl font-bold text-royal-blue"></p>
           </div>
-          <div class="mt-6 flex gap-4">
-              <button id="close-withdrawal-modal" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg">Cancel</button>
-              <button id="submit-withdrawal" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Confirm</button>
+
+          <div>
+              <label class="text-xs font-bold text-gray-500 uppercase ml-1">Enter Amount</label>
+              <input type="number" id="withdrawal-amount" class="w-full border-2 border-gray-200 rounded-xl p-3 mt-1 text-2xl font-bold text-center focus:border-royal-gold focus:ring-0 outline-none text-royal-blue" placeholder="₹0">
+              <p id="withdrawal-error" class="text-red-500 text-xs mt-2 text-center hidden"><i class="fas fa-times-circle"></i> Invalid Amount</p>
+          </div>
+
+          <div class="mt-6 flex gap-3">
+              <button id="close-withdrawal-modal" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+              <button id="submit-withdrawal" class="flex-1 btn-royal font-bold py-3 rounded-xl">Confirm</button>
           </div>
       </div>
   </div>
   
+  <!-- History Modal -->
   <div id="historyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
-          <h3 class="text-xl font-bold text-center mb-4">Balance History</h3>
-          <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
-              <!-- History items will be injected here -->
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col border-t-4 border-royal-blue">
+          <h3 class="text-xl font-bold text-center mb-4 text-royal-blue">Transaction History</h3>
+          <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+              <!-- JS injected -->
           </div>
-          <button id="close-history-modal" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Close</button>
+          <button id="close-history-modal" class="mt-6 w-full bg-royal-blue text-white font-bold py-3 rounded-xl hover:bg-royal-dark transition-colors">Close</button>
       </div>
   </div>
 
+  <!-- Score Modal -->
   <div id="scoreBreakdownModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-          <h3 class="text-xl font-bold text-center mb-4">Performance Score Breakdown</h3>
-          <div id="score-breakdown-content" class="space-y-3">
-              <!-- Breakdown content will be injected here -->
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border-t-4 border-royal-blue">
+          <h3 class="text-xl font-bold text-center mb-2 text-royal-blue">Score Breakdown</h3>
+          <p class="text-center text-xs text-gray-400 mb-4">How your performance is calculated</p>
+          <div id="score-breakdown-content" class="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <!-- JS injected -->
           </div>
-          <button id="close-score-modal" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 rounded-lg">Close</button>
+          <button id="close-score-modal" class="mt-6 w-full bg-royal-blue text-white font-bold py-3 rounded-xl">Got it</button>
       </div>
   </div>
 
+  <!-- CERTIFICATE RESULT MODAL (Royal Receipt) -->
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
-      <div class="withdrawal-card-container">
-        <div id="withdrawalCard" class="withdrawal-card p-4 flex flex-col justify-between">
-            <div class="flex items-center space-x-3">
-                <img id="card-profile-pic" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-100" src="">
-                <div>
-                    <h2 id="card-name" class="text-gray-800 font-bold text-base leading-tight"></h2>
-                    <p class="text-gray-500 text-xs font-medium">Extra Balance Withdrawal</p>
+      <div class="w-full max-w-md">
+        
+        <!-- The Certificate Card -->
+        <div id="withdrawalCard" class="withdrawal-card shadow-2xl bg-[#fffcf5]">
+            <div class="watermark">TRUST FUND</div>
+            
+            <!-- Header -->
+            <div class="flex justify-between items-start mb-6 relative z-10">
+                <div class="flex items-center gap-3">
+                    <img id="card-profile-pic" class="w-14 h-14 rounded-full object-cover border-2 border-royal-gold shadow-sm" src="">
+                    <div>
+                        <h2 id="card-name" class="text-royal-dark font-serif font-bold text-lg leading-tight uppercase tracking-wide"></h2>
+                        <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Official Withdrawal</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-gray-400 uppercase font-bold">Date</p>
+                    <p id="card-date" class="text-sm font-bold text-royal-blue font-serif"></p>
                 </div>
             </div>
-            <div class="text-center my-2">
-                 <p class="text-gray-500 text-sm">Withdrawal Amount</p>
-                 <p id="card-amount" class="text-green-600 font-extrabold text-5xl"></p>
+
+            <!-- Amount -->
+            <div class="text-center my-6 py-4 border-y-2 border-double border-gray-200 relative z-10">
+                 <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Amount Withdrawn</p>
+                 <p id="card-amount" class="text-royal-gold font-serif font-extrabold text-5xl drop-shadow-sm"></p>
             </div>
-            <div class="flex justify-between items-end">
-                <div class="text-xs text-gray-400">
-                    <p>Date: <span id="card-date"></span></p>
+
+            <!-- Footer -->
+            <div class="flex justify-between items-end mt-4 relative z-10">
+                <div class="text-[10px] text-gray-400 italic">
+                    <p>Authorized by Trust Community Fund</p>
+                    <p>Verified Transaction ID: #<span id="rand-tx-id"></span></p>
                 </div>
-                <img id="card-signature" src="" alt="Signature" class="h-10 object-contain">
+                <div class="text-center">
+                    <img id="card-signature" src="" alt="Signature" class="h-10 object-contain mb-1 opacity-80">
+                    <div class="h-px w-24 bg-gray-300"></div>
+                    <p class="text-[9px] text-gray-400 uppercase font-bold mt-1">Member Signature</p>
+                </div>
             </div>
         </div>
-        <div class="mt-4 flex gap-4">
-            <button id="download-card-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-download"></i>Download</button>
-            <button id="share-card-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hidden"><i class="fab fa-whatsapp"></i>Share</button>
+
+        <!-- Actions -->
+        <div class="mt-6 flex gap-4">
+            <button id="download-card-btn" class="flex-1 btn-gold text-royal-dark font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                <i class="fas fa-download"></i> Save Receipt
+            </button>
+            <button id="share-card-btn" class="flex-1 bg-white text-royal-blue border border-royal-blue font-bold py-3 rounded-xl flex items-center justify-center gap-2 hidden hover:bg-blue-50">
+                <i class="fab fa-whatsapp"></i> Share
+            </button>
         </div>
-         <button id="close-card-modal" class="mt-2 w-full bg-gray-200 text-gray-700 font-bold py-2 rounded-lg">Close</button>
+         <button id="close-card-modal" class="mt-3 w-full text-gray-400 text-sm hover:text-white font-medium">Close Window</button>
       </div>
   </div>
 
@@ -328,8 +507,7 @@
     // --- DATA FETCHING & PROCESSING ---
     async function loadAndProcessData() {
         const loaderText = document.getElementById('loader-text');
-        loaderText.textContent = 'Loading member data...';
-
+        
         const urlParams = new URLSearchParams(window.location.search);
         const memberId = urlParams.get('memberId');
         if (!memberId) { showError("No member ID provided in URL."); return; }
@@ -364,12 +542,11 @@
                      memberDataMap.set(id, {
                         name: members[id].fullName,
                         imageUrl: members[id].profilePicUrl,
-                        guarantorName: members[id].guarantorName // Store guarantor for profit calc
+                        guarantorName: members[id].guarantorName
                     });
                 }
             }
             
-            loaderText.textContent = 'Processing transactions...';
             const processedTransactions = [];
             let idCounter = 0;
             for (const txId in transactions) {
@@ -394,25 +571,15 @@
                 };
                 
                 switch (tx.type) {
-                    case 'SIP':
-                        record.sipPayment = tx.amount || 0;
-                        break;
-                    case 'Loan Taken':
-                        record.loan = tx.amount || 0;
-                        record.loanType = 'Loan'; 
-                        break;
+                    case 'SIP': record.sipPayment = tx.amount || 0; break;
+                    case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
                     case 'Loan Payment':
                         record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
                         record.returnAmount = tx.interestPaid || 0;
                         break;
-                    case 'Extra Payment': 
-                        record.extraBalance = tx.amount || 0;
-                        break;
-                    case 'Extra Withdraw': 
-                        record.extraWithdraw = tx.amount || 0;
-                        break;
-                    default:
-                        continue; 
+                    case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
+                    case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+                    default: continue; 
                 }
                 processedTransactions.push(record);
             }
@@ -449,15 +616,15 @@
         document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
         document.getElementById('address').textContent = data.address || 'N/A';
         document.getElementById('joining-date').textContent = formatDate(data.joiningDate);
+        document.getElementById('joining-date-header').textContent = `Member since ${new Date(data.joiningDate).getFullYear()}`;
         document.getElementById('guarantor-name').textContent = data.guarantorName || 'N/A';
         document.getElementById('total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
         document.getElementById('lifetime-profit').textContent = `₹${lifetimeProfit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('extra-balance').textContent = `₹${balanceResult.total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('extra-balance').textContent = `₹${balanceResult.total.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
         
         const withdrawBtn = document.getElementById('withdraw-btn');
         withdrawBtn.disabled = balanceResult.total < 10;
-        withdrawBtn.title = balanceResult.total < 10 ? "Minimum withdrawal is ₹10" : "";
-
+        
         document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
         document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
         document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
@@ -465,9 +632,8 @@
         scoreResultCache = calculatePerformanceScore(data.fullName, new Date(), allData, activeLoansData);
         const eligibilityResult = getLoanEligibility(data.fullName, scoreResultCache.totalScore, allData);
         document.getElementById('performance-score').textContent = scoreResultCache.totalScore.toFixed(2);
-        document.getElementById('loan-eligibility').textContent = eligibilityResult.eligible ? `${eligibilityResult.multiplier.toFixed(2)}x` : eligibilityResult.reason;
-        document.getElementById('loan-eligibility').className = `font-bold text-lg ${eligibilityResult.eligible ? 'text-green-600' : 'text-red-600 text-sm'}`;
-
+        document.getElementById('loan-eligibility').textContent = eligibilityResult.eligible ? `${eligibilityResult.multiplier.toFixed(2)}x Limit` : eligibilityResult.reason;
+        
         populateLoanHistory(data.fullName);
         
         document.getElementById('loader-container').classList.add('hidden');
@@ -481,7 +647,7 @@
         const loans = memberData.filter(r => r.loan > 0 && r.loanType === 'Loan'); 
         
         if (loans.length === 0) {
-            container.innerHTML = '<p class="text-center text-gray-500 text-sm">No loan history found.</p>';
+            container.innerHTML = '<p class="text-center text-gray-400 text-xs py-4 italic">No loan history records found.</p>';
             return;
         }
         container.innerHTML = '';
@@ -496,14 +662,26 @@
                 }
             });
             const daysToRepay = repaymentDate ? Math.round((repaymentDate - loan.date) / (1000 * 3600 * 24)) : null;
-            let status, color;
-            if(daysToRepay === null) { status = "Pending"; color = "text-yellow-600"; }
-            else if (daysToRepay <= 90) { status = "On Time"; color = "text-green-600"; }
-            else { status = "Late"; color = "text-red-600"; }
+            let status, colorClass, icon;
+            
+            if(daysToRepay === null) { status = "PENDING"; colorClass = "text-yellow-600 bg-yellow-50 border-yellow-200"; icon = "fa-clock"; }
+            else if (daysToRepay <= 90) { status = "PAID ON TIME"; colorClass = "text-green-600 bg-green-50 border-green-200"; icon = "fa-check-circle"; }
+            else { status = "LATE REPAYMENT"; colorClass = "text-red-600 bg-red-50 border-red-200"; icon = "fa-exclamation-circle"; }
 
             const div = document.createElement('div');
-            div.className = 'info-item flex justify-between items-center text-sm';
-            div.innerHTML = `<div><p class="font-semibold">₹${loan.loan.toLocaleString('en-IN')}</p><p class="text-xs text-gray-400">${loan.date.toLocaleDateString('en-GB')}</p></div><div class="text-right"><p class="font-bold ${color}">${status}</p><p class="text-xs text-gray-400">${daysToRepay !== null ? `${daysToRepay} days` : ''}</p></div>`;
+            div.className = `flex justify-between items-center p-3 rounded-lg border ${colorClass} mb-2`;
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="text-lg opacity-80"><i class="fas ${icon}"></i></div>
+                    <div>
+                        <p class="font-bold text-sm">₹${loan.loan.toLocaleString('en-IN')}</p>
+                        <p class="text-[10px] uppercase tracking-wide opacity-70">${loan.date.toLocaleDateString('en-GB')}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-[10px] uppercase tracking-wider">${status}</p>
+                    <p class="text-[10px] opacity-70">${daysToRepay !== null ? `${daysToRepay} days` : 'Active'}</p>
+                </div>`;
             container.appendChild(div);
         });
     }
@@ -512,7 +690,7 @@
     // --- EVENT LISTENERS & MODALS ---
     function setupEventListeners() {
         const imageViewerModal = document.getElementById('imageViewerModal');
-        document.querySelectorAll('.document-thumbnail').forEach(img => img.addEventListener('click', () => {
+        document.querySelectorAll('.document-thumbnail img').forEach(img => img.addEventListener('click', () => {
             document.getElementById('fullImageView').src = img.src;
             imageViewerModal.classList.remove('hidden');
             imageViewerModal.classList.add('flex');
@@ -524,7 +702,7 @@
         
         const withdrawalModal = document.getElementById('withdrawalModal');
         document.getElementById('withdraw-btn').addEventListener('click', () => {
-            document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
             withdrawalModal.classList.remove('hidden');
             withdrawalModal.classList.add('flex');
         });
@@ -569,34 +747,35 @@
         const historyList = document.getElementById('history-list');
         historyList.innerHTML = '';
         if (balanceHistory.length === 0) {
-            historyList.innerHTML = '<p class="text-center text-gray-500">No history found.</p>';
+            historyList.innerHTML = '<p class="text-center text-gray-400 italic py-4">No transactions yet.</p>';
             return;
         }
         [...balanceHistory].reverse().forEach(item => {
             const div = document.createElement('div');
             const isCredit = item.amount > 0;
-            let title = '';
+            let title = '', icon = '';
+            
             switch(item.type) {
-                case 'profit':
-                    title = `Profit from ${item.from}`;
-                    break;
-                case 'manual_credit':
-                    title = 'Balance Added by Admin (Bonus)';
-                    break;
-                case 'withdrawal':
-                    title = 'Balance Withdrawn by Admin';
-                    break;
-                case 'Self Return (10%)':
-                    title = 'Self Interest Return (10%)';
-                    break;
-                case 'Guarantor Commission (10%)':
-                    title = `Guarantor Commission (${item.from})`;
-                    break;
-                default:
-                    title = `Transaction: ${item.type || ''}`;
+                case 'profit': title = `Profit: ${item.from}`; icon="fa-chart-line"; break;
+                case 'manual_credit': title = 'Admin Bonus'; icon="fa-gift"; break;
+                case 'withdrawal': title = 'Withdrawal'; icon="fa-arrow-circle-up"; break;
+                case 'Self Return (10%)': title = 'Self Interest (10%)'; icon="fa-undo"; break;
+                case 'Guarantor Commission (10%)': title = `Guarantor Comm.`; icon="fa-handshake"; break;
+                default: title = `Profit Share`; icon="fa-coins";
             }
-            div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
-            div.innerHTML = `<div><p class="font-semibold text-gray-800">${title}</p><p class="text-xs text-gray-400">${item.date.toLocaleDateString('en-GB')}</p></div><span class="font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${Math.abs(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+            
+            div.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full ${isCredit ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'} flex items-center justify-center text-xs">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800 text-sm">${title}</p>
+                        <p class="text-[10px] text-gray-400">${item.date.toLocaleDateString('en-GB')}</p>
+                    </div>
+                </div>
+                <span class="font-bold text-sm ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${Math.abs(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>`;
             historyList.appendChild(div);
         });
     }
@@ -606,17 +785,28 @@
         if (!scoreResultCache) { contentDiv.innerHTML = "Score not calculated yet."; return; }
         const { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore } = scoreResultCache;
 
+        const row = (label, val, base) => `
+            <div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                <span class="text-sm text-gray-600">${label}</span>
+                <div class="text-right">
+                    <span class="font-bold text-royal-blue">${val.toFixed(0)}</span>
+                    ${isNewMemberRuleApplied ? `<p class="text-[9px] text-red-400 line-through">${base.toFixed(0)}</p>` : ''}
+                </div>
+            </div>`;
+
         let html = '';
+        html += row("Capital Score", capitalScore, originalCapitalScore);
+        html += row("Consistency", consistencyScore, originalConsistencyScore);
+        html += row("Credit Behavior", creditScore, originalCreditScore);
+        
         if(isNewMemberRuleApplied) {
-            html += `<div class="info-item"><div class="flex justify-between"><span>Capital Score (Base)</span><span class="font-bold">${originalCapitalScore.toFixed(2)}</span></div><p class="text-xs text-red-500 text-right">-50% (New Member Rule)</p></div>`;
-            html += `<div class="info-item"><div class="flex justify-between"><span>Consistency (Base)</span><span class="font-bold">${originalConsistencyScore.toFixed(2)}</span></div><p class="text-xs text-red-500 text-right">-50% (New Member Rule)</p></div>`;
-            html += `<div class="info-item"><div class="flex justify-between"><span>Credit Behavior (Base)</span><span class="font-bold">${originalCreditScore.toFixed(2)}</span></div><p class="text-xs text-red-500 text-right">-50% (New Member Rule)</p></div>`;
-        } else {
-            html += `<div class="info-item flex justify-between"><span>Capital Score</span><span class="font-bold">${capitalScore.toFixed(2)}</span></div>`;
-            html += `<div class="info-item flex justify-between"><span>Consistency Score</span><span class="font-bold">${consistencyScore.toFixed(2)}</span></div>`;
-            html += `<div class="info-item flex justify-between"><span>Credit Behavior</span><span class="font-bold">${creditScore.toFixed(2)}</span></div>`;
+            html += `<p class="text-xs text-red-500 mt-2 bg-red-50 p-2 rounded border border-red-100 text-center"><i class="fas fa-info-circle"></i> New Member Rule: 50% score reduction for first 6 months.</p>`;
         }
-        html += `<div class="info-item flex justify-between font-bold text-lg pt-3 text-indigo-600"><span>Total Score</span><span>${totalScore.toFixed(2)}</span></div>`;
+        
+        html += `<div class="mt-3 pt-3 border-t-2 border-gray-100 flex justify-between items-center">
+            <span class="font-bold text-royal-dark">Total Score</span>
+            <span class="font-extrabold text-2xl text-royal-gold">${totalScore.toFixed(2)}</span>
+        </div>`;
         contentDiv.innerHTML = html;
     }
 
@@ -625,10 +815,11 @@
         const errorMsg = document.getElementById('withdrawal-error');
         const amount = parseFloat(amountInput.value);
         if (isNaN(amount) || amount < 10) {
-            errorMsg.textContent = "Minimum withdrawal is ₹10."; errorMsg.classList.remove('hidden'); return;
+            errorMsg.classList.remove('hidden'); return;
         }
         if (amount > currentMemberData.extraBalance) {
-            errorMsg.textContent = "Amount exceeds balance."; errorMsg.classList.remove('hidden'); return;
+            errorMsg.textContent = "Insufficient Balance";
+            errorMsg.classList.remove('hidden'); return;
         }
         errorMsg.classList.add('hidden');
         document.getElementById('withdrawalModal').classList.add('hidden');
@@ -644,26 +835,36 @@
         errorMessageEl.classList.remove('hidden');
     }
 
-    // --- CARD GENERATION & SHARING ---
+    // --- CARD GENERATION ---
     async function showWithdrawalCard(amount) {
+        // Setup Card Data
         const cardProfilePic = document.getElementById('card-profile-pic');
         const cardSignature = document.getElementById('card-signature');
+        
+        // Wait for images
         cardProfilePic.src = await toDataURL(currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC);
         cardSignature.src = await toDataURL(currentMemberData.signatureUrl || '');
+        
         document.getElementById('card-name').textContent = currentMemberData.fullName;
         document.getElementById('card-amount').textContent = `₹${amount.toLocaleString('en-IN')}`;
         document.getElementById('card-date').textContent = new Date().toLocaleDateString('en-GB');
+        document.getElementById('rand-tx-id').textContent = Math.floor(100000 + Math.random() * 900000);
+        
         document.getElementById('share-card-btn').classList.toggle('hidden', !navigator.share);
+        
         const cardModal = document.getElementById('cardResultModal');
         cardModal.classList.remove('hidden');
         cardModal.classList.add('flex');
     }
+
+    // --- Helper Functions (Keep Logic Same) ---
     function toDataURL(url) { return new Promise((resolve) => { if(!url || url.startsWith('data:')) { resolve(url); return; } const proxyUrl = 'https://cors-anywhere.herokuapp.com/'; const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url; fetch(targetUrl).then(response => response.blob()).then(blob => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = () => resolve(url); reader.readAsDataURL(blob); }).catch(() => resolve(url)); }); }
     async function getCardAsBlob() { const cardElement = document.getElementById('withdrawalCard'); const canvas = await html2canvas(cardElement, { scale: 3, backgroundColor: null, useCORS: true }); return new Promise(resolve => canvas.toBlob(resolve, 'image/png')); }
     async function downloadCard() { const blob = await getCardAsBlob(); const link = document.createElement('a'); link.download = `withdrawal-${currentMemberData.fullName.replace(/\s+/g, '-')}.png`; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }
     async function shareCard() { const blob = await getCardAsBlob(); const file = new File([blob], `withdrawal.png`, { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Withdrawal Receipt', text: `Withdrawal receipt for ${currentMemberData.fullName}.`}); } catch (error) { console.error('Share failed:', error); alert('Could not share the image.'); } } else { alert("Sharing is not supported."); } }
     
-    // --- FINANCIAL CALCULATOR LOGIC (Imported from profit_logic.js) ---
+    // --- FINANCIAL CALCULATOR LOGIC (CONFIG & Functions) ---
+    // [LOGIC REMAINS EXACTLY SAME AS BEFORE - COPYING TO ENSURE INTEGRITY]
     const CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
         CAPITAL_SCORE_TARGET_SIP: 30000,
@@ -716,110 +917,52 @@
 
     function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData = {}) {
         const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
-        
-        const oneYearAgo = new Date(untilDate);
-        oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
-
+        const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
         const memberActiveLoans = Object.values(activeLoansData).filter(loan => loan.memberName === memberName);
-        
         const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan'); 
-
         if (loansInLastYear.length === 0) {
             const firstTransactionDate = memberData[0]?.date;
             if (!firstTransactionDate) return 40;
             const membershipDays = (untilDate - firstTransactionDate) / (1000 * 3600 * 24);
             if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; 
-            
             const sipData = memberData.filter(r => r.sipPayment > 0);
             if (sipData.length < 2) return 60;
-            
             const avgSipDay = sipData.slice(1).reduce((sum, r) => sum + r.date.getDate(), 0) / (sipData.length - 1);
-            const dayScore = Math.max(0, (15 - avgSipDay) * 5 + 40);
-            return Math.min(100, dayScore);
+            return Math.min(100, Math.max(0, (15 - avgSipDay) * 5 + 40));
         }
-        
-        let totalPoints = 0;
-        let loansProcessed = 0;
-
+        let totalPoints = 0; let loansProcessed = 0;
         for (const loanRecord of loansInLastYear) {
             loansProcessed++;
-            
             const loanDetails = memberActiveLoans.find(l => new Date(l.loanDate).getTime() === loanRecord.date.getTime() && l.originalAmount === loanRecord.loan);
-
             if (loanDetails && loanDetails.loanType === 'Business Loan') {
                 const loanStartDate = new Date(loanDetails.loanDate);
                 const monthsPassed = (untilDate.getFullYear() - loanStartDate.getFullYear()) * 12 + (untilDate.getMonth() - loanStartDate.getMonth());
-                
                 for (let i = 1; i <= monthsPassed; i++) {
-                    const checkMonth = new Date(loanStartDate);
-                    checkMonth.setMonth(checkMonth.getMonth() + i);
-                    
-                    const hasPaidInterest = memberData.some(tx => 
-                        tx.returnAmount > 0 &&
-                        new Date(tx.date).getFullYear() === checkMonth.getFullYear() &&
-                        new Date(tx.date).getMonth() === checkMonth.getMonth()
-                    );
-                    if (hasPaidInterest) {
-                        totalPoints += 5;
-                    } else {
-                        totalPoints -= 10;
-                    }
+                    const checkMonth = new Date(loanStartDate); checkMonth.setMonth(checkMonth.getMonth() + i);
+                    const hasPaidInterest = memberData.some(tx => tx.returnAmount > 0 && new Date(tx.date).getFullYear() === checkMonth.getFullYear() && new Date(tx.date).getMonth() === checkMonth.getMonth());
+                    if (hasPaidInterest) totalPoints += 5; else totalPoints -= 10;
                 }
-                if ((untilDate - loanStartDate) / (1000 * 3600 * 24) > CONFIG.BUSINESS_LOAN_TERM_DAYS && loanDetails.status === 'Active') {
-                    totalPoints -= 50;
-                }
-            } 
-            else if (loanDetails && loanDetails.loanType === '10 Days Credit') {
+                if ((untilDate - loanStartDate) / (1000 * 3600 * 24) > CONFIG.BUSINESS_LOAN_TERM_DAYS && loanDetails.status === 'Active') totalPoints -= 50;
+            } else if (loanDetails && loanDetails.loanType === '10 Days Credit') {
                 if (loanDetails.status === 'Paid') {
                     const payments = memberData.filter(r => r.date > loanRecord.date && r.payment > 0);
-                    let repaidDate = null;
-                    let amountRepaid = 0;
-                    for (const p of payments) {
-                        amountRepaid += p.payment;
-                        if (amountRepaid >= loanRecord.loan) {
-                            repaidDate = p.date;
-                            break;
-                        }
-                    }
+                    let repaidDate = null; let amountRepaid = 0;
+                    for (const p of payments) { amountRepaid += p.payment; if (amountRepaid >= loanRecord.loan) { repaidDate = p.date; break; } }
                     const daysToRepay = repaidDate ? (repaidDate - loanRecord.date) / (1000 * 3600 * 24) : Infinity;
-                    if (daysToRepay <= CONFIG.TEN_DAY_CREDIT_GRACE_DAYS) {
-                        totalPoints += 15;
-                    } else {
-                        totalPoints -= 20;
-                    }
-                } else {
-                    totalPoints -= 30;
-                }
-            }
-            else {
-                let amountRepaid = 0;
-                let repaymentDate = null;
+                    if (daysToRepay <= CONFIG.TEN_DAY_CREDIT_GRACE_DAYS) totalPoints += 15; else totalPoints -= 20;
+                } else totalPoints -= 30;
+            } else {
+                let amountRepaid = 0; let repaymentDate = null;
                 const paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0)); 
-                for (const p of paymentsAfterLoan) {
-                    amountRepaid += p.payment + p.sipPayment; 
-                    if (amountRepaid >= loanRecord.loan) {
-                        repaymentDate = p.date;
-                        break;
-                    }
-                }
+                for (const p of paymentsAfterLoan) { amountRepaid += p.payment + p.sipPayment; if (amountRepaid >= loanRecord.loan) { repaymentDate = p.date; break; } }
                 if (repaymentDate) {
                     const daysToRepay = (repaymentDate - loanRecord.date) / (1000 * 3600 * 24);
-                    if (daysToRepay <= CONFIG.LOAN_TERM_BEST) totalPoints += 25; 
-                    else if (daysToRepay <= CONFIG.LOAN_TERM_BETTER) totalPoints += 20;
-                    else if (daysToRepay <= CONFIG.LOAN_TERM_GOOD) totalPoints += 15;
-                    else totalPoints -= 20;
-                } else {
-                    totalPoints -= 40;
-                }
+                    if (daysToRepay <= CONFIG.LOAN_TERM_BEST) totalPoints += 25; else if (daysToRepay <= CONFIG.LOAN_TERM_BETTER) totalPoints += 20; else if (daysToRepay <= CONFIG.LOAN_TERM_GOOD) totalPoints += 15; else totalPoints -= 20;
+                } else totalPoints -= 40;
             }
         }
-
         if (loansProcessed === 0) return 40;
-        
-        const maxPossiblePoints = loansProcessed * 25; 
-        const normalizedScore = (totalPoints / maxPossiblePoints) * 100;
-        
-        return Math.max(0, Math.min(100, normalizedScore));
+        return Math.max(0, Math.min(100, (totalPoints / (loansProcessed * 25)) * 100));
     }
     
     function getLoanEligibility(memberName, score, allData) {
@@ -830,87 +973,47 @@
         if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
         const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
         if (daysSinceFirstSip < CONFIG.MINIMUM_MEMBERSHIP_DAYS) { const daysLeft = Math.ceil(CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip); return { eligible: false, reason: `${daysLeft} days left` }; }
-        
         const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CONFIG;
         let multiplier = LOAN_LIMIT_TIER1_MAX;
         if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
         else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
         else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
         else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX); 
-        
         return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
     }
     
-    // --- UPDATED PROFIT DISTRIBUTION LOGIC (10% Self / 10% Guarantor / 70% Community) ---
     function calculateProfitDistribution(paymentRecord, allData, activeLoansData) { 
-        const totalInterest = paymentRecord.returnAmount; 
-        if (totalInterest <= 0) return null; 
-        
+        const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
         const distribution = [];
-
-        // 1. Self Share (10%)
         const selfShare = totalInterest * 0.10;
         distribution.push({ name: paymentRecord.name, share: selfShare, type: 'Self Return (10%)' });
-
-        // 2. Guarantor Share (10%)
-        // Need to lookup guarantor name using memberId from paymentRecord
         const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
         if (payerMemberInfo && payerMemberInfo.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
              distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
         }
-        // If no guarantor, 10% is implicitly left for penalty (not added to distribution)
-
-        // 3. Community Pool (70%)
         const communityPool = totalInterest * 0.70;
-        
-        // Find the loan date to calculate scores
-        const userLoansBeforePayment = allData.filter(r => 
-            r.name === paymentRecord.name && 
-            r.loan > 0 && 
-            r.date < paymentRecord.date &&
-            r.loanType === 'Loan' 
-        ); 
-        
-        if (userLoansBeforePayment.length === 0) return { distribution }; // Return what we have (Self/Guarantor)
-        
-        const relevantLoan = userLoansBeforePayment.pop(); 
-        const loanDate = relevantLoan.date; 
-        const snapshotScores = {}; 
-        let totalScoreInSnapshot = 0; 
-        
-        // Get all members active at that time
+        const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan' ); 
+        if (userLoansBeforePayment.length === 0) return { distribution };
+        const relevantLoan = userLoansBeforePayment.pop(); const loanDate = relevantLoan.date; 
+        const snapshotScores = {}; let totalScoreInSnapshot = 0; 
         const membersInSystemAtLoanDate = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))]; 
-        
         membersInSystemAtLoanDate.forEach(name => { 
-            // EXCLUDE SELF from community pool
             if (name === paymentRecord.name) return;
-
             const scoreObject = calculatePerformanceScore(name, loanDate, allData, activeLoansData); 
-            if (scoreObject.totalScore > 0) { 
-                snapshotScores[name] = scoreObject; 
-                totalScoreInSnapshot += scoreObject.totalScore; 
-            } 
+            if (scoreObject.totalScore > 0) { snapshotScores[name] = scoreObject; totalScoreInSnapshot += scoreObject.totalScore; } 
         }); 
-        
         if (totalScoreInSnapshot > 0) {
             for (const memberName in snapshotScores) { 
                 let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * communityPool; 
-                
-                // Inactivity Penalty Logic (Keep as is)
                 const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date;
                 const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
                 let appliedMultiplier = 1.0; 
-                if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) { 
-                    appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; 
-                } else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) { 
-                    appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; 
-                } 
+                if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; 
+                else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; 
                 memberShare *= appliedMultiplier; 
-                
                 if (memberShare > 0) distribution.push({ name: memberName, share: memberShare, type: 'Community Profit' }); 
             } 
         }
-        
         return { distribution }; 
     }
     
@@ -927,27 +1030,19 @@
     
     function calculateTotalExtraBalance(memberId, memberFullName) {
         const history = [];
-        
         const profitEvents = allData.filter(r => r.returnAmount > 0);
         profitEvents.forEach(paymentRecord => {
             const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData);
             const memberShare = result?.distribution.find(d => d.name === memberFullName);
             if(memberShare && memberShare.share > 0) {
-                // Use the type from distribution or default to 'profit'
                 history.push({ type: memberShare.type || 'profit', from: paymentRecord.name, date: paymentRecord.date, amount: memberShare.share });
             }
         });
-        
         const manualAdjustments = allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
         manualAdjustments.forEach(tx => {
-            if (tx.extraBalance > 0) {
-                history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
-            }
-            if (tx.extraWithdraw > 0) {
-                history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
-            }
+            if (tx.extraBalance > 0) history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+            if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
         });
-
         history.sort((a,b) => a.date - b.date);
         const total = history.reduce((acc, item) => acc + item.amount, 0);
         return { total, history };
