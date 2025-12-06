@@ -1,8 +1,6 @@
-// FINAL & CORRECTED UPDATE: "Available Community Balance" ki calculation ab
-// sirf (Total SIP Amount - Total Current Loan Amount) hogi. Extra transactions ka
-// is par koi asar nahi hoga.
-
-// SUPER FAST UPDATE: LocalStorage Caching Implement kiya gaya hai.
+// FINAL & CORRECTED UPDATE: "Available Community Balance" logic updated to exclude HIDDEN members.
+// DISABLED MEMBER LOGIC ADDED: If disabled AND balance >= 0, hide member & exclude SIP.
+// If disabled AND balance < 0 (loan pending), SHOW member.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
@@ -89,6 +87,7 @@ function processRawData(data) {
 
     for (const memberId in allMembersRaw) {
         const member = allMembersRaw[memberId];
+        // Only skip if status is NOT Approved. isDisabled logic is handled below.
         if (member.status !== 'Approved' || !member.fullName) continue;
 
         const memberTransactions = allTransactions.filter(tx => tx.memberId === memberId);
@@ -113,7 +112,19 @@ function processRawData(data) {
         const memberActiveLoans = allActiveLoans.filter(loan => loan.memberId === memberId && loan.status === 'Active');
         const totalOutstandingLoan = memberActiveLoans.reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
         
+        // Calculate balance for display AND Logic Check
         const displayBalanceOnCard = totalSipAmount - totalOutstandingLoan;
+
+        // --- NEW HIDE LOGIC START ---
+        // Requirement: 
+        // 1. If Disabled = True AND Balance >= 0 (Positive/Zero) -> HIDE Member (Exclude from processedMembers)
+        // 2. If Disabled = True AND Balance < 0 (Negative/Loan) -> SHOW Member
+        // 3. If Disabled = False -> SHOW Member
+        
+        if (member.isDisabled === true && displayBalanceOnCard >= 0) {
+            continue; // Skip this iteration, member will effectively be HIDDEN and excluded from stats.
+        }
+        // --- NEW HIDE LOGIC END ---
 
         const now = new Date();
         const currentMonthSip = memberTransactions.find(tx => 
@@ -138,6 +149,7 @@ function processRawData(data) {
         };
     }
 
+    // Pass the list of processedMembers so stats only include visible members
     const communityStats = calculateCommunityStats(Object.values(processedMembers), allTransactions, allActiveLoansRaw, penaltyWalletRaw);
 
     return {
@@ -155,19 +167,25 @@ function processRawData(data) {
 
 /**
  * Poore community ke liye aarthik (financial) stats calculate karta hai.
+ * UPDATED: Only calculates SIP for VALID (Visible) members.
  */
 function calculateCommunityStats(processedMembers, allTransactions, allActiveLoans, penaltyWallet) {
+    // Create a Set of visible Member IDs for fast lookup
+    const validMemberIds = new Set(processedMembers.map(m => m.id));
+
     let totalPureSipAmount = 0;
 
     // Sirf 'SIP' transactions ko jodkar 'Total SIP Amount' banaya jayega.
+    // FILTER: Only include transaction if memberId exists in visible list
     allTransactions.forEach(tx => {
-        if (tx.type === 'SIP') {
+        if (tx.type === 'SIP' && validMemberIds.has(tx.memberId)) {
             totalPureSipAmount += parseFloat(tx.amount || 0);
         }
     });
 
+    // Only include loans for visible members (though usually hidden members won't have active loans per logic)
     const totalCurrentLoanAmount = Object.values(allActiveLoans)
-        .filter(loan => loan.status === 'Active')
+        .filter(loan => loan.status === 'Active' && validMemberIds.has(loan.memberId))
         .reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
 
     // 'Available Community Balance' ki calculation logic.
@@ -193,3 +211,4 @@ function calculateCommunityStats(processedMembers, allTransactions, allActiveLoa
         totalLoanDisbursed: allTransactions.filter(tx => tx.type === 'Loan Taken').reduce((sum, tx) => sum + tx.amount, 0)
     };
 }
+
