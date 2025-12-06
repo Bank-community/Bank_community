@@ -2,6 +2,7 @@
 // 1. Penalty Wallet Logic Updated (Toggle History, Colors).
 // 2. All Members: Image Zoom logic retained.
 // 3. Top 3 Cards Specific Classes retained.
+// 4. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML Structure.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -91,7 +92,10 @@ export function renderPage(data) {
     updateInfoCards(approvedMembers.length, communityStats.totalLoanDisbursed || 0);
     startHeaderDisplayRotator(approvedMembers, communityStats);
     buildInfoSlider();
+    
+    // Trigger Royal Notifications
     processAndShowNotifications();
+    
     renderProducts();
 
     feather.replace();
@@ -799,20 +803,29 @@ function buildInfoSlider() {
     feather.replace();
 }
 
+// === UPDATED NOTIFICATION LOGIC (STRICT TODAY + ROYAL POPUP) ===
 function processAndShowNotifications() {
     const todayDateString = getTodayDateStringLocal();
-    const sessionPopupsKey = `popupsShownToday_${todayDateString}`;
+    const sessionPopupsKey = `royalPopups_${todayDateString}`; // Unique Key for Today
 
+    // Prevent showing again if already shown for this session AND this day
     if (sessionStorage.getItem(sessionPopupsKey)) {
         return;
     }
 
-    let delay = 0;
-    const baseDelay = 1500;
+    let delay = 500; // Start quicker
+    const baseDelay = 4000; // Enough time to read
 
+    // 1. Transaction Notifications (STRICT DATE CHECK)
     const todaysTransactions = allTransactions.filter(tx => {
+        if (!tx.date) return false;
+        // Parse date reliably
         const txDate = new Date(tx.date);
-        const txDateString = `${txDate.getFullYear()}-${(txDate.getMonth() + 1).toString().padStart(2, '0')}-${txDate.getDate().toString().padStart(2, '0')}`;
+        const y = txDate.getFullYear();
+        const m = (txDate.getMonth() + 1).toString().padStart(2, '0');
+        const d = txDate.getDate().toString().padStart(2, '0');
+        const txDateString = `${y}-${m}-${d}`;
+        
         return txDateString === todayDateString;
     });
 
@@ -823,12 +836,16 @@ function processAndShowNotifications() {
         delay += todaysTransactions.length * baseDelay;
     }
 
+    // 2. Manual Notices (Show only if active/recent - currently showing all active)
+    // We assume if manual notification exists, it's meant to be seen.
     Object.values(allManualNotifications).forEach((notif, index) => {
         setTimeout(() => showPopupNotification('manual', notif), delay + index * baseDelay);
     });
 
+    // Mark as shown for this session
     sessionStorage.setItem(sessionPopupsKey, 'true');
     
+    // Notification Dot Logic (Unchanged)
     const verifiedMemberId = localStorage.getItem('verifiedMemberId');
     if (!verifiedMemberId) return;
     const userReminders = Object.values(allAutomatedQueue).filter(item => item.memberId === verifiedMemberId && item.status === 'active');
@@ -839,49 +856,97 @@ function processAndShowNotifications() {
     }
 }
 
+// === NEW PREMIUM TOAST RENDERER ===
 function showPopupNotification(type, data) {
     const container = getElement('notification-popup-container');
     if (!container) return;
-    const popup = document.createElement('div');
-    popup.className = 'notification-popup';
     
-    popup.style.cursor = 'pointer';
+    const popup = document.createElement('div');
+    popup.className = 'notification-popup'; // Matches new CSS
+    
     popup.onclick = () => { window.location.href = 'notifications.html'; };
 
     let contentHTML = '';
+    let imgUrl = DEFAULT_IMAGE;
+    let title = 'Notification';
+
     if(type === 'transaction') {
         const member = allMembersData.find(m => m.id === data.memberId);
         if (!member) return;
-        let text = '', amount = '', typeClass = '';
+        
+        title = member.name;
+        imgUrl = member.displayImageUrl;
+
+        let message = '', amount = '', typeClass = '';
+        
         switch(data.type) {
-            case 'SIP': text = `<p><strong>${member.name}</strong> paid their SIP.</p>`; amount = `+ ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'sip'; break;
-            case 'Loan Taken': text = `<p>Loan disbursed to <strong>${member.name}</strong>.</p>`; amount = `- ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'loan'; break;
-            case 'Loan Payment': text = `<p><strong>${member.name}</strong> made a loan payment.</p>`; amount = `+ ₹${(data.principalPaid || 0).toLocaleString()}`; typeClass = 'payment'; break;
-            case 'Extra Payment': text = `<p><strong>${member.name}</strong> made an extra payment.</p>`; amount = `+ ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'sip'; break;
-            case 'Extra Withdraw': text = `<p><strong>${member.name}</strong> withdrew money.</p>`; amount = `- ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'loan'; break;
+            case 'SIP': 
+                message = `Paid Monthly SIP`; 
+                amount = `+ ₹${(data.amount || 0).toLocaleString()}`; 
+                typeClass = 'sip'; 
+                break;
+            case 'Loan Taken': 
+                message = `Took a Loan`; 
+                amount = `- ₹${(data.amount || 0).toLocaleString()}`; 
+                typeClass = 'loan'; 
+                break;
+            case 'Loan Payment': 
+                message = `Loan Repayment`; 
+                // Fix: Show Total Paid (Principal + Interest)
+                const totalPaid = (parseFloat(data.principalPaid)||0) + (parseFloat(data.interestPaid)||0);
+                amount = `+ ₹${totalPaid.toLocaleString()}`; 
+                typeClass = 'payment'; 
+                break;
+            case 'Extra Payment': 
+                message = `Extra Deposit`; 
+                amount = `+ ₹${(data.amount || 0).toLocaleString()}`; 
+                typeClass = 'sip'; 
+                break;
+            case 'Extra Withdraw': 
+                message = `Withdrawal`; 
+                amount = `- ₹${(data.amount || 0).toLocaleString()}`; 
+                typeClass = 'loan'; 
+                break;
             default: return;
         }
+
         contentHTML = `
-            <img src="${member.profilePicUrl}" alt="${member.name}" class="notification-popup-img">
-            <div class="notification-popup-content">
-                ${text}<p class="notification-popup-amount ${typeClass}">${amount}</p>
-            </div>`;
+            <strong>${title}</strong>
+            <p>${message}</p>
+            <span class="notification-popup-amount ${typeClass}">${amount}</span>`;
+            
     } else if (type === 'manual') {
+         imgUrl = data.imageUrl || DEFAULT_IMAGE;
+         title = data.title || 'Notice';
          contentHTML = `
-            <img src="${data.imageUrl}" alt="${data.title}" class="notification-popup-img">
-            <div class="notification-popup-content">
-                <p><strong>${data.title}</strong></p>
-            </div>`;
+            <strong>${title}</strong>
+            <p style="font-size: 0.85em; opacity: 0.9;">Click to view details</p>`;
     }
-    popup.innerHTML = `${contentHTML}<button class="notification-popup-close">&times;</button>`;
-    popup.querySelector('.notification-popup-close').onclick = (e) => {
+
+    popup.innerHTML = `
+        <img src="${imgUrl}" alt="${title}" class="notification-popup-img" onerror="this.src='${DEFAULT_IMAGE}'">
+        <div class="notification-popup-content">
+            ${contentHTML}
+        </div>
+        <button class="notification-popup-close">&times;</button>
+    `;
+
+    // Close Button Logic
+    const closeBtn = popup.querySelector('.notification-popup-close');
+    closeBtn.onclick = (e) => {
         e.stopPropagation(); 
         popup.classList.add('closing');
         popup.addEventListener('animationend', () => popup.remove(), { once: true });
     };
-    popup.addEventListener('animationend', (e) => {
-        if (e.animationName === 'fadeOutNotification') popup.remove();
-    }, { once: true });
+
+    // Auto Remove after 5 seconds
+    setTimeout(() => {
+        if(popup.parentNode) {
+            popup.classList.add('closing');
+            popup.addEventListener('animationend', () => popup.remove(), { once: true });
+        }
+    }, 5000);
+
     container.appendChild(popup);
 }
 
