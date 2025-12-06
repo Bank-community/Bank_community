@@ -1,5 +1,5 @@
 // File: profit_main.js
-// Version 2.2: "Extra Withdraw" ko "Loan Taken" se alag kiya gaya.
+// Version 3.0: Integrated with Logic 3.0 and New UI Card.
 // Yeh file application ka mukhya controller hai.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -88,6 +88,7 @@ async function loadAndProcessData() {
         for (const memberId in members) {
             if (members[memberId].status === 'Approved') {
                  memberDataMap.set(memberId, {
+                    id: memberId, // Store ID
                     name: members[memberId].fullName,
                     imageUrl: members[memberId].profilePicUrl,
                 });
@@ -103,27 +104,34 @@ async function loadAndProcessData() {
             if (!memberInfo) continue;
             
             let record = {
-                id: idCounter++, date: new Date(tx.date), name: memberInfo.name,
+                id: idCounter++, 
+                date: new Date(tx.date), 
+                name: memberInfo.name,
+                memberId: tx.memberId, // Important for Extra Balance Logic
                 imageUrl: memberInfo.imageUrl || logic.CONFIG.DEFAULT_PROFILE_PIC,
                 loan: 0, payment: 0, sipPayment: 0, returnAmount: 0,
-                loanType: null, // <-- BADLAV YAHAN (1/2): Loan type ko track karne ke liye.
+                extraBalance: 0, extraWithdraw: 0, // Track explicit extra fields
+                loanType: null, 
             };
             
-            // <-- BADLAV YAHAN (2/2): 'Loan Taken' aur 'Extra Withdraw' ko alag-alag mark kiya.
             switch (tx.type) {
                 case 'SIP': record.sipPayment = tx.amount || 0; break;
                 case 'Loan Taken': 
                     record.loan = tx.amount || 0;
-                    record.loanType = 'Loan'; // Yeh ek asli loan hai
+                    record.loanType = 'Loan'; 
                     break;
                 case 'Loan Payment':
                     record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
                     record.returnAmount = tx.interestPaid || 0;
                     break;
-                case 'Extra Payment': record.payment = tx.amount || 0; break;
+                case 'Extra Payment': 
+                    record.extraBalance = tx.amount || 0; 
+                    record.payment = tx.amount || 0; // For Capital Calcs
+                    break;
                 case 'Extra Withdraw': 
-                    record.loan = tx.amount || 0;
-                    record.loanType = 'Extra'; // Yeh sirf ek withdrawal hai
+                    record.extraWithdraw = tx.amount || 0;
+                    record.loan = tx.amount || 0; // For Capital Calcs
+                    record.loanType = 'Extra'; 
                     break;
                 default: continue;
             }
@@ -214,7 +222,18 @@ function updateProfileCard(name) {
         totalCapital = dataToShow.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
         totalLoan = dataToShow.reduce((sum, r) => sum + r.loan, 0);
         
+        // Use New Logic Functions
         totalProfitEarned = logic.calculateTotalProfitForMember(name, allData, activeLoansData);
+        
+        // Find Member ID for Extra Balance Calculation
+        const memberRecord = dataToShow[0];
+        if (memberRecord) {
+             const extraBalanceData = logic.calculateTotalExtraBalance(memberRecord.memberId, name, allData, activeLoansData);
+             document.getElementById('profileAvailableBalance').textContent = `₹${extraBalanceData.total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        } else {
+             document.getElementById('profileAvailableBalance').textContent = '₹0.00';
+        }
+
         const memberScores = logic.calculatePerformanceScore(name, new Date(), allData, activeLoansData);
         const score = memberScores.totalScore;
         const loanEligibility = logic.getLoanEligibility(name, score, allData);
@@ -233,9 +252,9 @@ function updateProfileCard(name) {
         profileImageEl.src = lastUserEntryWithImage ? lastUserEntryWithImage.imageUrl : logic.CONFIG.DEFAULT_PROFILE_PIC;
     }
 
-    document.getElementById('profileTotalCapital').textContent = `₹${totalCapital.toFixed(2)}`;
-    document.getElementById('profileTotalLoan').textContent = `₹${totalLoan.toFixed(2)}`;
-    document.getElementById('profileTotalProfit').textContent = `₹${totalProfitEarned.toFixed(2)}`;
+    document.getElementById('profileTotalCapital').textContent = `₹${totalCapital.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    document.getElementById('profileTotalLoan').textContent = `₹${totalLoan.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    document.getElementById('profileTotalProfit').textContent = `₹${totalProfitEarned.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
 }
 
 function populateProfitLog() {
@@ -270,7 +289,6 @@ function populateMemberHistory(memberName) {
         let type = '', amount = 0, sign = '';
         if (r.sipPayment > 0) { type = 'sip'; amount = r.sipPayment; balance += amount; sign = '+'; }
         else if (r.loan > 0) { 
-            // Personal history mein dono dikhenge (Loan aur Extra)
             type = (r.loanType === 'Extra') ? 'extra' : 'loan'; 
             amount = r.loan; 
             balance -= amount; 
@@ -336,10 +354,6 @@ function displayEligibilityRanking() {
     document.getElementById('eligibilityRankModal').classList.remove('visually-hidden');
 }
 
-/**
- * Sabhi prakar ke "Details" modal ke liye content generate karta hai.
- * @param {object} details - Details object jismein 'type' aur zaroori data ho.
- */
 function showCalculationDetails(details) {
     const titleEl = document.getElementById('calculationDetailsTitle');
     const contentEl = document.getElementById('calculationDetailsContent');
