@@ -280,8 +280,9 @@
 
   <script type="module">
     // --- Firebase SDKs (Modular v9) ---
+    // FIXED: Added signInAnonymously to fix redirect loop issue
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
     // --- GLOBAL VARIABLES & STATE ---
@@ -308,7 +309,14 @@
                 if (user) {
                     runAppLogic();
                 } else {
-                    window.location.href = `/login.html?redirect=${window.location.pathname}${window.location.search}`;
+                    // FIXED: Instead of redirecting to login.html (which causes loop),
+                    // we silently sign in anonymously.
+                    console.log("No user found, signing in anonymously...");
+                    signInAnonymously(auth).catch(error => {
+                        console.error("Anonymous auth failed:", error);
+                        // Only redirect if anon auth completely fails
+                        window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+                    });
                 }
             });
         } catch (error) {
@@ -425,7 +433,6 @@
 
     // --- UI POPULATION ---
     function populateProfileData() {
-        // (Is function mein koi badlav nahi)
         const balanceResult = calculateTotalExtraBalance(currentMemberData.membershipId, currentMemberData.fullName);
         balanceHistory = balanceResult.history;
         const lifetimeProfit = calculateTotalProfitForMember(currentMemberData.fullName, allData, activeLoansData);
@@ -471,7 +478,6 @@
     }
 
     function populateLoanHistory(memberName) {
-        // (Is function mein koi badlav nahi)
         const container = document.getElementById('loan-history-container');
         const memberData = allData.filter(r => r.name === memberName);
         
@@ -508,7 +514,6 @@
 
     // --- EVENT LISTENERS & MODALS ---
     function setupEventListeners() {
-        // (Is section mein koi badlav nahi)
         const imageViewerModal = document.getElementById('imageViewerModal');
         document.querySelectorAll('.document-thumbnail').forEach(img => img.addEventListener('click', () => {
             document.getElementById('fullImageView').src = img.src;
@@ -564,7 +569,6 @@
     }
     
     function populateHistoryModal() {
-        // (Is function mein koi badlav nahi)
         const historyList = document.getElementById('history-list');
         historyList.innerHTML = '';
         if (balanceHistory.length === 0) {
@@ -595,7 +599,6 @@
     }
 
     function populateScoreBreakdownModal() {
-        // (Is function mein koi badlav nahi)
         const contentDiv = document.getElementById('score-breakdown-content');
         if (!scoreResultCache) { contentDiv.innerHTML = "Score not calculated yet."; return; }
         const { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore } = scoreResultCache;
@@ -615,7 +618,6 @@
     }
 
     function submitWithdrawal() {
-        // (Is function mein koi badlav nahi)
         const amountInput = document.getElementById('withdrawal-amount');
         const errorMsg = document.getElementById('withdrawal-error');
         const amount = parseFloat(amountInput.value);
@@ -640,7 +642,6 @@
     }
 
     // --- CARD GENERATION & SHARING ---
-    // (Is section mein koi badlav nahi)
     async function showWithdrawalCard(amount) {
         const cardProfilePic = document.getElementById('card-profile-pic');
         const cardSignature = document.getElementById('card-signature');
@@ -660,9 +661,6 @@
     async function shareCard() { const blob = await getCardAsBlob(); const file = new File([blob], `withdrawal.png`, { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Withdrawal Receipt', text: `Withdrawal receipt for ${currentMemberData.fullName}.`}); } catch (error) { console.error('Share failed:', error); alert('Could not share the image.'); } } else { alert("Sharing is not supported."); } }
     
     // --- FINANCIAL CALCULATOR LOGIC (Imported from profit_logic.js) ---
-    // // --- HINDI COMMENT ---
-    // // Neeche diye gaye saare logic functions `profit_logic.js` se 100% MEL KHATE HAIN.
-    // // Sabhi purane bugs theek kar diye gaye hain.
     const CONFIG = {
         CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
         CAPITAL_SCORE_TARGET_SIP: 30000,
@@ -677,7 +675,6 @@
     };
 
     function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
-        // (Yeh function pehle se hi sahi tha)
         const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
         if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0, isNewMemberRuleApplied: false, originalCapitalScore: 0, originalConsistencyScore: 0, originalCreditScore: 0 };
         const firstTransactionDate = memberData[0]?.date;
@@ -685,7 +682,7 @@
         const isNewMemberRuleApplied = membershipDays < CONFIG.NEW_MEMBER_PROBATION_DAYS;
         let capitalScore = calculateCapitalScore(memberName, untilDate, allData);
         let consistencyScore = calculateConsistencyScore(memberData, untilDate);
-        let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData); // <-- Naye function ko call karega
+        let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData); 
         const originalCapitalScore = capitalScore;
         const originalConsistencyScore = consistencyScore;
         const originalCreditScore = creditScore;
@@ -695,7 +692,6 @@
     }
 
     function calculateCapitalScore(memberName, untilDate, allData) {
-        // (Yeh function pehle se hi sahi tha)
         const daysToReview = 180;
         const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
         const memberTransactions = allData.filter(r => r.name === memberName && r.date >= startDate && r.date <= untilDate);
@@ -705,7 +701,6 @@
     }
 
     function calculateConsistencyScore(memberData, untilDate) {
-        // (Yeh function pehle se hi sahi tha)
         const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
         const recentMemberData = memberData.filter(r => r.date >= oneYearAgo); if (recentMemberData.length === 0) return 0;
         const sipHistory = {};
@@ -716,9 +711,6 @@
         return (consistencyPoints / (monthsConsidered * 10)) * 100;
     }
 
-    // // --- HINDI COMMENT (POORA FUNCTION UPDATE KIYA GAYA) ---
-    // // Yeh `calculateCreditBehaviorScore` ka naya, sahi version hai.
-    // // Yeh ab `profit_logic.js` ke logic se 100% match karta hai.
     function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData = {}) {
         const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
         
@@ -828,7 +820,6 @@
     }
     
     function getLoanEligibility(memberName, score, allData) {
-        // (Yeh function pehle se hi sahi tha)
         const memberData = allData.filter(r => r.name === memberName);
         let totalCapital = memberData.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
         if (totalCapital < 0) return { eligible: false, reason: 'Outstanding Loan' };
@@ -837,20 +828,17 @@
         const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
         if (daysSinceFirstSip < CONFIG.MINIMUM_MEMBERSHIP_DAYS) { const daysLeft = Math.ceil(CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip); return { eligible: false, reason: `${daysLeft} days left` }; }
         
-        // // --- HINDI COMMENT (TYPO THEEK KIYA GAYA) ---
-        // // Yahan `LOAN_LIMIT_TIJ3_SCORE` ko theek karke `LOAN_LIMIT_TIER3_SCORE` kar diya gaya hai.
         const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CONFIG;
         let multiplier = LOAN_LIMIT_TIER1_MAX;
         if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
         else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
         else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
-        else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX); // <-- TYPO YAHAN THA
+        else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX); 
         
         return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
     }
     
     function calculateProfitDistribution(paymentRecord, allData, activeLoansData) { 
-        // (Yeh function pehle se hi sahi tha)
         const profit = paymentRecord.returnAmount * 0.90; 
         if (profit <= 0) return null; 
         
@@ -895,7 +883,6 @@
     }
     
     function calculateTotalProfitForMember(memberName, allData, activeLoansData) { 
-        // (Yeh function pehle se hi sahi tha)
         return allData.reduce((totalProfit, transaction) => { 
             if (transaction.returnAmount > 0) { 
                 const result = calculateProfitDistribution(transaction, allData, activeLoansData); 
@@ -907,7 +894,6 @@
     }
     
     function calculateTotalExtraBalance(memberId, memberFullName) {
-        // (Yeh function pehle se hi sahi tha)
         const history = [];
         
         const profitEvents = allData.filter(r => r.returnAmount > 0);
@@ -936,5 +922,4 @@
   </script>
 </body>
 </html>
-
 
