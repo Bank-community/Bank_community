@@ -1,5 +1,5 @@
 // File: profit_main.js
-// Version 3.1: Removed Graphs, Added Breakdown, Guarantor Fetching.
+// Version 3.2: Handles New Penalty Breakdown.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -86,7 +86,7 @@ async function loadAndProcessData() {
                     id: memberId,
                     name: members[memberId].fullName,
                     imageUrl: members[memberId].profilePicUrl,
-                    guarantorName: members[memberId].guarantorName // Fetched Guarantor
+                    guarantorName: members[memberId].guarantorName 
                 });
             }
         }
@@ -147,9 +147,6 @@ async function loadAndProcessData() {
     }
 }
 
-
-// --- UI and Display Functions ---
-
 function initializeDashboard() {
     document.getElementById('dashboardContent').classList.remove('visually-hidden');
     document.getElementById('dashboardContent').classList.add('visible');
@@ -188,7 +185,6 @@ function updateDisplay() {
     const selectedName = document.getElementById('memberFilter').value;
     const isCommunityView = selectedName === 'all';
     
-    // Removed Growth Chart Toggling
     document.getElementById('profitLogSection').classList.toggle('hidden', !isCommunityView);
     document.getElementById('memberSpecificStats').classList.toggle('hidden', isCommunityView);
     document.getElementById('memberHistorySection').classList.toggle('hidden', isCommunityView);
@@ -218,7 +214,6 @@ function updateProfileCard(name) {
         totalCapital = dataToShow.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
         totalLoan = dataToShow.reduce((sum, r) => sum + r.loan, 0);
         
-        // Pass memberDataMap for Guarantor lookup
         totalProfitEarned = logic.calculateTotalProfitForMember(name, allData, activeLoansData, memberDataMap);
         
         const memberRecord = dataToShow[0];
@@ -261,7 +256,6 @@ function populateProfitLog() {
         return;
     }
     profitEvents.forEach(paymentRecord => {
-        // Find Guarantor for this payment's payer
         const payerId = paymentRecord.memberId;
         const payerInfo = memberDataMap.get(payerId);
         const guarantorName = payerInfo ? payerInfo.guarantorName : null;
@@ -362,9 +356,7 @@ function showCalculationDetails(details) {
     if (details.type === 'score') {
         const { name, scores } = details.member;
         titleEl.textContent = `Score Calculation for ${name}`;
-        // Score HTML logic remains same...
-        html = `<div class="calc-row"><span class="calc-label">Total Score</span> <span class="calc-value">${scores.totalScore.toFixed(2)}</span></div>`; // Simplified for brevity
-        // (Full logic retained from previous version in implementation, keeping short here for clarity)
+        html = `<div class="calc-row"><span class="calc-label">Total Score</span> <span class="calc-value">${scores.totalScore.toFixed(2)}</span></div>`;
         if (scores.isNewMemberRuleApplied) {
             html += `<br><span style="color:red; font-size:0.9em;">*New Member Rule Applied (50% score)</span>`;
         }
@@ -374,7 +366,6 @@ function showCalculationDetails(details) {
         titleEl.textContent = `Profit Share Details`;
         const sharePercentage = (member.totalSnapshotScore > 0) ? (member.snapshotScore / member.totalSnapshotScore) * 100 : 0;
         
-        // This is individual detail
         html = `<div class="calc-row"><span class="calc-label">Beneficiary</span> <span class="calc-value">${member.name}</span></div>
                 <div class="calc-row"><span class="calc-label">Score at Loan Time</span> <span class="calc-value">${member.snapshotScore.toFixed(2)}</span></div>
                 <div class="calc-row"><span class="calc-label">Share Percentage</span> <span class="calc-value">${sharePercentage.toFixed(2)}%</span></div>
@@ -386,7 +377,6 @@ function showCalculationDetails(details) {
         let profitBreakdownHtml = '';
         let totalProfit = 0;
         allData.filter(r => r.returnAmount > 0).forEach(event => {
-            // Need guarantor lookup here too
             const payerId = event.memberId;
             const payerInfo = memberDataMap.get(payerId);
             const guarantorName = payerInfo ? payerInfo.guarantorName : null;
@@ -405,7 +395,6 @@ function showCalculationDetails(details) {
     document.getElementById('calculationDetailsModal').classList.remove('visually-hidden');
 }
 
-// Updated Breakdown Modal Logic - No Graph, Just Text
 function showDistributionModal(profitEvent) {
     const modal = document.getElementById('detailsModal'); 
     const listEl = document.getElementById('distributionDetails'); 
@@ -419,8 +408,6 @@ function showDistributionModal(profitEvent) {
     document.getElementById('breakdownPenalty').textContent = `₹${profitEvent.breakdown.penalty.toFixed(2)}`;
 
     const { distribution } = profitEvent;
-    
-    // Filter out only Community Profit beneficiaries for the list
     const beneficiaries = distribution.filter(d => d.type === 'Community Profit');
 
     if (!beneficiaries || beneficiaries.length === 0) { 
