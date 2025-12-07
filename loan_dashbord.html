@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -86,6 +86,9 @@
         /* Recharge: Blue Tech Theme */
         .card-recharge { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); }
         
+        /* Product EMI: Luxury Violet Theme */
+        .card-product-emi { background: linear-gradient(135deg, #2b0c4b 0%, #6b2c91 50%, #8e44ad 100%); }
+        
         .card-personal { background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 50%, #d9d9d9 100%); color: #333; border: 1px solid #ccc; }
         .card-personal .pc-title, .card-personal .pc-amount { color: var(--primary-blue); text-shadow: none; }
         .card-business { background: linear-gradient(135deg, #232526 0%, #414345 100%); color: #fff; }
@@ -135,8 +138,8 @@
 
         /* Amount Group (For EMI) */
         .pc-amount-group { text-align: right; }
-        .pc-emi-label { font-size: 9px; font-weight: 700; display: block; opacity: 0.9; margin-bottom: 0px; color: #ffeb3b; }
-        .card-personal .pc-emi-label, .card-10days .pc-emi-label { color: #555; }
+        .pc-emi-label { font-size: 10px; font-weight: 700; display: block; opacity: 1; margin-bottom: 0px; color: #ffeb3b; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .card-personal .pc-emi-label, .card-10days .pc-emi-label { color: #555; text-shadow: none; }
         .pc-amount { font-size: 22px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1; }
 
         /* Footer */
@@ -214,20 +217,36 @@
                     <option value="grocery">Grocery Credit</option>
                     <option value="credit">10-Day Credit</option>
                     <option value="recharge">Recharge</option>
+                    <option value="product">Product on EMI</option>
                     <option value="personal">Personal Loan</option>
                     <option value="business">Business Loan</option>
                 </select>
             </div>
             <div class="form-group" id="amt-group">
-                <label>Amount</label>
+                <label>Outstanding Amount</label>
                 <input type="number" id="amt-input" class="form-control" disabled placeholder="Select member first">
             </div>
+            
+            <!-- Provider Group (Recharge) -->
             <div class="form-group" id="prov-group" style="display:none;">
-                <label>Provider</label>
+                <label>Operator</label>
                 <select id="prov-select" class="form-control">
                     <option>Jio</option><option>Airtel</option><option>Vi</option><option>BSNL</option>
                 </select>
             </div>
+
+            <!-- Product EMI Group (New) -->
+            <div id="product-emi-group" style="display:none;">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="prod-name-input" class="form-control" placeholder="e.g. Redmi A4 5G">
+                </div>
+                <div class="form-group">
+                    <label>Monthly EMI Amount</label>
+                    <input type="number" id="emi-input" class="form-control" placeholder="e.g. 1560">
+                </div>
+            </div>
+
             <button class="btn-gen" id="btn-create">Create Card</button>
             <div id="gen-result" style="margin-top:20px;"></div>
         </div>
@@ -251,6 +270,9 @@
                 amtInput: document.getElementById('amt-input'),
                 provSelect: document.getElementById('prov-select'),
                 provGroup: document.getElementById('prov-group'),
+                prodGroup: document.getElementById('product-emi-group'),
+                prodNameInput: document.getElementById('prod-name-input'),
+                emiInput: document.getElementById('emi-input'),
                 btnCreate: document.getElementById('btn-create'),
                 genResult: document.getElementById('gen-result')
             }
@@ -292,6 +314,7 @@
                 state.els.loader.classList.add('hidden');
 
             } catch(e) {
+                console.error(e);
                 state.els.container.innerHTML = "Error loading data.";
                 state.els.loader.classList.add('hidden');
             }
@@ -314,13 +337,20 @@
                 const diffTime = Math.abs(new Date() - dateObj);
                 const daysActive = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
-                // Extract Recharge Details safely
-                let provider = l.telecomCompany || 'N/A';
+                // Determine Provider/Product info & EMI
+                let providerOrProduct = 'N/A';
                 let emiAmount = null;
                 
+                // Handle Recharge Logic
                 if (l.rechargeDetails) {
-                    provider = l.rechargeDetails.operator || provider;
+                    providerOrProduct = l.rechargeDetails.operator || providerOrProduct;
                     emiAmount = l.rechargeDetails.rechargeEmi || null;
+                }
+                
+                // Handle Product EMI Logic
+                if (l.loanType === 'Product on EMI' && l.productDetails) {
+                    providerOrProduct = l.productDetails.name || 'Unknown Product';
+                    emiAmount = l.productDetails.monthlyEmi || null;
                 }
 
                 // Generate Card
@@ -332,7 +362,7 @@
                     dateStr, 
                     daysActive,
                     `card-${l.loanId}`,
-                    provider,
+                    providerOrProduct,
                     emiAmount
                 );
                 
@@ -343,33 +373,43 @@
         }
 
         // --- MASTER CARD GENERATOR ---
-        function getPremiumCardHTML(type, name, amount, pic, date, days, id, provider='', emi='') {
+        function getPremiumCardHTML(type, name, amount, pic, date, days, id, providerInfo='', emiAmount='') {
             const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=fff&color=000`;
             const finalPic = pic || defaultPic;
             
-            // Themes
+            // Themes & Content
             let cardClass = 'card-grocery';
             let title = 'GROCERY CREDIT';
             let footer = 'Pay within 1st-15th monthly, Get 6000 credit for No intrest.';
-            let emiHtml = ''; // For recharge EMI
+            let emiHtml = ''; 
 
             if(type === '10 Days Credit') {
                 cardClass = 'card-10days';
                 title = '10 DAYS CREDIT';
                 footer = 'No Interest if paid within 10 Days.';
-            } else if(type === 'Recharge') {
+            } 
+            else if(type === 'Recharge') {
                 cardClass = 'card-recharge';
                 title = 'RECHARGE CARD';
-                footer = `Operator: ${provider}`; // UPDATED OPERATOR DISPLAY
-                // RECHARGE EMI DISPLAY
-                if(emi) {
-                    emiHtml = `<span class="pc-emi-label">EMI: ₹${emi}</span>`;
+                footer = `Operator: ${providerInfo}`;
+                if(emiAmount) {
+                    emiHtml = `<span class="pc-emi-label">EMI: ₹${emiAmount}</span>`;
                 }
-            } else if(type === 'Personal Loan') {
+            } 
+            else if(type === 'Product on EMI') {
+                cardClass = 'card-product-emi';
+                title = 'PRODUCT EMI';
+                footer = `Product: ${providerInfo}`;
+                if(emiAmount) {
+                    emiHtml = `<span class="pc-emi-label">EMI: ₹${emiAmount}</span>`;
+                }
+            }
+            else if(type === 'Personal Loan') {
                 cardClass = 'card-personal';
                 title = 'PERSONAL LOAN';
                 footer = 'Standard Personal Loan Terms Apply.';
-            } else if(type === 'Business Loan') {
+            } 
+            else if(type === 'Business Loan') {
                 cardClass = 'card-business';
                 title = 'BUSINESS LOAN';
                 footer = 'Business Growth Fund.';
@@ -438,7 +478,7 @@
             updateUI(filtered);
         });
 
-        // MODAL
+        // MODAL LOGIC
         document.getElementById('generate-credit-btn').onclick = () => {
             state.els.modal.style.visibility = 'visible';
             state.els.modal.style.opacity = '1';
@@ -451,9 +491,7 @@
 
         function fillDropdown() {
             state.els.mSelect.innerHTML = '<option value="">-- Select --</option>';
-            const uniqueIds = [...new Set(state.activeLoans.map(l => l.memberId))];
-            
-            // Loop through All Members (not just those with loans)
+            // Loop through All Members
             Object.values(state.members).sort((a,b)=>a.fullName.localeCompare(b.fullName)).forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id; 
@@ -468,8 +506,17 @@
             if(state.els.mSelect.value) state.els.amtInput.focus();
         };
 
+        // Handle Type Change
         state.els.tSelect.onchange = () => {
-            state.els.provGroup.style.display = state.els.tSelect.value === 'recharge' ? 'block' : 'none';
+            const val = state.els.tSelect.value;
+            state.els.provGroup.style.display = 'none';
+            state.els.prodGroup.style.display = 'none';
+            
+            if (val === 'recharge') {
+                state.els.provGroup.style.display = 'block';
+            } else if (val === 'product') {
+                state.els.prodGroup.style.display = 'block';
+            }
         }
 
         state.els.btnCreate.onclick = () => {
@@ -480,34 +527,51 @@
             
             const name = state.els.mSelect.options[state.els.mSelect.selectedIndex].text;
             const pic = state.els.mSelect.options[state.els.mSelect.selectedIndex].dataset.pic;
-            const type = state.els.tSelect.value;
-            const provider = state.els.provSelect.value;
-
+            const typeKey = state.els.tSelect.value;
+            
             let displayDate = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
             let dbType = '';
-            if(type === 'grocery') dbType = 'Grocery Credit';
-            else if(type === 'credit') dbType = '10 Days Credit';
-            else if(type === 'recharge') dbType = 'Recharge';
-            else if(type === 'personal') dbType = 'Personal Loan';
-            else if(type === 'business') dbType = 'Business Loan';
+            let extraInfo = ''; // Holds Operator or Product Name
+            let emiVal = '';
 
+            // Map UI keys to DB types
+            if(typeKey === 'grocery') dbType = 'Grocery Credit';
+            else if(typeKey === 'credit') dbType = '10 Days Credit';
+            else if(typeKey === 'recharge') {
+                dbType = 'Recharge';
+                extraInfo = state.els.provSelect.value;
+                // Auto calc half as dummy EMI if manual
+                emiVal = Math.round(amt / 2); 
+            }
+            else if(typeKey === 'product') {
+                dbType = 'Product on EMI';
+                extraInfo = state.els.prodNameInput.value || 'Gadget';
+                emiVal = state.els.emiInput.value || '';
+            }
+            else if(typeKey === 'personal') dbType = 'Personal Loan';
+            else if(typeKey === 'business') dbType = 'Business Loan';
+
+            // Check if existing loan exists to fetch real Date
             const existing = state.activeLoans.find(l => l.memberId === mId && l.loanType === dbType);
             let days = 0;
-            let emi = '';
             
             if(existing) {
                 displayDate = new Date(existing.loanDate).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
                 const diff = Math.abs(new Date() - new Date(existing.loanDate));
                 days = Math.ceil(diff / (1000 * 3600 * 24));
-                if(existing.rechargeDetails) emi = existing.rechargeDetails.rechargeEmi;
+                
+                // If existing, try to pull real data instead of form inputs where possible
+                if(existing.rechargeDetails) {
+                    emiVal = existing.rechargeDetails.rechargeEmi;
+                    extraInfo = existing.rechargeDetails.operator;
+                }
+                if(existing.productDetails) {
+                    emiVal = existing.productDetails.monthlyEmi;
+                    extraInfo = existing.productDetails.name;
+                }
             }
 
-            // Manually calc recharge EMI if creating fresh recharge
-            if(type === 'recharge' && !emi && amt) {
-                emi = Math.round(amt / 2); // Dummy logic or manual input
-            }
-
-            const html = getPremiumCardHTML(dbType || type, name, amt, pic, displayDate, days, 'gen-preview', provider, emi);
+            const html = getPremiumCardHTML(dbType || typeKey, name, amt, pic, displayDate, days, 'gen-preview', extraInfo, emiVal);
             state.els.genResult.innerHTML = html;
         };
 
@@ -516,5 +580,4 @@
     </script>
 </body>
 </html>
-
 
