@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
@@ -117,13 +117,15 @@
       <select id="loanCategory" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base bg-white focus:outline-none">
         <option value="personal" selected>Personal Loan</option>
         <option value="business">Business Loan</option>
-        <option value="gold">Gold Loan</option>
+        <!-- Gold Loan renamed to Product Loan -->
+        <option value="product">Product Loan</option>
         <option value="guarantor">Guarantor Loan</option>
       </select>
 
-      <div id="goldCollateralSection" style="display: none;">
-          <label for="goldCollateral" class="block mb-1 font-bold text-gray-600">Collateral Item Name (Girvi ka Samaan):</label>
-          <input type="text" id="goldCollateral" placeholder="Enter item name (e.g., Gold Chain)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base focus:outline-none">
+      <!-- Renamed ID and Label for Product Loan -->
+      <div id="productCollateralSection" style="display: none;">
+          <label id="productLabel" for="productInput" class="block mb-1 font-bold text-gray-600">Product Name (Product ka Naam):</label>
+          <input type="text" id="productInput" placeholder="Enter product name (e.g., Mobile, Laptop)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-base focus:outline-none">
       </div>
 
       <div id="guarantorSection" style="display: none;">
@@ -156,7 +158,6 @@
       <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
       <h2 class="text-2xl font-bold text-gray-800">Application Submitted!</h2>
       <p class="text-gray-600 mt-2">Your loan application has been sent for approval. You will be notified shortly.</p>
-      <!-- UPDATED: Action buttons moved here for the new flow -->
       <div id="success-action-buttons" class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full mt-6">
         <button id="successDownloadBtn" class="btn hidden w-full sm:w-1/2 p-3 bg-green-600 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-green-700">Download Letter</button>
         <button id="successShareBtn" class="btn hidden w-full sm:w-1/2 p-3 bg-blue-500 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-blue-600">Share on WhatsApp</button>
@@ -165,7 +166,6 @@
   
   <div id="letter-preview-section" class="hidden w-full flex flex-col items-center">
       <div id="capture" class="bg-white p-[15mm] border border-gray-300 my-5 mx-auto flex flex-col relative">
-        <!-- Letter content is the same as before -->
         <div class="header text-center pb-4 mb-5 relative">
           <div class="header-info absolute right-0 top-0 text-right text-sm text-gray-600">Date: <span id="currentDate"></span></div>
           <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" crossorigin="anonymous" class="logo w-24 mx-auto mb-1" alt="Bank Logo">
@@ -176,7 +176,12 @@
             <div class="details-text flex-grow pr-4">
               <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-user w-5 text-center mr-2"></i>Applicant Name: <span class="highlight font-bold ml-1" id="displayName"></span></p>
               <p id="guarantorRow" class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-user-shield w-5 text-center mr-2"></i>Guarantor Name: <span class="guarantor-highlight font-bold ml-1" id="displayGuarantor"></span></p>
-              <p id="collateralRow" class="my-2 text-sm text-gray-800 flex items-center" style="display: none;"><i class="fas fa-gem w-5 text-center mr-2"></i>Collateral Item: <span class="highlight font-bold ml-1" id="displayCollateral"></span></p>
+              <!-- Updated ID for Product Row -->
+              <p id="productRow" class="my-2 text-sm text-gray-800 flex items-center" style="display: none;">
+                  <i class="fas fa-box-open w-5 text-center mr-2"></i>
+                  <span id="productLabelInLetter">Product Name:</span> 
+                  <span class="highlight font-bold ml-1" id="displayProduct"></span>
+              </p>
               <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-mobile-alt w-5 text-center mr-2"></i>Mobile Number: <span id="displayMobile" class="ml-1"></span></p>
               <p class="my-2 text-sm text-gray-800 flex items-center"><i class="fas fa-rupee-sign w-5 text-center mr-2"></i>Loan Amount: ₹<span id="displayAmount" class="ml-1"></span></p>
               <p id="processingFeeRow" class="my-2 text-sm text-gray-800 items-center" style="display: none;"><i class="fas fa-cogs w-5 text-center mr-2"></i>Processing Fee: ₹<span id="displayProcessingFee" class="ml-1"></span></p>
@@ -200,19 +205,16 @@
         <p class="request-text highlight text-center italic text-gray-600 text-sm mt-6 font-bold">I request the bank community members to please approve this loan application.</p>
         <div class="footer-section mt-auto pt-6 flex justify-between items-end">
             <div class="stamp-section text-center">
-                 <!-- === UPDATED BANK STAMP IMAGE === -->
                  <img src="https://ik.imagekit.io/kdtvm0r78/20251206_210616.png" crossorigin="anonymous" class="stamp-img w-36 opacity-80" alt="Bank Stamp">
                  <p class="m-0 text-xs text-gray-800">Community Stamp</p>
             </div>
             <div class="signature-section text-center">
               <p class="m-0 text-xs text-gray-800">Authorized Signature</p>
-              <!-- === UPDATED SIGNATURE IMAGE === -->
               <img src="https://ik.imagekit.io/kdtvm0r78/image.png" crossorigin="anonymous" class="signature-img w-44 mt-1" alt="Signature">
               <p class="m-0 text-xs text-gray-800">Prime Members</p>
             </div>
         </div>
       </div> 
-      <!-- UPDATED: Only the submit button is here now -->
       <div id="action-buttons" class="hidden w-full max-w-md mt-4">
         <button id="submitForApprovalBtn" class="btn w-full p-3 bg-indigo-600 text-white font-bold rounded-lg text-base cursor-pointer hover:bg-indigo-700 flex items-center justify-center">
             <span id="submitBtnText">Submit for Approval</span>
@@ -257,9 +259,8 @@
     function runAppLogic() {
         let membersData = {};
         let pendingLoanDataForSubmit = {};
-        let generatedCanvas = null; // To store the generated canvas for later use
+        let generatedCanvas = null;
 
-        // All element selectors
         const mainFormContainer = document.getElementById('main-form-container');
         const successMessage = document.getElementById('successMessage');
         const letterPreviewSection = document.getElementById('letter-preview-section');
@@ -273,10 +274,11 @@
         const captureDiv = document.getElementById('capture');
         const guarantorSection = document.getElementById('guarantorSection');
         const guarantorSelect = document.getElementById('guarantorSelect');
-        const goldCollateralSection = document.getElementById('goldCollateralSection');
-        const goldCollateralInput = document.getElementById('goldCollateral');
         
-        // UPDATED: Selectors for the new button flow
+        // Product Loan Elements
+        const productCollateralSection = document.getElementById('productCollateralSection');
+        const productInput = document.getElementById('productInput');
+        
         const actionButtonsContainer = document.getElementById('action-buttons');
         const submitForApprovalBtn = document.getElementById('submitForApprovalBtn');
         const successDownloadBtn = document.getElementById('successDownloadBtn');
@@ -297,8 +299,12 @@
         const manualUploadSectionEl = document.getElementById('manualUploadSection');
         const manualApplicantPhotoEl = document.getElementById('manualApplicantPhoto');
         const guarantorRowEl = document.getElementById('guarantorRow');
-        const collateralRowEl = document.getElementById('collateralRow');
-        const displayCollateralEl = document.getElementById('displayCollateral');
+        
+        // Product Row Elements in Letter
+        const productRowEl = document.getElementById('productRow');
+        const displayProductEl = document.getElementById('displayProduct');
+        const productLabelInLetter = document.getElementById('productLabelInLetter');
+
         const processingFeeRowEl = document.getElementById('processingFeeRow');
         const displayProcessingFeeEl = document.getElementById('displayProcessingFee');
         const interestOnlyPaymentRowEl = document.getElementById('interestOnlyPaymentRow');
@@ -314,15 +320,23 @@
         const loanOptions = {
             personal: { label: 'Interest Rate & Duration:', options: [ { value: '1-1', text: '1% for 1 month' }, { value: '3-2', text: '3% for 2 months' }, { value: '5-3', text: '5% for 3 months' }, { value: '2-1-2x', text: '2% for 1 month (2x loan)' } ] },
             business: { label: 'Loan Duration (18% Annual Interest):', options: [ { value: '3-6', text: '9 Months (3 months interest + 6 months EMI)' }, { value: '6-6', text: '12 Months (6 months interest + 6 months EMI)' } ] },
-            gold: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] },
+            // UPDATED: Product Loan Options
+            product: { 
+                label: 'Loan Duration:', 
+                options: [ 
+                    { value: '10-6', text: '6 Months (10% Total Interest)' }, 
+                    { value: '15-9', text: '9 Months (15% Total Interest)' } 
+                ] 
+            },
             guarantor: { label: 'Loan Duration (3% Monthly Interest):', options: [ { value: '3-6', text: '6 Months' }, { value: '3-12', text: '1 Year' } ] }
         };
 
         const notificationContent = {
-            personal: `<h3><i class="fas fa-info-circle"></i> Personal Loan - नियम और शर्तें</h3><p class="font-bold mt-2">💼 लोन पात्रता (Loan Eligibility)</p><ul class="list-disc list-inside ml-2"><li>हर सदस्य को अपने जमा कुल योगदान का 1.5 गुना (Dedh Guna) तक लोन लेने की पात्रता है।</li><li>सदस्य बनने के कम-से-कम 60 दिन बाद ही लोन लिया जा सकता है।</li></ul><p class="font-bold mt-3">📆 लोन अवधि और ब्याज (Loan Duration & Interest)</p><p>सदस्य लोन के लिए निम्नलिखित अवधि में से किसी एक का चयन कर सकते हैं:</p><table class="table"><thead><tr><th>अवधि (Period)</th><th>ब्याज दर</th><th>विवरण</th></tr></thead><tbody><tr><td>1 महीना</td><td>1%</td><td>कम अवधि के लिए</td></tr><tr><td>2 महीने</td><td>3%</td><td>मध्यम अवधि</td></tr><tr><td>3 महीने</td><td>5%</td><td>अधिकतम सामान्य अवधि</td></tr><tr><td>90+ दिन + 10 दिन</td><td>5.5%</td><td>डेडलाइन से थोड़ी देरी</td></tr><tr><td>100+ दिन (Delay)</td><td>6% + Penalty</td><td>विलंब शुल्क और सजा</td></tr><tr><td>100 दिन से अधिक + 60 दिन तक</td><td class="font-bold">No Loan</td><td>भविष्य में 60 दिनों तक कोई लोन नहीं मिलेगा</td></tr></tbody></table>`,
+            personal: `<h3><i class="fas fa-info-circle"></i> Personal Loan - नियम और शर्तें</h3><p class="font-bold mt-2">💼 लोन पात्रता (Loan Eligibility)</p><ul class="list-disc list-inside ml-2"><li>हर सदस्य को अपने जमा कुल योगदान का 1.5 गुना (Dedh Guna) तक लोन लेने की पात्रता है।</li><li>सदस्य बनने के कम-से-कम 60 दिन बाद ही लोन लिया जा सकता है।</li></ul><p class="font-bold mt-3">📆 लोन अवधि और ब्याज (Loan Duration & Interest)</p><p>सदस्य लोन के लिए निम्नलिखित अवधि में से किसी एक का चयन कर सकते हैं:</p><table class="table"><thead><tr><th>अवधि (Period)</th><th>ब्याज दर</th><th>विवरण</th></tr></thead><tbody><tr><td>1 महीना</td><td>1%</td><td>कम अवधि के लिए</td></tr><tr><td>2 महीने</td><td>3%</td><td>मध्यम अवधि</td></tr><tr><td>3 महीने</td><td>5%</td><td>अधिकतम सामान्य अवधि</td></tr></tbody></table>`,
             business: `<h3><i class="fas fa-briefcase"></i> Business Loan - ब्याज और शुल्क</h3><p>बिजनेस लोन पर <strong>18% वार्षिक (1.5% मासिक)</strong> की दर से ब्याज लगता है।</p><ul class="list-disc list-inside ml-2 mt-2"><li><strong>प्रोसेसिंग शुल्क:</strong> लोन राशि का 1%। अगर लोन राशि ₹9000 से अधिक है, तो ₹200 का अतिरिक्त शुल्क लागू होगा।</li><li><strong>भुगतान संरचना:</strong> पहले 3 महीनों के लिए केवल मासिक ब्याज का भुगतान करना होगा। उसके बाद पूरी EMI (मूलधन + ब्याज) शुरू हो जाएगी।</li></ul>`,
-            gold: `<h3><i class="fas fa-gem"></i> Gold Loan - आवश्यक जानकारी</h3><p>यह लोन आपके द्वारा जमा किए गए सोने के सामान (Collateral) के बदले <strong>3% प्रति माह</strong> की दर पर दिया जाता है।</p><p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p><p>प्राप्त ब्याज को तीन भागों में बांटा जाएगा:</p><ul class="list-disc list-inside ml-2"><li>पहला भाग: बैंक वॉलेट में</li><li>दूसरा भाग: सभी सदस्यों में</li><li>तीसरा भाग: गारंटर को</li></ul><div class="note"><p class="font-bold">📝 कृपया ध्यान दें:</p><ul class="list-disc list-inside ml-2"><li>लोन की अवधि 6 से 12 महीने तक की होती है।</li><li>प्रत्येक माह नियमित रूप से ब्याज या पूरी EMI का भुगतान करना अनिवार्य है।</li></ul></div>`,
-            guarantor: `<h3><i class="fas fa-user-shield"></i> Guarantor Loan - मुख्य बातें</h3><p>इस लोन के लिए एक गारंटर की आवश्यकता होती है और इस पर <strong>3% प्रति माह</strong> की ब्याज दर लागू होती है।</p><p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p><p>गोल्ड लोन की तरह ही, प्राप्त ब्याज को तीन भागों में बांटा जाएगा (बैंक वॉलेट, सभी सदस्य, और गारंटर)।</p><div class="note" style="border-left-color: #f87171; background-color: #fef2f2;"><p class="font-bold text-red-700">⚠️ महत्वपूर्ण नोट:</p><ul class="list-disc list-inside ml-2"><li><strong>गारंटर की राशि होल्ड:</strong> इस लोन में, गारंटर के खाते से लोन राशि के बराबर की राशि होल्ड कर दी जाएगी। यह होल्ड तब तक रहेगा जब तक कि लोन पूरी तरह से चुका नहीं दिया जाता।</li><li><strong>मासिक भुगतान:</strong> प्रत्येक माह नियमित रूप से ब्याज या पूरी EMI का भुगतान करना अनिवार्य है।</li></ul></div>`
+            // UPDATED: Product Loan Notification
+            product: `<h3><i class="fas fa-shopping-cart"></i> Product Loan - आवश्यक जानकारी</h3><p>यह लोन किसी प्रोडक्ट (जैसे मोबाइल, लैपटॉप, आदि) को खरीदने के लिए है।</p><p class="font-bold mt-3">💰 ब्याज और अवधि (Interest & Duration)</p><table class="table"><thead><tr><th>अवधि</th><th>ब्याज दर</th><th>प्रोसेसिंग फीस</th></tr></thead><tbody><tr><td>6 महीने</td><td>10% (Flat)</td><td>₹100</td></tr><tr><td>9 महीने</td><td>15% (Flat)</td><td>₹100</td></tr></tbody></table><div class="note"><p class="font-bold">📝 EMI राउंडिंग:</p><p>आपकी मासिक EMI को 5 या 0 (निकटतम 5 के गुणज) में राउंड-ऑफ किया जाएगा ताकि भुगतान में आसानी हो।</p></div>`,
+            guarantor: `<h3><i class="fas fa-user-shield"></i> Guarantor Loan - मुख्य बातें</h3><p>इस लोन के लिए एक गारंटर की आवश्यकता होती है और इस पर <strong>3% प्रति माह</strong> की ब्याज दर लागू होती है।</p><p class="font-bold mt-3">💰 ब्याज का बंटवारा (Interest Distribution)</p><p>प्राप्त ब्याज को तीन भागों में बांटा जाएगा (बैंक वॉलेट, सभी सदस्य, और गारंटर)।</p><div class="note" style="border-left-color: #f87171; background-color: #fef2f2;"><p class="font-bold text-red-700">⚠️ महत्वपूर्ण नोट:</p><ul class="list-disc list-inside ml-2"><li><strong>गारंटर की राशि होल्ड:</strong> इस लोन में, गारंटर के खाते से लोन राशि के बराबर की राशि होल्ड कर दी जाएगी।</li></ul></div>`
         };
         
         function updateLoanNotification() {
@@ -343,8 +357,11 @@
                 option.textContent = opt.text;
                 durationRateSelect.appendChild(option);
             });
-            goldCollateralSection.style.display = (category === 'gold') ? 'block' : 'none';
-            goldCollateralInput.required = (category === 'gold');
+            
+            // UPDATED: Show Product Section for Product Loan
+            productCollateralSection.style.display = (category === 'product') ? 'block' : 'none';
+            productInput.required = (category === 'product');
+            
             const needsManualGuarantor = category === 'guarantor' || selectedApplicantText.toLowerCase().includes('bank');
             guarantorSection.style.display = needsManualGuarantor ? 'block' : 'none';
             guarantorSelect.required = needsManualGuarantor;
@@ -438,11 +455,11 @@
             const category = loanCategorySelect.value;
             const rateValue = durationRateSelect.value;
             const uploadedFile = imageUploadInput.files[0];
-            const collateralItem = goldCollateralInput.value;
+            const productItemName = productInput.value;
 
             if (isNaN(amount) || !rateValue) { alert('Please fill in all required fields.'); return; }
             
-            [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, collateralRowEl].forEach(el => el.style.display = 'none');
+            [processingFeeRowEl, interestOnlyPaymentRowEl, emiRowEl, businessInterestRowEl, businessEmiRowEl, guarantorRowEl, productRowEl].forEach(el => el.style.display = 'none');
             
             let guarantorName = 'N/A';
             const needsManualGuarantor = category === 'guarantor' || member.fullName.toLowerCase().includes('bank');
@@ -457,9 +474,11 @@
             displayGuarantorEl.textContent = guarantorName;
             guarantorRowEl.style.display = 'flex';
             
-            if (category === 'gold' && collateralItem) {
-                displayCollateralEl.textContent = collateralItem;
-                collateralRowEl.style.display = 'flex';
+            // Handle Product/Collateral Display
+            if (category === 'product' && productItemName) {
+                displayProductEl.textContent = productItemName;
+                productLabelInLetter.textContent = "Product Name:";
+                productRowEl.style.display = 'flex';
             }
             
             let loanDetails = {};
@@ -494,7 +513,31 @@
                     businessEmiRowEl.style.display = 'flex';
                     rateText = `18% Annually`;
                     break;
-                case 'gold':
+                case 'product':
+                    // UPDATED PRODUCT LOAN LOGIC
+                    const [prodRate, prodMonths] = rateValue.split('-').map(Number);
+                    interest = prodRate; // 10 or 15
+                    totalMonths = prodMonths; // 6 or 9
+                    
+                    // Fixed Processing Fee
+                    loanDetails.processingFee = 100;
+                    displayProcessingFeeEl.textContent = loanDetails.processingFee.toFixed(2);
+                    processingFeeRowEl.style.display = 'flex';
+
+                    // Total Interest Calculation (Flat Rate)
+                    const totalInterestAmount = amount * (interest / 100);
+                    totalAmount = amount + totalInterestAmount;
+                    
+                    // EMI Calculation with Rounding (Multiple of 5)
+                    const rawEmi = totalAmount / totalMonths;
+                    const roundedEmi = Math.ceil(rawEmi / 5) * 5; // Formula: 74.7 -> 75, 77.7 -> 80
+                    
+                    loanDetails.emi = roundedEmi.toFixed(2);
+                    displayEMIEl.textContent = loanDetails.emi;
+                    emiRowEl.style.display = 'flex';
+                    
+                    rateText = `${interest}% Total Interest for ${totalMonths} months`;
+                    break;
                 case 'guarantor':
                     const [gRate, gMonths] = rateValue.split('-').map(Number);
                     interest = gRate;
@@ -546,12 +589,12 @@
                 applicantId: selectedMemberId, applicantName: member.fullName, applicantPhotoUrl: member.profilePicUrl,
                 loanAmount: amount, loanCategory: category, loanCategoryText: categoryText, rateText: rateText,
                 totalPayable: totalAmount, repaymentEndDate: repaymentDate.toISOString(), guarantorName: guarantorName,
-                collateralItem: category === 'gold' ? collateralItem : null, additionalDocFile: uploadedFile,
+                productItemName: category === 'product' ? productItemName : null, additionalDocFile: uploadedFile,
                 loanDetails: loanDetails, status: 'pending'
             };
 
             letterPreviewSection.classList.remove('hidden');
-            actionButtonsContainer.classList.remove('hidden'); // Show the submit button
+            actionButtonsContainer.classList.remove('hidden');
             letterPreviewSection.scrollIntoView({ behavior: 'smooth' });
         });
 
@@ -564,7 +607,7 @@
                 await waitForImages(captureDiv);
                 await new Promise(resolve => setTimeout(resolve, 500));
                 const canvas = await html2canvas(captureDiv, { scale: 2, useCORS: true, logging: false });
-                generatedCanvas = canvas; // Save canvas for later download
+                generatedCanvas = canvas;
 
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 const letterImageUrl = await uploadImageToImgBB(blob);
@@ -589,7 +632,7 @@
                 letterPreviewSection.style.display = 'none';
                 actionButtonsContainer.style.display = 'none';
                 successMessage.classList.remove('hidden');
-                successDownloadBtn.classList.remove('hidden'); // Show download button on success
+                successDownloadBtn.classList.remove('hidden');
 
             } catch (error) {
                 console.error("Submission error:", error);
@@ -600,7 +643,6 @@
             }
         });
 
-        // --- NEW EVENT LISTENERS FOR THE SUCCESS BUTTONS ---
         successDownloadBtn.addEventListener('click', function() {
             if (!generatedCanvas) {
                 alert('Could not find the letter to download. Please try generating again.');
@@ -617,7 +659,7 @@
             link.remove();
             
             successDownloadBtn.textContent = 'Downloaded!';
-            successShareBtn.classList.remove('hidden'); // Show share button after download
+            successShareBtn.classList.remove('hidden');
         });
 
         successShareBtn.addEventListener('click', function() {
