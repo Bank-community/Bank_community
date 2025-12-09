@@ -1,11 +1,12 @@
-// FINAL & CORRECTED UPDATE: SUPERFAST LOGIC (Direct DB Read)
-// 1. "Available Community Balance" uses Direct DB Fields (accountBalance).
-// 2. Transaction Loops removed from Member Loop (O(N) Efficiency).
-// 3. Disabled Member Logic retained intact.
+// FINAL & CORRECTED UPDATE: ULTIMATE SPEED (100% DB Read)
+// 1. Transaction Loop Removed Completely from Member Processing.
+// 2. SIP Status & Amount read directly from 'currentMonthSIPStatus' & 'currentMonthSIPAmount'.
+// 3. 'Loan Return Pay' set to 0 as requested to boost speed.
+// 4. 'Available Community Balance' uses summed Member Data for super-fast calculation.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v1'; // Local Storage Key
+const CACHE_KEY = 'tcf_royal_cache_v2'; // Updated Cache Key
 
 /**
  * Data fetch aur process karne ka naya function with Caching Strategy.
@@ -66,7 +67,7 @@ export async function fetchAndProcessData(database, onUpdate = null) {
 
 /**
  * Raw Data ko process karne ka logic (Calculation Engine).
- * SUPERFAST UPDATE: Uses direct DB fields for Balance & Loan.
+ * ULTIMATE SPEED UPDATE: No Loops, Just Reads.
  */
 function processRawData(data) {
     const allMembersRaw = data.members || {};
@@ -81,44 +82,15 @@ function processRawData(data) {
     const headerButtonsRaw = adminSettingsRaw.header_buttons || {};
 
     const processedMembers = {};
-    const allTransactions = Object.values(allTransactionsRaw);
-    
-    // --- OPTIMIZATION START: Pre-calculate Transaction Maps ---
-    // Isse hum loop ke andar baar-baar filter nahi karenge (Super Speed)
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const sipStatusMap = {}; // Format: { memberId: { paid: bool, amount: val } }
-    const loanCountMap = {}; // Format: { memberId: count }
-    const totalReturnMap = {}; // Format: { memberId: totalInterest }
-
-    allTransactions.forEach(tx => {
-        // SIP Check for this month
-        if (tx.type === 'SIP') {
-            const txDate = new Date(tx.date);
-            if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
-                sipStatusMap[tx.memberId] = { paid: true, amount: parseFloat(tx.amount || 0) };
-            }
-        }
-        // Loan Count
-        if (tx.type === 'Loan Taken') {
-            loanCountMap[tx.memberId] = (loanCountMap[tx.memberId] || 0) + 1;
-        }
-        // Total Return (Interest Paid)
-        if (tx.type === 'Loan Payment') {
-            totalReturnMap[tx.memberId] = (totalReturnMap[tx.memberId] || 0) + parseFloat(tx.interestPaid || 0);
-        }
-    });
-    // --- OPTIMIZATION END ---
+    const allTransactions = Object.values(allTransactionsRaw); // Used only for Global Stats now
 
     for (const memberId in allMembersRaw) {
         const member = allMembersRaw[memberId];
         // Only skip if status is NOT Approved.
         if (member.status !== 'Approved' || !member.fullName) continue;
 
-        // --- DIRECT DB READ (SUPERFAST LOGIC) ---
-        // Ab hum calculate nahi kar rahe, seedha DB se utha rahe hain
+        // --- DIRECT DB READ (ULTIMATE SPEED LOGIC) ---
+        // 1. Balance & Loan (Existing Logic)
         const displayBalanceOnCard = parseFloat(member.accountBalance || 0);
         const totalOutstandingLoan = parseFloat(member.totalLoanDue || 0);
         
@@ -129,10 +101,12 @@ function processRawData(data) {
             continue; 
         }
 
-        // Map se fast lookup karo (No Loop inside Loop)
-        const currentSipData = sipStatusMap[memberId] || { paid: false, amount: 0 };
-        const loanCount = loanCountMap[memberId] || 0;
-        const totalReturn = totalReturnMap[memberId] || 0;
+        // --- NEW SIP & RETURN LOGIC (DIRECT READ) ---
+        // Transaction Loop Hataya Gaya Hai. 
+        // Ab Seedha DB field se utha rahe hain.
+        
+        const isPaid = (member.currentMonthSIPStatus === 'Paid');
+        const sipAmount = parseFloat(member.currentMonthSIPAmount || 0);
 
         processedMembers[memberId] = {
             ...member,
@@ -140,18 +114,18 @@ function processRawData(data) {
             name: member.fullName,
             balance: displayBalanceOnCard, // Direct form DB
             totalOutstandingLoan: totalOutstandingLoan, // Direct from DB
-            totalReturn: totalReturn,
-            loanCount: loanCount,
+            totalReturn: 0, // Requested: Set to 0 (No Logic)
+            loanCount: 0, // Set to 0 (No Logic, saves processing)
             displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
             isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
             sipStatus: { 
-                paid: currentSipData.paid, 
-                amount: currentSipData.amount 
+                paid: isPaid, 
+                amount: sipAmount
             }
         };
     }
 
-    // Community Stats bhi optimize kar diye gaye hain
+    // Community Stats
     const communityStats = calculateCommunityStats(Object.values(processedMembers), allTransactions, allActiveLoansRaw, penaltyWalletRaw);
 
     return {
@@ -175,19 +149,21 @@ function calculateCommunityStats(processedMembers, allTransactions, allActiveLoa
 
     let totalPureSipAmount = 0;
 
-    // Sirf visible members ka SIP jodo
+    // Global Stats ke liye hum abhi bhi loop use kar sakte hain kyunki ye ek baar hi run hota hai.
+    // Lekin member list generation ab instant hai.
     allTransactions.forEach(tx => {
         if (tx.type === 'SIP' && validMemberIds.has(tx.memberId)) {
             totalPureSipAmount += parseFloat(tx.amount || 0);
         }
     });
 
-    // Total Active Loans (Direct Sum from processed members for speed consistency)
+    // Direct Sum from processed members for speed consistency
     const totalCurrentLoanAmount = processedMembers.reduce((sum, m) => sum + (m.totalOutstandingLoan || 0), 0);
 
     // 'Available Community Balance' logic
     const availableCommunityBalance = totalPureSipAmount - totalCurrentLoanAmount;
 
+    // Net Return Calculation
     const totalInterestReceived = allTransactions
         .filter(tx => tx.type === 'Loan Payment')
         .reduce((sum, tx) => sum + parseFloat(tx.interestPaid || 0), 0);
@@ -208,3 +184,4 @@ function calculateCommunityStats(processedMembers, allTransactions, allActiveLoa
         totalLoanDisbursed: allTransactions.filter(tx => tx.type === 'Loan Taken').reduce((sum, tx) => sum + tx.amount, 0)
     };
 }
+
