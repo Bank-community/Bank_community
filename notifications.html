@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#001540">
     <title>Notifications</title>
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -36,7 +35,8 @@
         .tab.active { background: #002366; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
         .content { display: none; padding: 15px; max-width: 600px; margin: 0 auto; }
-        .content.active { display: block; }
+        .content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* === 1. SIP CARD === */
         .sip-card {
@@ -53,6 +53,12 @@
             background: #FFC107; color: #000; padding: 8px 16px;
             border-radius: 20px; font-size: 0.8em; font-weight: 700; text-decoration: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .sip-paid-card {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-left: 4px solid var(--green-text);
+            color: var(--green-text);
+            padding: 15px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; gap: 10px;
         }
 
         /* === 2. LOAN CARD === */
@@ -92,11 +98,25 @@
         .btn-pay { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,35,102,0.3); }
         .btn-detail { background: white; border: 1px solid #ddd; color: #333; }
 
-        /* HISTORY TAB */
+        /* === HISTORY TAB (NEW SUMMARY BOXES) === */
+        .history-summary {
+            display: flex; gap: 10px; margin-bottom: 20px;
+        }
+        .h-box {
+            flex: 1; padding: 15px; border-radius: 12px; color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .h-box.received { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+        .h-box.sent { background: linear-gradient(135deg, #c62828, #b71c1c); }
+        .h-val { font-size: 1.4em; font-weight: 800; display: block; margin-top: 5px; }
+        .h-lbl { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+
         .hist-item { 
             background: white; padding: 12px 15px; border-bottom: 1px solid #f0f0f0; 
             display: flex; justify-content: space-between; align-items: center; 
         }
+        .hist-item:last-child { border-bottom: none; }
         .hist-left h4 { margin: 0; font-size: 0.95em; color: #333; }
         .hist-left p { margin: 0; font-size: 0.75em; color: #888; }
         .hist-amt { font-weight: 700; font-size: 0.95em; }
@@ -116,6 +136,7 @@
         }
 
         .loading { text-align: center; color: #999; padding: 20px; font-size: 0.9em; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -143,9 +164,22 @@
 
     <!-- 2. HISTORY TAB -->
     <div id="history" class="content">
-        <div style="text-align: center; padding: 10px; margin-bottom: 10px; color: var(--primary); font-weight: 700; background: #eef2ff; border-radius: 8px;">
+        <div style="text-align: center; padding: 10px; margin-bottom: 15px; color: var(--primary); font-weight: 700; background: #eef2ff; border-radius: 8px;">
             <span id="monthDisplay">Current Month</span> Activity
         </div>
+
+        <!-- NEW SUMMARY BOXES -->
+        <div class="history-summary">
+            <div class="h-box received">
+                <span class="h-lbl">Received</span>
+                <span class="h-val" id="totalReceivedVal">₹0</span>
+            </div>
+            <div class="h-box sent">
+                <span class="h-lbl">Loan Distributed</span>
+                <span class="h-val" id="totalSentVal">₹0</span>
+            </div>
+        </div>
+
         <div id="historyContainer" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <p class="loading">Loading history...</p>
         </div>
@@ -158,6 +192,7 @@
 
     <script>
         const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
+        const CACHE_KEY = 'tcf_notifications_cache_v2';
 
         function parseSmartDate(input) {
             if (!input) return new Date();
@@ -165,27 +200,37 @@
             if (!isNaN(d.getTime())) return d;
             
             let clean = String(input).replace(/,/g, ' ').replace(/-/g, ' ').replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
-            let parts = clean.split(' ');
-            const monthMap = {'jan':0,'feb':1,'mar':2,'apr':3,'may':4,'jun':5,'jul':6,'aug':7,'sep':8,'sept':8,'oct':9,'nov':10,'dec':11};
-            
-            let day, month, year;
-            for(let p of parts) {
-                p = p.toLowerCase();
-                if(monthMap[p.substring(0,3)] !== undefined) month = monthMap[p.substring(0,3)];
-                else if(!isNaN(p) && p.length===4) year = parseInt(p);
-                else if(!isNaN(p) && p.length<=2) day = parseInt(p);
-            }
-            if(day && month!==undefined && year) return new Date(year, month, day);
-            return new Date();
+            return new Date(clean); // Simplified fallback
         }
 
         async function init() {
             try {
+                // 1. INSTANT LOAD FROM CACHE
+                loadFromCache();
+
                 const res = await fetch('/api/firebase-config');
                 const config = await res.json();
                 if(!firebase.apps.length) firebase.initializeApp(config);
-                firebase.auth().onAuthStateChanged(user => fetchData());
+                
+                firebase.auth().onAuthStateChanged(user => {
+                    // 2. FETCH FRESH DATA IN BACKGROUND
+                    fetchData();
+                });
             } catch(e) { console.error(e); }
+        }
+
+        function loadFromCache() {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    const memberId = localStorage.getItem('verifiedMemberId');
+                    if (memberId) {
+                        console.log("⚡ Instant Cache Load");
+                        processAndRender(memberId, data);
+                    }
+                } catch (e) { console.error("Cache parse error", e); }
+            }
         }
 
         async function fetchData() {
@@ -196,46 +241,60 @@
                 return;
             }
 
+            // Fetch Everything needed
             const snap = await db.ref().once('value');
             const data = snap.val() || {};
-            const profile = data.members?.[memberId] || {};
 
-            renderSIP(memberId, data.transactions || {}, profile);
-            renderLoans(memberId, data.activeLoans || {}, data.members || {});
-            renderHistory(memberId, data.transactions || {}, data.members || {});
-            renderNotices(data.admin?.notifications?.manual || {});
+            // Save to Cache
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            console.log("🌐 Fresh Data Synced");
+
+            processAndRender(memberId, data);
         }
 
-        function renderSIP(mid, txs, profile) {
+        function processAndRender(memberId, data) {
+            const members = data.members || {};
+            const transactions = data.transactions || {};
+            const activeLoans = data.activeLoans || {};
+            const notices = data.admin?.notifications?.manual || {};
+
+            const profile = members[memberId] || {};
+
+            // Render All Sections
+            renderSIP(memberId, profile);
+            renderLoans(memberId, activeLoans, members);
+            renderHistoryAndSummary(memberId, transactions, members);
+            renderNotices(notices);
+        }
+
+        // --- 1. SIP LOGIC (DIRECT FROM PROFILE) ---
+        function renderSIP(mid, profile) {
             const container = document.getElementById('sipContainer');
             container.innerHTML = '';
             
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+            const sipAmount = parseFloat(profile.currentMonthSIPAmount || 0);
+            const status = profile.currentMonthSIPStatus; // 'Paid' or 'Unpaid'
 
-            const hasPaid = Object.values(txs).some(t => 
-                t.memberId === mid && t.type === 'SIP' && 
-                parseSmartDate(t.date).getMonth() === currentMonth &&
-                parseSmartDate(t.date).getFullYear() === currentYear
-            );
-
-            if (!hasPaid) {
+            if (status !== 'Paid' && sipAmount > 0) {
                 container.innerHTML = `
                     <div class="sip-card">
                         <div class="sip-left">
                             <img src="${profile.profilePicUrl || DEFAULT_IMG}" class="sip-img" onerror="this.src='${DEFAULT_IMG}'">
                             <div class="sip-info">
                                 <h4>${profile.fullName || 'Member'}</h4>
-                                <p>SIP Due: ₹500</p>
+                                <p>SIP Due: ₹${sipAmount}</p>
                             </div>
                         </div>
-                        <a href="qr.html?amount=500&type=sip" class="sip-btn">PAY NOW</a>
+                        <a href="qr.html?amount=${sipAmount}&type=sip" class="sip-btn">PAY NOW</a>
                     </div>
                 `;
+            } else if (status === 'Paid') {
+                // Optional: Show paid status or nothing. Showing nothing is cleaner if no due.
+                 // container.innerHTML = `<div class="sip-paid-card"><i data-feather="check-circle"></i> SIP Paid for this month</div>`;
             }
         }
 
+        // --- 2. LOAN LOGIC (FROM ACTIVE LOANS) ---
         function renderLoans(mid, loans, members) {
             const container = document.getElementById('loanContainer');
             container.innerHTML = '';
@@ -249,9 +308,10 @@
             }
 
             myLoans.forEach(loan => {
-                const mem = members[mid];
-                let d = parseSmartDate(loan.loanDate || loan.date || loan.timestamp);
+                const mem = members[mid] || {};
+                let d = parseSmartDate(loan.loanDate || loan.date);
                 const diff = Math.floor(Math.abs(new Date() - d) / (864e5));
+                const outstanding = parseFloat(loan.outstandingAmount || loan.amount || 0);
 
                 let color = '#ffc107'; 
                 let statusText = 'Attention Needed';
@@ -268,11 +328,11 @@
                                     <span>${d.toLocaleDateString()}</span>
                                 </div>
                             </div>
-                            <div class="loan-tag">${loan.loanType || 'Business Loan'}</div>
+                            <div class="loan-tag">${loan.loanType || 'Active Loan'}</div>
                         </div>
                         <div class="loan-body">
                             <div class="label">OUTSTANDING AMOUNT</div>
-                            <div class="amount-main">₹${(loan.outstandingAmount || loan.amount).toLocaleString()}</div>
+                            <div class="amount-main">₹${outstanding.toLocaleString('en-IN')}</div>
                             
                             <div class="days-row">
                                 <div>
@@ -287,18 +347,22 @@
                             </div>
 
                             <div class="actions">
-                                <a href="qr.html?amount=${loan.outstandingAmount || loan.amount}&type=loan" class="btn btn-pay">PAY NOW</a>
+                                <a href="qr.html?amount=${outstanding}&type=loan" class="btn btn-pay">PAY NOW</a>
                                 <a href="loan_dashbord.html" class="btn btn-detail">Details</a>
                             </div>
                         </div>
                     </div>
                 `;
             });
+            feather.replace();
         }
 
-        // --- UPDATED HISTORY LOGIC ---
-        function renderHistory(mid, txs, members) {
+        // --- 3. HISTORY & SUMMARY LOGIC ---
+        function renderHistoryAndSummary(mid, txs, members) {
             const el = document.getElementById('historyContainer');
+            const totalRecEl = document.getElementById('totalReceivedVal');
+            const totalSentEl = document.getElementById('totalSentVal');
+            
             el.innerHTML = '';
             
             const now = new Date();
@@ -307,44 +371,58 @@
             
             document.getElementById('monthDisplay').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-            const list = Object.values(txs)
-                .filter(t => {
-                    const d = parseSmartDate(t.date || t.timestamp);
-                    // Filter: Only Current Month
-                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                })
-                .sort((a,b) => parseSmartDate(b.date) - parseSmartDate(a.date));
+            // Filter for CURRENT MONTH ONLY
+            const currentMonthTxs = Object.values(txs).filter(t => {
+                const d = parseSmartDate(t.date || t.timestamp);
+                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            }).sort((a,b) => parseSmartDate(b.date) - parseSmartDate(a.date));
 
-            if (list.length === 0) {
+            // CALCULATE TOTALS
+            let totalReceived = 0;
+            let totalSent = 0;
+
+            currentMonthTxs.forEach(t => {
+                const amt = parseFloat(t.amount || 0);
+                const pPaid = parseFloat(t.principalPaid || 0);
+                const iPaid = parseFloat(t.interestPaid || 0);
+                const totalPaid = pPaid + iPaid > 0 ? pPaid + iPaid : amt;
+
+                // Incoming (Received): Loan Payment + SIP + Extra Deposit
+                if (t.type === 'Loan Payment' || t.type === 'SIP' || t.type === 'Extra Payment') {
+                    totalReceived += totalPaid;
+                }
+                // Outgoing (Sent): Loan Taken (Distributed) + Withdraw
+                else if (t.type === 'Loan Taken' || t.type === 'Extra Withdraw') {
+                    totalSent += amt;
+                }
+            });
+
+            // Update Summary UI
+            totalRecEl.textContent = `₹${totalReceived.toLocaleString('en-IN')}`;
+            totalSentEl.textContent = `₹${totalSent.toLocaleString('en-IN')}`;
+
+            // Render List
+            if (currentMonthTxs.length === 0) {
                 el.innerHTML = '<p class="loading">No transactions this month.</p>';
                 return;
             }
 
-            list.forEach(t => {
+            currentMonthTxs.forEach(t => {
                 let name = t.memberId === mid ? 'You' : (members[t.memberId]?.fullName || 'Member');
                 let displayAmount = t.amount;
                 let colorClass = 'green';
                 let sign = '+';
                 let displayType = t.type;
 
-                // --- LOGIC UPDATE HERE ---
                 if (t.type === 'Loan Payment') {
-                    // Logic: Green Color for Payment (+)
                     colorClass = 'green';
                     sign = '+';
-                    
-                    // Calculate Total Paid (Principal + Interest) to fix 'undefined'
                     const principal = parseFloat(t.principalPaid || 0);
                     const interest = parseFloat(t.interestPaid || 0);
                     displayAmount = principal + interest;
-
-                    // Text Logic: If only interest paid
-                    if (principal === 0 && interest > 0) {
-                        displayType = "Interest Payment";
-                        displayAmount = interest;
-                    } else {
-                        displayType = "Loan Repayment";
-                    }
+                    
+                    if (principal === 0 && interest > 0) displayType = "Interest Payment";
+                    else displayType = "Loan Repayment";
                 } 
                 else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
                     colorClass = 'red';
@@ -355,7 +433,6 @@
                     sign = '+';
                 }
 
-                // If amount is still invalid, show 0 (Safety check)
                 if (isNaN(displayAmount)) displayAmount = 0;
 
                 el.innerHTML += `
@@ -364,7 +441,7 @@
                             <h4>${name}</h4>
                             <p>${displayType} • ${parseSmartDate(t.date).getDate()}th</p>
                         </div>
-                        <div class="hist-amt ${colorClass}">${sign}₹${displayAmount.toLocaleString()}</div>
+                        <div class="hist-amt ${colorClass}">${sign}₹${displayAmount.toLocaleString('en-IN')}</div>
                     </div>
                 `;
             });
