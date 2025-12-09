@@ -1,20 +1,23 @@
-// FINAL & CORRECTED UPDATE: ULTIMATE SPEED (100% Direct DB Read)
-// 1. All Time Loan: Now reads directly from 'lifetimeStats.totalLoanIssued'.
-// 2. Community Funds: Reads directly from 'admin.balanceStats'.
-// 3. Penalty Wallet: Reads directly from 'penaltyWallet.availableBalance'.
-// 4. Member Profile: Reads directly from member node (No Transaction Loops).
+// FINAL & CORRECTED UPDATE: OFFLINE FIRST & INSTANT LOAD
+// 1. Instant Cache Load: Displays data immediately even if database connection is pending.
+// 2. All Time Loan: Reads directly from 'lifetimeStats.totalLoanIssued'.
+// 3. Community Funds: Reads directly from 'admin.balanceStats'.
+// 4. Penalty Wallet: Reads directly from 'penaltyWallet.availableBalance'.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v4'; // Incremented Cache Key for Lifetime Stats
+const CACHE_KEY = 'tcf_royal_cache_v5'; // Incremented Cache Key
 
 /**
- * Data fetch aur process karne ka naya function with Caching Strategy.
+ * Data fetch aur process karne ka function.
+ * @param {firebase.database.Database} database - Firebase DB instance (Can be null for cache-only load).
+ * @param {Function} onUpdate - Callback function for UI update.
  */
 export async function fetchAndProcessData(database, onUpdate = null) {
     let cachedDataLoaded = false;
 
-    // STEP 1: Try to load from Local Storage (INSTANT SPEED)
+    // STEP 1: LOAD FROM CACHE INSTANTLY (Offline Mode)
+    // Yeh bina database connection ke bhi chalega
     if (onUpdate) {
         try {
             const cachedRaw = localStorage.getItem(CACHE_KEY);
@@ -30,7 +33,10 @@ export async function fetchAndProcessData(database, onUpdate = null) {
         }
     }
 
-    // STEP 2: Fetch Fresh Data from Firebase (Background)
+    // Agar database instance nahi diya gaya hai (sirf cache load karna tha), to yahin ruk jao.
+    if (!database) return;
+
+    // STEP 2: FETCH FRESH DATA FROM FIREBASE (Background Mode)
     try {
         // console.log("🌐 Fetching fresh data from Firebase...");
         const snapshot = await database.ref().once('value');
@@ -51,8 +57,9 @@ export async function fetchAndProcessData(database, onUpdate = null) {
 
     } catch (error) {
         console.error('Data processing failed:', error);
+        // Agar cache load ho chuka tha, to error mat dikhao, user ko purane data se chalne do
         if (cachedDataLoaded) {
-            console.log("⚠️ Network failed, but using cached data.");
+            console.log("⚠️ Network failed, staying on cached data.");
             return; 
         }
         throw error;
@@ -60,17 +67,16 @@ export async function fetchAndProcessData(database, onUpdate = null) {
 }
 
 /**
- * Raw Data ko process karne ka logic.
- * ULTIMATE SPEED: All Stats are Direct DB Reads.
+ * Raw Data Processing Logic (Zero Calculation - Direct DB Read)
  */
 function processRawData(data) {
     const allMembersRaw = data.members || {};
-    const allTransactionsRaw = data.transactions || {}; // Still kept for Notification Popups only
+    const allTransactionsRaw = data.transactions || {}; 
     const penaltyWalletRaw = data.penaltyWallet || {};
     const adminSettingsRaw = data.admin || {};
-    const lifetimeStatsRaw = data.lifetimeStats || {}; // NEW: Direct Lifetime Stats
+    const lifetimeStatsRaw = data.lifetimeStats || {}; 
     
-    // --- DIRECT STATS READ (NO CALCULATION) ---
+    // --- DIRECT STATS READ ---
     const balanceStats = adminSettingsRaw.balanceStats || {};
     
     const notificationsRaw = adminSettingsRaw.notifications || {};
@@ -86,15 +92,14 @@ function processRawData(data) {
         const member = allMembersRaw[memberId];
         if (member.status !== 'Approved' || !member.fullName) continue;
 
-        // --- DIRECT DB READ (MEMBER STATS) ---
+        // Direct DB Read
         const displayBalanceOnCard = parseFloat(member.accountBalance || 0);
         
-        // HIDE Logic: If Disabled AND Balance >= 0 -> HIDE
+        // HIDE Logic
         if (member.isDisabled === true && displayBalanceOnCard >= 0) {
             continue; 
         }
 
-        // --- DIRECT DB READ (SIP & LOAN) ---
         const isPaid = (member.currentMonthSIPStatus === 'Paid');
         const sipAmount = parseFloat(member.currentMonthSIPAmount || 0);
 
@@ -104,8 +109,8 @@ function processRawData(data) {
             name: member.fullName,
             balance: displayBalanceOnCard,
             totalOutstandingLoan: parseFloat(member.totalLoanDue || 0),
-            totalReturn: 0, // Zero as requested (Logic removed for speed)
-            loanCount: 0,   // Zero as requested (Logic removed for speed)
+            totalReturn: 0, 
+            loanCount: 0,
             displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
             isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
             sipStatus: { 
@@ -116,26 +121,21 @@ function processRawData(data) {
     }
 
     // --- COMMUNITY STATS (DIRECT ASSIGNMENT) ---
-    // Ab hum yahan koi calculation nahi kar rahe, seedha DB values bhej rahe hain.
     const communityStats = {
         totalSipAmount: parseFloat(balanceStats.totalSIP || 0),
         totalCurrentLoanAmount: parseFloat(balanceStats.totalActiveLoans || 0),
         netReturnAmount: parseFloat(balanceStats.totalReturn || 0),
         availableCommunityBalance: parseFloat(balanceStats.availableBalance || 0),
-        
-        // Penalty Wallet Direct Read
         totalPenaltyBalance: parseFloat(penaltyWalletRaw.availableBalance || 0),
-        
-        // NEW: Lifetime Loan Issued (All Time Loan) - Direct DB Read
-        totalLoanDisbursed: parseFloat(lifetimeStatsRaw.totalLoanIssued || 0)
+        totalLoanDisbursed: parseFloat(lifetimeStatsRaw.totalLoanIssued || 0) // Lifetime Stats
     };
 
     return {
         processedMembers: Object.values(processedMembers).sort((a, b) => b.balance - a.balance),
-        allTransactions, // Kept for Notification Popups only
+        allTransactions,
         penaltyWalletData: penaltyWalletRaw,
         adminSettings: adminSettingsRaw,
-        communityStats, // Contains the Direct DB Values
+        communityStats,
         manualNotifications: manualNotificationsRaw,
         automatedQueue: automatedQueueRaw,
         allProducts: allProductsRaw,
