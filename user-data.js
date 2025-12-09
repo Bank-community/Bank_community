@@ -1,11 +1,12 @@
-// FINAL & CORRECTED UPDATE: ABSOLUTE ZERO CALCULATION (Direct DB Stats)
-// 1. Community Funds: Reads directly from 'admin.balanceStats' node.
-// 2. Penalty Wallet: Reads directly from 'penaltyWallet.availableBalance'.
-// 3. Transactions: Completely ignored for stats calculation.
+// FINAL & CORRECTED UPDATE: ULTIMATE SPEED (100% Direct DB Read)
+// 1. All Time Loan: Now reads directly from 'lifetimeStats.totalLoanIssued'.
+// 2. Community Funds: Reads directly from 'admin.balanceStats'.
+// 3. Penalty Wallet: Reads directly from 'penaltyWallet.availableBalance'.
+// 4. Member Profile: Reads directly from member node (No Transaction Loops).
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v3'; // Incremented Cache Key for Structure Change
+const CACHE_KEY = 'tcf_royal_cache_v4'; // Incremented Cache Key for Lifetime Stats
 
 /**
  * Data fetch aur process karne ka naya function with Caching Strategy.
@@ -60,13 +61,14 @@ export async function fetchAndProcessData(database, onUpdate = null) {
 
 /**
  * Raw Data ko process karne ka logic.
- * ULTIMATE SPEED: Uses 'admin.balanceStats' and 'penaltyWallet.availableBalance'.
+ * ULTIMATE SPEED: All Stats are Direct DB Reads.
  */
 function processRawData(data) {
     const allMembersRaw = data.members || {};
-    const allTransactionsRaw = data.transactions || {}; // Still kept for Transaction Popup if needed
+    const allTransactionsRaw = data.transactions || {}; // Still kept for Notification Popups only
     const penaltyWalletRaw = data.penaltyWallet || {};
     const adminSettingsRaw = data.admin || {};
+    const lifetimeStatsRaw = data.lifetimeStats || {}; // NEW: Direct Lifetime Stats
     
     // --- DIRECT STATS READ (NO CALCULATION) ---
     const balanceStats = adminSettingsRaw.balanceStats || {};
@@ -102,8 +104,8 @@ function processRawData(data) {
             name: member.fullName,
             balance: displayBalanceOnCard,
             totalOutstandingLoan: parseFloat(member.totalLoanDue || 0),
-            totalReturn: 0, // Not used/Zero as requested
-            loanCount: 0,   // Not used/Zero as requested
+            totalReturn: 0, // Zero as requested (Logic removed for speed)
+            loanCount: 0,   // Zero as requested (Logic removed for speed)
             displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
             isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
             sipStatus: { 
@@ -124,8 +126,8 @@ function processRawData(data) {
         // Penalty Wallet Direct Read
         totalPenaltyBalance: parseFloat(penaltyWalletRaw.availableBalance || 0),
         
-        // Loan Disbursed (Optional: Can remain computed or be 0 if not critical)
-        totalLoanDisbursed: 0 
+        // NEW: Lifetime Loan Issued (All Time Loan) - Direct DB Read
+        totalLoanDisbursed: parseFloat(lifetimeStatsRaw.totalLoanIssued || 0)
     };
 
     return {
