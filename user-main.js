@@ -1,15 +1,21 @@
 // user-main.js
-// SUPER FAST UPDATE: Local Storage Integration & Royal Theme Support
-// FINAL COLOR UPDATE: Install App button ka color Green set kiya gaya hai.
+// ULTIMATE INSTANT LOAD UPDATE: Shows Cached Data IMMEDIATELY (0ms Latency).
+// Then syncs with Firebase in background.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
 
 let VAPID_KEY = null;
 
-// IMMEDIATE INIT: Jaise hi script load ho, UI ko ready karo.
-// Yeh blank page issue ko khatam karega.
+// --- STEP 1: IMMEDIATE CACHE RENDER (The Magic Trick) ---
+// Firebase initialize hone ka wait MAT karo. Turant purana data dikhao.
 initUI(null);
+try {
+    // Database 'null' pass kar rahe hain taaki sirf cache load ho.
+    fetchAndProcessData(null, renderPage);
+} catch (e) {
+    console.log("Initial cache load skipped:", e);
+}
 
 /**
  * App ko shuru karne ka mukhya function.
@@ -32,40 +38,44 @@ async function checkAuthAndInitialize() {
         const auth = firebase.auth();
         const database = firebase.database();
 
+        // --- STEP 2: BACKGROUND SYNC ---
+        // Jab user login confirm ho jaye, tab naya data lao.
         auth.onAuthStateChanged(user => {
             runAppLogic(database);
         });
 
     } catch (error) {
         console.error("FATAL: Could not initialize application.", error);
-        showLoadingError(`Application failed to initialize: ${error.message}`);
+        // Error tabhi dikhao agar cache bhi load nahi hua ho
+        const hasContent = document.getElementById('memberContainer').children.length > 1;
+        if (!hasContent) {
+            showLoadingError(`Application failed to initialize: ${error.message}`);
+        }
     }
 }
 
 /**
- * Mukhya application logic.
+ * Mukhya application logic (Network Fetch).
  */
 async function runAppLogic(database) {
     try {
-        // Data aane par kya karna hai, uska logic yahan hai
         const handleDataUpdate = (data) => {
             if (!data) return;
-
-            // UI Render karo (Chahe Cache ho ya Fresh)
+            // UI Update karo (Fresh Data se)
             renderPage(data);
             
-            // Device verification check karo
+            // Device verification check
             if (data.processedMembers) {
                 verifyDeviceAndSetupNotifications(database, data.processedMembers);
             }
         };
 
-        // Data fetch process start karo (Yeh Cache aur Network dono handle karega)
+        // Ab Fresh Data fetch karo
         await fetchAndProcessData(database, handleDataUpdate);
 
     } catch (error) {
         console.error("Failed to run main app logic:", error);
-        showLoadingError(error.message);
+        // Silent fail if cache is already visible
     }
 }
 
@@ -87,7 +97,6 @@ async function verifyDeviceAndSetupNotifications(database, allMembers) {
     try {
         let memberId = localStorage.getItem('verifiedMemberId');
 
-        // Agar user verify nahi hai, to prompt dikhao
         if (!memberId) {
             memberId = await promptForDeviceVerification(allMembers);
             if (memberId) {
@@ -134,10 +143,8 @@ async function registerForPushNotifications(database, memberId) {
     }
 }
 
-// Global variable jisme install prompt save hoga
 window.deferredInstallPrompt = null;
 
-// 'beforeinstallprompt' event ko sunein
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredInstallPrompt = e;
@@ -170,7 +177,5 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
 });
 
-// App ko shuru karein
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
-
 
