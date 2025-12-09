@@ -255,6 +255,8 @@
     <script>
     document.addEventListener("DOMContentLoaded", () => {
         
+        const CACHE_KEY = 'tcf_loan_dashboard_cache_v1';
+
         const state = {
             activeLoans: [],
             members: {},
@@ -280,43 +282,93 @@
 
         async function init() {
             try {
+                // 1. Load Cache First (Instant)
+                loadFromCache();
+
                 const res = await fetch('/api/firebase-config');
                 if(res.ok) firebase.initializeApp(await res.json());
+                
                 firebase.auth().onAuthStateChanged(u => {
-                    if(u) loadData();
+                    if(u) loadData(); // Fetch fresh data
                     else window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 });
             } catch(e) { console.error(e); }
         }
 
+        // --- CACHE SYSTEM ---
+        function loadFromCache() {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    state.members = data.members || {};
+                    const rawLoans = data.rawLoans || {};
+                    
+                    // Process cached data
+                    state.activeLoans = processLoanData(rawLoans, state.members);
+
+                    if (state.activeLoans.length > 0) {
+                        updateUI(state.activeLoans);
+                        fillDropdown();
+                        state.els.loader.classList.add('hidden'); // Hide loader instantly
+                        console.log("⚡ Loaded from Cache");
+                    }
+                } catch (e) {
+                    console.error("Cache load error:", e);
+                }
+            }
+        }
+
+        // --- HELPER TO PROCESS DATA ---
+        function processLoanData(rawLoans, members) {
+            return Object.values(rawLoans)
+                .filter(l => l.status && l.status.trim() === 'Active') 
+                .map(l => ({
+                    ...l,
+                    memberName: members[l.memberId]?.fullName || 'Unknown',
+                    pic: members[l.memberId]?.profilePicUrl || ''
+                }))
+                .sort((a,b) => new Date(a.loanDate) - new Date(b.loanDate));
+        }
+
         async function loadData() {
             try {
                 const db = firebase.database();
+                // Fetch fresh data
                 const [lSnap, mSnap] = await Promise.all([
                     db.ref('activeLoans').once('value'),
                     db.ref('members').once('value')
                 ]);
 
-                state.members = mSnap.val() || {};
-                const rawLoans = lSnap.val() || {};
+                const membersVal = mSnap.val() || {};
+                const loansVal = lSnap.val() || {};
 
-                state.activeLoans = Object.values(rawLoans)
-                    .filter(l => l.status && l.status.trim() === 'Active') 
-                    .map(l => ({
-                        ...l,
-                        memberName: state.members[l.memberId]?.fullName || 'Unknown',
-                        pic: state.members[l.memberId]?.profilePicUrl || ''
-                    }))
-                    .sort((a,b) => new Date(a.loanDate) - new Date(b.loanDate));
+                // Update State
+                state.members = membersVal;
+                
+                // Save to Cache for next time
+                const cacheData = {
+                    members: membersVal,
+                    rawLoans: loansVal,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+
+                // Process Fresh Data
+                state.activeLoans = processLoanData(loansVal, state.members);
 
                 updateUI(state.activeLoans);
                 fillDropdown();
                 state.els.loader.classList.add('hidden');
+                console.log("🌐 Synced with Firebase");
 
             } catch(e) {
                 console.error(e);
-                state.els.container.innerHTML = "Error loading data.";
-                state.els.loader.classList.add('hidden');
+                // If cache wasn't loaded and error happened
+                if (!state.activeLoans.length) {
+                    state.els.container.innerHTML = "Error loading data.";
+                    state.els.loader.classList.add('hidden');
+                }
             }
         }
 
