@@ -1,17 +1,14 @@
-// FINAL & CORRECTED UPDATE: ULTIMATE SPEED (100% DB Read)
-// 1. Transaction Loop Removed Completely from Member Processing.
-// 2. SIP Status & Amount read directly from 'currentMonthSIPStatus' & 'currentMonthSIPAmount'.
-// 3. 'Loan Return Pay' set to 0 as requested to boost speed.
-// 4. 'Available Community Balance' uses summed Member Data for super-fast calculation.
+// FINAL & CORRECTED UPDATE: ABSOLUTE ZERO CALCULATION (Direct DB Stats)
+// 1. Community Funds: Reads directly from 'admin.balanceStats' node.
+// 2. Penalty Wallet: Reads directly from 'penaltyWallet.availableBalance'.
+// 3. Transactions: Completely ignored for stats calculation.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v2'; // Updated Cache Key
+const CACHE_KEY = 'tcf_royal_cache_v3'; // Incremented Cache Key for Structure Change
 
 /**
  * Data fetch aur process karne ka naya function with Caching Strategy.
- * @param {firebase.database.Database} database - Firebase database instance.
- * @param {Function} onUpdate - Callback function jo UI update karega.
  */
 export async function fetchAndProcessData(database, onUpdate = null) {
     let cachedDataLoaded = false;
@@ -24,7 +21,7 @@ export async function fetchAndProcessData(database, onUpdate = null) {
                 // console.log("⚡ Loading from Cache (Instant)...");
                 const parsedData = JSON.parse(cachedRaw);
                 const processedCache = processRawData(parsedData);
-                onUpdate(processedCache); // Turant UI dikhao
+                onUpdate(processedCache); 
                 cachedDataLoaded = true;
             }
         } catch (e) {
@@ -42,13 +39,9 @@ export async function fetchAndProcessData(database, onUpdate = null) {
             throw new Error("Database is empty or could not be read.");
         }
 
-        // Save fresh data to cache for next time
         localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-
-        // Process fresh data
         const processedFresh = processRawData(data);
 
-        // Agar callback hai, to update karo
         if (onUpdate) {
             onUpdate(processedFresh);
         }
@@ -66,15 +59,18 @@ export async function fetchAndProcessData(database, onUpdate = null) {
 }
 
 /**
- * Raw Data ko process karne ka logic (Calculation Engine).
- * ULTIMATE SPEED UPDATE: No Loops, Just Reads.
+ * Raw Data ko process karne ka logic.
+ * ULTIMATE SPEED: Uses 'admin.balanceStats' and 'penaltyWallet.availableBalance'.
  */
 function processRawData(data) {
     const allMembersRaw = data.members || {};
-    const allTransactionsRaw = data.transactions || {};
-    const allActiveLoansRaw = data.activeLoans || {};
+    const allTransactionsRaw = data.transactions || {}; // Still kept for Transaction Popup if needed
     const penaltyWalletRaw = data.penaltyWallet || {};
     const adminSettingsRaw = data.admin || {};
+    
+    // --- DIRECT STATS READ (NO CALCULATION) ---
+    const balanceStats = adminSettingsRaw.balanceStats || {};
+    
     const notificationsRaw = adminSettingsRaw.notifications || {};
     const manualNotificationsRaw = notificationsRaw.manual || {};
     const automatedQueueRaw = notificationsRaw.automatedQueue || {};
@@ -82,29 +78,21 @@ function processRawData(data) {
     const headerButtonsRaw = adminSettingsRaw.header_buttons || {};
 
     const processedMembers = {};
-    const allTransactions = Object.values(allTransactionsRaw); // Used only for Global Stats now
+    const allTransactions = Object.values(allTransactionsRaw);
 
     for (const memberId in allMembersRaw) {
         const member = allMembersRaw[memberId];
-        // Only skip if status is NOT Approved.
         if (member.status !== 'Approved' || !member.fullName) continue;
 
-        // --- DIRECT DB READ (ULTIMATE SPEED LOGIC) ---
-        // 1. Balance & Loan (Existing Logic)
+        // --- DIRECT DB READ (MEMBER STATS) ---
         const displayBalanceOnCard = parseFloat(member.accountBalance || 0);
-        const totalOutstandingLoan = parseFloat(member.totalLoanDue || 0);
         
-        // --- NEW HIDE LOGIC ---
-        // 1. If Disabled = True AND Balance >= 0 -> HIDE
-        // 2. If Disabled = True AND Balance < 0 (Loan pending) -> SHOW
+        // HIDE Logic: If Disabled AND Balance >= 0 -> HIDE
         if (member.isDisabled === true && displayBalanceOnCard >= 0) {
             continue; 
         }
 
-        // --- NEW SIP & RETURN LOGIC (DIRECT READ) ---
-        // Transaction Loop Hataya Gaya Hai. 
-        // Ab Seedha DB field se utha rahe hain.
-        
+        // --- DIRECT DB READ (SIP & LOAN) ---
         const isPaid = (member.currentMonthSIPStatus === 'Paid');
         const sipAmount = parseFloat(member.currentMonthSIPAmount || 0);
 
@@ -112,10 +100,10 @@ function processRawData(data) {
             ...member,
             id: memberId,
             name: member.fullName,
-            balance: displayBalanceOnCard, // Direct form DB
-            totalOutstandingLoan: totalOutstandingLoan, // Direct from DB
-            totalReturn: 0, // Requested: Set to 0 (No Logic)
-            loanCount: 0, // Set to 0 (No Logic, saves processing)
+            balance: displayBalanceOnCard,
+            totalOutstandingLoan: parseFloat(member.totalLoanDue || 0),
+            totalReturn: 0, // Not used/Zero as requested
+            loanCount: 0,   // Not used/Zero as requested
             displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
             isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
             sipStatus: { 
@@ -125,15 +113,27 @@ function processRawData(data) {
         };
     }
 
-    // Community Stats
-    const communityStats = calculateCommunityStats(Object.values(processedMembers), allTransactions, allActiveLoansRaw, penaltyWalletRaw);
+    // --- COMMUNITY STATS (DIRECT ASSIGNMENT) ---
+    // Ab hum yahan koi calculation nahi kar rahe, seedha DB values bhej rahe hain.
+    const communityStats = {
+        totalSipAmount: parseFloat(balanceStats.totalSIP || 0),
+        totalCurrentLoanAmount: parseFloat(balanceStats.totalActiveLoans || 0),
+        netReturnAmount: parseFloat(balanceStats.totalReturn || 0),
+        availableCommunityBalance: parseFloat(balanceStats.availableBalance || 0),
+        
+        // Penalty Wallet Direct Read
+        totalPenaltyBalance: parseFloat(penaltyWalletRaw.availableBalance || 0),
+        
+        // Loan Disbursed (Optional: Can remain computed or be 0 if not critical)
+        totalLoanDisbursed: 0 
+    };
 
     return {
         processedMembers: Object.values(processedMembers).sort((a, b) => b.balance - a.balance),
-        allTransactions,
+        allTransactions, // Kept for Notification Popups only
         penaltyWalletData: penaltyWalletRaw,
         adminSettings: adminSettingsRaw,
-        communityStats,
+        communityStats, // Contains the Direct DB Values
         manualNotifications: manualNotificationsRaw,
         automatedQueue: automatedQueueRaw,
         allProducts: allProductsRaw,
@@ -141,47 +141,4 @@ function processRawData(data) {
     };
 }
 
-/**
- * Poore community ke liye stats calculate karta hai.
- */
-function calculateCommunityStats(processedMembers, allTransactions, allActiveLoans, penaltyWallet) {
-    const validMemberIds = new Set(processedMembers.map(m => m.id));
-
-    let totalPureSipAmount = 0;
-
-    // Global Stats ke liye hum abhi bhi loop use kar sakte hain kyunki ye ek baar hi run hota hai.
-    // Lekin member list generation ab instant hai.
-    allTransactions.forEach(tx => {
-        if (tx.type === 'SIP' && validMemberIds.has(tx.memberId)) {
-            totalPureSipAmount += parseFloat(tx.amount || 0);
-        }
-    });
-
-    // Direct Sum from processed members for speed consistency
-    const totalCurrentLoanAmount = processedMembers.reduce((sum, m) => sum + (m.totalOutstandingLoan || 0), 0);
-
-    // 'Available Community Balance' logic
-    const availableCommunityBalance = totalPureSipAmount - totalCurrentLoanAmount;
-
-    // Net Return Calculation
-    const totalInterestReceived = allTransactions
-        .filter(tx => tx.type === 'Loan Payment')
-        .reduce((sum, tx) => sum + parseFloat(tx.interestPaid || 0), 0);
-        
-    const penaltyFromInterest = totalInterestReceived * 0.10;
-
-    const penaltyIncomes = Object.values(penaltyWallet.incomes || {});
-    const penaltyExpenses = Object.values(penaltyWallet.expenses || {});
-    const totalPenaltyIncomes = penaltyIncomes.reduce((sum, income) => sum + income.amount, 0);
-    const totalPenaltyExpenses = penaltyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-
-    return {
-        totalSipAmount: totalPureSipAmount,
-        totalCurrentLoanAmount,
-        netReturnAmount: totalInterestReceived - penaltyFromInterest,
-        availableCommunityBalance: availableCommunityBalance,
-        totalPenaltyBalance: totalPenaltyIncomes - totalPenaltyExpenses,
-        totalLoanDisbursed: allTransactions.filter(tx => tx.type === 'Loan Taken').reduce((sum, tx) => sum + tx.amount, 0)
-    };
-}
 
