@@ -1,9 +1,8 @@
-// FINAL STRICT UPDATE V5:
-// 1. Penalty Wallet Logic Updated.
+// FINAL STRICT UPDATE V6:
+// 1. Penalty Wallet: History REMOVED & Button HIDDEN (Direct Balance Display).
 // 2. All Members: Image Zoom logic retained.
-// 3. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML.
-// 4. SMART MODAL SWAP: Fixes "Full View" redirect crash issue.
-// 5. PASSWORD FIX: Auto-Reconnect Database & Trim Logic added.
+// 3. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter.
+// 4. SMART MODAL SWAP: Fixes "Full View" redirect.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -16,9 +15,8 @@ let allAutomatedQueue = {};
 let allProducts = {};
 let currentMemberForFullView = null;
 let deferredInstallPrompt = null;
-let currentOpenModal = null; // Track open modal for back button
+let currentOpenModal = null; 
 
-// Sound file path check
 const balanceClickSound = new Audio('/mixkit-clinking-coins-1993.wav');
 
 const getElement = (id) => document.getElementById(id);
@@ -55,17 +53,14 @@ export function initUI(database) {
     setupPWA();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
     
-    // FAILSAFE: Force visibility after a short delay
     setTimeout(() => {
         document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
     }, 500);
 
     if (elements.currentYear) elements.currentYear.textContent = new Date().getFullYear();
     
-    // Handle Browser Back Button for Modals
     window.onpopstate = function(event) {
         if (currentOpenModal) {
-            // If a modal is open, close it visually but don't call history.back() again
             currentOpenModal.classList.remove('show');
             document.body.style.overflow = '';
             currentOpenModal = null;
@@ -94,11 +89,8 @@ export function renderPage(data) {
     startHeaderDisplayRotator(approvedMembers, communityStats);
     buildInfoSlider();
     
-    // Trigger Royal Notifications
     processAndShowNotifications();
-    
     renderProducts();
-
     feather.replace();
     
     const newAnimatedElements = document.querySelectorAll('.animate-on-scroll:not(.is-visible)');
@@ -122,38 +114,28 @@ function getTodayDateStringLocal() {
     return `${year}-${month}-${day}`;
 }
 
-// --- Display & Rendering Functions ---
-
+// --- Display Functions ---
 function displayHeaderButtons(buttons) {
     if (!elements.headerActionsContainer || !elements.staticHeaderButtonsContainer) return;
-    
     elements.headerActionsContainer.innerHTML = '';
     elements.staticHeaderButtonsContainer.innerHTML = '';
-    
     if (Object.keys(buttons).length === 0) {
         elements.headerActionsContainer.innerHTML = '<p class="loading-text" style="color: white;">No actions configured.</p>';
         return;
     }
-
     const buttonWrapper = document.createElement('div');
     buttonWrapper.className = 'dynamic-buttons-wrapper';
 
     Object.values(buttons).sort((a, b) => (a.order || 99) - (b.order || 99)).forEach(btnData => {
         const isAutoUrl = btnData.url === 'auto';
         const isLink = btnData.url && !isAutoUrl;
-        
         const element = document.createElement(isLink ? 'a' : 'button');
         element.className = `${btnData.base_class || 'civil-button'} ${btnData.style_preset || ''}`;
-        
-        if (btnData.id) {
-            element.id = btnData.id;
-        }
-
+        if (btnData.id) element.id = btnData.id;
         if (isLink) {
             element.href = btnData.url;
             if (btnData.target) element.target = btnData.target;
         }
-
         element.innerHTML = `${btnData.icon_svg || ''}<b>${btnData.name || ''}</b>` + (btnData.id === 'notificationBtn' ? '<span id="notificationDot" class="notification-dot"></span>' : '');
         
         if (!['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
@@ -165,14 +147,12 @@ function displayHeaderButtons(buttons) {
                 borderStyle: (parseFloat(btnData.borderWidth) > 0 || btnData.style_preset === 'btn-outline') ? 'solid' : 'none'
             });
         }
-
         if (['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
             elements.staticHeaderButtonsContainer.appendChild(element);
         } else {
             buttonWrapper.appendChild(element);
         }
     });
-    
     elements.headerActionsContainer.appendChild(buttonWrapper);
     attachDynamicButtonListeners();
 }
@@ -184,24 +164,18 @@ function displayMembers(members, adminSettings) {
         elements.memberContainer.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
         return;
     }
-
     const normalCardFrameUrl = adminSettings.normal_card_frame_url || 'https://ik.imagekit.io/nsyr92pse/20251007_103318.png';
-
     members.forEach((member, index) => {
         if (index < 3) {
             const card = document.createElement('div');
-            // CHANGE: Added specific classes 'gold-card', 'silver-card', 'bronze-card'
-            const rankClasses = ['gold-card', 'silver-card', 'bronze-card'];
-            const rankClass = rankClasses[index] || '';
-            card.className = `framed-card-wrapper ${rankClass} animate-on-scroll`; 
-            
             const rankType = ['gold', 'silver', 'bronze'][index];
+            const rankClasses = ['gold-card', 'silver-card', 'bronze-card'];
+            card.className = `framed-card-wrapper ${rankClasses[index]} animate-on-scroll`;
             const frameImageUrls = {
                 gold: 'https://ik.imagekit.io/kdtvm0r78/1764742107098.png',
                 silver: 'https://ik.imagekit.io/kdtvm0r78/20251203_134510.png',
                 bronze: 'https://ik.imagekit.io/kdtvm0r78/20251203_133726.png'
             };
-
             card.innerHTML = `
                 <div class="framed-card-content">
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="framed-member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
@@ -216,11 +190,9 @@ function displayMembers(members, adminSettings) {
                 </div>`;
             card.onclick = () => showMemberProfileModal(member.id);
             elements.memberContainer.appendChild(card);
-
         } else {
             const card = document.createElement('div');
             card.className = 'normal-framed-card-wrapper animate-on-scroll';
-            
             const getRankSuffix = (i) => {
                 const j = i % 10, k = i % 100;
                 if (j === 1 && k !== 11) return "st";
@@ -229,13 +201,11 @@ function displayMembers(members, adminSettings) {
                 return "th";
             };
             const rank = index + 1;
-            const rankText = rank + getRankSuffix(rank);
-
             card.innerHTML = `
                 <div class="normal-card-content">
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="normal-framed-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
                     <img src="${normalCardFrameUrl}" alt="Card Frame" class="normal-card-frame-image">
-                    <div class="normal-card-rank">${rankText}</div>
+                    <div class="normal-card-rank">${rank + getRankSuffix(rank)}</div>
                     <div class="normal-info-container">
                         <p class="normal-framed-name" title="${member.name}">${member.name}</p>
                         <div class="normal-framed-balance">
@@ -265,7 +235,6 @@ function renderProducts() {
         card.className = 'product-card animate-on-scroll';
         const price = parseFloat(product.price) || 0;
         const mrp = parseFloat(product.mrp) || 0;
-
         let emiText = '';
         if (product.emi && Object.keys(product.emi).length > 0) {
             const firstEmiOption = Object.entries(product.emi).sort((a,b) => parseInt(a[0]) - parseInt(b[0]))[0];
@@ -275,7 +244,6 @@ function renderProducts() {
             const monthlyEmi = Math.ceil(totalAmount / months);
             emiText = `\n\n*EMI Details:* Starts from ₹${monthlyEmi.toLocaleString('en-IN')}/month at ${interestRate}% interest for ${months} months.`;
         }
-
         const productLink = product.exploreLink || 'Not available';
         const finalMessage = `Hello, I want to know more about *${product.name}*.\n\n*Price:* ₹${price.toLocaleString('en-IN')}\n*Product Link:* ${productLink}${emiText}`;
         const whatsappMessage = encodeURIComponent(finalMessage);
@@ -294,12 +262,9 @@ function renderProducts() {
                 ${product.emi && Object.keys(product.emi).length > 0 ? `<a class="product-emi-link" data-product-id="${id}">View EMI Details</a>` : ''}
             </div>
             <div class="product-actions">
-                <a href="${whatsappLink}" target="_blank" class="product-btn whatsapp">
-                    <img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp">
-                </a>
+                <a href="${whatsappLink}" target="_blank" class="product-btn whatsapp"><img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp"></a>
                 <a href="${product.exploreLink || '#'}" target="_blank" class="product-btn explore">Explore</a>
             </div>`;
-
         const emiLink = card.querySelector('.product-emi-link');
         if (emiLink) {
             emiLink.addEventListener('click', () => {
@@ -456,7 +421,6 @@ function showBalanceModal() {
     animateValue(getElement('availableAmountDisplay'), 0, communityStats.availableCommunityBalance || 0, 1200);
 }
 
-// FIXED: SIP Status List
 function showSipStatusModal() {
     const container = getElement('sipStatusListContainer');
     if (!container) return;
@@ -475,41 +439,29 @@ function showSipStatusModal() {
     openModal(elements.sipStatusModal);
 }
 
-// FIXED: All Members - Small Card Grid Layout WITH IMAGE ZOOM
 function showAllMembersModal() {
     const container = getElement('allMembersListContainer');
     if (!container) return;
     container.innerHTML = '';
-    // Use Grid Class
     container.className = 'all-members-grid'; 
-    
     const sortedMembers = [...allMembersData].filter(m => m.status === 'Approved').sort((a, b) => a.name.localeCompare(b.name));
-    
     sortedMembers.forEach(member => {
         const item = document.createElement('div');
         item.className = 'small-member-card';
-        
-        // CLICK 1: Card click opens Profile (Default behavior)
         item.onclick = () => { 
             closeModal(elements.allMembersModal); 
             showMemberProfileModal(member.id); 
         }; 
-        
-        // Create Image element manually to add specific Event Listener
         const img = document.createElement('img');
         img.src = member.displayImageUrl;
         img.alt = member.name;
         img.onerror = function() { this.src = DEFAULT_IMAGE; };
-        
-        // CLICK 2: Image click opens Full Image (Zoom) - STOPS PROPAGATION
         img.onclick = (e) => {
-            e.stopPropagation(); // Prevents card click (profile open)
+            e.stopPropagation(); 
             showFullImage(member.displayImageUrl, member.name);
         };
-
         const nameSpan = document.createElement('span');
         nameSpan.textContent = member.name;
-
         item.appendChild(img);
         item.appendChild(nameSpan);
         container.appendChild(item);
@@ -517,88 +469,36 @@ function showAllMembersModal() {
     openModal(elements.allMembersModal);
 }
 
-// LUXURY UPDATE: Penalty Wallet Modal Logic
+// LUXURY UPDATE: Penalty Wallet - HISTORY DISABLED
 function showPenaltyWalletModal() {
-    const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
-    const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
-    const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    
-    // Main Balance Update
+    // 1. Show Main Balance (Direct Read)
     getElement('penaltyBalance').textContent = `₹${(communityStats.totalPenaltyBalance || 0).toLocaleString('en-IN')}`;
     
-    // List Logic
+    // 2. Hide History Elements
     const list = getElement('penaltyHistoryList');
-    list.innerHTML = '';
+    const btn = getElement('viewHistoryBtn');
     
-    // Ensure Hidden initially
-    list.style.display = 'none';
-    getElement('viewHistoryBtn').textContent = 'View History';
+    if(list) list.style.display = 'none';
+    if(btn) btn.style.display = 'none'; // Button Hidden as requested
     
-    if (history.length === 0) {
-        list.innerHTML = `<li class="no-penalty-history" style="text-align: center; color: #777;">No records found.</li>`;
-    } else {
-        history.forEach(tx => {
-            const isIncome = tx.type === 'income';
-            
-            // Logic: Income = Green, Expense = Red
-            const amountClass = isIncome ? 'green-text' : 'red-text';
-            const sign = isIncome ? '+' : '-';
-            
-            // Date Formatting
-            const dateObj = new Date(tx.timestamp);
-            const dateStr = dateObj.toLocaleDateString('en-GB'); // DD/MM/YYYY
-            const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-            list.innerHTML += `
-                <li class="luxury-history-item">
-                    <div class="history-main">
-                        <span class="history-name">${isIncome ? tx.from : (tx.reason || 'Admin Expense')}</span>
-                        <div class="history-meta">
-                            ${isIncome ? tx.reason : 'Expense'} · ${dateStr}, ${timeStr}
-                        </div>
-                    </div>
-                    <span class="history-amount ${amountClass}">
-                        ${sign} ₹${(tx.amount || 0).toLocaleString('en-IN')}
-                    </span>
-                </li>`;
-        });
-    }
+    // 3. Open Modal
     openModal(elements.penaltyWalletModal);
 }
 
 function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
-        // Close Modal Logic (Updated for better target detection)
         if (e.target.matches('.close') || e.target.matches('.close *')) {
             const modal = e.target.closest('.modal');
             if (modal) closeModal(modal);
         }
         if (e.target.classList.contains('modal')) closeModal(e.target);
-        
         if (e.target.closest('#totalMembersCard')) showAllMembersModal();
-        
-        // --- FIXED: SMART SWAP FOR FULL VIEW ---
         if (e.target.closest('#fullViewBtn')) {
-            // OLD: closeModal(elements.memberProfileModal); openModal(elements.passwordPromptModal);
-            // NEW: Use smart swap to prevent history back collision
             swapModals(elements.memberProfileModal, elements.passwordPromptModal);
         }
-        
         if (e.target.closest('#submitPasswordBtn')) handlePasswordCheck(database);
         
-        // LUXURY UPDATE: View History Toggle Logic
-        if (e.target.closest('#viewHistoryBtn')) {
-            const list = getElement('penaltyHistoryList');
-            const btn = e.target.closest('#viewHistoryBtn');
-            
-            if (list.style.display === 'none' || list.style.display === '') {
-                list.style.display = 'block';
-                btn.textContent = 'Hide History';
-            } else {
-                list.style.display = 'none';
-                btn.textContent = 'View History';
-            }
-        }
+        // Removed History Button Listener (since button is hidden)
         
         if (e.target.closest('#profileModalHeader')) {
             const imgSrc = getElement('profileModalImage').src;
@@ -624,7 +524,6 @@ function attachDynamicButtonListeners() {
     const viewPenaltyWalletBtn = getElement('viewPenaltyWalletBtn');
     
     if (sipStatusBtn) sipStatusBtn.onclick = showSipStatusModal;
-    
     if (viewBalanceBtn) {
         viewBalanceBtn.onclick = () => {
             if(balanceClickSound) {
@@ -633,15 +532,12 @@ function attachDynamicButtonListeners() {
             showBalanceModal();
         };
     }
-    
     if (viewPenaltyWalletBtn) viewPenaltyWalletBtn.onclick = showPenaltyWalletModal;
-    
     if (notificationBtn) {
         notificationBtn.onclick = () => {
             window.location.href = 'notifications.html';
         };
     }
-
     if (installBtn) installBtn.onclick = async () => {
         if (deferredInstallPrompt) {
             deferredInstallPrompt.prompt();
@@ -749,7 +645,6 @@ function startHeaderDisplayRotator(members, stats) {
 function buildInfoSlider() {
     if (!elements.infoSlider) return;
     elements.infoSlider.innerHTML = '';
-    
     let infoCards = [
         { 
             icon: 'dollar-sign', 
@@ -776,9 +671,7 @@ function buildInfoSlider() {
             imageUrl: 'https://i.ibb.co/3ypdpzWR/20251005-095800.png'
         }
     ];
-
     const primeMembers = allMembersData.filter(member => member.isPrime);
-    
     if (primeMembers.length > 0) {
         primeMembers.forEach(pm => {
             infoCards.push({
@@ -792,11 +685,9 @@ function buildInfoSlider() {
             });
         });
     }
-    
     infoCards.forEach(card => {
         const imageHTML = card.imageUrl ? `<img src="${card.imageUrl}" class="info-card-image" alt="${card.title}" loading="lazy" onerror="this.style.display='none';">` : '';
         let content = card.text ? `<p>${card.text}</p>` : card.htmlContent;
-        
         elements.infoSlider.innerHTML += `
             <div class="info-card-slide animate-on-scroll">
                 <h3><i data-feather="${card.icon}"></i> ${card.title}</h3>
@@ -804,34 +695,23 @@ function buildInfoSlider() {
                 ${imageHTML} 
             </div>`;
     });
-    
     feather.replace();
 }
 
-// === UPDATED NOTIFICATION LOGIC (STRICT TODAY + ROYAL POPUP) ===
 function processAndShowNotifications() {
     const todayDateString = getTodayDateStringLocal();
-    const sessionPopupsKey = `royalPopups_${todayDateString}`; // Unique Key for Today
+    const sessionPopupsKey = `royalPopups_${todayDateString}`;
+    if (sessionStorage.getItem(sessionPopupsKey)) return;
 
-    // Prevent showing again if already shown for this session AND this day
-    if (sessionStorage.getItem(sessionPopupsKey)) {
-        return;
-    }
-
-    let delay = 500; // Start quicker
-    const baseDelay = 4000; // Enough time to read
-
-    // 1. Transaction Notifications (STRICT DATE CHECK)
+    let delay = 500;
+    const baseDelay = 4000;
     const todaysTransactions = allTransactions.filter(tx => {
         if (!tx.date) return false;
-        // Parse date reliably
         const txDate = new Date(tx.date);
         const y = txDate.getFullYear();
         const m = (txDate.getMonth() + 1).toString().padStart(2, '0');
         const d = txDate.getDate().toString().padStart(2, '0');
-        const txDateString = `${y}-${m}-${d}`;
-        
-        return txDateString === todayDateString;
+        return `${y}-${m}-${d}` === todayDateString;
     });
 
     if (todaysTransactions.length > 0) {
@@ -840,37 +720,25 @@ function processAndShowNotifications() {
         });
         delay += todaysTransactions.length * baseDelay;
     }
-
-    // 2. Manual Notices (Show only if active/recent - currently showing all active)
-    // We assume if manual notification exists, it's meant to be seen.
     Object.values(allManualNotifications).forEach((notif, index) => {
         setTimeout(() => showPopupNotification('manual', notif), delay + index * baseDelay);
     });
-
-    // Mark as shown for this session
     sessionStorage.setItem(sessionPopupsKey, 'true');
-    
-    // Notification Dot Logic (Unchanged)
     const verifiedMemberId = localStorage.getItem('verifiedMemberId');
     if (!verifiedMemberId) return;
     const userReminders = Object.values(allAutomatedQueue).filter(item => item.memberId === verifiedMemberId && item.status === 'active');
-    
     const dot = getElement('notificationDot');
     if (dot && (userReminders.length > 0 || Object.keys(allManualNotifications).length > 0)) {
         dot.style.display = 'block';
     }
 }
 
-// === NEW PREMIUM TOAST RENDERER ===
 function showPopupNotification(type, data) {
     const container = getElement('notification-popup-container');
     if (!container) return;
-    
     const popup = document.createElement('div');
-    popup.className = 'notification-popup'; // Matches new CSS
-    
+    popup.className = 'notification-popup';
     popup.onclick = () => { window.location.href = 'notifications.html'; };
-
     let contentHTML = '';
     let imgUrl = DEFAULT_IMAGE;
     let title = 'Notification';
@@ -878,80 +746,44 @@ function showPopupNotification(type, data) {
     if(type === 'transaction') {
         const member = allMembersData.find(m => m.id === data.memberId);
         if (!member) return;
-        
         title = member.name;
         imgUrl = member.displayImageUrl;
-
         let message = '', amount = '', typeClass = '';
-        
         switch(data.type) {
-            case 'SIP': 
-                message = `Paid Monthly SIP`; 
-                amount = `+ ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'sip'; 
-                break;
-            case 'Loan Taken': 
-                message = `Took a Loan`; 
-                amount = `- ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'loan'; 
-                break;
+            case 'SIP': message = `Paid Monthly SIP`; amount = `+ ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'sip'; break;
+            case 'Loan Taken': message = `Took a Loan`; amount = `- ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'loan'; break;
             case 'Loan Payment': 
-                message = `Loan Repayment`; 
-                // Fix: Show Total Paid (Principal + Interest)
                 const totalPaid = (parseFloat(data.principalPaid)||0) + (parseFloat(data.interestPaid)||0);
-                amount = `+ ₹${totalPaid.toLocaleString()}`; 
-                typeClass = 'payment'; 
+                message = `Loan Repayment`; amount = `+ ₹${totalPaid.toLocaleString()}`; typeClass = 'payment'; 
                 break;
-            case 'Extra Payment': 
-                message = `Extra Deposit`; 
-                amount = `+ ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'sip'; 
-                break;
-            case 'Extra Withdraw': 
-                message = `Withdrawal`; 
-                amount = `- ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'loan'; 
-                break;
+            case 'Extra Payment': message = `Extra Deposit`; amount = `+ ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'sip'; break;
+            case 'Extra Withdraw': message = `Withdrawal`; amount = `- ₹${(data.amount || 0).toLocaleString()}`; typeClass = 'loan'; break;
             default: return;
         }
-
-        contentHTML = `
-            <strong>${title}</strong>
-            <p>${message}</p>
-            <span class="notification-popup-amount ${typeClass}">${amount}</span>`;
-            
+        contentHTML = `<strong>${title}</strong><p>${message}</p><span class="notification-popup-amount ${typeClass}">${amount}</span>`;
     } else if (type === 'manual') {
          imgUrl = data.imageUrl || DEFAULT_IMAGE;
          title = data.title || 'Notice';
-         contentHTML = `
-            <strong>${title}</strong>
-            <p style="font-size: 0.85em; opacity: 0.9;">Click to view details</p>`;
+         contentHTML = `<strong>${title}</strong><p style="font-size: 0.85em; opacity: 0.9;">Click to view details</p>`;
     }
 
     popup.innerHTML = `
         <img src="${imgUrl}" alt="${title}" class="notification-popup-img" onerror="this.src='${DEFAULT_IMAGE}'">
-        <div class="notification-popup-content">
-            ${contentHTML}
-        </div>
+        <div class="notification-popup-content">${contentHTML}</div>
         <button class="notification-popup-close">&times;</button>
     `;
-
-    // Close Button Logic
     const closeBtn = popup.querySelector('.notification-popup-close');
     closeBtn.onclick = (e) => {
         e.stopPropagation(); 
         popup.classList.add('closing');
         popup.addEventListener('animationend', () => popup.remove(), { once: true });
     };
-
-    // Auto Remove after 5 seconds
     setTimeout(() => {
         if(popup.parentNode) {
             popup.classList.add('closing');
             popup.addEventListener('animationend', () => popup.remove(), { once: true });
         }
     }, 5000);
-
     container.appendChild(popup);
 }
 
@@ -977,13 +809,10 @@ function animateValue(el, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
-// --- FIXED: AUTO-RECONNECT & ROBUST PASSWORD CHECK ---
 async function handlePasswordCheck(database) {
     const input = getElement('passwordInput');
     const password = input.value;
     if (!password) return alert('Please enter password.');
-    
-    // Fallback: If initUI was called with null, use global firebase
     let dbInstance = database;
     if (!dbInstance) {
         try {
@@ -997,12 +826,9 @@ async function handlePasswordCheck(database) {
             return alert("System Error: Database not connected. Please refresh page.");
         }
     }
-
     try {
         const snapshot = await dbInstance.ref(`members/${currentMemberForFullView}/password`).once('value');
         const correctPassword = snapshot.val();
-        
-        // Fix: Use trim() to ignore accidental spaces and String() for type safety
         if (String(password).trim() === String(correctPassword).trim()) {
             closeModal(elements.passwordPromptModal);
             window.location.href = `view.html?memberId=${currentMemberForFullView}`;
@@ -1016,28 +842,20 @@ async function handlePasswordCheck(database) {
     }
 }
 
-// === HISTORY API LOGIC FOR MODALS ===
 function openModal(modal) { 
     if (modal) { 
         modal.classList.add('show'); 
         document.body.style.overflow = 'hidden'; 
-        
-        // Push state to history
         window.history.pushState({modalOpen: true}, "", "");
         currentOpenModal = modal;
     } 
 }
 
-// --- NEW FUNCTION: SMART SWAP (PREVENTS BACK LOOP CRASH) ---
 function swapModals(fromModal, toModal) {
-    if (fromModal) {
-        fromModal.classList.remove('show');
-    }
+    if (fromModal) fromModal.classList.remove('show');
     if (toModal) {
         toModal.classList.add('show');
-        // Update the reference so back button closes the NEW modal
         currentOpenModal = toModal;
-        // KEY FIX: We DO NOT push a new state. We reuse the existing state.
     }
 }
 
@@ -1046,11 +864,7 @@ function closeModal(modal) {
         modal.classList.remove('show'); 
         document.body.style.overflow = ''; 
         currentOpenModal = null;
-        
-        // Only go back if state was pushed (avoid double back)
-        if (window.history.state && window.history.state.modalOpen) {
-            window.history.back();
-        }
+        if (window.history.state && window.history.state.modalOpen) window.history.back();
     } 
 }
 
@@ -1064,7 +878,6 @@ function showFullImage(src, alt) {
     }
 }
 
-// Fixed Observer
 const scrollObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -1080,5 +893,4 @@ function observeElements(elements) {
 }
 
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
-
 
