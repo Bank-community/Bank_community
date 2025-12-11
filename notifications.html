@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#001540">
+    <meta name="theme-color" content="#001540">
     <title>Notifications</title>
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -55,12 +55,6 @@
             border-radius: 20px; font-size: 0.8em; font-weight: 700; text-decoration: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .sip-paid-card {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            border-left: 4px solid var(--green-text);
-            color: var(--green-text);
-            padding: 15px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; gap: 10px;
-        }
 
         /* === 2. LOAN CARD === */
         .loan-card {
@@ -99,19 +93,27 @@
         .btn-pay { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,35,102,0.3); }
         .btn-detail { background: white; border: 1px solid #ddd; color: #333; }
 
-        /* === HISTORY TAB (NEW SUMMARY BOXES) === */
+        /* === HISTORY TAB (UPDATED FOR 3 BOXES) === */
         .history-summary {
-            display: flex; gap: 10px; margin-bottom: 20px;
+            display: flex; gap: 8px; margin-bottom: 20px;
         }
         .h-box {
-            flex: 1; padding: 15px; border-radius: 12px; color: white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            flex: 1; padding: 12px 5px; border-radius: 10px; color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             text-align: center;
         }
-        .h-box.received { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
-        .h-box.sent { background: linear-gradient(135deg, #c62828, #b71c1c); }
-        .h-val { font-size: 1.4em; font-weight: 800; display: block; margin-top: 5px; }
-        .h-lbl { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+        
+        /* 1. SIP Box - Green */
+        .h-box.sip-box { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+        
+        /* 2. Repayment Box - Blue/Teal (Different from SIP) */
+        .h-box.repay-box { background: linear-gradient(135deg, #0288d1, #01579b); }
+        
+        /* 3. Loan Given Box - Red */
+        .h-box.loan-box { background: linear-gradient(135deg, #c62828, #b71c1c); }
+
+        .h-val { font-size: 1.1em; font-weight: 800; display: block; margin-top: 5px; }
+        .h-lbl { font-size: 0.65em; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; font-weight: 600; }
 
         .hist-item { 
             background: white; padding: 12px 15px; border-bottom: 1px solid #f0f0f0; 
@@ -169,15 +171,22 @@
             <span id="monthDisplay">Current Month</span> Activity
         </div>
 
-        <!-- NEW SUMMARY BOXES -->
+        <!-- UPDATED 3 BOXES SUMMARY -->
         <div class="history-summary">
-            <div class="h-box received">
-                <span class="h-lbl">Received</span>
-                <span class="h-val" id="totalReceivedVal">₹0</span>
+            <!-- Box 1: SIP Received -->
+            <div class="h-box sip-box">
+                <span class="h-lbl">SIP Rec.</span>
+                <span class="h-val" id="totalSipVal">₹0</span>
             </div>
-            <div class="h-box sent">
-                <span class="h-lbl">Loan Distributed</span>
-                <span class="h-val" id="totalSentVal">₹0</span>
+            <!-- Box 2: Loan Repayment Received -->
+            <div class="h-box repay-box">
+                <span class="h-lbl">Repayment</span>
+                <span class="h-val" id="totalRepayVal">₹0</span>
+            </div>
+            <!-- Box 3: Loan Amount Distributed -->
+            <div class="h-box loan-box">
+                <span class="h-lbl">Loan Given</span>
+                <span class="h-val" id="totalLoanVal">₹0</span>
             </div>
         </div>
 
@@ -201,20 +210,17 @@
             if (!isNaN(d.getTime())) return d;
             
             let clean = String(input).replace(/,/g, ' ').replace(/-/g, ' ').replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
-            return new Date(clean); // Simplified fallback
+            return new Date(clean); 
         }
 
         async function init() {
             try {
-                // 1. INSTANT LOAD FROM CACHE
                 loadFromCache();
-
                 const res = await fetch('/api/firebase-config');
                 const config = await res.json();
                 if(!firebase.apps.length) firebase.initializeApp(config);
                 
                 firebase.auth().onAuthStateChanged(user => {
-                    // 2. FETCH FRESH DATA IN BACKGROUND
                     fetchData();
                 });
             } catch(e) { console.error(e); }
@@ -226,10 +232,7 @@
                 try {
                     const data = JSON.parse(cached);
                     const memberId = localStorage.getItem('verifiedMemberId');
-                    if (memberId) {
-                        console.log("⚡ Instant Cache Load");
-                        processAndRender(memberId, data);
-                    }
+                    if (memberId) processAndRender(memberId, data);
                 } catch (e) { console.error("Cache parse error", e); }
             }
         }
@@ -242,14 +245,10 @@
                 return;
             }
 
-            // Fetch Everything needed
             const snap = await db.ref().once('value');
             const data = snap.val() || {};
 
-            // Save to Cache
             localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-            console.log("🌐 Fresh Data Synced");
-
             processAndRender(memberId, data);
         }
 
@@ -261,20 +260,18 @@
 
             const profile = members[memberId] || {};
 
-            // Render All Sections
             renderSIP(memberId, profile);
             renderLoans(memberId, activeLoans, members);
             renderHistoryAndSummary(memberId, transactions, members);
             renderNotices(notices);
         }
 
-        // --- 1. SIP LOGIC (DIRECT FROM PROFILE) ---
         function renderSIP(mid, profile) {
             const container = document.getElementById('sipContainer');
             container.innerHTML = '';
             
             const sipAmount = parseFloat(profile.currentMonthSIPAmount || 0);
-            const status = profile.currentMonthSIPStatus; // 'Paid' or 'Unpaid'
+            const status = profile.currentMonthSIPStatus; 
 
             if (status !== 'Paid' && sipAmount > 0) {
                 container.innerHTML = `
@@ -289,13 +286,9 @@
                         <a href="qr.html?amount=${sipAmount}&type=sip" class="sip-btn">PAY NOW</a>
                     </div>
                 `;
-            } else if (status === 'Paid') {
-                // Optional: Show paid status or nothing. Showing nothing is cleaner if no due.
-                 // container.innerHTML = `<div class="sip-paid-card"><i data-feather="check-circle"></i> SIP Paid for this month</div>`;
             }
         }
 
-        // --- 2. LOAN LOGIC (FROM ACTIVE LOANS) ---
         function renderLoans(mid, loans, members) {
             const container = document.getElementById('loanContainer');
             container.innerHTML = '';
@@ -358,11 +351,14 @@
             feather.replace();
         }
 
-        // --- 3. HISTORY & SUMMARY LOGIC ---
+        // --- UPDATED HISTORY FUNCTION FOR 3 BOXES ---
         function renderHistoryAndSummary(mid, txs, members) {
             const el = document.getElementById('historyContainer');
-            const totalRecEl = document.getElementById('totalReceivedVal');
-            const totalSentEl = document.getElementById('totalSentVal');
+            
+            // New Elements for 3 Boxes
+            const sipValEl = document.getElementById('totalSipVal');
+            const repayValEl = document.getElementById('totalRepayVal');
+            const loanValEl = document.getElementById('totalLoanVal');
             
             el.innerHTML = '';
             
@@ -378,9 +374,10 @@
                 return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
             }).sort((a,b) => parseSmartDate(b.date) - parseSmartDate(a.date));
 
-            // CALCULATE TOTALS
-            let totalReceived = 0;
-            let totalSent = 0;
+            // CALCULATE TOTALS FOR 3 BOXES
+            let totalSIP = 0;
+            let totalRepayment = 0;
+            let totalLoanGiven = 0;
 
             currentMonthTxs.forEach(t => {
                 const amt = parseFloat(t.amount || 0);
@@ -388,21 +385,26 @@
                 const iPaid = parseFloat(t.interestPaid || 0);
                 const totalPaid = pPaid + iPaid > 0 ? pPaid + iPaid : amt;
 
-                // Incoming (Received): Loan Payment + SIP + Extra Deposit
-                if (t.type === 'Loan Payment' || t.type === 'SIP' || t.type === 'Extra Payment') {
-                    totalReceived += totalPaid;
+                // 1. SIP Calculation (includes Extra Payment/Deposit)
+                if (t.type === 'SIP' || t.type === 'Extra Payment') {
+                    totalSIP += amt;
                 }
-                // Outgoing (Sent): Loan Taken (Distributed) + Withdraw
+                // 2. Loan Repayment Calculation (Incoming Loan Money)
+                else if (t.type === 'Loan Payment') {
+                    totalRepayment += totalPaid;
+                }
+                // 3. Loan Given Calculation (Outgoing Loan Money)
                 else if (t.type === 'Loan Taken' || t.type === 'Extra Withdraw') {
-                    totalSent += amt;
+                    totalLoanGiven += amt;
                 }
             });
 
-            // Update Summary UI
-            totalRecEl.textContent = `₹${totalReceived.toLocaleString('en-IN')}`;
-            totalSentEl.textContent = `₹${totalSent.toLocaleString('en-IN')}`;
+            // Update 3 Boxes in UI
+            sipValEl.textContent = `₹${totalSIP.toLocaleString('en-IN')}`;
+            repayValEl.textContent = `₹${totalRepayment.toLocaleString('en-IN')}`;
+            loanValEl.textContent = `₹${totalLoanGiven.toLocaleString('en-IN')}`;
 
-            // Render List
+            // Render List below
             if (currentMonthTxs.length === 0) {
                 el.innerHTML = '<p class="loading">No transactions this month.</p>';
                 return;
@@ -416,22 +418,14 @@
                 let displayType = t.type;
 
                 if (t.type === 'Loan Payment') {
-                    colorClass = 'green';
-                    sign = '+';
                     const principal = parseFloat(t.principalPaid || 0);
                     const interest = parseFloat(t.interestPaid || 0);
                     displayAmount = principal + interest;
-                    
                     if (principal === 0 && interest > 0) displayType = "Interest Payment";
-                    else displayType = "Loan Repayment";
                 } 
                 else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
                     colorClass = 'red';
                     sign = '-';
-                } 
-                else if (t.type === 'SIP') {
-                    colorClass = 'green';
-                    sign = '+';
                 }
 
                 if (isNaN(displayAmount)) displayAmount = 0;
