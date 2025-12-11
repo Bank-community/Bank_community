@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trust Community Fund Dashboard</title>
     
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+    <!-- Google Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
 
@@ -35,7 +37,8 @@
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-dark);
-            padding-top: 320px; /* Adjusted for larger header/profile area */
+            /* Padding increased as requested to push content down */
+            padding-top: 360px; 
             transition: padding-top 0.3s ease;
         }
 
@@ -137,7 +140,8 @@
 
         /* === PROFILE SECTION (HERO CARD) === */
         .profile-section {
-            position: fixed; top: 85px; left: 50%; transform: translateX(-50%);
+            /* Positioned Lower as requested (100px) */
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
             background: var(--glass-bg);
             border: 1px solid rgba(212, 175, 55, 0.4);
             border-radius: 20px;
@@ -145,8 +149,10 @@
             width: 94%; max-width: 800px;
             z-index: 1000; padding: 20px;
             display: grid;
-            grid-template-areas: "pic header buttons" "stats stats stats";
-            grid-template-columns: auto 1fr auto; gap: 15px;
+            /* Layout changed: Buttons moved to absolute position */
+            grid-template-areas: "pic header" "stats stats";
+            grid-template-columns: auto 1fr; 
+            gap: 15px;
             align-items: center; transition: top 0.3s ease;
         }
 
@@ -159,25 +165,49 @@
         }
         .profile-picture img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid white; cursor: pointer; }
 
-        .profile-header-area { grid-area: header; display: flex; flex-direction: column; justify-content: center; }
+        .profile-header-area { 
+            grid-area: header; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            padding-right: 80px; /* Space for the right-side button */
+        }
         .profile-header-area h3 {
             margin: 0; font-size: 1.4em; color: var(--primary-color);
             font-family: 'Times New Roman', serif; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        .profile-buttons-area { grid-area: buttons; }
+        /* === RIGHT SIDE SIP BUTTON === */
+        .profile-buttons-area { 
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
         #sipStatusButton {
-            background: linear-gradient(to right, var(--primary-color), #0044cc);
-            color: white; border: none; padding: 8px 16px;
-            border-radius: 50px; font-size: 0.85em; font-weight: 600;
-            cursor: pointer; box-shadow: 0 3px 8px rgba(0,35,102,0.3);
+            background: linear-gradient(to bottom, #002366, #001233);
+            color: var(--accent-gold); 
+            border: 1px solid var(--accent-gold); 
+            padding: 8px 14px;
+            border-radius: 8px; 
+            font-size: 0.8em; 
+            font-weight: 600;
+            cursor: pointer; 
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
             display: flex; align-items: center; gap: 5px;
+            transition: all 0.2s;
+        }
+        #sipStatusButton:hover {
+            transform: translateY(-2px);
+            background: var(--accent-gold);
+            color: #002366;
         }
 
         .profile-stats-grid {
             grid-area: stats; display: grid;
             grid-template-columns: repeat(3, 1fr); gap: 10px;
-            margin-top: 10px;
+            margin-top: 5px;
         }
 
         .metric-card {
@@ -188,7 +218,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         
-        /* Highlight specific cards */
         #accountBalanceCard { border-color: var(--success-color); background: #f0fff4; }
         #loanDueCard { border-color: var(--danger-color); background: #fff5f5; }
 
@@ -209,7 +238,7 @@
         select {
             width: 100%; padding: 12px 15px;
             font-size: 14px; border: 1px solid #ccc;
-            border-radius: 50px; /* Pill Shape */
+            border-radius: 50px;
             background-color: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             outline: none; appearance: none;
@@ -221,7 +250,6 @@
         .table-container { width: 95%; max-width: 800px; margin: 0 auto 30px auto; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: transparent; }
         
-        /* Desktop Table View */
         thead { display: table-header-group; }
         tr { background: white; }
         th { background-color: var(--primary-color); color: white; padding: 15px; text-align: left; font-size: 0.9em; letter-spacing: 0.5px; }
@@ -235,17 +263,41 @@
 
         /* === MOBILE RESPONSIVE CARD VIEW === */
         @media only screen and (max-width: 768px) {
-            body { padding-top: 350px; }
-            .profile-section { width: 92%; padding: 15px; top: 80px; grid-template-columns: 60px 1fr; grid-template-rows: auto auto; gap: 10px; }
+            body { padding-top: 360px; } /* Adjusted for mobile */
+            .profile-section { 
+                width: 92%; padding: 15px; 
+                top: 95px; /* Lower on mobile too */
+                grid-template-areas: "pic header" "stats stats";
+                grid-template-columns: 60px 1fr; 
+                gap: 10px; 
+            }
             .profile-picture { width: 60px; height: 60px; }
-            .profile-header-area { grid-column: 2; }
-            .profile-buttons-area { grid-column: 1 / -1; justify-self: start; }
+            .profile-header-area { 
+                grid-area: header; 
+                justify-content: center;
+                padding-right: 0; /* Reset padding */
+            }
+            .profile-header-area h3 { 
+                font-size: 1.2em; 
+                max-width: 65%; /* Prevent name from hitting button */
+            }
+            
+            /* Button Mobile Adjustment */
+            .profile-buttons-area {
+                top: 25px;
+                right: 15px;
+            }
+            #sipStatusButton {
+                padding: 5px 10px;
+                font-size: 0.75em;
+            }
+
             .profile-stats-grid { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); gap: 6px; }
             .metric-card { padding: 8px 2px; }
             .metric-card .label { font-size: 0.65em; }
             .metric-card .value { font-size: 0.9em; }
 
-            /* Mobile Table to Cards Transformation */
+            /* Mobile Table to Cards */
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
             
@@ -259,7 +311,6 @@
                 position: relative;
             }
             
-            /* Color code borders based on transaction type (JS logic needed or generic) */
             tbody tr:nth-child(even) { background-color: #fff; }
 
             td {
@@ -284,7 +335,6 @@
                 content: attr(data-label);
             }
 
-            /* Specific styling for Balance row in mobile */
             td:last-child {
                 border-top: 1px dashed #eee;
                 margin-top: 5px;
@@ -293,7 +343,7 @@
                 color: var(--primary-color);
             }
             
-            tfoot { display: none; } /* Hide footer on mobile to save space */
+            tfoot { display: none; } 
         }
 
         /* === MODALS === */
@@ -330,7 +380,6 @@
         .status-pending { color: var(--danger-color); font-weight: bold; background: #ffebee; padding: 2px 8px; border-radius: 4px; }
         .status-due { color: #fbc02d; font-weight: bold; }
 
-        /* Image Modal */
         #imageModal .modal-content { background: transparent; box-shadow: none; border: none; padding: 0; width: auto; max-width: 100%; }
         #modalImage { max-width: 95vw; max-height: 80vh; border-radius: 10px; border: 4px solid var(--accent-gold); }
 
@@ -356,10 +405,13 @@
 
         <div id="profileSection" class="profile-section">
             <div class="profile-picture" id="profilePictureContainer"></div>
+            
             <div class="profile-header-area">
                  <h3 id="profileName">Loading...</h3>
                  <small style="color: #666; font-size: 0.8em; margin-top: 2px;">Member Dashboard</small>
             </div>
+            
+            <!-- MOVED: SIP Status Button now Absolute Right -->
             <div class="profile-buttons-area">
                 <button id="sipStatusButton"><i data-feather="check-circle" style="width: 14px;"></i> SIP Status</button>
             </div>
@@ -413,16 +465,14 @@
         
         <div class="table-container">
             <table id="dataTable">
-                <thead>
-                    </thead>
-                <tbody>
-                    </tbody>
-                <tfoot>
-                    </tfoot>
+                <thead></thead>
+                <tbody></tbody>
+                <tfoot></tfoot>
             </table>
         </div>
     </div>
 
+    <!-- Modals -->
     <div id="imageModal" class="modal hidden">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal('imageModal')">×</button>
@@ -441,14 +491,12 @@
 <script>
     feather.replace();
 
-    // === GLOBAL VARIABLES ===
     let allMembers = {};
     let allTransactions = [];
     let allActiveLoans = [];
     let loggedInUserPassword = null; 
-    const defaultProfilePic = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'; // Updated Default Image
+    const defaultProfilePic = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'; 
 
-    // === INITIALIZATION & AUTHENTICATION ===
     document.addEventListener("DOMContentLoaded", () => {
         initializeApp();
     });
@@ -456,16 +504,14 @@
     async function initializeApp() {
         const loader = document.getElementById('loader');
         try {
-            const response = await fetch('/api/firebase-config'); // Corrected API endpoint for config
+            const response = await fetch('/api/firebase-config'); 
             if (!response.ok) throw new Error('Configuration API could not be fetched.');
             const config = await response.json();
 
             if (!firebase.apps.length) {
-                firebase.initializeApp(config); // Use direct config object
+                firebase.initializeApp(config); 
             }
-            
             setupPasswordPrompt();
-
         } catch (error) {
             console.error("Initialization Error:", error);
             loader.innerHTML = `<div style="color:white; padding:20px; text-align:center;"><b>Initialization Error:</b><br> ${error.message}</div>`;
@@ -497,17 +543,15 @@
             passwordSubmit.textContent = "Verifying...";
 
             try {
-                // Fetch members to verify password
                 const membersSnapshot = await firebase.database().ref('members').once('value');
                 const allMembersData = membersSnapshot.val() || {};
                 
-                // Check if any member has this password
                 const isValidUser = Object.values(allMembersData).some(member => member.password === enteredPassword);
 
                 if (isValidUser) {
                     loggedInUserPassword = enteredPassword;
                     passwordContainer.classList.add('hidden');
-                    loader.classList.remove('hidden'); // Show loader while fetching full data
+                    loader.classList.remove('hidden'); 
                     await processFirebaseData();
                 } else {
                     passwordError.textContent = "Incorrect PIN. Try again.";
@@ -524,10 +568,8 @@
         }
     }
     
-    // === DATA FETCH & PROCESSING ===
     async function processFirebaseData() {
         try {
-            // Parallel Fetching for Speed
             const [membersSnap, transactionsSnap, activeLoansSnap] = await Promise.all([
                 firebase.database().ref('members').once('value'),
                 firebase.database().ref('transactions').once('value'),
@@ -537,7 +579,7 @@
             allMembers = membersSnap.val() || {};
             
             allTransactions = Object.values(transactionsSnap.val() || {})
-                .sort((a, b) => new Date(b.date) - new Date(a.date)); // Newest first
+                .sort((a, b) => new Date(b.date) - new Date(a.date)); 
             
             allActiveLoans = Object.values(activeLoansSnap.val() || {});
 
@@ -549,15 +591,12 @@
         }
     }
 
-    // === DASHBOARD INITIALIZATION ===
     function initializeDashboard() {
         document.getElementById('dashboardContent').classList.remove('hidden');
         populateMemberFilter(); 
         setupEventListeners();
         updateDisplay(); 
         document.getElementById('loader').classList.add('hidden');
-        
-        // Recalculate padding on load
         adjustBodyPadding();
     }
 
@@ -565,7 +604,7 @@
         const profileSection = document.getElementById('profileSection');
         if(profileSection) {
             const height = profileSection.offsetHeight;
-            document.body.style.paddingTop = `${height + 110}px`;
+            document.body.style.paddingTop = `${height + 130}px`; // Adjusted spacing
         }
     }
 
@@ -603,7 +642,6 @@
             openModal('sipStatusModal');
         });
 
-        // Responsive adjustment on resize
         const profileSection = document.getElementById('profileSection');
         const resizeObserver = new ResizeObserver(entries => {
             adjustBodyPadding();
@@ -611,7 +649,6 @@
         resizeObserver.observe(profileSection);
     }
 
-    // === CENTRAL DISPLAY LOGIC ===
     function updateDisplay() {
         const selectedMemberId = document.getElementById('memberFilter').value;
         const selectedType = document.getElementById('typeFilter').value;
@@ -656,21 +693,31 @@
         
         memberTransactions.forEach(tx => {
             const amt = parseFloat(tx.amount || 0);
-            if (tx.type === 'SIP') totalSip += amt;
-            if (tx.type === 'Loan Payment') interestPaid += parseFloat(tx.interestPaid || 0);
+            
+            // --- STRICT CALCULATION LOGIC AS REQUESTED ---
+            // Only add to Total SIP if type is strictly "SIP"
+            if (tx.type === 'SIP') {
+                totalSip += amt;
+            }
+            
+            // Loan Payment uses 'interestPaid' field, NOT amount
+            if (tx.type === 'Loan Payment') {
+                interestPaid += parseFloat(tx.interestPaid || 0);
+            }
+            
+            // Extra Wallet
             if (tx.type === 'Extra Payment') accountBalance += amt;
             if (tx.type === 'Extra Withdraw') accountBalance -= amt;
+            
             if (tx.type === 'Loan Taken') totalLoanTaken += amt;
         });
 
-        // Calculate Loan Due from Active Loans (Most accurate)
         const loanDue = memberActiveLoans
             .filter(l => l.status === 'Active')
             .reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
 
         let joiningDate = '-';
         if (selectedMemberId !== 'all') {
-            // Find earliest SIP or use member data
             const member = Object.values(allMembers).find(m => m.membershipId === selectedMemberId);
             if(member && member.joiningDate) {
                  joiningDate = formatDate(new Date(member.joiningDate));
@@ -690,7 +737,6 @@
         document.getElementById('joiningDateValue').textContent = joiningDate;
     }
 
-    // === DATA DISPLAY FUNCTIONS ===
     function displayTransactionData(selectedMemberId, typeFilter) {
         const table = document.getElementById('dataTable');
         const thead = table.querySelector('thead');
@@ -698,7 +744,6 @@
         const tfoot = table.querySelector('tfoot');
         tbody.innerHTML = "";
 
-        // Responsive Headers (data-label attributes in rows will handle mobile labels)
         thead.innerHTML = `
             <tr>
                 <th>Date</th>
@@ -722,7 +767,6 @@
             ? allTransactions
             : allTransactions.filter(tx => tx.memberId === selectedMemberId);
             
-        // SORT BY DATE ASCENDING TO CALCULATE RUNNING BALANCE
         const sortedForCalc = [...memberTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
         let runningBalance = 0;
@@ -757,16 +801,12 @@
                     break;
             }
             
-            // Logic: Credits add to balance, Debits subtract (For Member View)
-            // Wait, standard accounting: 
-            // If viewing as "Bank Account": Deposit = Credit (+), Loan/Withdrawal = Debit (-)
             const credit = line.principal + line.interest;
             runningBalance += credit - line.debit;
             line.balance = runningBalance;
             statementLines.push(line);
         });
 
-        // Filter lines based on dropdown selection
         const filteredLines = statementLines.filter(line => {
             if (typeFilter === 'all') return true;
             if (typeFilter === 'loan' && line.description.includes('Disbursed')) return true;
@@ -775,7 +815,6 @@
             return false;
         });
         
-        // Reverse for Display (Newest First)
         filteredLines.reverse();
 
         if (filteredLines.length === 0) {
@@ -791,7 +830,6 @@
             totalPrincipal += line.principal;
             totalInterest += line.interest;
             
-            // Row styling based on type
             let rowStyle = "";
             if(line.debit > 0) rowStyle = "border-left: 4px solid var(--danger-color);";
             else rowStyle = "border-left: 4px solid var(--success-color);";
@@ -856,7 +894,6 @@
         });
     }
 
-    // === UTILITY FUNCTIONS ===
     function populateSipStatusModal() {
         const listContainer = document.getElementById('sipStatusList');
         listContainer.innerHTML = "";
@@ -917,12 +954,12 @@
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
     
-    // Currency Formatter
     function f(num) {
         if(isNaN(num)) return "₹0";
-        return "₹" + parseFloat(num).toLocaleString('en-IN', {maximumFractionDigits: 0}); // Removed decimals for cleaner look
+        return "₹" + parseFloat(num).toLocaleString('en-IN', {maximumFractionDigits: 0});
     }
 
 </script>
 </body>
 </html>
+
