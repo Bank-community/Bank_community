@@ -1,5 +1,4 @@
-// --- CONFIGURATION CONSTANTS (MOVED TO TOP TO FIX ERROR) ---
-// Error Fix: 'CONFIG' is now defined before any function tries to use it.
+// --- CONFIGURATION CONSTANTS ---
 const CONFIG = {
     CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
     CAPITAL_SCORE_TARGET_SIP: 30000,
@@ -16,9 +15,10 @@ const CONFIG = {
 const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
 // --- Firebase SDKs (Modular v9) ---
+// Note: added 'update' to imports for password change functionality
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
 // --- GLOBAL VARIABLES & STATE ---
 let db, auth;
@@ -28,7 +28,6 @@ let currentMemberData = {}, scoreResultCache = null, balanceHistory = [];
 // --- INSTANT LOAD (STEP 1 - UNIQUE CACHE) ---
 function initInstantLoad() {
     try {
-        // Fix: Use memberId in Cache Key to prevent data mixing
         const urlParams = new URLSearchParams(window.location.search);
         const memberId = urlParams.get('memberId');
         
@@ -358,6 +357,107 @@ function setupEventListeners() {
     });
     document.getElementById('download-card-btn').addEventListener('click', downloadCard);
     document.getElementById('share-card-btn').addEventListener('click', shareCard);
+
+    // Setup Password Change Listeners
+    setupPasswordListeners();
+}
+
+function setupPasswordListeners() {
+    const passwordModal = document.getElementById('passwordModal');
+    const openBtn = document.getElementById('change-password-btn');
+    const closeBtn = document.getElementById('close-password-modal');
+    const submitBtn = document.getElementById('submit-password-change');
+    
+    // Open Modal
+    openBtn.addEventListener('click', () => {
+        // Reset fields
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+        document.getElementById('password-error').classList.add('hidden');
+        document.getElementById('password-success').classList.add('hidden');
+        
+        passwordModal.classList.remove('hidden');
+        passwordModal.classList.add('flex');
+    });
+
+    // Close Modal
+    closeBtn.addEventListener('click', () => {
+        passwordModal.classList.add('hidden');
+        passwordModal.classList.remove('flex');
+    });
+
+    // Submit Logic
+    submitBtn.addEventListener('click', async () => {
+        const currentPass = document.getElementById('current-password').value.trim();
+        const newPass = document.getElementById('new-password').value.trim();
+        const confirmPass = document.getElementById('confirm-password').value.trim();
+        const errorEl = document.getElementById('password-error');
+        const successEl = document.getElementById('password-success');
+
+        errorEl.classList.add('hidden');
+        successEl.classList.add('hidden');
+
+        // 1. Validation: Empty fields
+        if (!currentPass || !newPass || !confirmPass) {
+            errorEl.innerHTML = '<i class="fas fa-times-circle"></i> All fields are required.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // 2. Validation: Check Current Password (from loaded data)
+        // Using string comparison because password is stored as string in DB
+        if (currentPass !== String(currentMemberData.password)) {
+            errorEl.innerHTML = '<i class="fas fa-times-circle"></i> Incorrect current password.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // 3. Validation: Numeric Only (User Requirement)
+        if (!/^\d+$/.test(newPass)) {
+            errorEl.innerHTML = '<i class="fas fa-times-circle"></i> Password must contain numbers only.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // 4. Validation: Match New & Confirm
+        if (newPass !== confirmPass) {
+            errorEl.innerHTML = '<i class="fas fa-times-circle"></i> New passwords do not match.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // 5. Update Firebase
+        try {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+            const memberRef = ref(db, 'members/' + currentMemberData.membershipId);
+            await update(memberRef, {
+                password: newPass
+            });
+
+            // Update local data immediately to reflect change without reload
+            currentMemberData.password = newPass;
+
+            successEl.classList.remove('hidden');
+            
+            // Close modal after 1.5 seconds
+            setTimeout(() => {
+                passwordModal.classList.add('hidden');
+                passwordModal.classList.remove('flex');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update';
+            }, 1500);
+
+        } catch (error) {
+            console.error("Password update failed:", error);
+            errorEl.innerHTML = `<i class="fas fa-times-circle"></i> Update failed: ${error.message}`;
+            errorEl.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Update';
+        }
+    });
 }
 
 // --- UPDATED HISTORY FUNCTION ---
