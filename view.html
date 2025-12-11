@@ -263,9 +263,16 @@
                         
                         <!-- Personal Info -->
                         <div>
-                            <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                                <i class="fas fa-user-tie text-gold"></i> Personal Info
-                            </h3>
+                            <!-- Header with Password Change Button -->
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+                                <h3 class="text-lg font-bold text-royal-blue flex items-center gap-2">
+                                    <i class="fas fa-user-tie text-gold"></i> Personal Info
+                                </h3>
+                                <button id="change-password-btn" class="text-xs bg-blue-50 hover:bg-royal-gold hover:text-white text-royal-blue px-3 py-1 rounded-full transition-colors flex items-center gap-1 border border-blue-100 font-semibold shadow-sm">
+                                    <i class="fas fa-key"></i> Pass
+                                </button>
+                            </div>
+                            
                             <div class="space-y-3 text-sm">
                                 <div class="info-item flex items-center gap-4 group">
                                     <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
@@ -404,6 +411,37 @@
       </div>
   </div>
 
+  <!-- Password Change Modal (NEW) -->
+  <div id="passwordModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-blue transform scale-95 transition-transform duration-300">
+          <h3 class="text-xl font-bold text-center mb-1 text-royal-blue">Change Password</h3>
+          <p class="text-center text-xs text-gray-400 mb-6 uppercase tracking-wider">Secure Access</p>
+          
+          <div class="space-y-4">
+              <div>
+                  <label class="text-xs font-bold text-gray-500 uppercase ml-1">Current Password</label>
+                  <input type="password" id="current-password" class="w-full border border-gray-200 rounded-xl p-3 mt-1 focus:border-royal-gold outline-none bg-gray-50" placeholder="Current numeric PIN" inputmode="numeric">
+              </div>
+              <div>
+                  <label class="text-xs font-bold text-gray-500 uppercase ml-1">New Password (Numbers Only)</label>
+                  <input type="password" id="new-password" class="w-full border border-gray-200 rounded-xl p-3 mt-1 focus:border-royal-gold outline-none bg-gray-50" placeholder="New numeric PIN" inputmode="numeric">
+              </div>
+              <div>
+                  <label class="text-xs font-bold text-gray-500 uppercase ml-1">Confirm New Password</label>
+                  <input type="password" id="confirm-password" class="w-full border border-gray-200 rounded-xl p-3 mt-1 focus:border-royal-gold outline-none bg-gray-50" placeholder="Confirm new PIN" inputmode="numeric">
+              </div>
+          </div>
+
+          <p id="password-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"><i class="fas fa-times-circle"></i> Error message</p>
+          <p id="password-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold"><i class="fas fa-check-circle"></i> Password Updated Successfully!</p>
+
+          <div class="mt-6 flex gap-3">
+              <button id="close-password-modal" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+              <button id="submit-password-change" class="flex-1 btn-royal font-bold py-3 rounded-xl shadow-lg">Update</button>
+          </div>
+      </div>
+  </div>
+
   <!-- CERTIFICATE RESULT MODAL (Royal Receipt) -->
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="w-full max-w-md">
@@ -465,5 +503,4 @@
 
 </body>
 </html>
-
 
