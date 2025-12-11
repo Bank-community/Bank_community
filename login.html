@@ -3,78 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#001540">
+    <meta name="theme-color" content="#001540">
     <title>लॉगिन - TRUST COMMUNITY FUND</title>
     
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDKs (v8 as per your original code) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                royal: {
+                  dark: '#001540',
+                  blue: '#002366',
+                  gold: '#D4AF37',
+                }
+              },
+              fontFamily: {
+                sans: ['Poppins', 'sans-serif'],
+                serif: ['Playfair Display', 'serif'],
+              }
+            }
+          }
+        }
+    </script>
+
     <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-container { background-color: #fff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 380px; }
-        h1 { color: #0056b3; margin-bottom: 10px; font-size: 24px; }
-        p { color: #555; margin-bottom: 30px; }
-        .input-group { margin-bottom: 20px; text-align: left; }
-        label { font-weight: 600; color: #333; display: block; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        input:focus { border-color: #007bff; outline: none; }
-        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; }
-        button:hover { transform: translateY(-2px); }
-        button:disabled { background: #aab8c2; cursor: not-allowed; }
-        .error-message { color: #dc3545; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 8px; margin-top: 20px; display: none; }
-        .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: none; }
+        body {
+            background-color: #001540;
+            background-image: radial-gradient(circle at top right, #003399 0%, #001540 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Royal Card Style */
+        .royal-card {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Gold Gradient Text */
+        .text-gold-gradient {
+            background: linear-gradient(to right, #B8860B, #D4AF37, #B8860B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Input Styling */
+        .royal-input {
+            transition: all 0.3s ease;
+        }
+        .royal-input:focus {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        /* Button Styling */
+        .btn-royal {
+            background: linear-gradient(135deg, #002366 0%, #001540 100%);
+            border: 1px solid #D4AF37;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        .btn-royal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+            background: linear-gradient(135deg, #003399 0%, #002366 100%);
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #D4AF37;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
-    <div class="login-container">
-        <h1>Members Login</h1>
-        <p>बैंक कम्युनिटी में आपका स्वागत है।</p>
-        <form id="loginForm">
-            <div class="input-group">
-                <label for="email">Email ID</label>
-                <input type="email" id="email" required value="bankcommunityloan@gmail.com">
+<body class="p-4">
+
+    <div class="w-full max-w-md">
+        <!-- Main Card -->
+        <div class="royal-card rounded-2xl p-8 relative overflow-hidden">
+            <!-- Decorative Top Border -->
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
+
+            <div class="text-center mb-8">
+                <!-- Icon/Logo Placeholder -->
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#001540] border-2 border-[#D4AF37] text-[#D4AF37] mb-4 shadow-lg">
+                    <i class="fas fa-crown text-2xl"></i>
+                </div>
+                
+                <h1 class="font-serif text-3xl font-bold text-royal-blue mb-2 tracking-wide">Welcome Back</h1>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-widest">Trust कम्युनिटी में आपका स्वागत है।</p>
             </div>
-            <div class="input-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
+
+            <form id="loginForm" class="space-y-5">
+                <!-- Email Input -->
+                <div class="group">
+                    <label for="email" class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1 group-focus-within:text-[#D4AF37] transition-colors">
+                        Email ID
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <input type="email" id="email" required value="bankcommunityloan@gmail.com" 
+                            class="royal-input w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium outline-none placeholder-gray-300"
+                            placeholder="Enter your email">
+                    </div>
+                </div>
+
+                <!-- Password Input -->
+                <div class="group">
+                    <label for="password" class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1 group-focus-within:text-[#D4AF37] transition-colors">
+                        Password
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <input type="password" id="password" required 
+                            class="royal-input w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium outline-none placeholder-gray-300"
+                            placeholder="Enter your password">
+                    </div>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" id="loginBtn" class="btn-royal w-full py-3.5 rounded-xl text-white font-bold tracking-wide flex items-center justify-center gap-2 mt-4">
+                    <span id="loginBtnText">SECURE LOGIN</span>
+                    <div id="loader" class="loader hidden"></div>
+                </button>
+            </form>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden mt-6 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold text-center flex items-center justify-center gap-2">
+                <i class="fas fa-exclamation-circle"></i>
+                <span></span>
             </div>
-            <button type="submit" id="loginBtn">
-                <span id="loginBtnText">लॉगिन करें</span>
-                <div id="loader" class="loader ml-3"></div>
-            </button>
-        </form>
-        <p id="errorMessage" class="error-message"></p>
+
+            <!-- Footer -->
+            <p class="text-center text-[10px] text-gray-400 mt-8 font-medium">
+                SECURED BY TRUST COMMUNITY FUND &copy; 2025
+            </p>
+        </div>
     </div>
 
     <script>
-        // v8 Syntax for Login Logic
+        // --- EXISTING LOGIC (PRESERVED) ---
         async function initializeAppWithConfig() {
             try {
                 // Vercel se config laayein
-                const response = await fetch('/api/firebase-config'); // Aapka config endpoint
-                if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल।');
+                const response = await fetch('/api/firebase-config');
+                if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल। (Config Load Failed)');
                 
                 const config = await response.json();
                 
                 // Firebase v8 tarike se initialize karein
-                firebase.initializeApp(config);
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(config);
+                }
                 
                 setupLoginListener();
 
             } catch (error) {
                 console.error("Initialization failed:", error);
                 const errorMessageElement = document.getElementById('errorMessage');
-                errorMessageElement.textContent = error.message;
-                errorMessageElement.style.display = 'block';
+                errorMessageElement.querySelector('span').textContent = error.message;
+                errorMessageElement.classList.remove('hidden');
             }
         }
 
         function setupLoginListener() {
-            const auth = firebase.auth(); // v8 tarike se auth object prapt karein
+            const auth = firebase.auth(); 
 
             const loginForm = document.getElementById('loginForm');
             const errorMessageElement = document.getElementById('errorMessage');
+            const errorText = errorMessageElement.querySelector('span');
             const loginBtn = document.getElementById('loginBtn');
             const loginBtnText = document.getElementById('loginBtnText');
             const loader = document.getElementById('loader');
@@ -84,10 +203,13 @@
 
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                errorMessageElement.style.display = 'none';
+                errorMessageElement.classList.add('hidden');
+                
+                // UI Loading State
                 loginBtn.disabled = true;
-                loginBtnText.style.display = 'none';
-                loader.style.display = 'inline-block';
+                loginBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                loginBtnText.classList.add('hidden');
+                loader.classList.remove('hidden');
 
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
@@ -101,19 +223,20 @@
                             sessionStorage.setItem('isAdminLoggedIn', 'true');
                             window.location.href = redirectUrl || '/admin.html'; 
                         } else {
-                            // FIXED: Redirect to the original requested page OR index.html
+                            // Redirect to the original requested page OR index.html
                             window.location.href = redirectUrl || '/index.html'; 
                         }
                     })
                     .catch((error) => {
-                        errorMessageElement.textContent = 'गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।';
-                        errorMessageElement.style.display = 'block';
+                        errorText.textContent = 'गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।';
+                        errorMessageElement.classList.remove('hidden');
                         console.error("Login Error:", error.code, error.message);
-                    })
-                    .finally(() => {
+                        
+                        // Reset Button UI on error
                         loginBtn.disabled = false;
-                        loginBtnText.style.display = 'inline';
-                        loader.style.display = 'none';
+                        loginBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        loginBtnText.classList.remove('hidden');
+                        loader.classList.add('hidden');
                     });
             });
         }
