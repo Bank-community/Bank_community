@@ -49,12 +49,12 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Ranking Card Styling - FIXED ALIGNMENT */
+        /* Ranking Card Styling */
         .rank-card {
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            border-left: 4px solid transparent; /* Consistent border width */
+            border-left: 4px solid transparent;
             margin-bottom: 12px;
             position: relative;
             overflow: hidden;
@@ -101,7 +101,7 @@
     <!-- LOADER -->
     <div id="loader-container" class="loader-container">
         <div class="loader"></div>
-        <p class="mt-4 text-royal-blue font-semibold text-sm tracking-widest">CALCULATING BALANCES...</p>
+        <p class="mt-4 text-royal-blue font-semibold text-sm tracking-widest">LOADING RANKING...</p>
     </div>
 
     <!-- HEADER -->
@@ -117,8 +117,8 @@
         </p>
     </div>
 
-    <!-- RANKING LIST -->
-    <div id="ranking-list" class="px-4 -mt-8 space-y-3 max-w-2xl mx-auto pb-8 relative z-0">
+    <!-- RANKING LIST CONTAINER (Identifier ID) -->
+    <div id="ranking-list-container" class="px-4 -mt-8 space-y-3 max-w-2xl mx-auto pb-8 relative z-0">
         <!-- JS will inject cards here -->
     </div>
 
@@ -144,305 +144,9 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC (MODULE) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+    <!-- MASTER BRAIN SCRIPT -->
+    <script type="module" src="view_logic.js"></script>
 
-        // --- CONFIG ---
-        const CACHE_KEY = 'tcf_all_balance_cache_v3'; // Changed version
-        // Reusing View Logic Config
-        const CONFIG = {
-            CAPITAL_SCORE_TARGET_SIP: 30000,
-            INACTIVE_DAYS_LEVEL_1: 180, INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90,
-            INACTIVE_DAYS_LEVEL_2: 365, INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75
-        };
-
-        let allData = [], memberDataMap = new Map(), activeLoansData = {};
-        let membersProfitMap = new Map(); // Stores { memberId: { total: 0, history: [] } }
-
-        // --- 1. INSTANT LOAD ---
-        function initInstantLoad() {
-            const cached = localStorage.getItem(CACHE_KEY);
-            if (cached) {
-                try {
-                    const parsed = JSON.parse(cached);
-                    console.log("⚡ Instant Cache Load...");
-                    calculateAndRender(parsed.members, parsed.transactions, parsed.activeLoans);
-                } catch(e) { console.error("Cache Error", e); }
-            }
-        }
-        initInstantLoad();
-
-        // --- 2. FIREBASE INIT ---
-        document.addEventListener("DOMContentLoaded", async () => {
-            try {
-                const res = await fetch('/api/firebase-config');
-                const config = await res.json();
-                const app = initializeApp(config);
-                const db = getDatabase(app);
-                const auth = getAuth(app);
-                
-                signInAnonymously(auth).catch(console.error);
-                fetchFreshData(db);
-            } catch (e) { console.error("Init Error", e); }
-        });
-
-        async function fetchFreshData(db) {
-            try {
-                const [mSnap, tSnap, lSnap] = await Promise.all([
-                    get(ref(db, 'members')),
-                    get(ref(db, 'transactions')),
-                    get(ref(db, 'activeLoans'))
-                ]);
-
-                if(mSnap.exists() && tSnap.exists()) {
-                    const members = mSnap.val();
-                    const transactions = tSnap.val();
-                    const activeLoans = lSnap.exists() ? lSnap.val() : {};
-
-                    localStorage.setItem(CACHE_KEY, JSON.stringify({ members, transactions, activeLoans }));
-                    calculateAndRender(members, transactions, activeLoans);
-                }
-            } catch(e) { console.error("Network Error", e); }
-        }
-
-        // --- 3. CORE LOGIC (CALCULATION) ---
-        function calculateAndRender(members, transactions, activeLoans) {
-            // Reset
-            allData = []; memberDataMap.clear(); activeLoansData = activeLoans || {}; membersProfitMap.clear();
-
-            // Process Members
-            for(const id in members) {
-                if(members[id].status === 'Approved') {
-                    memberDataMap.set(id, {
-                        id: id,
-                        name: members[id].fullName,
-                        imageUrl: members[id].profilePicUrl,
-                        guarantorName: members[id].guarantorName
-                    });
-                    // Initialize Map
-                    membersProfitMap.set(id, { total: 0, history: [], name: members[id].fullName, img: members[id].profilePicUrl });
-                }
-            }
-
-            // Process Transactions
-            const txList = [];
-            for(const txId in transactions) {
-                const tx = transactions[txId];
-                const m = memberDataMap.get(tx.memberId);
-                if(m) {
-                    txList.push({
-                        ...tx,
-                        date: new Date(tx.date),
-                        name: m.name, 
-                        id: txId,
-                        sipPayment: tx.type === 'SIP' ? (tx.amount||0) : 0,
-                        returnAmount: tx.type === 'Loan Payment' ? (tx.interestPaid||0) : 0
-                    });
-                }
-            }
-            allData = txList.sort((a,b) => a.date - b.date);
-
-            // --- MAIN CALCULATION LOOP (SYNCED WITH VIEW.HTML) ---
-            allData.forEach(tx => {
-                // A. PROFIT SHARES (Interest Distribution)
-                if(tx.returnAmount > 0) {
-                    const dist = calculateProfitDistribution(tx); 
-                    dist.forEach(shareItem => {
-                        const recipientId = getMemberIdByName(shareItem.name);
-                        if(recipientId) {
-                            addProfit(recipientId, shareItem.share, shareItem.type, `From: ${tx.name}`, tx.date, 'credit');
-                        }
-                    });
-                }
-
-                // B. MANUAL CREDITS (Admin Bonus)
-                if(tx.type === 'Extra Payment' && tx.amount > 0) {
-                    addProfit(tx.memberId, tx.amount, 'Admin Bonus', 'Manual Credit', tx.date, 'credit');
-                }
-
-                // C. WITHDRAWALS (Subtract Amount) -- THIS WAS MISSING
-                if(tx.type === 'Extra Withdraw' && tx.amount > 0) {
-                    addProfit(tx.memberId, -tx.amount, 'Withdrawal', 'Admin Debit', tx.date, 'debit');
-                }
-            });
-
-            renderUI();
-        }
-
-        function addProfit(memberId, amount, type, source, date, txType) {
-            if(!membersProfitMap.has(memberId)) return;
-            const data = membersProfitMap.get(memberId);
-            data.total += amount;
-            data.history.push({ amount, type, source, date, txType });
-        }
-
-        function getMemberIdByName(name) {
-            for(const [id, m] of memberDataMap.entries()) {
-                if(m.name === name) return id;
-            }
-            return null;
-        }
-
-        // --- 4. RENDER UI ---
-        function renderUI() {
-            const listContainer = document.getElementById('ranking-list');
-            listContainer.innerHTML = '';
-            
-            // Sort by Balance (High to Low)
-            const rankedList = Array.from(membersProfitMap.entries())
-                .map(([id, data]) => ({ id, ...data }))
-                .sort((a, b) => b.total - a.total);
-
-            rankedList.forEach((member, index) => {
-                const rank = index + 1;
-                let rankClass = 'rank-normal';
-                if(rank === 1) rankClass = 'rank-1';
-                else if(rank === 2) rankClass = 'rank-2';
-                else if(rank === 3) rankClass = 'rank-3';
-
-                const imgUrl = member.img || 'https://placehold.co/100';
-                
-                // Color Logic for Total
-                const amountColor = member.total >= 0 ? 'text-green-600' : 'text-red-600';
-                const sign = member.total >= 0 ? '+' : '';
-
-                const html = `
-                    <div class="rank-card ${rankClass} p-4 flex items-center justify-between gap-3 animate-fade-in">
-                        <div class="flex items-center gap-3 overflow-hidden flex-grow">
-                            <div class="rank-badge flex-shrink-0">${rank}</div>
-                            <img src="${imgUrl}" class="w-10 h-10 rounded-full object-cover border border-gray-200" onerror="this.src='https://placehold.co/100'">
-                            <div class="min-w-0">
-                                <h4 class="font-bold text-royal-blue text-sm truncate">${member.name}</h4>
-                                <p class="text-[10px] text-gray-500 font-medium">Net Balance</p>
-                            </div>
-                        </div>
-                        
-                        <div class="text-right flex-shrink-0 flex items-center gap-2">
-                            <span class="font-bold ${amountColor} text-sm">${sign}₹${Math.floor(member.total).toLocaleString()}</span>
-                            <button onclick="window.openHistory('${member.id}')" 
-                                class="bg-royal-blue text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-royal-dark shadow-sm transition-colors">
-                                History
-                            </button>
-                        </div>
-                    </div>
-                `;
-                listContainer.insertAdjacentHTML('beforeend', html);
-            });
-
-            document.getElementById('loader-container').classList.add('fade-out');
-        }
-
-        // --- 5. MODAL LOGIC ---
-        window.openHistory = (memberId) => {
-            const memberProfit = membersProfitMap.get(memberId);
-            if(!memberProfit) return;
-
-            document.getElementById('modal-member-name').textContent = memberProfit.name;
-            const totalEl = document.getElementById('modal-total-amount');
-            totalEl.textContent = `₹${memberProfit.total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalEl.className = `text-2xl font-bold ${memberProfit.total >= 0 ? 'text-royal-gold' : 'text-red-400'}`;
-
-            const list = document.getElementById('history-list-container');
-            list.innerHTML = '';
-
-            if(memberProfit.history.length === 0) {
-                list.innerHTML = '<p class="text-center text-gray-400 text-xs py-4">No records found.</p>';
-            } else {
-                [...memberProfit.history].reverse().forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50';
-                    
-                    const isCredit = item.amount > 0;
-                    const amountColor = isCredit ? 'text-green-600' : 'text-red-600';
-                    const icon = isCredit ? 'fa-arrow-down' : 'fa-arrow-up';
-                    const iconBg = isCredit ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600';
-
-                    div.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full ${iconBg} flex items-center justify-center text-xs">
-                                <i class="fas ${icon}"></i>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold text-gray-700">${item.type}</p>
-                                <p class="text-[10px] text-gray-400">${item.source} • ${item.date.toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                        <span class="text-xs font-bold ${amountColor}">${isCredit ? '+' : ''}₹${item.amount.toLocaleString()}</span>
-                    `;
-                    list.appendChild(div);
-                });
-            }
-
-            const modal = document.getElementById('historyModal');
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        };
-
-        document.getElementById('close-modal').onclick = () => {
-            document.getElementById('historyModal').classList.remove('show');
-            document.body.style.overflow = '';
-        };
-
-        // --- 6. PROFIT CALCULATION ALGORITHMS (Lite Version) ---
-        function calculateProfitDistribution(tx) {
-            const distribution = [];
-            const totalInterest = tx.returnAmount;
-            
-            // 1. Self Return (10%)
-            distribution.push({ name: tx.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
-            
-            // 2. Guarantor (10%)
-            const payer = memberDataMap.get(tx.memberId);
-            if(payer && payer.guarantorName && payer.guarantorName !== 'Xxxxx') {
-                distribution.push({ name: payer.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Comm. (10%)' });
-            }
-
-            // 3. Community Pool (70%)
-            const communityPool = totalInterest * 0.70; 
-            
-            // Lite Score Logic for Distribution
-            const snapshotScores = {}; 
-            let totalScoreInSnapshot = 0;
-            const activeMembersAtTime = Array.from(memberDataMap.values()).filter(m => m.joiningDate <= tx.date);
-
-            activeMembersAtTime.forEach(m => {
-                if(m.name === tx.name) return; // Exclude payer
-                const score = calculateLiteScore(m.name, tx.date); 
-                if(score > 0) {
-                    snapshotScores[m.name] = score;
-                    totalScoreInSnapshot += score;
-                }
-            });
-
-            if(totalScoreInSnapshot > 0) {
-                for(const mName in snapshotScores) {
-                    let share = (snapshotScores[mName] / totalScoreInSnapshot) * communityPool;
-                    // Apply Inactive Penalty
-                    const lastLoanDate = allData.filter(r => r.name === mName && r.loan > 0 && r.date <= tx.date && r.loanType === 'Loan').pop()?.date;
-                    const daysSinceLastLoan = lastLoanDate ? (tx.date - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
-                    if(daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) share *= CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
-                    else if(daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) share *= CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
-
-                    if(share > 0) distribution.push({ name: mName, share: share, type: 'Profit Share' });
-                }
-            }
-            return distribution;
-        }
-
-        function calculateLiteScore(memberName, untilDate) {
-            // Simplified Score for Performance
-            const daysReview = 180;
-            const startDate = new Date(untilDate.getTime() - daysReview * 86400000);
-            const mTx = allData.filter(t => t.name === memberName && t.date >= startDate && t.date <= untilDate);
-            const totalSip = mTx.reduce((s, t) => s + t.sipPayment, 0);
-            let capScore = Math.min(100, (totalSip / CONFIG.CAPITAL_SCORE_TARGET_SIP) * 100);
-            return (capScore * 0.5) + (50 * 0.5); // Assuming avg consistency
-        }
-
-    </script>
 </body>
 </html>
 
