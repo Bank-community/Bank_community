@@ -1,4 +1,5 @@
-// --- 1. CONFIGURATION (सबसे ऊपर - ताकि कोई Error न आए) ---
+// --- CONFIGURATION CONSTANTS (MOVED TO TOP TO FIX ERROR) ---
+// Error Fix: 'CONFIG' is now defined before any function tries to use it.
 const CONFIG = {
     CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
     CAPITAL_SCORE_TARGET_SIP: 30000,
@@ -14,29 +15,47 @@ const CONFIG = {
 
 const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
-// --- Firebase Imports ---
+// --- Firebase SDKs (Modular v9) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-// --- GLOBAL VARIABLES ---
+// --- GLOBAL VARIABLES & STATE ---
 let db, auth;
 let allData = [], memberDataMap = new Map(), activeLoansData = {};
 let currentMemberData = {}, scoreResultCache = null, balanceHistory = [];
-let membersProfitMap = new Map();
 
-// --- DETECT PAGE TYPE ---
-const isRankingPage = !!document.getElementById('ranking-list-container');
-const isProfilePage = !!document.getElementById('profile-content');
+// --- INSTANT LOAD (STEP 1 - UNIQUE CACHE) ---
+function initInstantLoad() {
+    try {
+        // Fix: Use memberId in Cache Key to prevent data mixing
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('memberId');
+        
+        if (memberId) {
+            const cacheKey = `tcf_royal_view_cache_${memberId}`; // UNIQUE KEY
+            const cachedRaw = localStorage.getItem(cacheKey);
+            
+            if (cachedRaw) {
+                const data = JSON.parse(cachedRaw);
+                console.log(`⚡ Instant Load from Cache for ${memberId}...`);
+                processAndRender(data.members, data.transactions, data.activeLoans);
+            }
+        }
+    } catch(e) {
+        console.warn("Cache load failed:", e);
+    }
+}
+// Run immediately
+initInstantLoad();
 
-// ==========================================
-// 2. MAIN LOGIC FUNCTIONS
-// ==========================================
+// --- INITIALIZATION (STEP 2) ---
+document.addEventListener("DOMContentLoaded", checkAuthAndInitialize);
 
 async function checkAuthAndInitialize() {
     try {
         const response = await fetch('/api/firebase-config');
-        if (!response.ok) throw new Error('Config load failed');
+        if (!response.ok) throw new Error('Configuration failed to load.');
         const firebaseConfig = await response.json();
         
         const app = initializeApp(firebaseConfig);
@@ -45,387 +64,599 @@ async function checkAuthAndInitialize() {
 
         onAuthStateChanged(auth, user => {
             if (user) {
-                fetchFreshData();
+                fetchFreshData(); // Get fresh data from network
             } else {
-                signInAnonymously(auth).catch(err => console.error("Auth failed:", err));
+                console.log("No user found, signing in anonymously...");
+                signInAnonymously(auth).catch(error => {
+                    console.error("Anonymous auth failed:", error);
+                    window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+                });
             }
         });
     } catch (error) {
-        showError("Initialization Failed: " + error.message);
+        const content = document.getElementById('profile-content');
+        if (content.classList.contains('hidden')) {
+            showError(error.message);
+        }
     }
 }
 
+// --- DATA FETCHING (NETWORK) ---
 async function fetchFreshData() {
-    if (isProfilePage) setupProfileListeners();
-    if (isRankingPage) setupRankingListeners();
-
+    setupEventListeners();
+    
     try {
-        // Fetch all necessary data
-        const [membersSnap, txSnap, loansSnap] = await Promise.all([
-            get(ref(db, 'members')),
-            get(ref(db, 'transactions')),
-            get(ref(db, 'activeLoans'))
+        console.log("🌐 Fetching fresh data...");
+        const membersRef = ref(db, 'members');
+        const transactionsRef = ref(db, 'transactions');
+        const activeLoansRef = ref(db, 'activeLoans');
+        
+        const [membersSnapshot, transactionsSnapshot, activeLoansSnapshot] = await Promise.all([
+            get(membersRef), 
+            get(transactionsRef),
+            get(activeLoansRef)
         ]);
 
-        if (!membersSnap.exists() || !txSnap.exists()) throw new Error('No data in Firebase');
-
-        const members = membersSnap.val();
-        const transactions = txSnap.val();
-        const activeLoans = loansSnap.exists() ? loansSnap.val() : {};
-
-        // Update Cache
-        if (isProfilePage) {
-            const mId = new URLSearchParams(window.location.search).get('memberId');
-            if(mId) localStorage.setItem(`tcf_cache_profile_${mId}`, JSON.stringify({members, transactions, activeLoans}));
-        } else if (isRankingPage) {
-            localStorage.setItem('tcf_cache_ranking_master', JSON.stringify({members, transactions, activeLoans}));
+        if (!membersSnapshot.exists() || !transactionsSnapshot.exists()) {
+            throw new Error('Data not found in Firebase.');
         }
 
-        // Render
+        const members = membersSnapshot.val();
+        const transactions = transactionsSnapshot.val();
+        const activeLoans = activeLoansSnapshot.exists() ? activeLoansSnapshot.val() : {};
+
+        // Fix: Save to Unique Cache Key
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('memberId');
+        if (memberId) {
+            const cacheKey = `tcf_royal_view_cache_${memberId}`; // UNIQUE KEY
+            localStorage.setItem(cacheKey, JSON.stringify({
+                members, transactions, activeLoans
+            }));
+        }
+
+        // Render with fresh data
         processAndRender(members, transactions, activeLoans);
 
     } catch (error) {
-        console.error("Network Error:", error);
-        // If cache wasn't loaded, show error
-        const loader = document.getElementById('loader-container');
-        if (loader && !loader.classList.contains('fade-out')) {
-            showError("Data Load Failed. Check Internet.");
+        console.error("Network fetch failed:", error);
+        if (document.getElementById('profile-content').classList.contains('hidden')) {
+            showError(error.message);
         }
     }
 }
 
-// --- CORE PROCESSOR (Used by both pages) ---
+// --- MAIN LOGIC: PROCESS & RENDER ---
 function processAndRender(members, transactions, activeLoans) {
-    // Reset Globals
-    allData = []; memberDataMap.clear(); activeLoansData = activeLoans || {}; 
-    
-    // 1. Process Members
-    for (const id in members) {
-        if (members[id].status === 'Approved') {
-            memberDataMap.set(id, {
-                id: id,
-                name: members[id].fullName,
-                imageUrl: members[id].profilePicUrl,
-                guarantorName: members[id].guarantorName,
-                joiningDate: new Date(members[id].joiningDate)
-            });
-        }
-    }
+    allData = []; memberDataMap.clear(); activeLoansData = {}; balanceHistory = [];
 
-    // 2. Process Transactions
-    const processedTransactions = [];
-    let idCounter = 0;
-    for (const txId in transactions) {
-        const tx = transactions[txId];
-        const memberInfo = memberDataMap.get(tx.memberId);
-        if (!memberInfo) continue;
+    const urlParams = new URLSearchParams(window.location.search);
+    const memberId = urlParams.get('memberId');
+    if (!memberId) { showError("No member ID provided in URL."); return; }
+
+    try {
+        activeLoansData = activeLoans || {};
         
-        processedTransactions.push({
-            id: idCounter++,
-            date: new Date(tx.date),
-            name: memberInfo.name,
-            imageUrl: memberInfo.imageUrl || DEFAULT_PROFILE_PIC,
-            memberId: tx.memberId,
-            loan: tx.type === 'Loan Taken' ? (tx.amount||0) : 0,
-            payment: tx.type === 'Loan Payment' ? ((tx.principalPaid||0) + (tx.interestPaid||0)) : 0,
-            sipPayment: tx.type === 'SIP' ? (tx.amount||0) : 0,
-            returnAmount: tx.type === 'Loan Payment' ? (tx.interestPaid||0) : 0,
-            extraBalance: tx.type === 'Extra Payment' ? (tx.amount||0) : 0,
-            extraWithdraw: tx.type === 'Extra Withdraw' ? (tx.amount||0) : 0,
-            loanType: tx.type === 'Loan Taken' ? 'Loan' : null,
-            type: tx.type,
-            amount: tx.amount
-        });
-    }
-    allData = processedTransactions.sort((a, b) => a.date - b.date || a.id - b.id);
+        currentMemberData = members[memberId];
+        if (!currentMemberData) {
+            throw new Error(`Member ID not found.`);
+        }
+        currentMemberData.membershipId = memberId;
 
-    // 3. Route to specific page logic
-    if (isProfilePage) renderProfilePage(members);
-    else if (isRankingPage) renderRankingPage();
+        // Map all members for lookup
+        for (const id in members) {
+            if (members[id].status === 'Approved') {
+                    memberDataMap.set(id, {
+                    name: members[id].fullName,
+                    imageUrl: members[id].profilePicUrl,
+                    guarantorName: members[id].guarantorName
+                });
+            }
+        }
+        
+        // Process Transactions
+        const processedTransactions = [];
+        let idCounter = 0;
+        for (const txId in transactions) {
+            const tx = transactions[txId];
+            const memberInfo = memberDataMap.get(tx.memberId);
+
+            if (!memberInfo) continue;
+            
+            let record = {
+                id: idCounter++,
+                date: new Date(tx.date),
+                name: memberInfo.name,
+                imageUrl: memberInfo.imageUrl || DEFAULT_PROFILE_PIC,
+                memberId: tx.memberId,
+                loan: 0,
+                payment: 0,
+                sipPayment: 0,
+                returnAmount: 0,
+                extraBalance: 0, 
+                extraWithdraw: 0,
+                loanType: null, 
+            };
+            
+            switch (tx.type) {
+                case 'SIP': record.sipPayment = tx.amount || 0; break;
+                case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
+                case 'Loan Payment':
+                    record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
+                    record.returnAmount = tx.interestPaid || 0;
+                    break;
+                case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
+                case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+                default: continue; 
+            }
+            processedTransactions.push(record);
+        }
+
+        allData = processedTransactions.sort((a, b) => a.date - b.date || a.id - b.id);
+        
+        // Update UI
+        populateProfileData();
+
+        // Hide Loader
+        const loader = document.getElementById('loader-container');
+        if(loader) loader.classList.add('fade-out'); // Smooth fade
+
+    } catch (error) {
+        console.error("Render error:", error);
+        showError(error.message);
+    }
 }
 
-// ==========================================
-// 3. PROFILE PAGE LOGIC (view.html)
-// ==========================================
-function renderProfilePage(members) {
-    const mId = new URLSearchParams(window.location.search).get('memberId');
-    if (!mId || !members[mId]) { showError("Member not found"); return; }
 
-    currentMemberData = members[mId];
-    currentMemberData.membershipId = mId;
-
-    // Use Shared Math
-    const balanceData = calculateTotalExtraBalance(mId, currentMemberData.fullName);
-    balanceHistory = balanceData.history;
-    currentMemberData.extraBalance = balanceData.total;
-
-    // UI Updates
-    document.getElementById('profile-pic').src = currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC;
-    document.getElementById('profile-name').textContent = currentMemberData.fullName;
-    document.getElementById('membership-id').textContent = `ID: ${mId}`;
-    document.getElementById('total-sip').textContent = `₹${calculateTotalSip(mId).toLocaleString('en-IN')}`;
-    document.getElementById('extra-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+// --- UI POPULATION ---
+function populateProfileData() {
+    const balanceResult = calculateTotalExtraBalance(currentMemberData.membershipId, currentMemberData.fullName);
+    balanceHistory = balanceResult.history;
+    const lifetimeProfit = calculateTotalProfitForMember(currentMemberData.fullName, allData, activeLoansData);
     
-    // Score & Limit
-    scoreResultCache = calculatePerformanceScore(currentMemberData.fullName, new Date());
-    const eligibility = getLoanEligibility(currentMemberData.fullName, scoreResultCache.totalScore);
+    const memberTransactions = allData.filter(tx => tx.memberId === currentMemberData.membershipId);
+    const totalSip = memberTransactions.reduce((s, tx) => s + tx.sipPayment, 0);
+    currentMemberData.extraBalance = balanceResult.total;
+
+    const data = currentMemberData;
+    const formatDate = (ds) => ds ? new Date(ds).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A";
+    
+    document.getElementById('profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
+    document.getElementById('profile-name').textContent = data.fullName || 'N/A';
+    document.getElementById('membership-id').textContent = `ID: ${data.membershipId || 'N/A'}`;
+    document.getElementById('mobile-number').textContent = data.mobileNumber || 'N/A';
+    document.getElementById('dob').textContent = formatDate(data.dob);
+    document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
+    document.getElementById('address').textContent = data.address || 'N/A';
+    document.getElementById('joining-date-header').textContent = `Member since ${new Date(data.joiningDate).getFullYear()}`;
+    document.getElementById('guarantor-name').textContent = data.guarantorName || 'N/A';
+    document.getElementById('total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
+    document.getElementById('lifetime-profit').textContent = `₹${lifetimeProfit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('extra-balance').textContent = `₹${balanceResult.total.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+    
+    const withdrawBtn = document.getElementById('withdraw-btn');
+    withdrawBtn.disabled = balanceResult.total < 10;
+    
+    document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
+    document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
+    document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
+    
+    scoreResultCache = calculatePerformanceScore(data.fullName, new Date(), allData, activeLoansData);
+    const eligibilityResult = getLoanEligibility(data.fullName, scoreResultCache.totalScore, allData);
     document.getElementById('performance-score').textContent = scoreResultCache.totalScore.toFixed(2);
-    document.getElementById('loan-eligibility').textContent = eligibility.eligible ? `${eligibility.multiplier.toFixed(2)}x Limit` : eligibility.reason;
-
-    // Documents
-    document.getElementById('doc-profile-pic').src = currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC;
-    document.getElementById('doc-document').src = currentMemberData.documentUrl || DEFAULT_PROFILE_PIC;
-    document.getElementById('doc-signature').src = currentMemberData.signatureUrl || DEFAULT_PROFILE_PIC;
-
-    populateLoanHistoryList(currentMemberData.fullName);
+    document.getElementById('loan-eligibility').textContent = eligibilityResult.eligible ? `${eligibilityResult.multiplier.toFixed(2)}x Limit` : eligibilityResult.reason;
     
-    // Show UI
-    document.getElementById('loader-container').classList.add('fade-out');
+    populateLoanHistory(data.fullName);
+    
+    // Final visibility check
+    document.getElementById('loader-container').classList.add('fade-out'); 
     document.getElementById('profile-content').classList.remove('hidden');
 }
 
-// ==========================================
-// 4. RANKING PAGE LOGIC (all_members_profits.html)
-// ==========================================
-function renderRankingPage() {
-    membersProfitMap.clear();
-    const listContainer = document.getElementById('ranking-list-container');
-    listContainer.innerHTML = '';
-
-    // Loop through ALL members and apply SAME MATH
-    memberDataMap.forEach((mInfo, mId) => {
-        const balanceData = calculateTotalExtraBalance(mId, mInfo.name);
-        membersProfitMap.set(mId, {
-            id: mId,
-            name: mInfo.name,
-            img: mInfo.imageUrl,
-            total: balanceData.total,
-            history: balanceData.history
+function populateLoanHistory(memberName) {
+    const container = document.getElementById('loan-history-container');
+    const memberData = allData.filter(r => r.name === memberName);
+    
+    const loans = memberData.filter(r => r.loan > 0 && r.loanType === 'Loan'); 
+    
+    if (loans.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-400 text-xs py-4 italic">No loan history records found.</p>';
+        return;
+    }
+    container.innerHTML = '';
+    [...loans].reverse().forEach(loan => {
+        let amountRepaid = 0;
+        let repaymentDate = null;
+        
+        memberData.filter(r => r.date > loan.date && (r.payment > 0 || r.sipPayment > 0)).forEach(p => { 
+            if(!repaymentDate) {
+                amountRepaid += p.payment + p.sipPayment; 
+                if(amountRepaid >= loan.loan) repaymentDate = p.date;
+            }
         });
-    });
+        const daysToRepay = repaymentDate ? Math.round((repaymentDate - loan.date) / (1000 * 3600 * 24)) : null;
+        let status, colorClass, icon;
+        
+        if(daysToRepay === null) { status = "PENDING"; colorClass = "text-yellow-600 bg-yellow-50 border-yellow-200"; icon = "fa-clock"; }
+        else if (daysToRepay <= 90) { status = "PAID ON TIME"; colorClass = "text-green-600 bg-green-50 border-green-200"; icon = "fa-check-circle"; }
+        else { status = "LATE REPAYMENT"; colorClass = "text-red-600 bg-red-50 border-red-200"; icon = "fa-exclamation-circle"; }
 
-    const rankedList = Array.from(membersProfitMap.values()).sort((a, b) => b.total - a.total);
-
-    rankedList.forEach((m, idx) => {
-        const rank = idx + 1;
-        const colorClass = m.total >= 0 ? 'text-green-600' : 'text-red-600';
-        let borderClass = 'border-l-4 border-gray-200';
-        if (rank === 1) borderClass = 'border-l-4 border-yellow-400 bg-yellow-50';
-        else if (rank === 2) borderClass = 'border-l-4 border-gray-400 bg-gray-50';
-        else if (rank === 3) borderClass = 'border-l-4 border-orange-400 bg-orange-50';
-
-        const html = `
-            <div class="bg-white rounded-xl shadow-sm p-4 ${borderClass} flex items-center justify-between mb-3">
-                <div class="flex items-center gap-3">
-                    <span class="font-bold text-gray-500 w-6">${rank}</span>
-                    <img src="${m.img || DEFAULT_PROFILE_PIC}" class="w-10 h-10 rounded-full object-cover">
-                    <div>
-                        <h4 class="font-bold text-sm text-royal-blue">${m.name}</h4>
-                        <p class="text-[10px] text-gray-400">Net Balance</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="font-bold ${colorClass}">₹${Math.floor(m.total).toLocaleString()}</p>
-                    <button onclick="window.openHistoryGlobal('${m.id}')" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded mt-1">History</button>
+        const div = document.createElement('div');
+        div.className = `flex justify-between items-center p-3 rounded-lg border ${colorClass} mb-2`;
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="text-lg opacity-80"><i class="fas ${icon}"></i></div>
+                <div>
+                    <p class="font-bold text-sm">₹${loan.loan.toLocaleString('en-IN')}</p>
+                    <p class="text-[10px] uppercase tracking-wide opacity-70">${loan.date.toLocaleDateString('en-GB')}</p>
                 </div>
             </div>
-        `;
-        listContainer.insertAdjacentHTML('beforeend', html);
-    });
-
-    document.getElementById('loader-container').classList.add('fade-out');
-}
-
-// ==========================================
-// 5. SHARED MATH ENGINE (The Source of Truth)
-// ==========================================
-
-function calculateTotalExtraBalance(memberId, memberName) {
-    const history = [];
-    
-    // A. Profit Shares from Loans (Distributed Interest)
-    const profitEvents = allData.filter(r => r.returnAmount > 0);
-    profitEvents.forEach(tx => {
-        const dist = calculateProfitDistribution(tx); // Uses Logic Below
-        const share = dist.find(d => d.name === memberName);
-        if (share && share.share > 0) {
-            history.push({ type: share.type, from: tx.name, date: tx.date, amount: share.share });
-        }
-    });
-
-    // B. Manual Bonuses & Withdrawals
-    const adjustments = allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
-    adjustments.forEach(tx => {
-        if (tx.extraBalance > 0) 
-            history.push({ type: 'Admin Bonus', from: 'System', date: tx.date, amount: tx.extraBalance });
-        if (tx.extraWithdraw > 0) 
-            history.push({ type: 'Withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw }); // Negative!
-    });
-
-    history.sort((a,b) => a.date - b.date);
-    const total = history.reduce((acc, item) => acc + item.amount, 0);
-    return { total, history };
-}
-
-function calculateProfitDistribution(tx) {
-    const distribution = [];
-    const totalInterest = tx.returnAmount;
-    
-    // 1. Self Return (10%)
-    distribution.push({ name: tx.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
-    
-    // 2. Guarantor (10%)
-    const payer = memberDataMap.get(tx.memberId);
-    if(payer?.guarantorName && payer.guarantorName !== 'Xxxxx') {
-        distribution.push({ name: payer.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Comm.' });
-    }
-
-    // 3. Community Pool (70%)
-    const pool = totalInterest * 0.70;
-    const loanDate = tx.date; // Snapshot time
-    
-    // Snapshot Score Calculation
-    const activeMembers = Array.from(memberDataMap.values()).filter(m => m.joiningDate <= loanDate);
-    const snapshotScores = {};
-    let totalScore = 0;
-
-    activeMembers.forEach(m => {
-        if (m.name === tx.name) return; // Exclude Payer
-        const score = calculateLiteScore(m.name, loanDate);
-        if(score > 0) { snapshotScores[m.name] = score; totalScore += score; }
-    });
-
-    if (totalScore > 0) {
-        for(const mName in snapshotScores) {
-            let share = (snapshotScores[mName] / totalScore) * pool;
-            // Apply Inactive Rules
-            const lastLoan = allData.findLast(r => r.name === mName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan');
-            const daysInactive = lastLoan ? (loanDate - lastLoan.date)/(1000*3600*24) : 999;
-            
-            if(daysInactive > CONFIG.INACTIVE_DAYS_LEVEL_2) share *= CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
-            else if(daysInactive > CONFIG.INACTIVE_DAYS_LEVEL_1) share *= CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
-            
-            if(share > 0) distribution.push({ name: mName, share: share, type: 'Profit Share' });
-        }
-    }
-    return distribution;
-}
-
-// Lite Score for Bulk Calculation (Speed Optimization)
-function calculateLiteScore(memberName, untilDate) {
-    const daysReview = 180;
-    const startDate = new Date(untilDate.getTime() - daysReview * 86400000);
-    const mTx = allData.filter(t => t.name === memberName && t.date >= startDate && t.date <= untilDate);
-    const totalSip = mTx.reduce((s, t) => s + t.sipPayment, 0);
-    const capScore = Math.min(100, (totalSip / CONFIG.CAPITAL_SCORE_TARGET_SIP) * 100);
-    return (capScore * 0.5) + (50 * 0.5); // Default Consistency
-}
-
-// Full Score for Profile (Detailed)
-function calculatePerformanceScore(memberName, untilDate) {
-    // Reusing Lite Score logic primarily to ensure numbers match roughly, 
-    // but Profile view can afford full logic if needed. 
-    // For consistency with ranking, we use a slightly more detailed version here but consistent base.
-    const score = calculateLiteScore(memberName, untilDate); 
-    
-    // Add Credit Behavior Logic if needed (Keeping it simple to match ranking for now)
-    return { totalScore: score };
-}
-
-function getLoanEligibility(name, score) {
-    let multiplier = 1.0;
-    if (score > 80) multiplier = 2.0;
-    else if (score > 60) multiplier = 1.5;
-    return { eligible: true, multiplier, reason: "Good Standing" };
-}
-
-function calculateTotalSip(mId) {
-    return allData.filter(tx => tx.memberId === mId).reduce((s, tx) => s + tx.sipPayment, 0);
-}
-
-function populateLoanHistoryList(name) {
-    const container = document.getElementById('loan-history-container');
-    if(!container) return;
-    container.innerHTML = '';
-    const loans = allData.filter(tx => tx.name === name && tx.loan > 0 && tx.loanType === 'Loan').reverse();
-    if(loans.length === 0) container.innerHTML = '<p class="text-center text-gray-400 text-xs">No loans.</p>';
-    
-    loans.forEach(loan => {
-        const div = document.createElement('div');
-        div.className = "flex justify-between p-3 border rounded mb-2";
-        div.innerHTML = `<span class="font-bold">₹${loan.loan}</span><span class="text-xs text-gray-500">${loan.date.toLocaleDateString()}</span>`;
+            <div class="text-right">
+                <p class="font-bold text-[10px] uppercase tracking-wider">${status}</p>
+                <p class="text-[10px] opacity-70">${daysToRepay !== null ? `${daysToRepay} days` : 'Active'}</p>
+            </div>`;
         container.appendChild(div);
     });
 }
 
-function showError(msg) {
-    const errEl = document.getElementById('error-message');
-    if(errEl) {
-        errEl.classList.remove('hidden');
-        errEl.querySelector('p').innerText = msg;
-        document.getElementById('loader-container').classList.add('fade-out');
+
+// --- EVENT LISTENERS & MODALS ---
+function setupEventListeners() {
+    // Prevent duplicate listeners
+    if(document.body.getAttribute('data-listeners-added')) return;
+    document.body.setAttribute('data-listeners-added', 'true');
+
+    const imageViewerModal = document.getElementById('imageViewerModal');
+    document.querySelectorAll('.document-thumbnail img').forEach(img => img.addEventListener('click', () => {
+        document.getElementById('fullImageView').src = img.src;
+        imageViewerModal.classList.remove('hidden');
+        imageViewerModal.classList.add('flex');
+    }));
+    document.getElementById('closeImageViewer').addEventListener('click', () => {
+        imageViewerModal.classList.add('hidden');
+        imageViewerModal.classList.remove('flex');
+    });
+    
+    const withdrawalModal = document.getElementById('withdrawalModal');
+    document.getElementById('withdraw-btn').addEventListener('click', () => {
+        document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+        withdrawalModal.classList.remove('hidden');
+        withdrawalModal.classList.add('flex');
+    });
+    document.getElementById('close-withdrawal-modal').addEventListener('click', () => {
+        withdrawalModal.classList.add('hidden');
+        withdrawalModal.classList.remove('flex');
+    });
+    document.getElementById('submit-withdrawal').addEventListener('click', submitWithdrawal);
+
+    const historyModal = document.getElementById('historyModal');
+    document.getElementById('view-history-btn').addEventListener('click', () => {
+        populateHistoryModal();
+        historyModal.classList.remove('hidden');
+        historyModal.classList.add('flex');
+    });
+    document.getElementById('close-history-modal').addEventListener('click', () => {
+        historyModal.classList.add('hidden');
+        historyModal.classList.remove('flex');
+    });
+
+    const scoreModal = document.getElementById('scoreBreakdownModal');
+    document.getElementById('score-info-btn').addEventListener('click', () => {
+        populateScoreBreakdownModal();
+        scoreModal.classList.remove('hidden');
+        scoreModal.classList.add('flex');
+    });
+    document.getElementById('close-score-modal').addEventListener('click', () => {
+        scoreModal.classList.add('hidden');
+        scoreModal.classList.remove('flex');
+    });
+
+    const cardModal = document.getElementById('cardResultModal');
+    document.getElementById('close-card-modal').addEventListener('click', () => {
+            cardModal.classList.add('hidden');
+            cardModal.classList.remove('flex');
+    });
+    document.getElementById('download-card-btn').addEventListener('click', downloadCard);
+    document.getElementById('share-card-btn').addEventListener('click', shareCard);
+}
+
+// --- UPDATED HISTORY FUNCTION ---
+function populateHistoryModal() {
+    const historyList = document.getElementById('history-list');
+    historyList.innerHTML = '';
+    if (balanceHistory.length === 0) {
+        historyList.innerHTML = '<p class="text-center text-gray-400 italic py-4">No transactions yet.</p>';
+        return;
     }
-}
-
-// ==========================================
-// 6. GLOBAL HELPERS (Window Attachment)
-// ==========================================
-
-// Global History Opener for Ranking Page
-window.openHistoryGlobal = (mId) => {
-    const mProfit = membersProfitMap.get(mId);
-    if (!mProfit) return;
-    
-    document.getElementById('modal-member-name').textContent = mProfit.name;
-    document.getElementById('modal-total-amount').textContent = `₹${mProfit.total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    
-    const list = document.getElementById('history-list-container');
-    list.innerHTML = '';
-    
-    [...mProfit.history].reverse().forEach(h => {
+    [...balanceHistory].reverse().forEach(item => {
         const div = document.createElement('div');
-        div.className = "flex justify-between p-2 border-b border-gray-100";
-        div.innerHTML = `
-            <div><p class="text-xs font-bold">${h.type}</p><p class="text-[10px] text-gray-400">${h.from} • ${h.date.toLocaleDateString()}</p></div>
-            <span class="text-xs font-bold ${h.amount >=0 ? 'text-green-600' : 'text-red-600'}">${h.amount >=0 ? '+' : ''}₹${h.amount}</span>
-        `;
-        list.appendChild(div);
-    });
-    
-    document.getElementById('historyModal').classList.add('show');
-};
-
-// Event Listeners setup
-function setupProfileListeners() {
-    document.getElementById('withdraw-btn')?.addEventListener('click', () => {
-        document.getElementById('withdrawalModal').classList.add('show');
-        document.getElementById('modal-available-balance').textContent = `₹${currentMemberData.extraBalance.toFixed(2)}`;
-    });
-    // Add other profile specific listeners here
-}
-
-function setupRankingListeners() {
-    document.getElementById('close-modal').addEventListener('click', () => {
-        document.getElementById('historyModal').classList.remove('show');
-    });
-}
-
-// --- 7. INITIALIZATION TRIGGER (AT THE BOTTOM - CRITICAL) ---
-document.addEventListener("DOMContentLoaded", () => {
-    // Check for Instant Cache
-    try {
-        if (isProfilePage) {
-            const mId = new URLSearchParams(window.location.search).get('memberId');
-            const cached = localStorage.getItem(`tcf_cache_profile_${mId}`);
-            if (cached) processAndRender(...Object.values(JSON.parse(cached)));
-        } else if (isRankingPage) {
-            const cached = localStorage.getItem('tcf_cache_ranking_master');
-            if (cached) processAndRender(...Object.values(JSON.parse(cached)));
+        const isCredit = item.amount > 0;
+        let title = '', icon = '', subText = '';
+        
+        switch(item.type) {
+            case 'profit': 
+                title = 'Profit Share'; 
+                subText = `From: ${item.from}`;
+                icon="fa-chart-line"; 
+                break;
+            case 'manual_credit': title = 'Admin Bonus'; icon="fa-gift"; break;
+            case 'withdrawal': title = 'Withdrawal'; icon="fa-arrow-circle-up"; break;
+            case 'Self Return (10%)': title = 'Self Interest (10%)'; icon="fa-undo"; break;
+            case 'Guarantor Commission (10%)': 
+                title = `Guarantor Comm.`; 
+                subText = `Source: ${item.from}`;
+                icon="fa-handshake"; 
+                break;
+            default: title = `Transaction`; icon="fa-coins";
         }
-    } catch (e) { console.warn("Cache load error", e); }
+        
+        div.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors';
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full ${isCredit ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'} flex items-center justify-center text-xs">
+                    <i class="fas ${icon}"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800 text-sm">${title}</p>
+                    ${subText ? `<p class="text-[10px] text-gray-500 font-medium truncate w-24 sm:w-auto">${subText}</p>` : ''}
+                    <p class="text-[10px] text-gray-400">${item.date.toLocaleDateString('en-GB')}</p>
+                </div>
+            </div>
+            <span class="font-bold text-sm ${isCredit ? 'text-green-600' : 'text-red-600'}">${isCredit ? '+' : ''} ₹${Math.abs(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>`;
+        historyList.appendChild(div);
+    });
+}
 
-    // Start Network Fetch
-    checkAuthAndInitialize();
-});
+function populateScoreBreakdownModal() {
+    const contentDiv = document.getElementById('score-breakdown-content');
+    if (!scoreResultCache) { contentDiv.innerHTML = "Score not calculated yet."; return; }
+    const { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore } = scoreResultCache;
 
+    const row = (label, val, base) => `
+        <div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+            <span class="text-sm text-gray-600">${label}</span>
+            <div class="text-right">
+                <span class="font-bold text-royal-blue">${val.toFixed(0)}</span>
+                ${isNewMemberRuleApplied ? `<p class="text-[9px] text-red-400 line-through">${base.toFixed(0)}</p>` : ''}
+            </div>
+        </div>`;
+
+    let html = '';
+    html += row("Capital Score", capitalScore, originalCapitalScore);
+    html += row("Consistency", consistencyScore, originalConsistencyScore);
+    html += row("Credit Behavior", creditScore, originalCreditScore);
+    
+    if(isNewMemberRuleApplied) {
+        html += `<p class="text-xs text-red-500 mt-2 bg-red-50 p-2 rounded border border-red-100 text-center"><i class="fas fa-info-circle"></i> New Member Rule: 50% score reduction for first 6 months.</p>`;
+    }
+    
+    html += `<div class="mt-3 pt-3 border-t-2 border-gray-100 flex justify-between items-center">
+        <span class="font-bold text-royal-dark">Total Score</span>
+        <span class="font-extrabold text-2xl text-royal-gold">${totalScore.toFixed(2)}</span>
+    </div>`;
+    contentDiv.innerHTML = html;
+}
+
+function submitWithdrawal() {
+    const amountInput = document.getElementById('withdrawal-amount');
+    const errorMsg = document.getElementById('withdrawal-error');
+    const amount = parseFloat(amountInput.value);
+    if (isNaN(amount) || amount < 10) {
+        errorMsg.classList.remove('hidden'); return;
+    }
+    if (amount > currentMemberData.extraBalance) {
+        errorMsg.textContent = "Insufficient Balance";
+        errorMsg.classList.remove('hidden'); return;
+    }
+    errorMsg.classList.add('hidden');
+    document.getElementById('withdrawalModal').classList.add('hidden');
+    document.getElementById('withdrawalModal').classList.remove('flex');
+    showWithdrawalCard(amount);
+}
+
+function showError(message) {
+    const loaderContainer = document.getElementById('loader-container');
+    const errorMessageEl = document.getElementById('error-message');
+    if(loaderContainer) loaderContainer.classList.add('fade-out');
+    errorMessageEl.querySelector('p').textContent = message;
+    errorMessageEl.classList.remove('hidden');
+}
+
+// --- CARD GENERATION ---
+async function showWithdrawalCard(amount) {
+    // Setup Card Data
+    const cardProfilePic = document.getElementById('card-profile-pic');
+    const cardSignature = document.getElementById('card-signature');
+    
+    // Wait for images
+    cardProfilePic.src = await toDataURL(currentMemberData.profilePicUrl || DEFAULT_PROFILE_PIC);
+    cardSignature.src = await toDataURL(currentMemberData.signatureUrl || '');
+    
+    document.getElementById('card-name').textContent = currentMemberData.fullName;
+    document.getElementById('card-amount').textContent = `₹${amount.toLocaleString('en-IN')}`;
+    document.getElementById('card-date').textContent = new Date().toLocaleDateString('en-GB');
+    document.getElementById('rand-tx-id').textContent = Math.floor(100000 + Math.random() * 900000);
+    
+    document.getElementById('share-card-btn').classList.toggle('hidden', !navigator.share);
+    
+    const cardModal = document.getElementById('cardResultModal');
+    cardModal.classList.remove('hidden');
+    cardModal.classList.add('flex');
+}
+
+// --- Helper Functions ---
+function toDataURL(url) { return new Promise((resolve) => { if(!url || url.startsWith('data:')) { resolve(url); return; } const proxyUrl = 'https://cors-anywhere.herokuapp.com/'; const targetUrl = url.includes('firebasestorage') ? proxyUrl + url : url; fetch(targetUrl).then(response => response.blob()).then(blob => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = () => resolve(url); reader.readAsDataURL(blob); }).catch(() => resolve(url)); }); }
+async function getCardAsBlob() { const cardElement = document.getElementById('withdrawalCard'); const canvas = await html2canvas(cardElement, { scale: 3, backgroundColor: null, useCORS: true }); return new Promise(resolve => canvas.toBlob(resolve, 'image/png')); }
+async function downloadCard() { const blob = await getCardAsBlob(); const link = document.createElement('a'); link.download = `withdrawal-${currentMemberData.fullName.replace(/\s+/g, '-')}.png`; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }
+async function shareCard() { const blob = await getCardAsBlob(); const file = new File([blob], `withdrawal.png`, { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Withdrawal Receipt', text: `Withdrawal receipt for ${currentMemberData.fullName}.`}); } catch (error) { console.error('Share failed:', error); alert('Could not share the image.'); } } else { alert("Sharing is not supported."); } }
+
+function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
+    const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
+    if (memberData.length === 0) return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0, isNewMemberRuleApplied: false, originalCapitalScore: 0, originalConsistencyScore: 0, originalCreditScore: 0 };
+    const firstTransactionDate = memberData[0]?.date;
+    const membershipDays = firstTransactionDate ? (untilDate - firstTransactionDate) / (1000 * 3600 * 24) : 0;
+    const isNewMemberRuleApplied = membershipDays < CONFIG.NEW_MEMBER_PROBATION_DAYS;
+    let capitalScore = calculateCapitalScore(memberName, untilDate, allData);
+    let consistencyScore = calculateConsistencyScore(memberData, untilDate);
+    let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData); 
+    const originalCapitalScore = capitalScore;
+    const originalConsistencyScore = consistencyScore;
+    const originalCreditScore = creditScore;
+    if (isNewMemberRuleApplied) { capitalScore *= 0.50; consistencyScore *= 0.50; creditScore *= 0.50; }
+    const totalScore = (capitalScore * CONFIG.CAPITAL_WEIGHT) + (consistencyScore * CONFIG.CONSISTENCY_WEIGHT) + (creditScore * CONFIG.CREDIT_BEHAVIOR_WEIGHT);
+    return { totalScore, capitalScore, consistencyScore, creditScore, isNewMemberRuleApplied, originalCapitalScore, originalConsistencyScore, originalCreditScore };
+}
+
+function calculateCapitalScore(memberName, untilDate, allData) {
+    const daysToReview = 180;
+    const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
+    const memberTransactions = allData.filter(r => r.name === memberName && r.date >= startDate && r.date <= untilDate);
+    const totalSipAmount = memberTransactions.reduce((sum, tx) => sum + tx.sipPayment, 0);
+    const normalizedScore = (totalSipAmount / CONFIG.CAPITAL_SCORE_TARGET_SIP) * 100;
+    return Math.min(100, Math.max(0, normalizedScore));
+}
+
+function calculateConsistencyScore(memberData, untilDate) {
+    const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
+    const recentMemberData = memberData.filter(r => r.date >= oneYearAgo); if (recentMemberData.length === 0) return 0;
+    const sipHistory = {};
+    recentMemberData.filter(r => r.sipPayment > 0).forEach(r => { const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`; if (!sipHistory[monthKey]) { sipHistory[monthKey] = r.date.getDate() <= CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5; } });
+    if (Object.keys(sipHistory).length === 0) return 0;
+    const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
+    const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
+    return (consistencyPoints / (monthsConsidered * 10)) * 100;
+}
+
+function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData = {}) {
+    const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
+    const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
+    const memberActiveLoans = Object.values(activeLoansData).filter(loan => loan.memberName === memberName);
+    const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan'); 
+    if (loansInLastYear.length === 0) {
+        const firstTransactionDate = memberData[0]?.date;
+        if (!firstTransactionDate) return 40;
+        const membershipDays = (untilDate - firstTransactionDate) / (1000 * 3600 * 24);
+        if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; 
+        const sipData = memberData.filter(r => r.sipPayment > 0);
+        if (sipData.length < 2) return 60;
+        const avgSipDay = sipData.slice(1).reduce((sum, r) => sum + r.date.getDate(), 0) / (sipData.length - 1);
+        return Math.min(100, Math.max(0, (15 - avgSipDay) * 5 + 40));
+    }
+    let totalPoints = 0; let loansProcessed = 0;
+    for (const loanRecord of loansInLastYear) {
+        loansProcessed++;
+        const loanDetails = memberActiveLoans.find(l => new Date(l.loanDate).getTime() === loanRecord.date.getTime() && l.originalAmount === loanRecord.loan);
+        if (loanDetails && loanDetails.loanType === 'Business Loan') {
+            const loanStartDate = new Date(loanDetails.loanDate);
+            const monthsPassed = (untilDate.getFullYear() - loanStartDate.getFullYear()) * 12 + (untilDate.getMonth() - loanStartDate.getMonth());
+            for (let i = 1; i <= monthsPassed; i++) {
+                const checkMonth = new Date(loanStartDate); checkMonth.setMonth(checkMonth.getMonth() + i);
+                const hasPaidInterest = memberData.some(tx => tx.returnAmount > 0 && new Date(tx.date).getFullYear() === checkMonth.getFullYear() && new Date(tx.date).getMonth() === checkMonth.getMonth());
+                if (hasPaidInterest) totalPoints += 5; else totalPoints -= 10;
+            }
+            if ((untilDate - loanStartDate) / (1000 * 3600 * 24) > CONFIG.BUSINESS_LOAN_TERM_DAYS && loanDetails.status === 'Active') totalPoints -= 50;
+        } else if (loanDetails && loanDetails.loanType === '10 Days Credit') {
+            if (loanDetails.status === 'Paid') {
+                const payments = memberData.filter(r => r.date > loanRecord.date && r.payment > 0);
+                let repaidDate = null; let amountRepaid = 0;
+                for (const p of payments) { amountRepaid += p.payment; if (amountRepaid >= loanRecord.loan) { repaidDate = p.date; break; } }
+                const daysToRepay = repaidDate ? (repaidDate - loanRecord.date) / (1000 * 3600 * 24) : Infinity;
+                if (daysToRepay <= CONFIG.TEN_DAY_CREDIT_GRACE_DAYS) totalPoints += 15; else totalPoints -= 20;
+            } else totalPoints -= 30;
+        } else {
+            let amountRepaid = 0; let repaymentDate = null;
+            const paymentsAfterLoan = memberData.filter(r => r.date > loanRecord.date && (r.payment > 0 || r.sipPayment > 0)); 
+            for (const p of paymentsAfterLoan) { amountRepaid += p.payment + p.sipPayment; if (amountRepaid >= loanRecord.loan) { repaymentDate = p.date; break; } }
+            if (repaymentDate) {
+                const daysToRepay = (repaymentDate - loanRecord.date) / (1000 * 3600 * 24);
+                if (daysToRepay <= CONFIG.LOAN_TERM_BEST) totalPoints += 25; else if (daysToRepay <= CONFIG.LOAN_TERM_BETTER) totalPoints += 20; else if (daysToRepay <= CONFIG.LOAN_TERM_GOOD) totalPoints += 15; else totalPoints -= 20;
+            } else totalPoints -= 40;
+        }
+    }
+    if (loansProcessed === 0) return 40;
+    return Math.max(0, Math.min(100, (totalPoints / (loansProcessed * 25)) * 100));
+}
+
+function getLoanEligibility(memberName, score, allData) {
+    const memberData = allData.filter(r => r.name === memberName);
+    let totalCapital = memberData.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
+    if (totalCapital < 0) return { eligible: false, reason: 'Outstanding Loan' };
+    const firstSip = memberData.find(r => r.sipPayment > 0);
+    if (!firstSip) return { eligible: false, reason: 'No SIP yet' };
+    const daysSinceFirstSip = (new Date() - firstSip.date) / (1000 * 3600 * 24);
+    if (daysSinceFirstSip < CONFIG.MINIMUM_MEMBERSHIP_DAYS) { const daysLeft = Math.ceil(CONFIG.MINIMUM_MEMBERSHIP_DAYS - daysSinceFirstSip); return { eligible: false, reason: `${daysLeft} days left` }; }
+    const { LOAN_LIMIT_TIER1_SCORE, LOAN_LIMIT_TIER2_SCORE, LOAN_LIMIT_TIER3_SCORE, LOAN_LIMIT_TIER1_MAX, LOAN_LIMIT_TIER2_MAX, LOAN_LIMIT_TIER3_MAX, LOAN_LIMIT_TIER4_MAX } = CONFIG;
+    let multiplier = LOAN_LIMIT_TIER1_MAX;
+    if (score < LOAN_LIMIT_TIER1_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX;
+    else if (score < LOAN_LIMIT_TIER2_SCORE) multiplier = LOAN_LIMIT_TIER1_MAX + ((score - LOAN_LIMIT_TIER1_SCORE) / (LOAN_LIMIT_TIER2_SCORE - LOAN_LIMIT_TIER1_SCORE)) * (LOAN_LIMIT_TIER2_MAX - LOAN_LIMIT_TIER1_MAX);
+    else if (score < LOAN_LIMIT_TIER3_SCORE) multiplier = LOAN_LIMIT_TIER2_MAX + ((score - LOAN_LIMIT_TIER2_SCORE) / (LOAN_LIMIT_TIER3_SCORE - LOAN_LIMIT_TIER2_SCORE)) * (LOAN_LIMIT_TIER3_MAX - LOAN_LIMIT_TIER2_MAX);
+    else multiplier = LOAN_LIMIT_TIER3_MAX + ((score - LOAN_LIMIT_TIER3_SCORE) / (100 - LOAN_LIMIT_TIER3_SCORE)) * (LOAN_LIMIT_TIER4_MAX - LOAN_LIMIT_TIER3_MAX); 
+    return { eligible: true, multiplier: Math.max(LOAN_LIMIT_TIER1_MAX, multiplier) };
+}
+
+function calculateProfitDistribution(paymentRecord, allData, activeLoansData) { 
+    const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
+    const distribution = [];
+    const selfShare = totalInterest * 0.10;
+    distribution.push({ name: paymentRecord.name, share: selfShare, type: 'Self Return (10%)' });
+    const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
+    if (payerMemberInfo && payerMemberInfo.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
+            distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
+    }
+    const communityPool = totalInterest * 0.70;
+    const userLoansBeforePayment = allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan' ); 
+    if (userLoansBeforePayment.length === 0) return { distribution };
+    const relevantLoan = userLoansBeforePayment.pop(); const loanDate = relevantLoan.date; 
+    const snapshotScores = {}; let totalScoreInSnapshot = 0; 
+    const membersInSystemAtLoanDate = [...new Set(allData.filter(r => r.date <= loanDate).map(r => r.name))]; 
+    membersInSystemAtLoanDate.forEach(name => { 
+        if (name === paymentRecord.name) return;
+        const scoreObject = calculatePerformanceScore(name, loanDate, allData, activeLoansData); 
+        if (scoreObject.totalScore > 0) { snapshotScores[name] = scoreObject; totalScoreInSnapshot += scoreObject.totalScore; } 
+    }); 
+    if (totalScoreInSnapshot > 0) {
+        for (const memberName in snapshotScores) { 
+            let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * communityPool; 
+            const lastLoanDate = allData.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date;
+            const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
+            let appliedMultiplier = 1.0; 
+            if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2; 
+            else if (daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) appliedMultiplier = CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1; 
+            memberShare *= appliedMultiplier; 
+            if (memberShare > 0) distribution.push({ name: memberName, share: memberShare, type: 'Community Profit' }); 
+        } 
+    }
+    return { distribution }; 
+}
+
+function calculateTotalProfitForMember(memberName, allData, activeLoansData) { 
+    return allData.reduce((totalProfit, transaction) => { 
+        if (transaction.returnAmount > 0) { 
+            const result = calculateProfitDistribution(transaction, allData, activeLoansData); 
+            const memberShare = result?.distribution.find(d => d.name === memberName); 
+            if (memberShare) totalProfit += memberShare.share; 
+        } 
+        return totalProfit; 
+    }, 0); 
+}
+
+function calculateTotalExtraBalance(memberId, memberFullName) {
+    const history = [];
+    const profitEvents = allData.filter(r => r.returnAmount > 0);
+    profitEvents.forEach(paymentRecord => {
+        const result = calculateProfitDistribution(paymentRecord, allData, activeLoansData);
+        const memberShare = result?.distribution.find(d => d.name === memberFullName);
+        if(memberShare && memberShare.share > 0) {
+            history.push({ type: memberShare.type || 'profit', from: paymentRecord.name, date: paymentRecord.date, amount: memberShare.share });
+        }
+    });
+    const manualAdjustments = allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
+    manualAdjustments.forEach(tx => {
+        if (tx.extraBalance > 0) history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
+        if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
+    });
+    history.sort((a,b) => a.date - b.date);
+    const total = history.reduce((acc, item) => acc + item.amount, 0);
+    return { total, history };
+}
 
