@@ -37,8 +37,8 @@
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-dark);
-            /* Padding increased as requested to push content down */
-            padding-top: 360px; 
+            /* Updated Padding to push content down */
+            padding-top: 380px; 
             transition: padding-top 0.3s ease;
         }
 
@@ -140,8 +140,8 @@
 
         /* === PROFILE SECTION (HERO CARD) === */
         .profile-section {
-            /* Positioned Lower as requested (100px) */
-            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+            /* Position Updated: More spacing from top */
+            position: fixed; top: 120px; left: 50%; transform: translateX(-50%);
             background: var(--glass-bg);
             border: 1px solid rgba(212, 175, 55, 0.4);
             border-radius: 20px;
@@ -149,7 +149,6 @@
             width: 94%; max-width: 800px;
             z-index: 1000; padding: 20px;
             display: grid;
-            /* Layout changed: Buttons moved to absolute position */
             grid-template-areas: "pic header" "stats stats";
             grid-template-columns: auto 1fr; 
             gap: 15px;
@@ -170,7 +169,7 @@
             display: flex; 
             flex-direction: column; 
             justify-content: center;
-            padding-right: 80px; /* Space for the right-side button */
+            padding-right: 80px;
         }
         .profile-header-area h3 {
             margin: 0; font-size: 1.4em; color: var(--primary-color);
@@ -263,10 +262,10 @@
 
         /* === MOBILE RESPONSIVE CARD VIEW === */
         @media only screen and (max-width: 768px) {
-            body { padding-top: 360px; } /* Adjusted for mobile */
+            body { padding-top: 380px; } /* Increased for mobile */
             .profile-section { 
                 width: 92%; padding: 15px; 
-                top: 95px; /* Lower on mobile too */
+                top: 110px; /* Increased for mobile */
                 grid-template-areas: "pic header" "stats stats";
                 grid-template-columns: 60px 1fr; 
                 gap: 10px; 
@@ -275,14 +274,13 @@
             .profile-header-area { 
                 grid-area: header; 
                 justify-content: center;
-                padding-right: 0; /* Reset padding */
+                padding-right: 0; 
             }
             .profile-header-area h3 { 
                 font-size: 1.2em; 
-                max-width: 65%; /* Prevent name from hitting button */
+                max-width: 65%; 
             }
             
-            /* Button Mobile Adjustment */
             .profile-buttons-area {
                 top: 25px;
                 right: 15px;
@@ -411,7 +409,6 @@
                  <small style="color: #666; font-size: 0.8em; margin-top: 2px;">Member Dashboard</small>
             </div>
             
-            <!-- MOVED: SIP Status Button now Absolute Right -->
             <div class="profile-buttons-area">
                 <button id="sipStatusButton"><i data-feather="check-circle" style="width: 14px;"></i> SIP Status</button>
             </div>
@@ -604,7 +601,7 @@
         const profileSection = document.getElementById('profileSection');
         if(profileSection) {
             const height = profileSection.offsetHeight;
-            document.body.style.paddingTop = `${height + 130}px`; // Adjusted spacing
+            document.body.style.paddingTop = `${height + 150}px`; // Adjusted spacing
         }
     }
 
@@ -694,18 +691,12 @@
         memberTransactions.forEach(tx => {
             const amt = parseFloat(tx.amount || 0);
             
-            // --- STRICT CALCULATION LOGIC AS REQUESTED ---
-            // Only add to Total SIP if type is strictly "SIP"
             if (tx.type === 'SIP') {
                 totalSip += amt;
             }
-            
-            // Loan Payment uses 'interestPaid' field, NOT amount
             if (tx.type === 'Loan Payment') {
                 interestPaid += parseFloat(tx.interestPaid || 0);
             }
-            
-            // Extra Wallet
             if (tx.type === 'Extra Payment') accountBalance += amt;
             if (tx.type === 'Extra Withdraw') accountBalance -= amt;
             
@@ -767,6 +758,7 @@
             ? allTransactions
             : allTransactions.filter(tx => tx.memberId === selectedMemberId);
             
+        // SORT BY DATE ASCENDING TO CALCULATE RUNNING BALANCE
         const sortedForCalc = [...memberTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
         let runningBalance = 0;
@@ -777,32 +769,62 @@
             let line = { date: new Date(tx.date), description: '', debit: 0, principal: 0, interest: 0, type: tx.type };
             const amt = parseFloat(tx.amount || 0);
             
+            // --- UPDATED LOGIC: NET WORTH RUNNING BALANCE ---
+            // Formula: Balance = (SIP + Extra) - (Loan Taken - Principal Repaid)
+            // Effectively: Balance increases with SIP, Extra, and Principal Repayment. Decreases with Withdraw and Loan Taken.
+            // Interest is IGNORED in balance calculation.
+
             switch (tx.type) {
                 case 'SIP': 
                     line.description = 'SIP Deposit'; 
                     line.principal = amt; 
+                    runningBalance += amt; // Add SIP
                     break;
+                    
                 case 'Loan Taken': 
                     line.description = `${tx.loanType || 'Loan'} Disbursed`; 
                     line.debit = amt; 
+                    runningBalance -= amt; // Subtract Loan Taken (Liability)
                     break;
+                    
                 case 'Loan Payment': 
-                    line.description = `Repayment`; 
+                    // Find Original Loan Amount for Context
+                    let loanContext = "";
+                    if(tx.paidForLoanId) {
+                        // Try finding in Active Loans
+                        let loan = allActiveLoans.find(l => l.id === tx.paidForLoanId || l.transactionId === tx.paidForLoanId);
+                        // If not found, try searching in Loan Taken transactions
+                        if (!loan) {
+                             const originalLoanTx = allTransactions.find(t => t.transactionId === tx.paidForLoanId || t.linkedLoanId === tx.paidForLoanId);
+                             if (originalLoanTx) loan = { originalAmount: originalLoanTx.amount };
+                        }
+                        
+                        if(loan && loan.originalAmount) {
+                            loanContext = ` (Loan: ${f(loan.originalAmount)})`;
+                        }
+                    }
+
+                    line.description = `Repayment${loanContext}`; 
                     line.principal = parseFloat(tx.principalPaid || 0); 
                     line.interest = parseFloat(tx.interestPaid || 0); 
+                    
+                    runningBalance += line.principal; // Add Principal Repaid (Reduces Liability)
+                    // Interest is NOT added/subtracted from balance (Expense)
                     break;
+                    
                 case 'Extra Payment': 
                     line.description = 'Extra Wallet Deposit'; 
                     line.principal = amt; 
+                    runningBalance += amt; // Add Extra
                     break;
+                    
                 case 'Extra Withdraw': 
                     line.description = 'Extra Wallet Withdrawal'; 
                     line.debit = amt; 
+                    runningBalance -= amt; // Subtract Withdraw
                     break;
             }
             
-            const credit = line.principal + line.interest;
-            runningBalance += credit - line.debit;
             line.balance = runningBalance;
             statementLines.push(line);
         });
@@ -815,7 +837,7 @@
             return false;
         });
         
-        filteredLines.reverse();
+        filteredLines.reverse(); // Newest First
 
         if (filteredLines.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #777;">No transactions found.</td></tr>`;
@@ -962,4 +984,5 @@
 </script>
 </body>
 </html>
+
 
