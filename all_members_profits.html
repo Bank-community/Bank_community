@@ -4,149 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#001540">
-    <title>Member Profit Ranking</title>
+    <title>Profit Ranking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        royal: {
-                            dark: '#001540',
-                            blue: '#002366',
-                            gold: '#D4AF37',
-                            green: '#28a745',
-                            light: '#f4f6f9'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Poppins', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
+    <script>tailwind.config = { theme: { extend: { colors: { royal: { dark: '#001540', blue: '#002366', gold: '#D4AF37' } } } } }</script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        
-        body { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; color: #1a1a1a; -webkit-tap-highlight-color: transparent; }
-
-        /* Loader */
-        .loader-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background-color: #f4f6f9; z-index: 2000;
-            transition: opacity 0.5s ease;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
+        .loader-container { position: fixed; inset: 0; background: #f4f6f9; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; transition: opacity 0.5s; }
         .loader-container.fade-out { opacity: 0; pointer-events: none; }
-        .loader {
-            border: 4px solid #e0e0e0; border-top: 4px solid #D4AF37;
-            border-radius: 50%; width: 50px; height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Ranking Card Styling */
-        .rank-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            border-left: 4px solid transparent;
-            margin-bottom: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Top 3 Ranks Styling */
-        .rank-1 { border-left-color: #FFD700; background: linear-gradient(to right, #fff, #fffcf5); } /* Gold */
-        .rank-2 { border-left-color: #C0C0C0; background: linear-gradient(to right, #fff, #fcfcfc); } /* Silver */
-        .rank-3 { border-left-color: #CD7F32; background: linear-gradient(to right, #fff, #fffaf5); } /* Bronze */
-        .rank-normal { border-left-color: #e2e8f0; }
-
-        .rank-badge {
-            width: 28px; height: 28px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; border-radius: 50%;
-            font-size: 0.85em;
-        }
-        .rank-1 .rank-badge { color: #B8860B; background: #FFF8DC; box-shadow: 0 2px 4px rgba(218, 165, 32, 0.2); }
-        .rank-2 .rank-badge { color: #7f8c8d; background: #f0f2f5; }
-        .rank-3 .rank-badge { color: #A0522D; background: #FFF5EE; }
-        .rank-normal .rank-badge { color: #002366; background: #E0E7FF; }
-
-        /* Modal */
-        .modal {
-            display: none; position: fixed; z-index: 3000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
-            align-items: center; justify-content: center;
-            backdrop-filter: blur(4px);
-            opacity: 0; transition: opacity 0.3s ease;
-        }
-        .modal.show { display: flex; opacity: 1; }
-        .modal-content {
-            background: white; width: 90%; max-width: 400px;
-            border-radius: 20px; padding: 24px;
-            transform: translateY(20px); transition: transform 0.3s ease;
-            max-height: 85vh; display: flex; flex-direction: column;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .modal.show .modal-content { transform: translateY(0); }
+        .loader { border: 4px solid #ddd; border-top: 4px solid #D4AF37; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 60; }
+        .modal.show { display: flex; }
     </style>
 </head>
-<body class="pb-10 bg-gray-50">
+<body class="pb-10">
 
     <!-- LOADER -->
     <div id="loader-container" class="loader-container">
         <div class="loader"></div>
-        <p class="mt-4 text-royal-blue font-semibold text-sm tracking-widest">LOADING RANKING...</p>
+        <p class="mt-4 text-royal-blue font-bold tracking-widest text-sm">UPDATING RANKING...</p>
     </div>
 
     <!-- HEADER -->
-    <div class="bg-royal-dark text-white p-6 pb-12 rounded-b-[2.5rem] shadow-xl sticky top-0 z-10">
-        <div class="flex justify-between items-center max-w-2xl mx-auto">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                <i class="fas fa-wallet text-royal-gold"></i> Withdrawable Balance
-            </h1>
-            <a href="index.html" class="text-white/80 hover:text-white text-sm font-medium bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">Back</a>
+    <div class="bg-royal-dark text-white p-6 pb-10 rounded-b-[2rem] shadow-xl sticky top-0 z-10">
+        <div class="flex justify-between items-center max-w-xl mx-auto">
+            <h1 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-trophy text-royal-gold"></i> Profit Leaderboard</h1>
+            <a href="index.html" class="bg-white/10 px-3 py-1 rounded-full text-xs hover:bg-white/20 transition">Back</a>
         </div>
-        <p class="text-center text-xs text-gray-300 mt-3 max-w-2xl mx-auto opacity-80">
-            Real-time calculation of Profit Share, Bonuses minus Withdrawals.
-        </p>
     </div>
 
-    <!-- RANKING LIST CONTAINER (Identifier ID) -->
-    <div id="ranking-list-container" class="px-4 -mt-8 space-y-3 max-w-2xl mx-auto pb-8 relative z-0">
-        <!-- JS will inject cards here -->
+    <!-- LIST CONTAINER -->
+    <div id="ranking-list-container" class="px-4 -mt-6 max-w-xl mx-auto relative z-20 space-y-3 pb-8">
+        <!-- Cards injected by JS -->
     </div>
 
     <!-- HISTORY MODAL -->
     <div id="historyModal" class="modal">
-        <div class="modal-content border-t-4 border-royal-gold">
-            <div class="flex justify-between items-center mb-6">
+        <div class="bg-white w-[90%] max-w-sm rounded-xl p-5 shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
                 <div>
-                    <h3 id="modal-member-name" class="text-xl font-bold text-royal-blue">History</h3>
-                    <p class="text-xs text-gray-400">Balance Breakdown</p>
+                    <h3 id="modal-member-name" class="font-bold text-royal-blue text-lg">--</h3>
+                    <p class="text-xs text-gray-400">Balance History</p>
                 </div>
-                <button id="close-modal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center text-xl">&times;</button>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
             </div>
             
-            <div class="bg-gradient-to-r from-royal-blue to-royal-dark p-4 rounded-xl mb-4 flex justify-between items-center text-white shadow-lg">
-                <span class="text-xs font-semibold uppercase opacity-80">Net Balance</span>
-                <span id="modal-total-amount" class="text-2xl font-bold text-royal-gold">₹0</span>
+            <div class="bg-blue-50 p-3 rounded-lg mb-3 flex justify-between items-center">
+                <span class="text-xs font-bold text-blue-800 uppercase">Net Balance</span>
+                <span id="modal-total-amount" class="font-bold text-xl text-royal-blue">₹0</span>
             </div>
 
-            <div id="history-list-container" class="overflow-y-auto flex-grow custom-scrollbar pr-1 space-y-2">
-                <!-- Items -->
+            <div id="history-list-container" class="flex-grow overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                <!-- History Items -->
             </div>
         </div>
     </div>
 
-    <!-- MASTER BRAIN SCRIPT -->
+    <!-- MASTER LOGIC -->
     <script type="module" src="view_logic.js"></script>
-
 </body>
 </html>
 
