@@ -37,8 +37,8 @@
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-dark);
-            /* Updated Padding to push content down */
-            padding-top: 380px; 
+            /* Adjusted padding to push content down further as requested */
+            padding-top: 400px; 
             transition: padding-top 0.3s ease;
         }
 
@@ -140,8 +140,8 @@
 
         /* === PROFILE SECTION (HERO CARD) === */
         .profile-section {
-            /* Position Updated: More spacing from top */
-            position: fixed; top: 120px; left: 50%; transform: translateX(-50%);
+            /* Pushed down further for better aesthetics */
+            position: fixed; top: 130px; left: 50%; transform: translateX(-50%);
             background: var(--glass-bg);
             border: 1px solid rgba(212, 175, 55, 0.4);
             border-radius: 20px;
@@ -217,15 +217,16 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         
-        #accountBalanceCard { border-color: var(--success-color); background: #f0fff4; }
+        /* Renamed ID for context, used to be accountBalanceCard (Extra Wallet) */
+        #netBalanceCard { border-color: var(--primary-color); background: #f0f4ff; }
         #loanDueCard { border-color: var(--danger-color); background: #fff5f5; }
 
         .metric-card .label { font-size: 0.75em; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
         .metric-card .value { font-weight: 800; font-size: 1.1em; color: var(--primary-color); }
         
-        #accountBalanceCard .value { color: var(--success-color); }
+        #netBalanceCard .value { color: var(--primary-color); }
         #loanDueCard .value { color: var(--danger-color); }
-        #totalSipValue { color: var(--primary-color); }
+        #totalSipValue { color: var(--success-color); }
 
         /* === FILTERS === */
         .filters {
@@ -262,10 +263,10 @@
 
         /* === MOBILE RESPONSIVE CARD VIEW === */
         @media only screen and (max-width: 768px) {
-            body { padding-top: 380px; } /* Increased for mobile */
+            body { padding-top: 400px; } /* Increased for mobile */
             .profile-section { 
                 width: 92%; padding: 15px; 
-                top: 110px; /* Increased for mobile */
+                top: 120px; /* Increased for mobile */
                 grid-template-areas: "pic header" "stats stats";
                 grid-template-columns: 60px 1fr; 
                 gap: 10px; 
@@ -422,9 +423,10 @@
                      <span class="label">Total Loan</span>
                      <span id="totalLoanValue" class="value">₹0</span>
                  </div>
-                 <div class="metric-card" id="accountBalanceCard">
-                     <span class="label">Extra Wallet</span>
-                     <span id="accountBalanceValue" class="value">₹0</span>
+                 <!-- Renamed Card: Shows Net Balance -->
+                 <div class="metric-card" id="netBalanceCard">
+                     <span class="label">Balance</span>
+                     <span id="netBalanceValue" class="value">₹0</span>
                  </div>
                  <div class="metric-card" id="loanDueCard">
                      <span class="label">Loan Due</span>
@@ -601,7 +603,7 @@
         const profileSection = document.getElementById('profileSection');
         if(profileSection) {
             const height = profileSection.offsetHeight;
-            document.body.style.paddingTop = `${height + 150}px`; // Adjusted spacing
+            document.body.style.paddingTop = `${height + 150}px`; 
         }
     }
 
@@ -610,7 +612,7 @@
         memberFilter.innerHTML = '<option value="all">All Members</option>';
 
         const approvedMembers = Object.values(allMembers)
-            .filter(member => member.status === 'Approved')
+            .filter(member => member.status === 'Approved' && !member.isDisabled) // Filter Disabled Members
             .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
         approvedMembers.forEach(member => {
@@ -686,7 +688,7 @@
             ? allActiveLoans
             : allActiveLoans.filter(loan => loan.memberId === selectedMemberId);
 
-        let totalSip = 0, interestPaid = 0, accountBalance = 0, totalLoanTaken = 0;
+        let totalSip = 0, interestPaid = 0, totalLoanTaken = 0;
         
         memberTransactions.forEach(tx => {
             const amt = parseFloat(tx.amount || 0);
@@ -697,15 +699,20 @@
             if (tx.type === 'Loan Payment') {
                 interestPaid += parseFloat(tx.interestPaid || 0);
             }
-            if (tx.type === 'Extra Payment') accountBalance += amt;
-            if (tx.type === 'Extra Withdraw') accountBalance -= amt;
-            
             if (tx.type === 'Loan Taken') totalLoanTaken += amt;
+            
+            // "Extra" transactions are completely ignored in totals
         });
 
+        // Current Active Loan Due
         const loanDue = memberActiveLoans
             .filter(l => l.status === 'Active')
             .reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
+        
+        // --- NEW BALANCE LOGIC ---
+        // Balance = Total SIP - Loan Due
+        // (If no loan, Balance = SIP. If Loan, Balance = SIP - Loan)
+        const netBalance = totalSip - loanDue;
 
         let joiningDate = '-';
         if (selectedMemberId !== 'all') {
@@ -722,7 +729,7 @@
 
         document.getElementById('totalSipValue').textContent = f(totalSip);
         document.getElementById('interestPaidValue').textContent = f(interestPaid);
-        document.getElementById('accountBalanceValue').textContent = f(accountBalance);
+        document.getElementById('netBalanceValue').textContent = f(netBalance); // Replaced Extra Wallet
         document.getElementById('loanDueValue').textContent = f(loanDue);
         document.getElementById('totalLoanValue').textContent = f(totalLoanTaken);
         document.getElementById('joiningDateValue').textContent = joiningDate;
@@ -769,36 +776,32 @@
             let line = { date: new Date(tx.date), description: '', debit: 0, principal: 0, interest: 0, type: tx.type };
             const amt = parseFloat(tx.amount || 0);
             
-            // --- UPDATED LOGIC: NET WORTH RUNNING BALANCE ---
-            // Formula: Balance = (SIP + Extra) - (Loan Taken - Principal Repaid)
-            // Effectively: Balance increases with SIP, Extra, and Principal Repayment. Decreases with Withdraw and Loan Taken.
-            // Interest is IGNORED in balance calculation.
+            // --- STRICT RUNNING BALANCE LOGIC ---
+            // Balance = SIP - Loan Taken + Principal Repaid
+            // Interest and Extra Wallet are IGNORED in balance calc
 
             switch (tx.type) {
                 case 'SIP': 
                     line.description = 'SIP Deposit'; 
                     line.principal = amt; 
-                    runningBalance += amt; // Add SIP
+                    runningBalance += amt; 
                     break;
                     
                 case 'Loan Taken': 
                     line.description = `${tx.loanType || 'Loan'} Disbursed`; 
                     line.debit = amt; 
-                    runningBalance -= amt; // Subtract Loan Taken (Liability)
+                    runningBalance -= amt; // Liability created, balance reduces
                     break;
                     
                 case 'Loan Payment': 
-                    // Find Original Loan Amount for Context
+                    // Find context (which loan?)
                     let loanContext = "";
                     if(tx.paidForLoanId) {
-                        // Try finding in Active Loans
                         let loan = allActiveLoans.find(l => l.id === tx.paidForLoanId || l.transactionId === tx.paidForLoanId);
-                        // If not found, try searching in Loan Taken transactions
                         if (!loan) {
                              const originalLoanTx = allTransactions.find(t => t.transactionId === tx.paidForLoanId || t.linkedLoanId === tx.paidForLoanId);
                              if (originalLoanTx) loan = { originalAmount: originalLoanTx.amount };
                         }
-                        
                         if(loan && loan.originalAmount) {
                             loanContext = ` (Loan: ${f(loan.originalAmount)})`;
                         }
@@ -808,21 +811,13 @@
                     line.principal = parseFloat(tx.principalPaid || 0); 
                     line.interest = parseFloat(tx.interestPaid || 0); 
                     
-                    runningBalance += line.principal; // Add Principal Repaid (Reduces Liability)
-                    // Interest is NOT added/subtracted from balance (Expense)
+                    runningBalance += line.principal; // Only Principal affects balance
                     break;
                     
                 case 'Extra Payment': 
-                    line.description = 'Extra Wallet Deposit'; 
-                    line.principal = amt; 
-                    runningBalance += amt; // Add Extra
-                    break;
-                    
-                case 'Extra Withdraw': 
-                    line.description = 'Extra Wallet Withdrawal'; 
-                    line.debit = amt; 
-                    runningBalance -= amt; // Subtract Withdraw
-                    break;
+                case 'Extra Withdraw':
+                    // Explicitly IGNORE Extra types as per instructions
+                    return; 
             }
             
             line.balance = runningBalance;
@@ -921,7 +916,7 @@
         listContainer.innerHTML = "";
         
         const approvedMembers = Object.values(allMembers)
-            .filter(member => member.status === 'Approved')
+            .filter(member => member.status === 'Approved' && !member.isDisabled)
             .sort((a, b) => a.fullName.localeCompare(b.fullName));
             
         const now = new Date();
