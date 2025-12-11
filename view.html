@@ -122,6 +122,11 @@
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         background-color: #f4f6f9; z-index: 2000;
+        transition: opacity 0.5s ease;
+    }
+    .loader-container.fade-out {
+        opacity: 0;
+        pointer-events: none;
     }
     .loader {
         border: 4px solid #e0e0e0;
@@ -470,8 +475,25 @@
     let currentMemberData = {}, scoreResultCache = null, balanceHistory = [];
 
     const DEFAULT_PROFILE_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
+    const VIEW_CACHE_KEY = 'tcf_royal_view_cache_v2'; // Unique key for View Page
 
-    // --- INITIALIZATION ---
+    // --- INSTANT LOAD (STEP 1) ---
+    // Runs before Firebase connects
+    function initInstantLoad() {
+        try {
+            const cachedRaw = localStorage.getItem(VIEW_CACHE_KEY);
+            if (cachedRaw) {
+                const data = JSON.parse(cachedRaw);
+                console.log("⚡ Instant Load from Cache...");
+                processAndRender(data.members, data.transactions, data.activeLoans);
+            }
+        } catch(e) {
+            console.warn("Cache load failed:", e);
+        }
+    }
+    initInstantLoad();
+
+    // --- INITIALIZATION (STEP 2) ---
     document.addEventListener("DOMContentLoaded", checkAuthAndInitialize);
 
     async function checkAuthAndInitialize() {
@@ -486,7 +508,7 @@
 
             onAuthStateChanged(auth, user => {
                 if (user) {
-                    runAppLogic();
+                    fetchFreshData(); // Get fresh data from network
                 } else {
                     console.log("No user found, signing in anonymously...");
                     signInAnonymously(auth).catch(error => {
@@ -496,24 +518,20 @@
                 }
             });
         } catch (error) {
-            showError(error.message);
+            // Only show error if no cache was loaded
+            const content = document.getElementById('profile-content');
+            if (content.classList.contains('hidden')) {
+                showError(error.message);
+            }
         }
     }
 
-    function runAppLogic() {
+    // --- DATA FETCHING (NETWORK) ---
+    async function fetchFreshData() {
         setupEventListeners();
-        loadAndProcessData();
-    }
-
-    // --- DATA FETCHING & PROCESSING ---
-    async function loadAndProcessData() {
-        const loaderText = document.getElementById('loader-text');
         
-        const urlParams = new URLSearchParams(window.location.search);
-        const memberId = urlParams.get('memberId');
-        if (!memberId) { showError("No member ID provided in URL."); return; }
-
         try {
+            console.log("🌐 Fetching fresh data...");
             const membersRef = ref(db, 'members');
             const transactionsRef = ref(db, 'transactions');
             const activeLoansRef = ref(db, 'activeLoans');
@@ -525,19 +543,50 @@
             ]);
 
             if (!membersSnapshot.exists() || !transactionsSnapshot.exists()) {
-                throw new Error('Members or transactions data not found in Firebase.');
+                throw new Error('Data not found in Firebase.');
             }
 
             const members = membersSnapshot.val();
             const transactions = transactionsSnapshot.val();
-            activeLoansData = activeLoansSnapshot.exists() ? activeLoansSnapshot.val() : {};
+            const activeLoans = activeLoansSnapshot.exists() ? activeLoansSnapshot.val() : {};
+
+            // Save to Cache for next time
+            localStorage.setItem(VIEW_CACHE_KEY, JSON.stringify({
+                members, transactions, activeLoans
+            }));
+
+            // Render with fresh data
+            processAndRender(members, transactions, activeLoans);
+
+        } catch (error) {
+            console.error("Network fetch failed:", error);
+            // If cache loaded, ignore network error silently. Otherwise show error.
+            if (document.getElementById('profile-content').classList.contains('hidden')) {
+                showError(error.message);
+            }
+        }
+    }
+
+    // --- MAIN LOGIC: PROCESS & RENDER ---
+    function processAndRender(members, transactions, activeLoans) {
+        // Clear previous state for fresh render
+        allData = []; memberDataMap.clear(); activeLoansData = {}; balanceHistory = [];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('memberId');
+        if (!memberId) { showError("No member ID provided in URL."); return; }
+
+        try {
+            activeLoansData = activeLoans || {};
             
             currentMemberData = members[memberId];
             if (!currentMemberData) {
-                throw new Error(`Member with ID "${memberId}" not found.`);
+                // If specific member not found, maybe deleted or ID wrong
+                throw new Error(`Member ID not found.`);
             }
             currentMemberData.membershipId = memberId;
 
+            // Map all members for lookup
             for (const id in members) {
                 if (members[id].status === 'Approved') {
                      memberDataMap.set(id, {
@@ -548,6 +597,7 @@
                 }
             }
             
+            // Process Transactions
             const processedTransactions = [];
             let idCounter = 0;
             for (const txId in transactions) {
@@ -587,10 +637,15 @@
 
             allData = processedTransactions.sort((a, b) => a.date - b.date || a.id - b.id);
             
+            // Update UI
             populateProfileData();
 
+            // Hide Loader
+            const loader = document.getElementById('loader-container');
+            if(loader) loader.classList.add('hidden');
+
         } catch (error) {
-            console.error("Error fetching or processing data:", error);
+            console.error("Render error:", error);
             showError(error.message);
         }
     }
@@ -637,7 +692,8 @@
         
         populateLoanHistory(data.fullName);
         
-        document.getElementById('loader-container').classList.add('hidden');
+        // Final visibility check
+        document.getElementById('loader-container').classList.add('fade-out'); // Smooth fade
         document.getElementById('profile-content').classList.remove('hidden');
     }
 
@@ -691,6 +747,10 @@
     // --- EVENT LISTENERS & MODALS ---
     function setupEventListeners() {
         const imageViewerModal = document.getElementById('imageViewerModal');
+        // Check if listeners already added to avoid duplicates on re-render
+        if(document.body.getAttribute('data-listeners-added')) return;
+        document.body.setAttribute('data-listeners-added', 'true');
+
         document.querySelectorAll('.document-thumbnail img').forEach(img => img.addEventListener('click', () => {
             document.getElementById('fullImageView').src = img.src;
             imageViewerModal.classList.remove('hidden');
@@ -841,7 +901,7 @@
     function showError(message) {
         const loaderContainer = document.getElementById('loader-container');
         const errorMessageEl = document.getElementById('error-message');
-        loaderContainer.classList.add('hidden');
+        if(loaderContainer) loaderContainer.classList.add('fade-out');
         errorMessageEl.querySelector('p').textContent = message;
         errorMessageEl.classList.remove('hidden');
     }
@@ -1061,5 +1121,4 @@
   </script>
 </body>
 </html>
-
 
