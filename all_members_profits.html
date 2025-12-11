@@ -49,28 +49,30 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Ranking Card Styling */
+        /* Ranking Card Styling - FIXED ALIGNMENT */
         .rank-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
-            border-left: 5px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid transparent; /* Consistent border width */
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
         }
-        .rank-card:active { transform: scale(0.98); }
         
         /* Top 3 Ranks Styling */
-        .rank-1 { border-left-color: #FFD700; background: linear-gradient(to right, #fff, #fffdf0); } /* Gold */
-        .rank-2 { border-left-color: #C0C0C0; background: linear-gradient(to right, #fff, #f8f8f8); } /* Silver */
+        .rank-1 { border-left-color: #FFD700; background: linear-gradient(to right, #fff, #fffcf5); } /* Gold */
+        .rank-2 { border-left-color: #C0C0C0; background: linear-gradient(to right, #fff, #fcfcfc); } /* Silver */
         .rank-3 { border-left-color: #CD7F32; background: linear-gradient(to right, #fff, #fffaf5); } /* Bronze */
+        .rank-normal { border-left-color: #e2e8f0; }
 
         .rank-badge {
-            width: 30px; height: 30px;
+            width: 28px; height: 28px;
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; border-radius: 50%;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
-        .rank-1 .rank-badge { color: #B8860B; background: #FFF8DC; }
+        .rank-1 .rank-badge { color: #B8860B; background: #FFF8DC; box-shadow: 0 2px 4px rgba(218, 165, 32, 0.2); }
         .rank-2 .rank-badge { color: #7f8c8d; background: #f0f2f5; }
         .rank-3 .rank-badge { color: #A0522D; background: #FFF5EE; }
         .rank-normal .rank-badge { color: #002366; background: #E0E7FF; }
@@ -78,7 +80,7 @@
         /* Modal */
         .modal {
             display: none; position: fixed; z-index: 3000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
             align-items: center; justify-content: center;
             backdrop-filter: blur(4px);
             opacity: 0; transition: opacity 0.3s ease;
@@ -86,53 +88,54 @@
         .modal.show { display: flex; opacity: 1; }
         .modal-content {
             background: white; width: 90%; max-width: 400px;
-            border-radius: 16px; padding: 20px;
+            border-radius: 20px; padding: 24px;
             transform: translateY(20px); transition: transform 0.3s ease;
-            max-height: 80vh; display: flex; flex-direction: column;
+            max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
         .modal.show .modal-content { transform: translateY(0); }
     </style>
 </head>
-<body class="pb-10">
+<body class="pb-10 bg-gray-50">
 
     <!-- LOADER -->
     <div id="loader-container" class="loader-container">
         <div class="loader"></div>
-        <p class="mt-4 text-royal-blue font-semibold text-sm tracking-widest">CALCULATING PROFITS...</p>
+        <p class="mt-4 text-royal-blue font-semibold text-sm tracking-widest">CALCULATING BALANCES...</p>
     </div>
 
     <!-- HEADER -->
-    <div class="bg-royal-dark text-white p-5 pb-10 rounded-b-3xl shadow-lg sticky top-0 z-10">
+    <div class="bg-royal-dark text-white p-6 pb-12 rounded-b-[2.5rem] shadow-xl sticky top-0 z-10">
         <div class="flex justify-between items-center max-w-2xl mx-auto">
             <h1 class="text-xl font-bold flex items-center gap-2">
-                <i class="fas fa-trophy text-royal-gold"></i> Member Profit Ranking
+                <i class="fas fa-wallet text-royal-gold"></i> Withdrawable Balance
             </h1>
-            <a href="index.html" class="text-white opacity-80 hover:opacity-100 text-sm font-medium">Back</a>
+            <a href="index.html" class="text-white/80 hover:text-white text-sm font-medium bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">Back</a>
         </div>
-        <p class="text-center text-xs text-gray-400 mt-2 max-w-2xl mx-auto">
-            Total earnings from Community Profit Share, Commission & Bonuses.
+        <p class="text-center text-xs text-gray-300 mt-3 max-w-2xl mx-auto opacity-80">
+            Real-time calculation of Profit Share, Bonuses minus Withdrawals.
         </p>
     </div>
 
     <!-- RANKING LIST -->
-    <div id="ranking-list" class="px-4 -mt-6 space-y-3 max-w-2xl mx-auto pb-8 relative z-0">
+    <div id="ranking-list" class="px-4 -mt-8 space-y-3 max-w-2xl mx-auto pb-8 relative z-0">
         <!-- JS will inject cards here -->
     </div>
 
     <!-- HISTORY MODAL -->
     <div id="historyModal" class="modal">
-        <div class="modal-content shadow-2xl border-t-4 border-royal-green">
-            <div class="flex justify-between items-center mb-4">
+        <div class="modal-content border-t-4 border-royal-gold">
+            <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h3 id="modal-member-name" class="text-lg font-bold text-royal-blue">History</h3>
-                    <p class="text-xs text-gray-500">Income Sources</p>
+                    <h3 id="modal-member-name" class="text-xl font-bold text-royal-blue">History</h3>
+                    <p class="text-xs text-gray-400">Balance Breakdown</p>
                 </div>
-                <button id="close-modal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center font-bold">&times;</button>
+                <button id="close-modal" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center text-xl">&times;</button>
             </div>
             
-            <div class="bg-green-50 p-3 rounded-lg mb-4 flex justify-between items-center border border-green-100">
-                <span class="text-xs font-semibold text-green-800 uppercase">Total Earned</span>
-                <span id="modal-total-amount" class="text-xl font-bold text-green-600">₹0</span>
+            <div class="bg-gradient-to-r from-royal-blue to-royal-dark p-4 rounded-xl mb-4 flex justify-between items-center text-white shadow-lg">
+                <span class="text-xs font-semibold uppercase opacity-80">Net Balance</span>
+                <span id="modal-total-amount" class="text-2xl font-bold text-royal-gold">₹0</span>
             </div>
 
             <div id="history-list-container" class="overflow-y-auto flex-grow custom-scrollbar pr-1 space-y-2">
@@ -148,17 +151,12 @@
         import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
         // --- CONFIG ---
-        const CACHE_KEY = 'tcf_all_profits_cache_v2';
+        const CACHE_KEY = 'tcf_all_balance_cache_v3'; // Changed version
+        // Reusing View Logic Config
         const CONFIG = {
-            CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
             CAPITAL_SCORE_TARGET_SIP: 30000,
-            SIP_ON_TIME_LIMIT: 10,
             INACTIVE_DAYS_LEVEL_1: 180, INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90,
-            INACTIVE_DAYS_LEVEL_2: 365, INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75,
-            NEW_MEMBER_PROBATION_DAYS: 180,
-            MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE: 30,
-            TEN_DAY_CREDIT_GRACE_DAYS: 15, BUSINESS_LOAN_TERM_DAYS: 365,
-            LOAN_TERM_BEST: 30, LOAN_TERM_BETTER: 60, LOAN_TERM_GOOD: 90
+            INACTIVE_DAYS_LEVEL_2: 365, INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75
         };
 
         let allData = [], memberDataMap = new Map(), activeLoansData = {};
@@ -222,15 +220,14 @@
                         id: id,
                         name: members[id].fullName,
                         imageUrl: members[id].profilePicUrl,
-                        guarantorName: members[id].guarantorName,
-                        joiningDate: new Date(members[id].joiningDate)
+                        guarantorName: members[id].guarantorName
                     });
-                    // Initialize Profit Map
-                    membersProfitMap.set(id, { total: 0, history: [], name: members[id].fullName });
+                    // Initialize Map
+                    membersProfitMap.set(id, { total: 0, history: [], name: members[id].fullName, img: members[id].profilePicUrl });
                 }
             }
 
-            // Process Transactions Array (For Score Calculation)
+            // Process Transactions
             const txList = [];
             for(const txId in transactions) {
                 const tx = transactions[txId];
@@ -239,48 +236,47 @@
                     txList.push({
                         ...tx,
                         date: new Date(tx.date),
-                        name: m.name, // Required for Score Logic
+                        name: m.name, 
                         id: txId,
                         sipPayment: tx.type === 'SIP' ? (tx.amount||0) : 0,
-                        loan: tx.type === 'Loan Taken' ? (tx.amount||0) : 0,
-                        payment: tx.type === 'Loan Payment' ? ((tx.principalPaid||0) + (tx.interestPaid||0)) : 0,
-                        returnAmount: tx.type === 'Loan Payment' ? (tx.interestPaid||0) : 0,
-                        loanType: tx.type === 'Loan Taken' ? 'Loan' : null
+                        returnAmount: tx.type === 'Loan Payment' ? (tx.interestPaid||0) : 0
                     });
                 }
             }
             allData = txList.sort((a,b) => a.date - b.date);
 
-            // --- PROFIT CALCULATION LOOP ---
-            // 1. Loop through all transactions
+            // --- MAIN CALCULATION LOOP (SYNCED WITH VIEW.HTML) ---
             allData.forEach(tx => {
-                // A. Interest Distribution (Profit Share)
+                // A. PROFIT SHARES (Interest Distribution)
                 if(tx.returnAmount > 0) {
-                    const dist = calculateProfitDistribution(tx); // Reuse logic
+                    const dist = calculateProfitDistribution(tx); 
                     dist.forEach(shareItem => {
-                        // Add to recipient's history
-                        // shareItem = { name: 'Recipient Name', share: 50, type: 'Community Profit' }
                         const recipientId = getMemberIdByName(shareItem.name);
                         if(recipientId) {
-                            addProfit(recipientId, shareItem.share, shareItem.type, `From: ${tx.name}`, tx.date);
+                            addProfit(recipientId, shareItem.share, shareItem.type, `From: ${tx.name}`, tx.date, 'credit');
                         }
                     });
                 }
 
-                // B. Admin Bonuses (Extra Balance)
+                // B. MANUAL CREDITS (Admin Bonus)
                 if(tx.type === 'Extra Payment' && tx.amount > 0) {
-                    addProfit(tx.memberId, tx.amount, 'Admin Bonus', 'Manual Credit', tx.date);
+                    addProfit(tx.memberId, tx.amount, 'Admin Bonus', 'Manual Credit', tx.date, 'credit');
+                }
+
+                // C. WITHDRAWALS (Subtract Amount) -- THIS WAS MISSING
+                if(tx.type === 'Extra Withdraw' && tx.amount > 0) {
+                    addProfit(tx.memberId, -tx.amount, 'Withdrawal', 'Admin Debit', tx.date, 'debit');
                 }
             });
 
             renderUI();
         }
 
-        function addProfit(memberId, amount, type, source, date) {
+        function addProfit(memberId, amount, type, source, date, txType) {
             if(!membersProfitMap.has(memberId)) return;
             const data = membersProfitMap.get(memberId);
             data.total += amount;
-            data.history.push({ amount, type, source, date });
+            data.history.push({ amount, type, source, date, txType });
         }
 
         function getMemberIdByName(name) {
@@ -295,7 +291,7 @@
             const listContainer = document.getElementById('ranking-list');
             listContainer.innerHTML = '';
             
-            // Convert Map to Array & Sort by Profit (High to Low)
+            // Sort by Balance (High to Low)
             const rankedList = Array.from(membersProfitMap.entries())
                 .map(([id, data]) => ({ id, ...data }))
                 .sort((a, b) => b.total - a.total);
@@ -307,24 +303,27 @@
                 else if(rank === 2) rankClass = 'rank-2';
                 else if(rank === 3) rankClass = 'rank-3';
 
-                const memberInfo = memberDataMap.get(member.id);
-                const imgUrl = memberInfo.imageUrl || 'https://placehold.co/100';
+                const imgUrl = member.img || 'https://placehold.co/100';
+                
+                // Color Logic for Total
+                const amountColor = member.total >= 0 ? 'text-green-600' : 'text-red-600';
+                const sign = member.total >= 0 ? '+' : '';
 
                 const html = `
                     <div class="rank-card ${rankClass} p-4 flex items-center justify-between gap-3 animate-fade-in">
-                        <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="flex items-center gap-3 overflow-hidden flex-grow">
                             <div class="rank-badge flex-shrink-0">${rank}</div>
-                            <img src="${imgUrl}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                            <img src="${imgUrl}" class="w-10 h-10 rounded-full object-cover border border-gray-200" onerror="this.src='https://placehold.co/100'">
                             <div class="min-w-0">
                                 <h4 class="font-bold text-royal-blue text-sm truncate">${member.name}</h4>
-                                <p class="text-[10px] text-gray-500 font-medium">Profit Earned</p>
+                                <p class="text-[10px] text-gray-500 font-medium">Net Balance</p>
                             </div>
                         </div>
                         
                         <div class="text-right flex-shrink-0 flex items-center gap-2">
-                            <span class="font-bold text-green-600 text-sm">+₹${Math.floor(member.total).toLocaleString()}</span>
+                            <span class="font-bold ${amountColor} text-sm">${sign}₹${Math.floor(member.total).toLocaleString()}</span>
                             <button onclick="window.openHistory('${member.id}')" 
-                                class="bg-green-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-green-700 shadow-sm transition-colors">
+                                class="bg-royal-blue text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-royal-dark shadow-sm transition-colors">
                                 History
                             </button>
                         </div>
@@ -333,7 +332,6 @@
                 listContainer.insertAdjacentHTML('beforeend', html);
             });
 
-            // Hide Loader
             document.getElementById('loader-container').classList.add('fade-out');
         }
 
@@ -343,24 +341,36 @@
             if(!memberProfit) return;
 
             document.getElementById('modal-member-name').textContent = memberProfit.name;
-            document.getElementById('modal-total-amount').textContent = `₹${memberProfit.total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const totalEl = document.getElementById('modal-total-amount');
+            totalEl.textContent = `₹${memberProfit.total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            totalEl.className = `text-2xl font-bold ${memberProfit.total >= 0 ? 'text-royal-gold' : 'text-red-400'}`;
 
             const list = document.getElementById('history-list-container');
             list.innerHTML = '';
 
             if(memberProfit.history.length === 0) {
-                list.innerHTML = '<p class="text-center text-gray-400 text-xs py-4">No profit records found.</p>';
+                list.innerHTML = '<p class="text-center text-gray-400 text-xs py-4">No records found.</p>';
             } else {
-                // Show latest first
                 [...memberProfit.history].reverse().forEach(item => {
                     const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-2 border-b border-gray-50 last:border-0 hover:bg-gray-50';
+                    div.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50';
+                    
+                    const isCredit = item.amount > 0;
+                    const amountColor = isCredit ? 'text-green-600' : 'text-red-600';
+                    const icon = isCredit ? 'fa-arrow-down' : 'fa-arrow-up';
+                    const iconBg = isCredit ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600';
+
                     div.innerHTML = `
-                        <div>
-                            <p class="text-xs font-bold text-gray-700">${item.type}</p>
-                            <p class="text-[10px] text-gray-400">${item.source} • ${item.date.toLocaleDateString()}</p>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${iconBg} flex items-center justify-center text-xs">
+                                <i class="fas ${icon}"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-gray-700">${item.type}</p>
+                                <p class="text-[10px] text-gray-400">${item.source} • ${item.date.toLocaleDateString()}</p>
+                            </div>
                         </div>
-                        <span class="text-xs font-bold text-green-600">+₹${item.amount.toFixed(0)}</span>
+                        <span class="text-xs font-bold ${amountColor}">${isCredit ? '+' : ''}₹${item.amount.toLocaleString()}</span>
                     `;
                     list.appendChild(div);
                 });
@@ -376,9 +386,7 @@
             document.body.style.overflow = '';
         };
 
-        // --- 6. PROFIT CALCULATION ALGORITHMS (Reused & Simplified) ---
-        // (This logic is identical to view_logic.js for consistency)
-        
+        // --- 6. PROFIT CALCULATION ALGORITHMS (Lite Version) ---
         function calculateProfitDistribution(tx) {
             const distribution = [];
             const totalInterest = tx.returnAmount;
@@ -392,32 +400,16 @@
                 distribution.push({ name: payer.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Comm. (10%)' });
             }
 
-            // 3. Community Pool (80% or 70% based on logic - utilizing 70% as per standard TCF logic)
-            // Note: Standard TCF logic often uses 70% for community if guarantor exists, or 80%. 
-            // Here assuming standard distribution logic from view.html which uses scores.
+            // 3. Community Pool (70%)
             const communityPool = totalInterest * 0.70; 
             
-            // Calculate Scores at that point in time
-            const loanDate = new Date(tx.date); // Using transaction date for snapshot approx
-            // Finding the loan date is complex without the loan link, but for ranking, 
-            // we can approximate using transaction date or recalculate efficiently.
-            
-            // OPTIMIZATION: Calculating exact score for every past transaction is heavy.
-            // Simplified Distribution for Speed: Distribute based on CURRENT Capital Score 
-            // (or iterate active members at that time).
-            // For true accuracy, we'd need the full score engine. 
-            // Below is the FULL SCORE ENGINE implementation (re-embedded):
-
+            // Lite Score Logic for Distribution
             const snapshotScores = {}; 
             let totalScoreInSnapshot = 0;
-            
-            // Get members active at that time
             const activeMembersAtTime = Array.from(memberDataMap.values()).filter(m => m.joiningDate <= tx.date);
 
             activeMembersAtTime.forEach(m => {
                 if(m.name === tx.name) return; // Exclude payer
-                
-                // Lite Score Calc (Only Capital + Consistency to save speed)
                 const score = calculateLiteScore(m.name, tx.date); 
                 if(score > 0) {
                     snapshotScores[m.name] = score;
@@ -428,30 +420,30 @@
             if(totalScoreInSnapshot > 0) {
                 for(const mName in snapshotScores) {
                     let share = (snapshotScores[mName] / totalScoreInSnapshot) * communityPool;
+                    // Apply Inactive Penalty
+                    const lastLoanDate = allData.filter(r => r.name === mName && r.loan > 0 && r.date <= tx.date && r.loanType === 'Loan').pop()?.date;
+                    const daysSinceLastLoan = lastLoanDate ? (tx.date - lastLoanDate) / (1000 * 3600 * 24) : Infinity;
+                    if(daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_2) share *= CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_2;
+                    else if(daysSinceLastLoan > CONFIG.INACTIVE_DAYS_LEVEL_1) share *= CONFIG.INACTIVE_PROFIT_MULTIPLIER_LEVEL_1;
+
                     if(share > 0) distribution.push({ name: mName, share: share, type: 'Profit Share' });
                 }
             }
             return distribution;
         }
 
-        // LITE Score Calculator (Optimized for Bulk Processing)
         function calculateLiteScore(memberName, untilDate) {
-            // Capital Score
+            // Simplified Score for Performance
             const daysReview = 180;
             const startDate = new Date(untilDate.getTime() - daysReview * 86400000);
             const mTx = allData.filter(t => t.name === memberName && t.date >= startDate && t.date <= untilDate);
             const totalSip = mTx.reduce((s, t) => s + t.sipPayment, 0);
             let capScore = Math.min(100, (totalSip / CONFIG.CAPITAL_SCORE_TARGET_SIP) * 100);
-
-            // Consistency
-            // (Simplified: if joined recently, give default score to avoid 0)
-            let consScore = 50; 
-            
-            // Total
-            return (capScore * 0.5) + (consScore * 0.5); 
+            return (capScore * 0.5) + (50 * 0.5); // Assuming avg consistency
         }
 
     </script>
 </body>
 </html>
+
 
