@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#002366">
-    <title>Gallery - Trust Community Fund</title>
+    <title>Trust Rules - Community Gallery</title>
     
-    <!-- Using the same CSS file for consistent Theme -->
+    <!-- Royal Theme CSS -->
     <link rel="stylesheet" href="user-style.css">
     <script src="https://unpkg.com/feather-icons"></script>
 
@@ -16,222 +16,273 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        /* Gallery Specific Styles ensuring Royal Theme matches */
+        /* --- Gallery Specific Royal Tweaks --- */
         body {
             background-color: var(--bg-color);
+            padding-bottom: 40px;
         }
 
-        .gallery-header {
-            text-align: center;
-            padding: 20px;
-            background: var(--card-bg);
-            margin: 20px auto;
-            max-width: 1140px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px var(--shadow-color);
-            border: 1px solid rgba(212, 175, 55, 0.2); /* Subtle Gold Border */
+        /* Header Specific Adjustments */
+        .rules-header-display {
+            background: linear-gradient(145deg, #D4AF37, #B8860B);
+            border-radius: 20px;
+            padding: 5px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
             position: relative;
+            overflow: hidden;
         }
 
-        .back-btn-wrapper {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
+        .rules-header-inner {
+            background-color: #0b1021; /* Deep Royal Blue */
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            position: relative;
+            /* Royal Pattern Overlay */
+            background-image: radial-gradient(circle, rgba(212, 175, 55, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
         }
 
+        .rules-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+            object-fit: cover;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .rules-title {
+            color: white;
+            font-size: 1.8em;
+            font-weight: 800;
+            font-family: 'Times New Roman', serif;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin: 0;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #fff, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        /* Royal Card Grid */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2 Columns on Mobile */
+            grid-template-columns: repeat(2, 1fr); /* Mobile: 2 Columns */
             gap: 15px;
-            padding: 15px;
-            max-width: 1140px;
-            margin: 0 auto;
+            padding: 5px;
         }
 
         @media (min-width: 768px) {
             .gallery-grid {
-                grid-template-columns: repeat(4, 1fr); /* 4 Columns on Desktop */
+                grid-template-columns: repeat(4, 1fr); /* Desktop: 4 Columns */
             }
         }
 
-        /* Royal Image Card */
-        .gallery-item {
+        /* Card Styling */
+        .rule-card {
             background: #fff;
-            border-radius: 12px;
+            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            border: 2px solid transparent;
             position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid rgba(212, 175, 55, 0.3); /* Subtle Gold Border */
+            cursor: pointer;
         }
 
-        .gallery-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3); /* Gold Shadow on Hover */
+        .rule-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 25px rgba(212, 175, 55, 0.3); /* Gold Glow */
             border-color: var(--accent-gold);
         }
 
-        .gallery-img-container {
+        .rule-img-wrapper {
             width: 100%;
-            aspect-ratio: 1 / 1; /* Square Images */
-            overflow: hidden;
-            background-color: #f0f0f0;
+            padding-top: 141.4%; /* Aspect Ratio for A4 Paper (1:1.414) */
+            position: relative;
+            background: #f8f9fa;
         }
 
-        .gallery-img {
+        .rule-img {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             transition: transform 0.5s ease;
         }
 
-        .gallery-item:hover .gallery-img {
-            transform: scale(1.1);
+        .rule-card:hover .rule-img {
+            transform: scale(1.05);
         }
 
-        .gallery-caption {
-            padding: 10px;
+        .rule-info {
+            padding: 12px;
             text-align: center;
-            font-weight: 600;
-            color: var(--primary-color);
-            font-size: 0.9em;
-            background: linear-gradient(to bottom, #ffffff, #f9fcff);
-            border-top: 1px solid #eee;
+            background: linear-gradient(to bottom, #ffffff, #f4f6f9);
+            border-top: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* Lightbox Specifics overriding generic modal */
-        #galleryModal .modal-content {
+        .rule-name {
+            font-size: 0.95em;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Loading & Status */
+        .status-container {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--light-text);
+        }
+
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(212, 175, 55, 0.3);
+            border-top: 4px solid var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Custom Lightbox for Rules */
+        #ruleModal .modal-content {
             background: transparent;
             box-shadow: none;
             width: 100%;
-            max-width: 800px;
+            max-width: 600px; /* Better for reading text documents */
             padding: 0;
             border: none;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
         }
 
-        #galleryModalImg {
+        #ruleFullImg {
+            width: auto;
             max-width: 95%;
-            max-height: 80vh;
+            max-height: 85vh;
             border-radius: 8px;
-            border: 4px solid var(--accent-gold);
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            object-fit: contain;
-            background-color: #000;
-        }
-
-        #galleryModalCaption {
-            color: white;
-            margin-top: 15px;
-            font-size: 1.2em;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            background: rgba(0, 35, 102, 0.8);
-            padding: 8px 20px;
-            border-radius: 50px;
-            border: 1px solid var(--accent-gold);
-        }
-
-        .status-msg {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 40px;
-            color: var(--light-text);
-            font-size: 1.1em;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            border: 3px solid var(--accent-gold);
+            background: white;
         }
         
-        /* Floating Close Button Adjustment for Gallery */
-        #closeGalleryModal {
+        #closeRuleModal {
             position: fixed;
             top: 20px;
             right: 20px;
-            z-index: 1005;
+            z-index: 2000;
         }
+
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="header-display" style="height: auto; min-height: 80px; margin-bottom: 0; display: flex; align-items: center; justify-content: center;">
-            <div class="ad-content" style="background: transparent; box-shadow: none;">
-                <h1 style="margin: 0; font-size: 1.8em; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Community Gallery</h1>
+    <div class="content-wrapper">
+        
+        <!-- Royal Header -->
+        <div class="rules-header-display animate-on-scroll">
+            <div class="rules-header-inner">
+                <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" alt="Logo" class="rules-logo">
+                <h1 class="rules-title">Trust Rules</h1>
             </div>
-        </div>
-        <!-- Gold Border Bottom provided by user-style.css header rule -->
-    </header>
-
-    <div class="content-wrapper" style="margin-top: 20px;">
-        <div class="gallery-header animate-on-scroll">
-            <div class="back-btn-wrapper">
-                <a href="index.html" class="civil-button btn-glossy" style="padding: 8px 15px; font-size: 0.9em;">
-                    <i data-feather="arrow-left"></i> Back
-                </a>
-            </div>
-            <h2 style="margin: 0; display: inline-block;">Memories</h2>
-            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Trust Community Events & Moments</p>
         </div>
 
-        <div id="galleryContainer" class="gallery-grid animate-on-scroll">
-            <div class="status-msg">
-                <p>Loading your memories...</p>
+        <!-- Navigation & Stats -->
+        <div class="nav-bar animate-on-scroll">
+            <a href="index.html" class="civil-button btn-glossy" style="padding: 8px 18px; border-radius: 50px; font-size: 0.9em;">
+                <i data-feather="arrow-left" style="width: 18px; height: 18px;"></i> Back
+            </a>
+            <span id="ruleCountBadge" style="background: var(--primary-color); color: var(--accent-gold); padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85em; border: 1px solid var(--accent-gold);">
+                Loading...
+            </span>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div id="rulesContainer" class="gallery-grid animate-on-scroll">
+            <div class="status-container">
+                <div class="loader-spinner"></div>
+                <p>Loading Rules...</p>
             </div>
         </div>
+
     </div>
 
-    <!-- Lightbox Modal -->
-    <div id="galleryModal" class="modal">
-        <span class="close" id="closeGalleryModal">×</span>
+    <!-- Full Screen Lightbox Modal -->
+    <div id="ruleModal" class="modal">
+        <span class="close" id="closeRuleModal">×</span>
         <div class="modal-content">
-            <img id="galleryModalImg" src="" alt="Full View">
-            <div id="galleryModalCaption"></div>
+            <img id="ruleFullImg" src="" alt="Rule Document">
         </div>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        const CACHE_KEY = 'tcf_gallery_cache_v1';
-        const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
+        const CACHE_KEY_RULES = 'tcf_rules_cache_v2'; // Cache Key for Rules
+        const DEFAULT_IMAGE = 'https://via.placeholder.com/400x600?text=No+Image';
 
         // --- DOM ELEMENTS ---
-        const container = document.getElementById('galleryContainer');
-        const modal = document.getElementById('galleryModal');
-        const modalImg = document.getElementById('galleryModalImg');
-        const modalCaption = document.getElementById('galleryModalCaption');
-        const closeBtn = document.getElementById('closeGalleryModal');
+        const container = document.getElementById('rulesContainer');
+        const countBadge = document.getElementById('ruleCountBadge');
+        const modal = document.getElementById('ruleModal');
+        const fullImg = document.getElementById('ruleFullImg');
+        const closeBtn = document.getElementById('closeRuleModal');
 
-        // --- 1. INITIALIZE APP ---
+        // --- 1. INITIALIZE ---
         document.addEventListener('DOMContentLoaded', async () => {
             feather.replace();
             
-            // STEP 1: Load from Local Storage IMMEDIATELY (Instant Speed)
-            loadFromCache();
+            // Step 1: Instant Load from Local Storage
+            loadRulesFromCache();
 
-            // STEP 2: Initialize Firebase & Sync
+            // Step 2: Connect to Firebase
             await initializeFirebase();
         });
 
-        // --- 2. CACHE SYSTEM (LOCAL STORAGE) ---
-        function loadFromCache() {
-            const cachedData = localStorage.getItem(CACHE_KEY);
+        // --- 2. CACHE LOGIC ---
+        function loadRulesFromCache() {
+            const cachedData = localStorage.getItem(CACHE_KEY_RULES);
             if (cachedData) {
-                // console.log("⚡ Gallery loaded from Cache");
+                // console.log("⚡ Rules Loaded from Cache");
                 const data = JSON.parse(cachedData);
-                renderGallery(data);
+                renderRules(data);
             }
         }
 
-        function saveToCache(data) {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        function saveRulesToCache(data) {
+            localStorage.setItem(CACHE_KEY_RULES, JSON.stringify(data));
         }
 
-        // --- 3. FIREBASE LOGIC ---
+        // --- 3. FIREBASE SYNC ---
         async function initializeFirebase() {
             try {
-                // Fetch config from server (Same method as index.html)
+                // Config Fetch (Reuse existing API pattern)
                 const response = await fetch('/api/firebase-config');
                 if (!response.ok) throw new Error('Config load failed');
                 const config = await response.json();
@@ -241,99 +292,102 @@
                 }
 
                 const db = firebase.database();
+                // CORRECTED PATH: admin/rules
+                const rulesRef = db.ref('admin/rules');
                 
-                // Fetch Data from 'gallery' node
-                // Note: Assuming data structure is { id: { imageUrl: '...', title: '...' } }
-                const galleryRef = db.ref('gallery');
-                
-                galleryRef.on('value', (snapshot) => {
+                rulesRef.on('value', (snapshot) => {
                     const rawData = snapshot.val();
+                    let rulesArray = [];
+
                     if (rawData) {
-                        // Convert object to array
-                        const galleryArray = Object.keys(rawData).map(key => ({
-                            id: key,
-                            ...rawData[key]
-                        }));
-                        
-                        // Save to Cache & Update UI
-                        saveToCache(galleryArray);
-                        renderGallery(galleryArray);
-                    } else {
-                        if(!localStorage.getItem(CACHE_KEY)) {
-                             container.innerHTML = '<div class="status-msg">No images found in gallery.</div>';
+                        // Handle both Array and Object structures from Firebase
+                        if (Array.isArray(rawData)) {
+                            rulesArray = rawData.filter(item => item); // remove nulls
+                        } else {
+                            rulesArray = Object.keys(rawData).map(key => ({
+                                id: key,
+                                ...rawData[key]
+                            }));
                         }
                     }
+
+                    // Save & Render
+                    saveRulesToCache(rulesArray);
+                    renderRules(rulesArray);
                 });
 
             } catch (error) {
-                console.error("Firebase Init Error:", error);
-                // Agar cache khali hai aur error aaya, tabhi error dikhao
-                if (!localStorage.getItem(CACHE_KEY)) {
-                    container.innerHTML = `<div class="status-msg" style="color:red;">Error loading gallery.<br><small>${error.message}</small></div>`;
+                console.error("Firebase Error:", error);
+                if (!localStorage.getItem(CACHE_KEY_RULES)) {
+                    container.innerHTML = `<div class="status-container" style="color:red;">Error loading rules.<br>${error.message}</div>`;
+                    countBadge.textContent = 'Error';
                 }
             }
         }
 
         // --- 4. RENDER UI ---
-        function renderGallery(items) {
-            if (!items || items.length === 0) {
-                container.innerHTML = '<div class="status-msg">Gallery is empty.</div>';
+        function renderRules(rules) {
+            if (!rules || rules.length === 0) {
+                container.innerHTML = `<div class="status-container"><i data-feather="file-minus" style="width:40px;height:40px;color:#aaa;"></i><p>No Rules Found.</p></div>`;
+                feather.replace();
+                countBadge.textContent = '0 Rules';
                 return;
             }
 
-            container.innerHTML = ''; // Clear loading/old items
+            countBadge.textContent = `${rules.length} Rules`;
+            container.innerHTML = ''; // Clear loading
 
-            // Reverse array to show newest first (optional)
-            const sortedItems = [...items].reverse();
+            // Sort logic (Optional: newest first if timestamps exist, else as is)
+            // rules.reverse(); 
 
-            sortedItems.forEach(item => {
+            rules.forEach(rule => {
                 const card = document.createElement('div');
-                card.className = 'gallery-item';
-                card.onclick = () => openLightbox(item.imageUrl, item.title);
+                card.className = 'rule-card animate-on-scroll';
+                // Trigger Lightbox on Click
+                card.onclick = () => openLightbox(rule.imageUrl);
 
                 card.innerHTML = `
-                    <div class="gallery-img-container">
-                        <img src="${item.imageUrl}" 
-                             alt="${item.title || 'Gallery Image'}" 
-                             class="gallery-img" 
+                    <div class="rule-img-wrapper">
+                        <img src="${rule.imageUrl}" 
+                             alt="${rule.title || 'Rule'}" 
+                             class="rule-img" 
                              loading="lazy"
                              onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
                     </div>
-                    ${item.title ? `<div class="gallery-caption">${item.title}</div>` : ''}
+                    ${rule.title ? `<div class="rule-info"><h3 class="rule-name">${rule.title}</h3></div>` : ''}
                 `;
                 container.appendChild(card);
             });
+            
+            // Re-trigger scroll animation classes
+            setTimeout(() => {
+                document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
+            }, 100);
         }
 
-        // --- 5. LIGHTBOX LOGIC ---
-        function openLightbox(src, caption) {
+        // --- 5. LIGHTBOX FUNCTIONALITY ---
+        function openLightbox(src) {
+            if (!src) return;
             modal.classList.add('show');
-            modalImg.src = src;
-            modalCaption.textContent = caption || '';
-            modalCaption.style.display = caption ? 'block' : 'none';
-            document.body.style.overflow = 'hidden'; // Stop background scrolling
+            fullImg.src = src;
+            document.body.style.overflow = 'hidden'; // Lock scroll
         }
 
         function closeLightbox() {
             modal.classList.remove('show');
-            document.body.style.overflow = ''; // Enable background scrolling
-            setTimeout(() => { modalImg.src = ''; }, 300); // Clear src after animation
+            document.body.style.overflow = ''; // Unlock scroll
+            setTimeout(() => { fullImg.src = ''; }, 300);
         }
 
-        // Event Listeners for Modal
         closeBtn.addEventListener('click', closeLightbox);
-        
-        // Close on clicking outside image
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeLightbox();
         });
-
-        // Close on Escape key
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeLightbox();
         });
 
-        // Scroll Animation Logic (Reused from user-ui.js logic)
+        // Animation Observer (Shared Logic)
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -343,13 +397,10 @@
             });
         }, { threshold: 0.1 });
 
-        document.querySelectorAll('.animate-on-scroll').forEach(el => {
-            observer.observe(el);
-            // Fallback for instant load
-            setTimeout(() => el.classList.add('is-visible'), 100);
-        });
+        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
 
     </script>
 </body>
 </html>
+
 
