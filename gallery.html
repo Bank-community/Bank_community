@@ -170,17 +170,20 @@
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Custom Lightbox for Rules */
+        /* Custom Lightbox for Rules with Navigation */
         #ruleModal .modal-content {
             background: transparent;
             box-shadow: none;
             width: 100%;
-            max-width: 600px; /* Better for reading text documents */
+            height: 100%;
+            max-width: 100%;
             padding: 0;
             border: none;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
         #ruleFullImg {
@@ -191,13 +194,75 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.8);
             border: 3px solid var(--accent-gold);
             background: white;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
         }
         
         #closeRuleModal {
             position: fixed;
             top: 20px;
             right: 20px;
-            z-index: 2000;
+            z-index: 2005;
+            background: rgba(0,0,0,0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            color: white;
+            font-size: 24px;
+            padding-bottom: 4px; /* Adjustment for x alignment */
+        }
+
+        /* Navigation Arrows */
+        .modal-nav-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 35, 102, 0.6); /* Royal Blue Transparent */
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2002;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-nav-btn:hover {
+            background: rgba(0, 35, 102, 0.9);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+        }
+
+        .modal-nav-btn i {
+            width: 24px;
+            height: 24px;
+        }
+
+        #prevBtn { left: 15px; }
+        #nextBtn { right: 15px; }
+
+        /* Counter in Modal */
+        .modal-counter {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            border: 1px solid rgba(255,255,255,0.3);
+            z-index: 2002;
         }
 
     </style>
@@ -234,17 +299,24 @@
 
     </div>
 
-    <!-- Full Screen Lightbox Modal -->
+    <!-- Full Screen Lightbox Modal with Navigation -->
     <div id="ruleModal" class="modal">
         <span class="close" id="closeRuleModal">×</span>
+        
+        <!-- Navigation Buttons -->
+        <button id="prevBtn" class="modal-nav-btn"><i data-feather="chevron-left"></i></button>
+        <button id="nextBtn" class="modal-nav-btn"><i data-feather="chevron-right"></i></button>
+        
         <div class="modal-content">
             <img id="ruleFullImg" src="" alt="Rule Document">
         </div>
+
+        <div id="imageCounter" class="modal-counter">0 / 0</div>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        const CACHE_KEY_RULES = 'tcf_rules_cache_v2'; // Cache Key for Rules
+        const CACHE_KEY_RULES = 'tcf_rules_cache_v2'; 
         const DEFAULT_IMAGE = 'https://via.placeholder.com/400x600?text=No+Image';
 
         // --- DOM ELEMENTS ---
@@ -253,6 +325,13 @@
         const modal = document.getElementById('ruleModal');
         const fullImg = document.getElementById('ruleFullImg');
         const closeBtn = document.getElementById('closeRuleModal');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const imageCounter = document.getElementById('imageCounter');
+
+        // --- STATE MANAGEMENT ---
+        let allRulesData = [];
+        let currentImageIndex = 0;
 
         // --- 1. INITIALIZE ---
         document.addEventListener('DOMContentLoaded', async () => {
@@ -263,13 +342,15 @@
 
             // Step 2: Connect to Firebase
             await initializeFirebase();
+            
+            // Step 3: Setup Navigation Listeners
+            setupNavigation();
         });
 
         // --- 2. CACHE LOGIC ---
         function loadRulesFromCache() {
             const cachedData = localStorage.getItem(CACHE_KEY_RULES);
             if (cachedData) {
-                // console.log("⚡ Rules Loaded from Cache");
                 const data = JSON.parse(cachedData);
                 renderRules(data);
             }
@@ -282,7 +363,6 @@
         // --- 3. FIREBASE SYNC ---
         async function initializeFirebase() {
             try {
-                // Config Fetch (Reuse existing API pattern)
                 const response = await fetch('/api/firebase-config');
                 if (!response.ok) throw new Error('Config load failed');
                 const config = await response.json();
@@ -292,7 +372,6 @@
                 }
 
                 const db = firebase.database();
-                // CORRECTED PATH: admin/rules
                 const rulesRef = db.ref('admin/rules');
                 
                 rulesRef.on('value', (snapshot) => {
@@ -300,9 +379,8 @@
                     let rulesArray = [];
 
                     if (rawData) {
-                        // Handle both Array and Object structures from Firebase
                         if (Array.isArray(rawData)) {
-                            rulesArray = rawData.filter(item => item); // remove nulls
+                            rulesArray = rawData.filter(item => item); 
                         } else {
                             rulesArray = Object.keys(rawData).map(key => ({
                                 id: key,
@@ -311,7 +389,6 @@
                         }
                     }
 
-                    // Save & Render
                     saveRulesToCache(rulesArray);
                     renderRules(rulesArray);
                 });
@@ -327,6 +404,8 @@
 
         // --- 4. RENDER UI ---
         function renderRules(rules) {
+            allRulesData = rules; // Update global state
+            
             if (!rules || rules.length === 0) {
                 container.innerHTML = `<div class="status-container"><i data-feather="file-minus" style="width:40px;height:40px;color:#aaa;"></i><p>No Rules Found.</p></div>`;
                 feather.replace();
@@ -335,16 +414,13 @@
             }
 
             countBadge.textContent = `${rules.length} Rules`;
-            container.innerHTML = ''; // Clear loading
+            container.innerHTML = ''; 
 
-            // Sort logic (Optional: newest first if timestamps exist, else as is)
-            // rules.reverse(); 
-
-            rules.forEach(rule => {
+            rules.forEach((rule, index) => {
                 const card = document.createElement('div');
                 card.className = 'rule-card animate-on-scroll';
-                // Trigger Lightbox on Click
-                card.onclick = () => openLightbox(rule.imageUrl);
+                // Pass index to openLightbox
+                card.onclick = () => openLightbox(index);
 
                 card.innerHTML = `
                     <div class="rule-img-wrapper">
@@ -359,35 +435,81 @@
                 container.appendChild(card);
             });
             
-            // Re-trigger scroll animation classes
             setTimeout(() => {
                 document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
             }, 100);
         }
 
-        // --- 5. LIGHTBOX FUNCTIONALITY ---
-        function openLightbox(src) {
-            if (!src) return;
+        // --- 5. LIGHTBOX & NAVIGATION FUNCTIONALITY ---
+        function openLightbox(index) {
+            currentImageIndex = index;
+            updateLightboxContent();
             modal.classList.add('show');
-            fullImg.src = src;
-            document.body.style.overflow = 'hidden'; // Lock scroll
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function updateLightboxContent() {
+            // Safety check
+            if (currentImageIndex < 0) currentImageIndex = allRulesData.length - 1;
+            if (currentImageIndex >= allRulesData.length) currentImageIndex = 0;
+
+            const rule = allRulesData[currentImageIndex];
+            
+            // Fade out effect
+            fullImg.style.opacity = '0.5';
+            
+            setTimeout(() => {
+                fullImg.src = rule.imageUrl;
+                fullImg.style.opacity = '1';
+            }, 150);
+
+            // Update Counter
+            imageCounter.textContent = `${currentImageIndex + 1} / ${allRulesData.length}`;
         }
 
         function closeLightbox() {
             modal.classList.remove('show');
-            document.body.style.overflow = ''; // Unlock scroll
+            document.body.style.overflow = ''; 
             setTimeout(() => { fullImg.src = ''; }, 300);
         }
 
-        closeBtn.addEventListener('click', closeLightbox);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeLightbox();
-        });
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeLightbox();
-        });
+        function setupNavigation() {
+            // Button Clicks
+            prevBtn.onclick = (e) => {
+                e.stopPropagation();
+                currentImageIndex--;
+                updateLightboxContent();
+            };
 
-        // Animation Observer (Shared Logic)
+            nextBtn.onclick = (e) => {
+                e.stopPropagation();
+                currentImageIndex++;
+                updateLightboxContent();
+            };
+
+            // Keyboard Events
+            window.addEventListener('keydown', (e) => {
+                if (!modal.classList.contains('show')) return;
+                
+                if (e.key === 'ArrowLeft') {
+                    currentImageIndex--;
+                    updateLightboxContent();
+                } else if (e.key === 'ArrowRight') {
+                    currentImageIndex++;
+                    updateLightboxContent();
+                } else if (e.key === 'Escape') {
+                    closeLightbox();
+                }
+            });
+
+            // Close on background click
+            closeBtn.addEventListener('click', closeLightbox);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeLightbox();
+            });
+        }
+
+        // Animation Observer
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
