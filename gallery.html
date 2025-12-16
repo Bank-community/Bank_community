@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loan Records Gallery - Bank Community</title>
+    <title>Rules Gallery - Bank Community</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,45 +24,71 @@
             --border-color: #CFD8DC;
             --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
             --font-family: 'Poppins', sans-serif;
-            --border-radius: 16px;
+            --border-radius: 12px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: var(--background-color); color: var(--text-color); font-family: var(--font-family); padding: 10px; }
-        .container { max-width: 480px; margin: 0 auto; background: var(--card-bg-color); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; min-height: calc(100vh - 20px); }
+        .container { max-width: 600px; margin: 0 auto; background: var(--card-bg-color); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; min-height: calc(100vh - 20px); }
         .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px; border-bottom: 1px solid var(--border-color); }
         .header .title { font-size: 22px; font-weight: 600; color: var(--primary-color); }
         .back-link { color: var(--primary-color); font-weight: 500; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        
         .section { padding: 25px; }
         .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .section-title h3 { font-size: 18px; font-weight: 600; }
-        .view-all { color: var(--primary-color); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.3s; padding: 4px 8px; border-radius: 8px; }
-        .view-all.active { background-color: #e3f2fd; color: var(--primary-darker); font-weight: 600; }
-        .name-grid { display: flex; gap: 15px; overflow-x: auto; padding: 5px 0 15px 0; -ms-overflow-style: none; scrollbar-width: none; }
-        .name-grid::-webkit-scrollbar { display: none; }
-        .name-item { text-align: center; flex-shrink: 0; cursor: pointer; }
-        .name-avatar { width: 68px; height: 68px; border-radius: 50%; background-size: cover; background-position: center; border: 3px solid transparent; padding: 3px; background-clip: content-box; margin-bottom: 8px; transition: all 0.4s ease; background-color: #eee; }
-        .name-item.active .name-avatar { border-color: var(--primary-color); transform: scale(1.1); box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); }
-        .name-label { font-size: 14px; font-weight: 500; color: var(--light-text-color); transition: color 0.3s; }
-        .name-item.active .name-label { color: var(--primary-color); font-weight: 600; }
-        .albums-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
-        .album-card { border-radius: var(--border-radius); background-color: var(--card-bg-color); cursor: pointer; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid var(--border-color);}
-        .album-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); }
-        .album-image { width: 100%; background-color: #eee; background-size: contain; background-repeat: no-repeat; background-position: center; aspect-ratio: 4 / 5; }
-        .album-info { padding: 12px; text-align: center; border-top: 1px solid var(--border-color); }
-        .album-title { font-weight: 600; font-size: 14px; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .status-message { padding: 40px 15px; text-align: center; color: var(--light-text-color); font-size: 16px; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
+        .count-badge { background-color: #e3f2fd; color: var(--primary-darker); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 12px; }
+
+        /* A4 Size Grid Adjustment */
+        .albums-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); /* 2 Columns strict for A4 look */
+            gap: 15px; 
+        }
+        @media (min-width: 480px) {
+            .albums-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+        }
+
+        .album-card { 
+            border-radius: var(--border-radius); 
+            background-color: var(--card-bg-color); 
+            cursor: pointer; 
+            overflow: hidden; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06); 
+            border: 1px solid var(--border-color);
+        }
+        .album-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); }
+        
+        /* A4 Aspect Ratio Container (approx 1 : 1.414) */
+        .album-image { 
+            width: 100%; 
+            background-color: #eee; 
+            background-size: cover; 
+            background-repeat: no-repeat; 
+            background-position: center; 
+            /* A4 Ratio Logic */
+            aspect-ratio: 210 / 297; 
+        }
+        
+        .album-info { padding: 12px; text-align: center; border-top: 1px solid #f0f0f0; background: #fff; }
+        .album-title { font-weight: 600; font-size: 14px; color: var(--text-color); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+        
+        .status-message { padding: 40px 15px; text-align: center; color: var(--light-text-color); font-size: 16px; grid-column: 1 / -1; width: 100%; }
+        
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
         .modal.show { display: flex; opacity: 1; }
-        #lightboxModal { background-color: rgba(0,0,0,0.85); }
         .lightbox-content { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .lightbox-image { max-width: 90vw; max-height: 80vh; border-radius: 10px; object-fit: contain; }
-        .lightbox-close, .lightbox-nav { position: absolute; color: white; cursor: pointer; font-size: 40px; font-weight: bold; user-select: none; transition: opacity 0.2s ease; z-index: 1001; }
-        .lightbox-close { top: 20px; right: 35px; }
-        .lightbox-nav { top: 50%; transform: translateY(-50%); padding: 10px; }
-        .lightbox-nav.prev { left: 10px; }
-        .lightbox-nav.next { right: 10px; }
-        .lightbox-close:hover, .lightbox-nav:hover { opacity: 0.7; }
-        .lightbox-details { position: absolute; bottom: 30px; color: #e0e0e0; font-size: 16px; text-align: center; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 20px; backdrop-filter: blur(5px); }
+        .lightbox-image { max-width: 95vw; max-height: 85vh; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain; background: #fff; }
+        .lightbox-close, .lightbox-nav { position: absolute; color: white; cursor: pointer; font-size: 35px; font-weight: bold; user-select: none; z-index: 1001; background: rgba(0,0,0,0.3); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.3s; }
+        .lightbox-close { top: 20px; right: 20px; }
+        .lightbox-nav { top: 50%; transform: translateY(-50%); }
+        .lightbox-nav.prev { left: 15px; }
+        .lightbox-nav.next { right: 15px; }
+        .lightbox-close:hover, .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
+        .lightbox-details { position: absolute; bottom: 30px; color: #fff; font-size: 16px; text-align: center; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 30px; backdrop-filter: blur(5px); font-weight: 500; }
     </style>
 </head>
 <body>
@@ -72,26 +98,16 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 Back
             </a>
-            <h1 class="title">Loan Records</h1>
+            <h1 class="title">Rules Gallery</h1>
         </header>
 
         <section class="section">
             <div class="section-title">
-                <h3>Sabhi Members</h3>
-                <span class="view-all active" id="viewAllBtn">View all Records</span>
-            </div>
-            <div id="nameGrid" class="name-grid">
-                <p class="status-message">Loading members...</p>
-            </div>
-        </section>
-
-        <section class="section">
-            <div class="section-title">
-                <h3 id="albumsTitle">All Loan Records</h3>
-                <span id="recordCount" class="view-all">0 records</span>
+                <h3 id="albumsTitle">Bank Rules</h3>
+                <span id="recordCount" class="count-badge">Loading...</span>
             </div>
             <div id="albumsGrid" class="albums-grid">
-                 <p class="status-message">Loading records...</p>
+                 <p class="status-message">Loading rules...</p>
             </div>
         </section>
     </div>
@@ -110,15 +126,12 @@
     <script>
     // --- Global State ---
     const state = {
-        allLoanRecords: [],
-        allMembers: [],
-        currentlyVisibleRecords: [],
+        allRules: [],
         lightboxCurrentIndex: 0,
     };
     
     // --- DOM Elements ---
     const getEl = (id) => document.getElementById(id);
-    const nameGrid = getEl('nameGrid');
     const albumsGrid = getEl('albumsGrid');
     const albumsTitle = getEl('albumsTitle');
     const recordCount = getEl('recordCount');
@@ -128,86 +141,38 @@
     const lightboxCloseBtn = getEl('lightboxCloseBtn');
     const lightboxPrevBtn = getEl('lightboxPrevBtn');
     const lightboxNextBtn = getEl('lightboxNextBtn');
-    const viewAllBtn = getEl('viewAllBtn');
 
     // --- Utility Functions ---
     const openModal = (modal) => modal.classList.add('show');
     const closeModal = (modal) => modal.classList.remove('show');
     
     // --- Main Rendering Logic ---
-    function renderContent() {
-        renderMemberFilter();
-        const currentFilter = albumsTitle.textContent.endsWith("'s Records") ? albumsTitle.textContent.replace("'s Records", "") : null;
-        renderLoanRecords(currentFilter);
-    }
-
-    function renderMemberFilter() {
-        nameGrid.innerHTML = '';
-        if (state.allMembers.length === 0) {
-            nameGrid.innerHTML = `<p class="status-message" style="padding: 10px 0;">No members found.</p>`;
-            return;
-        };
-
-        state.allMembers.forEach(member => {
-            nameGrid.appendChild(createNameItem(member));
-        });
-    }
-
-    function createNameItem(member) {
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'name-item';
-        nameDiv.onclick = () => filterByName(member.fullName);
-        nameDiv.innerHTML = `
-            <div class="name-avatar" style="background-image: url(${member.profilePicUrl || 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'})"></div>
-            <div class="name-label">${member.fullName.split(' ')[0]}</div>
-        `;
-        return nameDiv;
-    }
-    
-    function renderLoanRecords(filterName = null) {
-        const nameToFilter = filterName ? state.allMembers.find(m => m.fullName === filterName)?.fullName : null;
-        state.currentlyVisibleRecords = nameToFilter ? state.allLoanRecords.filter(record => record.applicantName === nameToFilter) : state.allLoanRecords;
-
+    function renderRules() {
         albumsGrid.innerHTML = ''; 
-        if (state.currentlyVisibleRecords.length === 0) {
-            albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">📄</span><span>${nameToFilter ? 'Is sadasya ka koi loan record nahi hai.' : 'Abhi tak koi loan record nahi hai.'}</span></div>`;
+        
+        if (state.allRules.length === 0) {
+            albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">📋</span><br><br><span>Abhi koi rules added nahi hain.</span></div>`;
+            recordCount.textContent = '0 Rules';
+            return;
         }
         
-        recordCount.textContent = `${state.currentlyVisibleRecords.length} record${state.currentlyVisibleRecords.length === 1 ? '' : 's'}`;
-        albumsTitle.textContent = nameToFilter ? `${nameToFilter.split(' ')[0]}'s Records` : 'All Loan Records';
-        viewAllBtn.classList.toggle('active', !nameToFilter);
+        recordCount.textContent = `${state.allRules.length} Rule${state.allRules.length === 1 ? '' : 's'}`;
 
-        state.currentlyVisibleRecords.forEach((record, index) => {
+        state.allRules.forEach((rule, index) => {
             const cardDiv = document.createElement('div');
             cardDiv.className = 'album-card';
             cardDiv.onclick = () => openLightbox(index);
 
+            // Using background-size: cover for better thumbnail, lightbox shows full
             cardDiv.innerHTML = `
-                <div class="album-image" style="background-image: url(${record.letterImageUrl})"></div>
+                <div class="album-image" style="background-image: url('${rule.imageUrl || 'https://via.placeholder.com/210x297?text=Rule+Image'}')"></div>
                 <div class="album-info">
-                    <h4 class="album-title">${record.loanCategoryText || 'Loan Record'}</h4>
+                    <h4 class="album-title">${rule.title || 'Untitled Rule'}</h4>
                 </div>
             `;
             albumsGrid.appendChild(cardDiv);
         });
     }
-    
-    function filterByName(fullName) {
-        document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
-        viewAllBtn.classList.remove('active');
-        const nameItems = nameGrid.querySelectorAll('.name-item');
-        for (let item of nameItems) {
-            if (item.querySelector('.name-label').textContent === fullName.split(' ')[0]) {
-                item.classList.add('active');
-                break;
-            }
-        }
-        renderLoanRecords(fullName);
-    }
-    const showAllRecords = () => {
-        document.querySelectorAll('.name-item').forEach(item => item.classList.remove('active'));
-        renderLoanRecords();
-    };
 
     // --- Lightbox Functions ---
     function openLightbox(index) {
@@ -218,89 +183,99 @@
     const closeLightbox = () => closeModal(lightboxModal);
     
     function updateLightboxImage() {
-        if (state.currentlyVisibleRecords.length === 0) { closeLightbox(); return; }
-        state.lightboxCurrentIndex = Math.max(0, Math.min(state.currentlyVisibleRecords.length - 1, state.lightboxCurrentIndex));
-        const record = state.currentlyVisibleRecords[state.lightboxCurrentIndex];
-        if(!record) { closeLightbox(); return; }
+        if (state.allRules.length === 0) { closeLightbox(); return; }
         
-        lightboxImage.src = record.letterImageUrl;
+        // Ensure index is within bounds
+        state.lightboxCurrentIndex = (state.lightboxCurrentIndex + state.allRules.length) % state.allRules.length;
         
-        const loanDate = new Date(record.approvedAt || record.submittedAt).toLocaleDateString('en-GB');
-        lightboxDetails.innerHTML = `<strong>${record.loanCategoryText}</strong> for <strong>₹${record.loanAmount.toLocaleString('en-IN')}</strong> on ${loanDate}`;
+        const rule = state.allRules[state.lightboxCurrentIndex];
+        if(!rule) { closeLightbox(); return; }
+        
+        lightboxImage.src = rule.imageUrl;
+        lightboxDetails.textContent = rule.title || 'Bank Rule';
 
-        lightboxPrevBtn.style.display = state.currentlyVisibleRecords.length > 1 ? 'block' : 'none';
-        lightboxNextBtn.style.display = state.currentlyVisibleRecords.length > 1 ? 'block' : 'none';
+        // Show/Hide nav buttons based on count
+        const showNav = state.allRules.length > 1 ? 'flex' : 'none';
+        lightboxPrevBtn.style.display = showNav;
+        lightboxNextBtn.style.display = showNav;
     }
-    const showNextImage = () => {
-        if (state.currentlyVisibleRecords.length === 0) return;
-        state.lightboxCurrentIndex = (state.lightboxCurrentIndex + 1) % state.currentlyVisibleRecords.length;
-        updateLightboxImage();
-    };
-    const showPrevImage = () => {
-        if (state.currentlyVisibleRecords.length === 0) return;
-        state.lightboxCurrentIndex = (state.lightboxCurrentIndex - 1 + state.currentlyVisibleRecords.length) % state.currentlyVisibleRecords.length;
-        updateLightboxImage();
-    };
+
+    const showNextImage = (e) => { e.stopPropagation(); state.lightboxCurrentIndex++; updateLightboxImage(); };
+    const showPrevImage = (e) => { e.stopPropagation(); state.lightboxCurrentIndex--; updateLightboxImage(); };
     
     // --- Initialization ---
     async function initializePage() {
         try {
-            const configRes = await fetch('/api/config.js');
-            if (!configRes.ok) throw new Error('API keys fetch failed');
-            
-            const configData = await configRes.json();
-            firebase.initializeApp(configData.firebase);
+            // Attempt to fetch config, fallback if fails (simulating existing app structure)
+            let configData;
+            try {
+                const configRes = await fetch('/api/config.js');
+                if (configRes.ok) configData = await configRes.json();
+            } catch (e) { console.warn('Config fetch failed, checking globals'); }
 
+            // Logic to use global or fetched config
+            const firebaseConfig = configData ? configData.firebase : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
+
+            if (!firebaseConfig) throw new Error('Firebase configuration not found');
+
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+
+            // Auth Check
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
                     runMainApp(firebase.database());
                 } else {
+                    // Redirect logic preserved from user's code
                     window.location.href = `/login.html?redirect=${window.location.pathname}`;
                 }
             });
         } catch (error) {
-            document.body.innerHTML = `<div style="padding:20px;text-align:center;"><h1>Application Error</h1><p>Could not load necessary configuration. ${error.message}</p></div>`;
+            console.error(error);
+            document.body.innerHTML = `<div style="padding:20px;text-align:center;"><h3>Loading Error</h3><p>Please refresh the page.</p></div>`;
         }
     }
 
     function runMainApp(database) {
-        // Fetch members for filtering
-        const membersRef = database.ref('members');
-        membersRef.on('value', (snapshot) => {
-            const membersData = snapshot.val() || {};
-            const memberList = [];
-            for (const memberId in membersData) {
-                const member = membersData[memberId];
-                if (member.status === 'Approved' && member.fullName) {
-                    memberList.push({ 
-                        id: memberId, 
-                        fullName: member.fullName, 
-                        profilePicUrl: member.profilePicUrl 
+        // Updated Path: admin/rules
+        const rulesRef = database.ref('admin/rules');
+        
+        rulesRef.on('value', (snapshot) => {
+            const rulesData = snapshot.val();
+            const rulesList = [];
+            
+            if (rulesData) {
+                // Determine if data is array or object map
+                if (Array.isArray(rulesData)) {
+                    rulesData.forEach(r => { if(r) rulesList.push(r); });
+                } else {
+                    Object.keys(rulesData).forEach(key => {
+                        rulesList.push({
+                            id: key,
+                            ...rulesData[key]
+                        });
                     });
                 }
             }
-            state.allMembers = memberList.sort((a, b) => a.fullName.localeCompare(b.fullName));
-            renderContent();
-        });
-
-        // Fetch approved loan records from the new location
-        const loanHistoryRef = database.ref('loanPreviewHistory');
-        loanHistoryRef.on('value', (snapshot) => {
-            const historyData = snapshot.val() || {};
-            const records = Object.values(historyData);
             
-            state.allLoanRecords = records.sort((a, b) => (b.approvedAt || b.submittedAt) - (a.approvedAt || a.submittedAt));
+            state.allRules = rulesList;
+            renderRules();
             
-            renderContent();
+            // If modal is open, update it in case data changed underneath
             if(lightboxModal.classList.contains('show')) updateLightboxImage();
         });
     }
 
     // --- Event Listeners ---
-    viewAllBtn.addEventListener('click', showAllRecords);
     lightboxCloseBtn.addEventListener('click', closeLightbox);
     lightboxPrevBtn.addEventListener('click', showPrevImage);
     lightboxNextBtn.addEventListener('click', showNextImage);
+    
+    // Close modal on outside click
+    lightboxModal.addEventListener('click', (e) => {
+        if(e.target === lightboxModal) closeLightbox();
+    });
 
     document.addEventListener('DOMContentLoaded', initializePage);
     </script>
