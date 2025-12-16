@@ -3,281 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rules Gallery - Bank Community</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#002366">
+    <title>Gallery - Trust Community Fund</title>
     
+    <!-- Using the same CSS file for consistent Theme -->
+    <link rel="stylesheet" href="user-style.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-       :root {
-            --primary-color: #1565C0;
-            --primary-darker: #0D47A1;
-            --background-color: #f4f7f9;
-            --card-bg-color: #ffffff;
-            --text-color: #263238;
-            --light-text-color: #546E7A;
-            --border-color: #CFD8DC;
-            --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            --font-family: 'Poppins', sans-serif;
-            --border-radius: 12px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: var(--background-color); color: var(--text-color); font-family: var(--font-family); padding: 10px; }
-        .container { max-width: 600px; margin: 0 auto; background: var(--card-bg-color); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; min-height: calc(100vh - 20px); }
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px; border-bottom: 1px solid var(--border-color); }
-        .header .title { font-size: 22px; font-weight: 600; color: var(--primary-color); }
-        .back-link { color: var(--primary-color); font-weight: 500; text-decoration: none; display: flex; align-items: center; gap: 5px; }
-        
-        .section { padding: 25px; }
-        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .section-title h3 { font-size: 18px; font-weight: 600; }
-        .count-badge { background-color: #e3f2fd; color: var(--primary-darker); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 12px; }
-
-        /* A4 Size Grid Adjustment */
-        .albums-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); /* 2 Columns strict for A4 look */
-            gap: 15px; 
-        }
-        @media (min-width: 480px) {
-            .albums-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+        /* Gallery Specific Styles ensuring Royal Theme matches */
+        body {
+            background-color: var(--bg-color);
         }
 
-        .album-card { 
-            border-radius: var(--border-radius); 
-            background-color: var(--card-bg-color); 
-            cursor: pointer; 
-            overflow: hidden; 
-            transition: transform 0.3s ease, box-shadow 0.3s ease; 
-            display: flex; 
-            flex-direction: column; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.06); 
-            border: 1px solid var(--border-color);
+        .gallery-header {
+            text-align: center;
+            padding: 20px;
+            background: var(--card-bg);
+            margin: 20px auto;
+            max-width: 1140px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            border: 1px solid rgba(212, 175, 55, 0.2); /* Subtle Gold Border */
+            position: relative;
         }
-        .album-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); }
-        
-        /* A4 Aspect Ratio Container (approx 1 : 1.414) */
-        .album-image { 
-            width: 100%; 
-            background-color: #eee; 
-            background-size: cover; 
-            background-repeat: no-repeat; 
-            background-position: center; 
-            /* A4 Ratio Logic */
-            aspect-ratio: 210 / 297; 
+
+        .back-btn-wrapper {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2 Columns on Mobile */
+            gap: 15px;
+            padding: 15px;
+            max-width: 1140px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .gallery-grid {
+                grid-template-columns: repeat(4, 1fr); /* 4 Columns on Desktop */
+            }
+        }
+
+        /* Royal Image Card */
+        .gallery-item {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3); /* Gold Shadow on Hover */
+            border-color: var(--accent-gold);
+        }
+
+        .gallery-img-container {
+            width: 100%;
+            aspect-ratio: 1 / 1; /* Square Images */
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+
+        .gallery-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-item:hover .gallery-img {
+            transform: scale(1.1);
+        }
+
+        .gallery-caption {
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 0.9em;
+            background: linear-gradient(to bottom, #ffffff, #f9fcff);
+            border-top: 1px solid #eee;
+        }
+
+        /* Lightbox Specifics overriding generic modal */
+        #galleryModal .modal-content {
+            background: transparent;
+            box-shadow: none;
+            width: 100%;
+            max-width: 800px;
+            padding: 0;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #galleryModalImg {
+            max-width: 95%;
+            max-height: 80vh;
+            border-radius: 8px;
+            border: 4px solid var(--accent-gold);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            object-fit: contain;
+            background-color: #000;
+        }
+
+        #galleryModalCaption {
+            color: white;
+            margin-top: 15px;
+            font-size: 1.2em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            background: rgba(0, 35, 102, 0.8);
+            padding: 8px 20px;
+            border-radius: 50px;
+            border: 1px solid var(--accent-gold);
+        }
+
+        .status-msg {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: var(--light-text);
+            font-size: 1.1em;
         }
         
-        .album-info { padding: 12px; text-align: center; border-top: 1px solid #f0f0f0; background: #fff; }
-        .album-title { font-weight: 600; font-size: 14px; color: var(--text-color); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
-        
-        .status-message { padding: 40px 15px; text-align: center; color: var(--light-text-color); font-size: 16px; grid-column: 1 / -1; width: 100%; }
-        
-        /* Modal Styles */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
-        .modal.show { display: flex; opacity: 1; }
-        .lightbox-content { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .lightbox-image { max-width: 95vw; max-height: 85vh; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain; background: #fff; }
-        .lightbox-close, .lightbox-nav { position: absolute; color: white; cursor: pointer; font-size: 35px; font-weight: bold; user-select: none; z-index: 1001; background: rgba(0,0,0,0.3); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.3s; }
-        .lightbox-close { top: 20px; right: 20px; }
-        .lightbox-nav { top: 50%; transform: translateY(-50%); }
-        .lightbox-nav.prev { left: 15px; }
-        .lightbox-nav.next { right: 15px; }
-        .lightbox-close:hover, .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
-        .lightbox-details { position: absolute; bottom: 30px; color: #fff; font-size: 16px; text-align: center; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 30px; backdrop-filter: blur(5px); font-weight: 500; }
+        /* Floating Close Button Adjustment for Gallery */
+        #closeGalleryModal {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1005;
+        }
     </style>
 </head>
 <body>
-    <div id="appContainer" class="container">
-        <header class="header">
-            <a href="/index.html" class="back-link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                Back
-            </a>
-            <h1 class="title">Rules Gallery</h1>
-        </header>
 
-        <section class="section">
-            <div class="section-title">
-                <h3 id="albumsTitle">Bank Rules</h3>
-                <span id="recordCount" class="count-badge">Loading...</span>
+    <header>
+        <div class="header-display" style="height: auto; min-height: 80px; margin-bottom: 0; display: flex; align-items: center; justify-content: center;">
+            <div class="ad-content" style="background: transparent; box-shadow: none;">
+                <h1 style="margin: 0; font-size: 1.8em; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Community Gallery</h1>
             </div>
-            <div id="albumsGrid" class="albums-grid">
-                 <p class="status-message">Loading rules...</p>
+        </div>
+        <!-- Gold Border Bottom provided by user-style.css header rule -->
+    </header>
+
+    <div class="content-wrapper" style="margin-top: 20px;">
+        <div class="gallery-header animate-on-scroll">
+            <div class="back-btn-wrapper">
+                <a href="index.html" class="civil-button btn-glossy" style="padding: 8px 15px; font-size: 0.9em;">
+                    <i data-feather="arrow-left"></i> Back
+                </a>
             </div>
-        </section>
+            <h2 style="margin: 0; display: inline-block;">Memories</h2>
+            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Trust Community Events & Moments</p>
+        </div>
+
+        <div id="galleryContainer" class="gallery-grid animate-on-scroll">
+            <div class="status-msg">
+                <p>Loading your memories...</p>
+            </div>
+        </div>
     </div>
 
     <!-- Lightbox Modal -->
-    <div id="lightboxModal" class="modal">
-        <span class="lightbox-close" id="lightboxCloseBtn">&times;</span>
-        <span class="lightbox-nav prev" id="lightboxPrevBtn">&#10094;</span>
-        <span class="lightbox-nav next" id="lightboxNextBtn">&#10095;</span>
-        <div class="lightbox-content">
-            <img id="lightboxImage" class="lightbox-image">
-            <div id="lightboxDetails" class="lightbox-details"></div>
+    <div id="galleryModal" class="modal">
+        <span class="close" id="closeGalleryModal">×</span>
+        <div class="modal-content">
+            <img id="galleryModalImg" src="" alt="Full View">
+            <div id="galleryModalCaption"></div>
         </div>
     </div>
-    
+
     <script>
-    // --- Global State ---
-    const state = {
-        allRules: [],
-        lightboxCurrentIndex: 0,
-    };
-    
-    // --- DOM Elements ---
-    const getEl = (id) => document.getElementById(id);
-    const albumsGrid = getEl('albumsGrid');
-    const albumsTitle = getEl('albumsTitle');
-    const recordCount = getEl('recordCount');
-    const lightboxModal = getEl('lightboxModal');
-    const lightboxImage = getEl('lightboxImage');
-    const lightboxDetails = getEl('lightboxDetails');
-    const lightboxCloseBtn = getEl('lightboxCloseBtn');
-    const lightboxPrevBtn = getEl('lightboxPrevBtn');
-    const lightboxNextBtn = getEl('lightboxNextBtn');
+        // --- CONFIGURATION ---
+        const CACHE_KEY = 'tcf_gallery_cache_v1';
+        const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-    // --- Utility Functions ---
-    const openModal = (modal) => modal.classList.add('show');
-    const closeModal = (modal) => modal.classList.remove('show');
-    
-    // --- Main Rendering Logic ---
-    function renderRules() {
-        albumsGrid.innerHTML = ''; 
-        
-        if (state.allRules.length === 0) {
-            albumsGrid.innerHTML = `<div class="status-message"><span style="font-size: 48px;">📋</span><br><br><span>Abhi koi rules added nahi hain.</span></div>`;
-            recordCount.textContent = '0 Rules';
-            return;
-        }
-        
-        recordCount.textContent = `${state.allRules.length} Rule${state.allRules.length === 1 ? '' : 's'}`;
+        // --- DOM ELEMENTS ---
+        const container = document.getElementById('galleryContainer');
+        const modal = document.getElementById('galleryModal');
+        const modalImg = document.getElementById('galleryModalImg');
+        const modalCaption = document.getElementById('galleryModalCaption');
+        const closeBtn = document.getElementById('closeGalleryModal');
 
-        state.allRules.forEach((rule, index) => {
-            const cardDiv = document.createElement('div');
-            cardDiv.className = 'album-card';
-            cardDiv.onclick = () => openLightbox(index);
+        // --- 1. INITIALIZE APP ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            feather.replace();
+            
+            // STEP 1: Load from Local Storage IMMEDIATELY (Instant Speed)
+            loadFromCache();
 
-            // Using background-size: cover for better thumbnail, lightbox shows full
-            cardDiv.innerHTML = `
-                <div class="album-image" style="background-image: url('${rule.imageUrl || 'https://via.placeholder.com/210x297?text=Rule+Image'}')"></div>
-                <div class="album-info">
-                    <h4 class="album-title">${rule.title || 'Untitled Rule'}</h4>
-                </div>
-            `;
-            albumsGrid.appendChild(cardDiv);
+            // STEP 2: Initialize Firebase & Sync
+            await initializeFirebase();
         });
-    }
 
-    // --- Lightbox Functions ---
-    function openLightbox(index) {
-        state.lightboxCurrentIndex = index;
-        updateLightboxImage();
-        openModal(lightboxModal);
-    }
-    const closeLightbox = () => closeModal(lightboxModal);
-    
-    function updateLightboxImage() {
-        if (state.allRules.length === 0) { closeLightbox(); return; }
-        
-        // Ensure index is within bounds
-        state.lightboxCurrentIndex = (state.lightboxCurrentIndex + state.allRules.length) % state.allRules.length;
-        
-        const rule = state.allRules[state.lightboxCurrentIndex];
-        if(!rule) { closeLightbox(); return; }
-        
-        lightboxImage.src = rule.imageUrl;
-        lightboxDetails.textContent = rule.title || 'Bank Rule';
+        // --- 2. CACHE SYSTEM (LOCAL STORAGE) ---
+        function loadFromCache() {
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                // console.log("⚡ Gallery loaded from Cache");
+                const data = JSON.parse(cachedData);
+                renderGallery(data);
+            }
+        }
 
-        // Show/Hide nav buttons based on count
-        const showNav = state.allRules.length > 1 ? 'flex' : 'none';
-        lightboxPrevBtn.style.display = showNav;
-        lightboxNextBtn.style.display = showNav;
-    }
+        function saveToCache(data) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        }
 
-    const showNextImage = (e) => { e.stopPropagation(); state.lightboxCurrentIndex++; updateLightboxImage(); };
-    const showPrevImage = (e) => { e.stopPropagation(); state.lightboxCurrentIndex--; updateLightboxImage(); };
-    
-    // --- Initialization ---
-    async function initializePage() {
-        try {
-            // Attempt to fetch config, fallback if fails (simulating existing app structure)
-            let configData;
+        // --- 3. FIREBASE LOGIC ---
+        async function initializeFirebase() {
             try {
-                const configRes = await fetch('/api/config.js');
-                if (configRes.ok) configData = await configRes.json();
-            } catch (e) { console.warn('Config fetch failed, checking globals'); }
+                // Fetch config from server (Same method as index.html)
+                const response = await fetch('/api/firebase-config');
+                if (!response.ok) throw new Error('Config load failed');
+                const config = await response.json();
 
-            // Logic to use global or fetched config
-            const firebaseConfig = configData ? configData.firebase : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(config);
+                }
 
-            if (!firebaseConfig) throw new Error('Firebase configuration not found');
+                const db = firebase.database();
+                
+                // Fetch Data from 'gallery' node
+                // Note: Assuming data structure is { id: { imageUrl: '...', title: '...' } }
+                const galleryRef = db.ref('gallery');
+                
+                galleryRef.on('value', (snapshot) => {
+                    const rawData = snapshot.val();
+                    if (rawData) {
+                        // Convert object to array
+                        const galleryArray = Object.keys(rawData).map(key => ({
+                            id: key,
+                            ...rawData[key]
+                        }));
+                        
+                        // Save to Cache & Update UI
+                        saveToCache(galleryArray);
+                        renderGallery(galleryArray);
+                    } else {
+                        if(!localStorage.getItem(CACHE_KEY)) {
+                             container.innerHTML = '<div class="status-msg">No images found in gallery.</div>';
+                        }
+                    }
+                });
 
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
+            } catch (error) {
+                console.error("Firebase Init Error:", error);
+                // Agar cache khali hai aur error aaya, tabhi error dikhao
+                if (!localStorage.getItem(CACHE_KEY)) {
+                    container.innerHTML = `<div class="status-msg" style="color:red;">Error loading gallery.<br><small>${error.message}</small></div>`;
+                }
+            }
+        }
+
+        // --- 4. RENDER UI ---
+        function renderGallery(items) {
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="status-msg">Gallery is empty.</div>';
+                return;
             }
 
-            // Auth Check
-            firebase.auth().onAuthStateChanged(user => {
-                if (user) {
-                    runMainApp(firebase.database());
-                } else {
-                    // Redirect logic preserved from user's code
-                    window.location.href = `/login.html?redirect=${window.location.pathname}`;
+            container.innerHTML = ''; // Clear loading/old items
+
+            // Reverse array to show newest first (optional)
+            const sortedItems = [...items].reverse();
+
+            sortedItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'gallery-item';
+                card.onclick = () => openLightbox(item.imageUrl, item.title);
+
+                card.innerHTML = `
+                    <div class="gallery-img-container">
+                        <img src="${item.imageUrl}" 
+                             alt="${item.title || 'Gallery Image'}" 
+                             class="gallery-img" 
+                             loading="lazy"
+                             onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
+                    </div>
+                    ${item.title ? `<div class="gallery-caption">${item.title}</div>` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- 5. LIGHTBOX LOGIC ---
+        function openLightbox(src, caption) {
+            modal.classList.add('show');
+            modalImg.src = src;
+            modalCaption.textContent = caption || '';
+            modalCaption.style.display = caption ? 'block' : 'none';
+            document.body.style.overflow = 'hidden'; // Stop background scrolling
+        }
+
+        function closeLightbox() {
+            modal.classList.remove('show');
+            document.body.style.overflow = ''; // Enable background scrolling
+            setTimeout(() => { modalImg.src = ''; }, 300); // Clear src after animation
+        }
+
+        // Event Listeners for Modal
+        closeBtn.addEventListener('click', closeLightbox);
+        
+        // Close on clicking outside image
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeLightbox();
+        });
+
+        // Close on Escape key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // Scroll Animation Logic (Reused from user-ui.js logic)
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
                 }
             });
-        } catch (error) {
-            console.error(error);
-            document.body.innerHTML = `<div style="padding:20px;text-align:center;"><h3>Loading Error</h3><p>Please refresh the page.</p></div>`;
-        }
-    }
+        }, { threshold: 0.1 });
 
-    function runMainApp(database) {
-        // Updated Path: admin/rules
-        const rulesRef = database.ref('admin/rules');
-        
-        rulesRef.on('value', (snapshot) => {
-            const rulesData = snapshot.val();
-            const rulesList = [];
-            
-            if (rulesData) {
-                // Determine if data is array or object map
-                if (Array.isArray(rulesData)) {
-                    rulesData.forEach(r => { if(r) rulesList.push(r); });
-                } else {
-                    Object.keys(rulesData).forEach(key => {
-                        rulesList.push({
-                            id: key,
-                            ...rulesData[key]
-                        });
-                    });
-                }
-            }
-            
-            state.allRules = rulesList;
-            renderRules();
-            
-            // If modal is open, update it in case data changed underneath
-            if(lightboxModal.classList.contains('show')) updateLightboxImage();
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+            // Fallback for instant load
+            setTimeout(() => el.classList.add('is-visible'), 100);
         });
-    }
 
-    // --- Event Listeners ---
-    lightboxCloseBtn.addEventListener('click', closeLightbox);
-    lightboxPrevBtn.addEventListener('click', showPrevImage);
-    lightboxNextBtn.addEventListener('click', showNextImage);
-    
-    // Close modal on outside click
-    lightboxModal.addEventListener('click', (e) => {
-        if(e.target === lightboxModal) closeLightbox();
-    });
-
-    document.addEventListener('DOMContentLoaded', initializePage);
     </script>
 </body>
 </html>
