@@ -1,6 +1,8 @@
 // user-main.js
-// ULTIMATE INSTANT LOAD UPDATE: Shows Cached Data IMMEDIATELY (0ms Latency).
-// Then syncs with Firebase in background.
+// FINAL UPDATE: Connects Notification Logic & Device Verification
+// 1. Checks Cache first for instant load.
+// 2. Verifies User Identity (Critical for Notification System).
+// 3. Requests Notification Permission on load.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
@@ -62,9 +64,10 @@ async function runAppLogic(database) {
         const handleDataUpdate = (data) => {
             if (!data) return;
             // UI Update karo (Fresh Data se)
+            // Note: renderPage hi ab notification check trigger karega
             renderPage(data);
             
-            // Device verification check
+            // Device verification check (Notification ke liye zaroori)
             if (data.processedMembers) {
                 verifyDeviceAndSetupNotifications(database, data.processedMembers);
             }
@@ -92,28 +95,41 @@ function registerServiceWorker() {
 
 /**
  * Device ko verify aur notifications ke liye setup karta hai.
+ * Yahi function LocalStorage mein 'verifiedMemberId' save karega.
  */
 async function verifyDeviceAndSetupNotifications(database, allMembers) {
     try {
         let memberId = localStorage.getItem('verifiedMemberId');
+        let isNewVerification = false;
 
+        // Agar ID nahi hai, to user se pucho "Aap kaun ho?"
         if (!memberId) {
             memberId = await promptForDeviceVerification(allMembers);
             if (memberId) {
                 localStorage.setItem('verifiedMemberId', memberId);
+                isNewVerification = true; // Flag ki abhi verify hua hai
             } else {
-                return; 
+                return; // User ne cancel kar diya
             }
         }
         
+        // Browser Notification Permission maango
         const permissionGranted = await requestNotificationPermission();
+        
         if (permissionGranted) {
             try {
+                // Optional: Server pe token bhejo (agar future mein push chahiye)
                 await registerForPushNotifications(database, memberId);
             } catch (regError) {
-                console.error("Push Notification Registration Failed:", regError);
+                console.warn("Push reg skipped (Local Mode active):", regError);
             }
         }
+
+        // Agar abhi naya verify hua hai, to reload karo taaki Notifications turant dikhein
+        if (isNewVerification) {
+            window.location.reload();
+        }
+
     } catch (error) {
         console.error('Device verification or notification setup failed:', error);
     }
@@ -143,6 +159,7 @@ async function registerForPushNotifications(database, memberId) {
     }
 }
 
+// PWA Install Prompt Handler
 window.deferredInstallPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
