@@ -1,7 +1,8 @@
-// FINAL STRICT UPDATE V7:
-// 1. FIXED: Removed Session Blocking (Checks for NEW activity every time).
-// 2. FIXED: Unique ID for every transaction to prevent duplicates but allow new ones.
-// 3. ADDED: System Notification for ANY community activity (Loan/SIP) for today.
+// FINAL STRICT UPDATE V8:
+// 1. LOAN REMINDER UPDATE: 30-85 Days (Every 5 Days), 86-100 Days (DAILY).
+// 2. FIXED: Removed Session Blocking (Checks for NEW activity every time).
+// 3. FIXED: Unique ID for every transaction to prevent duplicates.
+// 4. ADDED: System Notification for ANY community activity (Loan/SIP) for today.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -899,13 +900,12 @@ function processAndShowNotifications() {
     }
 }
 
-// --- NEW FUNCTION: AUTOMATIC REMINDER LOGIC (PRD) ---
+// --- NEW FUNCTION: AUTOMATIC REMINDER LOGIC (PRD UPDATED) ---
 function checkAutomaticReminders(member, storageKey) {
     const today = new Date();
     const currentDay = today.getDate();
     
-    // For Reminders (SIP/Loan), we DO want to check once per day (not every reload)
-    // So we use the daily storageKey here.
+    // For Daily Reminders, we check if notification ALREADY SENT TODAY
     if (localStorage.getItem(storageKey)) return; 
 
     let notificationSent = false;
@@ -922,7 +922,7 @@ function checkAutomaticReminders(member, storageKey) {
         }
     }
 
-    // B. Loan Reminder (30, 35...85, 86)
+    // B. Loan Reminder (Strict Rules)
     const myLoanTx = allTransactions
         .filter(t => t.memberId === member.id && t.type === 'Loan Taken')
         .sort((a,b) => new Date(b.date) - new Date(a.date))[0]; // Latest loan
@@ -932,7 +932,7 @@ function checkAutomaticReminders(member, storageKey) {
         const diffTime = Math.abs(today - loanDate);
         const daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
-        // Rule: 30 days, then every 5 days (35, 40...85)
+        // Rule 1: 30 to 85 Days -> Every 5 Days
         if (daysPassed >= 30 && daysPassed <= 85) {
             if ((daysPassed - 30) % 5 === 0) {
                 sendBrowserNotification(
@@ -943,18 +943,19 @@ function checkAutomaticReminders(member, storageKey) {
                 notificationSent = true;
             }
         }
-        // Rule: Urgent 86th Day
-        else if (daysPassed === 86) {
+        // Rule 2: 86 to 100 Days -> DAILY URGENT ALERT
+        else if (daysPassed >= 86 && daysPassed <= 100) {
             sendBrowserNotification(
-                `🚨 URGENT LOAN ALERT`,
-                `Alert! Loan को 86 दिन हो चुके हैं। तुरंत भुगतान करें!`,
-                `loan-urgent-86`
+                `🚨 CRITICAL LOAN ALERT (${daysPassed} Days)`,
+                `URGENT! Loan overdue by ${daysPassed} days. Immediate payment required!`,
+                `loan-urgent-${daysPassed}`
             );
             notificationSent = true;
         }
     }
 
     if (notificationSent) {
+        // Mark as "Done for Today"
         localStorage.setItem(storageKey, 'true');
     }
 }
@@ -1162,4 +1163,5 @@ function observeElements(elements) {
 }
 
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
+
 
