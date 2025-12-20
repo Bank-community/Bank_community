@@ -1,8 +1,7 @@
-// FINAL STRICT UPDATE V8:
-// 1. LOAN REMINDER UPDATE: 30-85 Days (Every 5 Days), 86-100 Days (DAILY).
-// 2. FIXED: Removed Session Blocking (Checks for NEW activity every time).
-// 3. FIXED: Unique ID for every transaction to prevent duplicates.
-// 4. ADDED: System Notification for ANY community activity (Loan/SIP) for today.
+// FINAL STRICT UPDATE V9:
+// 1. FIXED: Duplicate Notices on Home Page (Added Deduplication Logic).
+// 2. RETAINED: Loan Reminder Update (30-85 Days: Every 5 Days, 86-100 Days: DAILY).
+// 3. RETAINED: Browser Native Notifications & Sound.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -885,8 +884,23 @@ function processAndShowNotifications() {
         });
     }
 
-    // --- 3. Manual Notices ---
-    Object.values(allManualNotifications).forEach((notif, index) => {
+    // --- 3. Manual Notices (FIXED: Deduplication) ---
+    // Extract values
+    const rawNotices = Object.values(allManualNotifications);
+    
+    // Filter duplicates based on Title
+    const seenTitles = new Set();
+    const uniqueNotices = rawNotices.filter(notif => {
+        const titleKey = (notif.title || '').trim().toLowerCase();
+        if (seenTitles.has(titleKey)) {
+            return false; // Skip duplicate
+        }
+        seenTitles.add(titleKey);
+        return true; // Keep unique
+    });
+
+    // Show only unique notices
+    uniqueNotices.forEach((notif, index) => {
         setTimeout(() => showPopupNotification('manual', notif), delay + index * baseDelay);
     });
     
