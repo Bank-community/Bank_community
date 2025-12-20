@@ -1,8 +1,7 @@
-// FINAL STRICT UPDATE V6:
-// 1. Added Browser/System Notification Engine (PRD Requirement).
-// 2. Added Automatic SIP Reminder (1-10 Date Logic).
-// 3. Added Advanced Loan Reminder (30, 35...85, 86 Logic).
-// 4. Added "Today's Activity" System Notification.
+// FINAL STRICT UPDATE V7:
+// 1. FIXED: Removed Session Blocking (Checks for NEW activity every time).
+// 2. FIXED: Unique ID for every transaction to prevent duplicates but allow new ones.
+// 3. ADDED: System Notification for ANY community activity (Loan/SIP) for today.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -93,7 +92,7 @@ export function renderPage(data) {
     startHeaderDisplayRotator(approvedMembers, communityStats);
     buildInfoSlider();
     
-    // Trigger System & Popup Notifications
+    // Trigger System & Popup Notifications (UPDATED)
     processAndShowNotifications();
     
     renderProducts();
@@ -123,29 +122,35 @@ function getTodayDateStringLocal() {
 
 // --- NEW SYSTEM NOTIFICATION ENGINE (BROWSER NATIVE) ---
 function sendBrowserNotification(title, body, tag) {
+    // Check permission
     if (Notification.permission === "granted") {
-        // Play Sound
-        notificationSound.play().catch(e => console.log("Audio prevented"));
+        try {
+            // Play Sound
+            notificationSound.play().catch(e => console.log("Audio prevented:", e));
 
-        // Use Service Worker for better reliability if available
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.ready.then(function(registration) {
-                registration.showNotification(title, {
+            // Use Service Worker for better reliability if available
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then(function(registration) {
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: BANK_LOGO_URL,
+                        badge: BANK_LOGO_URL,
+                        tag: tag, // Unique tag prevents stacking
+                        vibrate: [200, 100, 200],
+                        data: { url: 'notifications.html' }
+                    });
+                });
+            } else {
+                // Fallback for non-SW environments
+                const n = new Notification(title, {
                     body: body,
                     icon: BANK_LOGO_URL,
-                    badge: BANK_LOGO_URL,
-                    tag: tag, // Tag ensures we don't spam the same notification
-                    vibrate: [200, 100, 200],
-                    data: { url: window.location.href }
+                    tag: tag
                 });
-            });
-        } else {
-            // Fallback
-            new Notification(title, {
-                body: body,
-                icon: BANK_LOGO_URL,
-                tag: tag
-            });
+                n.onclick = function() { window.location.href = 'notifications.html'; };
+            }
+        } catch(e) {
+            console.error("Notification Error:", e);
         }
     }
 }
@@ -808,12 +813,11 @@ function buildInfoSlider() {
     feather.replace();
 }
 
-// === UPDATED NOTIFICATION LOGIC (STRICT TODAY + ROYAL POPUP + SYSTEM NOTIFICATION) ===
+// === UPDATED NOTIFICATION LOGIC (STRICT TODAY + UNIQUE ID) ===
 function processAndShowNotifications() {
     const todayDateString = getTodayDateStringLocal();
     const verifiedMemberId = localStorage.getItem('verifiedMemberId');
-    const sessionPopupsKey = `royalPopups_${todayDateString}`; 
-    const systemNotifKey = `sysNotif_${todayDateString}`; // Key to prevent repeating system notifications
+    const systemNotifKey = `sysNotif_${todayDateString}`; // Key to prevent repeating DAILY system notifications for reminders
 
     // --- 1. Automatic SIP & Loan Reminders (BROWSER NATIVE) ---
     // Runs only if member is verified
@@ -825,11 +829,6 @@ function processAndShowNotifications() {
     }
 
     // --- 2. Transaction Notifications (POPUP + TODAY SYSTEM ALERT) ---
-    // Prevent showing again if already shown for this session AND this day
-    if (sessionStorage.getItem(sessionPopupsKey)) {
-        return;
-    }
-
     let delay = 500; 
     const baseDelay = 4000; 
 
@@ -837,44 +836,58 @@ function processAndShowNotifications() {
     const todaysTransactions = allTransactions.filter(tx => {
         if (!tx.date) return false;
         const txDate = new Date(tx.date);
-        const y = txDate.getFullYear();
-        const m = (txDate.getMonth() + 1).toString().padStart(2, '0');
-        const d = txDate.getDate().toString().padStart(2, '0');
-        const txDateString = `${y}-${m}-${d}`;
-        return txDateString === todayDateString;
+        const today = new Date();
+        
+        // Robust Date Comparison (Day, Month, Year match)
+        return txDate.getDate() === today.getDate() &&
+               txDate.getMonth() === today.getMonth() &&
+               txDate.getFullYear() === today.getFullYear();
     });
 
     if (todaysTransactions.length > 0) {
-        // A. Show In-App Popups
         todaysTransactions.forEach((tx, index) => {
-            setTimeout(() => showPopupNotification('transaction', tx), delay + index * baseDelay);
-        });
-        delay += todaysTransactions.length * baseDelay;
+            // Unique ID for each transaction (Critical for preventing duplicates while allowing new ones)
+            // Structure: "notif_tx_DATE_AMOUNT_MEMBERID_TYPE"
+            const uniqueTxId = `notif_tx_${tx.date}_${tx.amount}_${tx.memberId}_${tx.type}`.replace(/\s/g, '');
 
-        // B. Show Browser Notification (If user is the participant)
-        if (verifiedMemberId) {
-            todaysTransactions.forEach(tx => {
-                if (tx.memberId === verifiedMemberId) {
-                     // Check if this specific tx has been notified already in local storage?
-                     // Simplification: Just notify for "Today's Activity" if app opens
-                     const typeText = tx.type === 'Loan Taken' ? 'Loan Received' : 'Payment Successful';
-                     sendBrowserNotification(
-                        `✅ ${typeText}`,
-                        `Amount: ₹${tx.amount} | Date: Today`,
-                        `tx-${tx.date}` // Unique tag for this tx
-                     );
+            // CHECK: If this specific transaction has NOT been notified yet
+            if (!localStorage.getItem(uniqueTxId)) {
+                
+                // A. Show In-App Popup
+                setTimeout(() => showPopupNotification('transaction', tx), delay + index * baseDelay);
+                
+                // B. Show Browser Notification (System Tray)
+                // Notify for ANY community activity today (as requested)
+                let title = "";
+                let body = "";
+                const memberName = allMembersData.find(m => m.id === tx.memberId)?.name || "Member";
+
+                if (tx.type === 'Loan Taken') {
+                    title = `📢 Loan Disbursed`;
+                    body = `${memberName} took a loan of ₹${tx.amount}`;
+                } else if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
+                    title = `✅ Payment Received`;
+                    body = `${memberName} paid ₹${tx.amount}`;
+                } else if (tx.type === 'Loan Payment') {
+                    title = `💰 Repayment Received`;
+                    const totalPaid = (parseFloat(tx.principalPaid||0) + parseFloat(tx.interestPaid||0));
+                    body = `${memberName} repaid loan amount ₹${totalPaid}`;
                 }
-            });
-        }
+
+                if (title) {
+                    sendBrowserNotification(title, body, uniqueTxId);
+                }
+
+                // MARK AS SHOWN (So it doesn't show again on reload)
+                localStorage.setItem(uniqueTxId, 'true');
+            }
+        });
     }
 
     // --- 3. Manual Notices ---
     Object.values(allManualNotifications).forEach((notif, index) => {
         setTimeout(() => showPopupNotification('manual', notif), delay + index * baseDelay);
     });
-
-    // Mark as shown for this session
-    sessionStorage.setItem(sessionPopupsKey, 'true');
     
     // Notification Dot Logic
     if (!verifiedMemberId) return;
@@ -891,7 +904,8 @@ function checkAutomaticReminders(member, storageKey) {
     const today = new Date();
     const currentDay = today.getDate();
     
-    // Prevent duplicate alerts per day using LocalStorage
+    // For Reminders (SIP/Loan), we DO want to check once per day (not every reload)
+    // So we use the daily storageKey here.
     if (localStorage.getItem(storageKey)) return; 
 
     let notificationSent = false;
@@ -909,13 +923,11 @@ function checkAutomaticReminders(member, storageKey) {
     }
 
     // B. Loan Reminder (30, 35...85, 86)
-    // Find ACTIVE loan start date (Logic: Last "Loan Taken" date)
-    // Note: Since we don't have direct "activeLoans" object here, we infer from transactions
     const myLoanTx = allTransactions
         .filter(t => t.memberId === member.id && t.type === 'Loan Taken')
         .sort((a,b) => new Date(b.date) - new Date(a.date))[0]; // Latest loan
 
-    if (myLoanTx && member.totalOutstandingLoan > 0) { // Only if loan is pending
+    if (myLoanTx && member.totalOutstandingLoan > 0) { 
         const loanDate = new Date(myLoanTx.date);
         const diffTime = Math.abs(today - loanDate);
         const daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
@@ -1150,3 +1162,4 @@ function observeElements(elements) {
 }
 
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
+
