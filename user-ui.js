@@ -1,7 +1,9 @@
-// FINAL STRICT UPDATE V9:
-// 1. FIXED: Duplicate Notices on Home Page (Added Deduplication Logic).
-// 2. RETAINED: Loan Reminder Update (30-85 Days: Every 5 Days, 86-100 Days: DAILY).
-// 3. RETAINED: Browser Native Notifications & Sound.
+// FINAL STRICT UPDATE V5:
+// 1. Penalty Wallet Logic Updated.
+// 2. All Members: Image Zoom logic retained.
+// 3. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML.
+// 4. SMART MODAL SWAP: Fixes "Full View" redirect crash issue.
+// 5. PASSWORD FIX: Auto-Reconnect Database & Trim Logic added.
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -18,7 +20,6 @@ let currentOpenModal = null; // Track open modal for back button
 
 // Sound file path check
 const balanceClickSound = new Audio('/mixkit-clinking-coins-1993.wav');
-const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Notification Sound
 
 const getElement = (id) => document.getElementById(id);
 const elements = {
@@ -64,6 +65,7 @@ export function initUI(database) {
     // Handle Browser Back Button for Modals
     window.onpopstate = function(event) {
         if (currentOpenModal) {
+            // If a modal is open, close it visually but don't call history.back() again
             currentOpenModal.classList.remove('show');
             document.body.style.overflow = '';
             currentOpenModal = null;
@@ -92,7 +94,7 @@ export function renderPage(data) {
     startHeaderDisplayRotator(approvedMembers, communityStats);
     buildInfoSlider();
     
-    // Trigger System & Popup Notifications (UPDATED)
+    // Trigger Royal Notifications
     processAndShowNotifications();
     
     renderProducts();
@@ -118,41 +120,6 @@ function getTodayDateStringLocal() {
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const day = today.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
-}
-
-// --- NEW SYSTEM NOTIFICATION ENGINE (BROWSER NATIVE) ---
-function sendBrowserNotification(title, body, tag) {
-    // Check permission
-    if (Notification.permission === "granted") {
-        try {
-            // Play Sound
-            notificationSound.play().catch(e => console.log("Audio prevented:", e));
-
-            // Use Service Worker for better reliability if available
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.ready.then(function(registration) {
-                    registration.showNotification(title, {
-                        body: body,
-                        icon: BANK_LOGO_URL,
-                        badge: BANK_LOGO_URL,
-                        tag: tag, // Unique tag prevents stacking
-                        vibrate: [200, 100, 200],
-                        data: { url: 'notifications.html' }
-                    });
-                });
-            } else {
-                // Fallback for non-SW environments
-                const n = new Notification(title, {
-                    body: body,
-                    icon: BANK_LOGO_URL,
-                    tag: tag
-                });
-                n.onclick = function() { window.location.href = 'notifications.html'; };
-            }
-        } catch(e) {
-            console.error("Notification Error:", e);
-        }
-    }
 }
 
 // --- Display & Rendering Functions ---
@@ -223,6 +190,7 @@ function displayMembers(members, adminSettings) {
     members.forEach((member, index) => {
         if (index < 3) {
             const card = document.createElement('div');
+            // CHANGE: Added specific classes 'gold-card', 'silver-card', 'bronze-card'
             const rankClasses = ['gold-card', 'silver-card', 'bronze-card'];
             const rankClass = rankClasses[index] || '';
             card.className = `framed-card-wrapper ${rankClass} animate-on-scroll`; 
@@ -454,6 +422,7 @@ export function promptForDeviceVerification(allMembers) {
 
 export async function requestNotificationPermission() {
     if (!('Notification' in window)) {
+        alert('This browser does not support desktop notification');
         return false;
     }
     const permission = await Notification.requestPermission();
@@ -487,6 +456,7 @@ function showBalanceModal() {
     animateValue(getElement('availableAmountDisplay'), 0, communityStats.availableCommunityBalance || 0, 1200);
 }
 
+// FIXED: SIP Status List
 function showSipStatusModal() {
     const container = getElement('sipStatusListContainer');
     if (!container) return;
@@ -505,10 +475,12 @@ function showSipStatusModal() {
     openModal(elements.sipStatusModal);
 }
 
+// FIXED: All Members - Small Card Grid Layout WITH IMAGE ZOOM
 function showAllMembersModal() {
     const container = getElement('allMembersListContainer');
     if (!container) return;
     container.innerHTML = '';
+    // Use Grid Class
     container.className = 'all-members-grid'; 
     
     const sortedMembers = [...allMembersData].filter(m => m.status === 'Approved').sort((a, b) => a.name.localeCompare(b.name));
@@ -517,18 +489,21 @@ function showAllMembersModal() {
         const item = document.createElement('div');
         item.className = 'small-member-card';
         
+        // CLICK 1: Card click opens Profile (Default behavior)
         item.onclick = () => { 
             closeModal(elements.allMembersModal); 
             showMemberProfileModal(member.id); 
         }; 
         
+        // Create Image element manually to add specific Event Listener
         const img = document.createElement('img');
         img.src = member.displayImageUrl;
         img.alt = member.name;
         img.onerror = function() { this.src = DEFAULT_IMAGE; };
         
+        // CLICK 2: Image click opens Full Image (Zoom) - STOPS PROPAGATION
         img.onclick = (e) => {
-            e.stopPropagation(); 
+            e.stopPropagation(); // Prevents card click (profile open)
             showFullImage(member.displayImageUrl, member.name);
         };
 
@@ -542,15 +517,20 @@ function showAllMembersModal() {
     openModal(elements.allMembersModal);
 }
 
+// LUXURY UPDATE: Penalty Wallet Modal Logic
 function showPenaltyWalletModal() {
     const incomes = Object.values(penaltyWalletData.incomes || {}).map(i => ({...i, type: 'income'}));
     const expenses = Object.values(penaltyWalletData.expenses || {}).map(e => ({...e, type: 'expense'}));
     const history = [...incomes, ...expenses].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     
+    // Main Balance Update
     getElement('penaltyBalance').textContent = `₹${(communityStats.totalPenaltyBalance || 0).toLocaleString('en-IN')}`;
     
+    // List Logic
     const list = getElement('penaltyHistoryList');
     list.innerHTML = '';
+    
+    // Ensure Hidden initially
     list.style.display = 'none';
     getElement('viewHistoryBtn').textContent = 'View History';
     
@@ -559,10 +539,14 @@ function showPenaltyWalletModal() {
     } else {
         history.forEach(tx => {
             const isIncome = tx.type === 'income';
+            
+            // Logic: Income = Green, Expense = Red
             const amountClass = isIncome ? 'green-text' : 'red-text';
             const sign = isIncome ? '+' : '-';
+            
+            // Date Formatting
             const dateObj = new Date(tx.timestamp);
-            const dateStr = dateObj.toLocaleDateString('en-GB'); 
+            const dateStr = dateObj.toLocaleDateString('en-GB'); // DD/MM/YYYY
             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
             list.innerHTML += `
@@ -584,19 +568,29 @@ function showPenaltyWalletModal() {
 
 function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
+        // Close Modal Logic (Updated for better target detection)
         if (e.target.matches('.close') || e.target.matches('.close *')) {
             const modal = e.target.closest('.modal');
             if (modal) closeModal(modal);
         }
         if (e.target.classList.contains('modal')) closeModal(e.target);
+        
         if (e.target.closest('#totalMembersCard')) showAllMembersModal();
+        
+        // --- FIXED: SMART SWAP FOR FULL VIEW ---
         if (e.target.closest('#fullViewBtn')) {
+            // OLD: closeModal(elements.memberProfileModal); openModal(elements.passwordPromptModal);
+            // NEW: Use smart swap to prevent history back collision
             swapModals(elements.memberProfileModal, elements.passwordPromptModal);
         }
+        
         if (e.target.closest('#submitPasswordBtn')) handlePasswordCheck(database);
+        
+        // LUXURY UPDATE: View History Toggle Logic
         if (e.target.closest('#viewHistoryBtn')) {
             const list = getElement('penaltyHistoryList');
             const btn = e.target.closest('#viewHistoryBtn');
+            
             if (list.style.display === 'none' || list.style.display === '') {
                 list.style.display = 'block';
                 btn.textContent = 'Hide History';
@@ -605,6 +599,7 @@ function setupEventListeners(database) {
                 btn.textContent = 'View History';
             }
         }
+        
         if (e.target.closest('#profileModalHeader')) {
             const imgSrc = getElement('profileModalImage').src;
             if (imgSrc) showFullImage(imgSrc, getElement('profileModalName').textContent);
@@ -813,98 +808,50 @@ function buildInfoSlider() {
     feather.replace();
 }
 
-// === UPDATED NOTIFICATION LOGIC (STRICT TODAY + UNIQUE ID) ===
+// === UPDATED NOTIFICATION LOGIC (STRICT TODAY + ROYAL POPUP) ===
 function processAndShowNotifications() {
     const todayDateString = getTodayDateStringLocal();
-    const verifiedMemberId = localStorage.getItem('verifiedMemberId');
-    const systemNotifKey = `sysNotif_${todayDateString}`; // Key to prevent repeating DAILY system notifications for reminders
+    const sessionPopupsKey = `royalPopups_${todayDateString}`; // Unique Key for Today
 
-    // --- 1. Automatic SIP & Loan Reminders (BROWSER NATIVE) ---
-    // Runs only if member is verified
-    if (verifiedMemberId) {
-        const myProfile = allMembersData.find(m => m.id === verifiedMemberId);
-        if (myProfile) {
-            checkAutomaticReminders(myProfile, systemNotifKey);
-        }
+    // Prevent showing again if already shown for this session AND this day
+    if (sessionStorage.getItem(sessionPopupsKey)) {
+        return;
     }
 
-    // --- 2. Transaction Notifications (POPUP + TODAY SYSTEM ALERT) ---
-    let delay = 500; 
-    const baseDelay = 4000; 
+    let delay = 500; // Start quicker
+    const baseDelay = 4000; // Enough time to read
 
-    // Filter transactions for TODAY
+    // 1. Transaction Notifications (STRICT DATE CHECK)
     const todaysTransactions = allTransactions.filter(tx => {
         if (!tx.date) return false;
+        // Parse date reliably
         const txDate = new Date(tx.date);
-        const today = new Date();
+        const y = txDate.getFullYear();
+        const m = (txDate.getMonth() + 1).toString().padStart(2, '0');
+        const d = txDate.getDate().toString().padStart(2, '0');
+        const txDateString = `${y}-${m}-${d}`;
         
-        // Robust Date Comparison (Day, Month, Year match)
-        return txDate.getDate() === today.getDate() &&
-               txDate.getMonth() === today.getMonth() &&
-               txDate.getFullYear() === today.getFullYear();
+        return txDateString === todayDateString;
     });
 
     if (todaysTransactions.length > 0) {
         todaysTransactions.forEach((tx, index) => {
-            // Unique ID for each transaction (Critical for preventing duplicates while allowing new ones)
-            // Structure: "notif_tx_DATE_AMOUNT_MEMBERID_TYPE"
-            const uniqueTxId = `notif_tx_${tx.date}_${tx.amount}_${tx.memberId}_${tx.type}`.replace(/\s/g, '');
-
-            // CHECK: If this specific transaction has NOT been notified yet
-            if (!localStorage.getItem(uniqueTxId)) {
-                
-                // A. Show In-App Popup
-                setTimeout(() => showPopupNotification('transaction', tx), delay + index * baseDelay);
-                
-                // B. Show Browser Notification (System Tray)
-                // Notify for ANY community activity today (as requested)
-                let title = "";
-                let body = "";
-                const memberName = allMembersData.find(m => m.id === tx.memberId)?.name || "Member";
-
-                if (tx.type === 'Loan Taken') {
-                    title = `📢 Loan Disbursed`;
-                    body = `${memberName} took a loan of ₹${tx.amount}`;
-                } else if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
-                    title = `✅ Payment Received`;
-                    body = `${memberName} paid ₹${tx.amount}`;
-                } else if (tx.type === 'Loan Payment') {
-                    title = `💰 Repayment Received`;
-                    const totalPaid = (parseFloat(tx.principalPaid||0) + parseFloat(tx.interestPaid||0));
-                    body = `${memberName} repaid loan amount ₹${totalPaid}`;
-                }
-
-                if (title) {
-                    sendBrowserNotification(title, body, uniqueTxId);
-                }
-
-                // MARK AS SHOWN (So it doesn't show again on reload)
-                localStorage.setItem(uniqueTxId, 'true');
-            }
+            setTimeout(() => showPopupNotification('transaction', tx), delay + index * baseDelay);
         });
+        delay += todaysTransactions.length * baseDelay;
     }
 
-    // --- 3. Manual Notices (FIXED: Deduplication) ---
-    // Extract values
-    const rawNotices = Object.values(allManualNotifications);
-    
-    // Filter duplicates based on Title
-    const seenTitles = new Set();
-    const uniqueNotices = rawNotices.filter(notif => {
-        const titleKey = (notif.title || '').trim().toLowerCase();
-        if (seenTitles.has(titleKey)) {
-            return false; // Skip duplicate
-        }
-        seenTitles.add(titleKey);
-        return true; // Keep unique
-    });
-
-    // Show only unique notices
-    uniqueNotices.forEach((notif, index) => {
+    // 2. Manual Notices (Show only if active/recent - currently showing all active)
+    // We assume if manual notification exists, it's meant to be seen.
+    Object.values(allManualNotifications).forEach((notif, index) => {
         setTimeout(() => showPopupNotification('manual', notif), delay + index * baseDelay);
     });
+
+    // Mark as shown for this session
+    sessionStorage.setItem(sessionPopupsKey, 'true');
     
-    // Notification Dot Logic
+    // Notification Dot Logic (Unchanged)
+    const verifiedMemberId = localStorage.getItem('verifiedMemberId');
     if (!verifiedMemberId) return;
     const userReminders = Object.values(allAutomatedQueue).filter(item => item.memberId === verifiedMemberId && item.status === 'active');
     
@@ -914,72 +861,13 @@ function processAndShowNotifications() {
     }
 }
 
-// --- NEW FUNCTION: AUTOMATIC REMINDER LOGIC (PRD UPDATED) ---
-function checkAutomaticReminders(member, storageKey) {
-    const today = new Date();
-    const currentDay = today.getDate();
-    
-    // For Daily Reminders, we check if notification ALREADY SENT TODAY
-    if (localStorage.getItem(storageKey)) return; 
-
-    let notificationSent = false;
-
-    // A. SIP Reminder (1st - 10th)
-    if (currentDay >= 1 && currentDay <= 10) {
-        if (member.sipStatus && !member.sipStatus.paid) {
-            sendBrowserNotification(
-                "📅 SIP Reminder - TCF",
-                "कृपया अपनी मासिक SIP जमा करें। (1-10 तारीख)",
-                "sip-reminder-" + today.toDateString()
-            );
-            notificationSent = true;
-        }
-    }
-
-    // B. Loan Reminder (Strict Rules)
-    const myLoanTx = allTransactions
-        .filter(t => t.memberId === member.id && t.type === 'Loan Taken')
-        .sort((a,b) => new Date(b.date) - new Date(a.date))[0]; // Latest loan
-
-    if (myLoanTx && member.totalOutstandingLoan > 0) { 
-        const loanDate = new Date(myLoanTx.date);
-        const diffTime = Math.abs(today - loanDate);
-        const daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
-        // Rule 1: 30 to 85 Days -> Every 5 Days
-        if (daysPassed >= 30 && daysPassed <= 85) {
-            if ((daysPassed - 30) % 5 === 0) {
-                sendBrowserNotification(
-                    `💰 Loan Reminder (${daysPassed} Days)`,
-                    `आपके loan को ${daysPassed} दिन हो गए हैं। कृपया repayment करें।`,
-                    `loan-normal-${daysPassed}`
-                );
-                notificationSent = true;
-            }
-        }
-        // Rule 2: 86 to 100 Days -> DAILY URGENT ALERT
-        else if (daysPassed >= 86 && daysPassed <= 100) {
-            sendBrowserNotification(
-                `🚨 CRITICAL LOAN ALERT (${daysPassed} Days)`,
-                `URGENT! Loan overdue by ${daysPassed} days. Immediate payment required!`,
-                `loan-urgent-${daysPassed}`
-            );
-            notificationSent = true;
-        }
-    }
-
-    if (notificationSent) {
-        // Mark as "Done for Today"
-        localStorage.setItem(storageKey, 'true');
-    }
-}
-
+// === NEW PREMIUM TOAST RENDERER ===
 function showPopupNotification(type, data) {
     const container = getElement('notification-popup-container');
     if (!container) return;
     
     const popup = document.createElement('div');
-    popup.className = 'notification-popup'; 
+    popup.className = 'notification-popup'; // Matches new CSS
     
     popup.onclick = () => { window.location.href = 'notifications.html'; };
 
@@ -1009,6 +897,7 @@ function showPopupNotification(type, data) {
                 break;
             case 'Loan Payment': 
                 message = `Loan Repayment`; 
+                // Fix: Show Total Paid (Principal + Interest)
                 const totalPaid = (parseFloat(data.principalPaid)||0) + (parseFloat(data.interestPaid)||0);
                 amount = `+ ₹${totalPaid.toLocaleString()}`; 
                 typeClass = 'payment'; 
@@ -1047,6 +936,7 @@ function showPopupNotification(type, data) {
         <button class="notification-popup-close">&times;</button>
     `;
 
+    // Close Button Logic
     const closeBtn = popup.querySelector('.notification-popup-close');
     closeBtn.onclick = (e) => {
         e.stopPropagation(); 
@@ -1054,6 +944,7 @@ function showPopupNotification(type, data) {
         popup.addEventListener('animationend', () => popup.remove(), { once: true });
     };
 
+    // Auto Remove after 5 seconds
     setTimeout(() => {
         if(popup.parentNode) {
             popup.classList.add('closing');
@@ -1086,11 +977,13 @@ function animateValue(el, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
+// --- FIXED: AUTO-RECONNECT & ROBUST PASSWORD CHECK ---
 async function handlePasswordCheck(database) {
     const input = getElement('passwordInput');
     const password = input.value;
     if (!password) return alert('Please enter password.');
     
+    // Fallback: If initUI was called with null, use global firebase
     let dbInstance = database;
     if (!dbInstance) {
         try {
@@ -1109,6 +1002,7 @@ async function handlePasswordCheck(database) {
         const snapshot = await dbInstance.ref(`members/${currentMemberForFullView}/password`).once('value');
         const correctPassword = snapshot.val();
         
+        // Fix: Use trim() to ignore accidental spaces and String() for type safety
         if (String(password).trim() === String(correctPassword).trim()) {
             closeModal(elements.passwordPromptModal);
             window.location.href = `view.html?memberId=${currentMemberForFullView}`;
@@ -1122,22 +1016,28 @@ async function handlePasswordCheck(database) {
     }
 }
 
+// === HISTORY API LOGIC FOR MODALS ===
 function openModal(modal) { 
     if (modal) { 
         modal.classList.add('show'); 
         document.body.style.overflow = 'hidden'; 
+        
+        // Push state to history
         window.history.pushState({modalOpen: true}, "", "");
         currentOpenModal = modal;
     } 
 }
 
+// --- NEW FUNCTION: SMART SWAP (PREVENTS BACK LOOP CRASH) ---
 function swapModals(fromModal, toModal) {
     if (fromModal) {
         fromModal.classList.remove('show');
     }
     if (toModal) {
         toModal.classList.add('show');
+        // Update the reference so back button closes the NEW modal
         currentOpenModal = toModal;
+        // KEY FIX: We DO NOT push a new state. We reuse the existing state.
     }
 }
 
@@ -1146,6 +1046,8 @@ function closeModal(modal) {
         modal.classList.remove('show'); 
         document.body.style.overflow = ''; 
         currentOpenModal = null;
+        
+        // Only go back if state was pushed (avoid double back)
         if (window.history.state && window.history.state.modalOpen) {
             window.history.back();
         }
@@ -1162,6 +1064,7 @@ function showFullImage(src, alt) {
     }
 }
 
+// Fixed Observer
 const scrollObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -1177,5 +1080,4 @@ function observeElements(elements) {
 }
 
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
-
 
