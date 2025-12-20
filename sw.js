@@ -1,18 +1,21 @@
-// Cache ka naya version jo dono apps ko support karega
-const CACHE_NAME = 'bank-community-cache-v17-multiapp'; 
+// Cache ka naya version (Notification Logic Updated)
+const CACHE_NAME = 'bank-community-cache-v18-notification-update'; 
 
 // Zaroori files jinko install ke time cache karna hai
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/login.html',
-  '/admin.html', // Admin file ko yahan add karein
-  '/manifest-user.json', // User manifest
-  '/manifest-admin.json', // Admin manifest
+  '/notifications.html', // Important for notifications
+  '/user-ui.js',
+  '/user-main.js',
+  '/user-data.js',
+  '/user-style.css',
+  '/manifest-user.json',
   '/favicon.ico'
 ];
 
-// 1. Install Event: Naya cache banata hai aur app shell files add karta hai
+// 1. Install Event
 self.addEventListener('install', event => {
   console.log('[Service Worker] Install');
   event.waitUntil(
@@ -21,11 +24,11 @@ self.addEventListener('install', event => {
         console.log('[Service Worker] Caching App Shell');
         return cache.addAll(APP_SHELL_URLS);
       })
-      .then(() => self.skipWaiting()) // Naye service worker ko turant activate karein
+      .then(() => self.skipWaiting())
   );
 });
 
-// 2. Activate Event: Purane saare cache delete karta hai
+// 2. Activate Event (Clean old cache)
 self.addEventListener('activate', event => {
   console.log('[Service Worker] Activate');
   event.waitUntil(
@@ -40,33 +43,30 @@ self.addEventListener('activate', event => {
       );
     }).then(() => {
       console.log('[Service Worker] Claiming clients');
-      return self.clients.claim(); // Saare open tabs ko control karein
+      return self.clients.claim(); 
     })
   );
 });
 
-// 3. Fetch Event: Requests ko handle karta hai
+// 3. Fetch Event
 self.addEventListener('fetch', event => {
   const { request } = event;
 
-  // API calls ya doosre domains ki request ko hamesha network se fetch karein
+  // API calls network se
   if (request.url.includes('/api/') || new URL(request.url).origin !== self.location.origin) {
     event.respondWith(fetch(request));
     return;
   }
 
-  // HTML pages (Navigation) ke liye: Network-First strategy
+  // HTML Navigation - Network First
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .catch(() => {
-          return caches.match(request);
-        })
+      fetch(request).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Baaki sab files ke liye: Stale-While-Revalidate strategy
+  // Assets - Stale While Revalidate
   event.respondWith(
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(request).then(response => {
@@ -80,29 +80,27 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// === YAHAN BADLAV KIYA GAYA HAI ===
-
-// 4. Push Event: Jab server se notification aata hai
+// 4. Push Event (Server se agar kabhi future mein bheja jaye)
 self.addEventListener('push', event => {
-  console.log('[Service Worker] Push Received.');
-  // Default data agar push message mein data na ho
-  let data = { title: 'Naya Sandesh', body: 'Aapke liye ek update hai.' };
+  let data = { title: 'TCF Alert', body: 'New Update Available', url: '/notifications.html' };
+  
   if (event.data) {
     try {
       data = event.data.json();
     } catch (e) {
-      console.error('Push event data parsing error:', e);
+      console.error('Push parse error:', e);
     }
   }
 
   const options = {
     body: data.body,
-    icon: 'https://i.ibb.co/pjB1bQ7J/1752978674430.jpg', // App icon
-    badge: 'https://i.ibb.co/pjB1bQ7J/1752978674430.jpg', // Chhota icon jo notification bar mein dikhta hai
-    vibrate: [200, 100, 200], // Vibration pattern
+    icon: 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg',
+    badge: 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg',
+    vibrate: [200, 100, 200],
     data: {
-      url: self.location.origin, // Click karne par kaun sa URL khulega
+      url: data.url || '/notifications.html', // Default to notifications page
     },
+    tag: data.tag || 'general-notification'
   };
 
   event.waitUntil(
@@ -110,25 +108,35 @@ self.addEventListener('push', event => {
   );
 });
 
-// 5. Notification Click Event: Jab user notification par click karta hai
+// 5. Notification Click Handling (SMART REDIRECT)
 self.addEventListener('notificationclick', event => {
-  console.log('[Service Worker] Notification click Received.');
+  console.log('[Service Worker] Notification click:', event.notification.tag);
+  
+  event.notification.close();
 
-  event.notification.close(); // Notification ko band kar do
+  // Determine target URL based on Notification Tag
+  let targetUrl = '/index.html'; // Default
+  const tag = event.notification.tag || '';
+
+  // Agar SIP, Loan ya Transaction ka alert hai to Notifications page khulega
+  if (tag.includes('sip') || tag.includes('loan') || tag.includes('tx')) {
+      targetUrl = '/notifications.html';
+  }
 
   event.waitUntil(
-    clients.matchAll({
-      type: "window",
-      includeUncontrolled: true
-    }).then(clientList => {
-      // Check karo ki app ka koi tab pehle se khula hai ya nahi
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {
+      // 1. Agar tab pehle se khula hai, to use focus karo
       for (const client of clientList) {
-        if (new URL(client.url).pathname === '/index.html' && 'focus' in client)
-          return client.focus();
+        const clientUrl = new URL(client.url);
+        if (clientUrl.pathname === targetUrl && 'focus' in client) {
+            return client.focus();
+        }
       }
-      // Agar koi tab khula nahi hai, to naya kholo
-      if (clients.openWindow)
-        return clients.openWindow(event.notification.data.url || '/');
+      // 2. Agar nahi khula, to naya kholo
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });
+
