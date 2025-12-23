@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCF Royal Analytics & AI Auditor</title>
+    <title>Royal TCF Analytics & AI Auditor</title>
     
     <!-- TAILWIND CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,7 @@
     <!-- FONT AWESOME -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     
-    <!-- GOOGLE GEMINI SDK (Generative AI) -->
+    <!-- GOOGLE GEMINI SDK -->
     <script type="importmap">
       {
         "imports": {
@@ -29,11 +29,11 @@
                 extend: {
                     colors: {
                         royal: {
-                            dark: '#0a0f1c', // Darker background
-                            card: '#111827', // Card background
-                            blue: '#1e40af',
-                            gold: '#fbbf24',
-                            text: '#e2e8f0'
+                            dark: '#001540',      // Main Deep Blue
+                            card: '#002366',      // Card Blue
+                            gold: '#D4AF37',      // Primary Gold
+                            goldLight: '#F3E5AB', // Light Gold
+                            text: '#E0E7FF'       // Soft White
                         }
                     }
                 }
@@ -42,192 +42,220 @@
     </script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0a0f1c; color: #e2e8f0; }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Poppins', sans-serif; background-color: #001540; color: #e2e8f0; }
         
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #111827; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #fbbf24; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #001540; }
+        ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+        
+        .gold-gradient-text {
+            background: linear-gradient(to right, #D4AF37, #FDB931, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
         .glass-panel {
-            background: rgba(17, 24, 39, 0.7);
+            background: rgba(0, 35, 102, 0.4);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.2);
         }
-        
+
+        /* Chat Bubbles */
         .ai-chat-bubble {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            background: linear-gradient(135deg, #002366 0%, #001540 100%);
+            border: 1px solid #D4AF37;
             border-radius: 12px 12px 12px 0;
             padding: 12px;
             font-size: 0.9rem;
-            line-height: 1.5;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-
         .user-chat-bubble {
-            background: #374151;
+            background: #F3E5AB;
+            color: #001540;
             border-radius: 12px 12px 0 12px;
             padding: 10px 15px;
             font-size: 0.9rem;
+            font-weight: 500;
         }
 
-        .typing-dot {
-            animation: typing 1.4s infinite ease-in-out both;
-        }
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; background-color: #D4AF37; }
         .typing-dot:nth-child(1) { animation-delay: -0.32s; }
         .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-        
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
-
-        /* Markdown Styles for AI */
-        .prose strong { color: #fbbf24; }
-        .prose ul { list-style-type: disc; padding-left: 20px; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
 
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-royal-card border-r border-gray-800 hidden md:flex flex-col z-20">
-        <div class="p-6 border-b border-gray-800 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-black font-bold text-lg">
+    <aside class="w-20 md:w-64 bg-royal-card border-r border-royal-gold/20 flex flex-col z-20 transition-all duration-300">
+        <div class="p-4 md:p-6 border-b border-royal-gold/20 flex items-center justify-center md:justify-start gap-3">
+            <div class="w-10 h-10 rounded-full border-2 border-royal-gold flex items-center justify-center text-royal-gold font-bold text-lg shadow-[0_0_10px_rgba(212,175,55,0.5)]">
                 <i class="fas fa-crown"></i>
             </div>
-            <div>
-                <h1 class="font-bold text-white tracking-wide">TCF AUDITOR</h1>
-                <p class="text-xs text-yellow-500 uppercase tracking-widest">Nano Analytics</p>
+            <div class="hidden md:block">
+                <h1 class="font-bold text-white tracking-wide">TCF AUDIT</h1>
+                <p class="text-[10px] text-royal-gold uppercase tracking-widest">Nano System</p>
             </div>
         </div>
         
-        <nav class="flex-1 p-4 space-y-2">
-            <button class="w-full text-left px-4 py-3 rounded-lg bg-royal-blue/20 text-blue-400 border border-blue-900/50 font-medium flex items-center gap-3">
-                <i class="fas fa-chart-pie"></i> Dashboard
+        <nav class="flex-1 p-2 space-y-2 mt-4">
+            <button class="w-full px-4 py-3 rounded-lg bg-royal-gold/10 text-royal-gold border border-royal-gold/30 font-medium flex items-center justify-center md:justify-start gap-3 hover:bg-royal-gold/20 transition-all">
+                <i class="fas fa-chart-line"></i> <span class="hidden md:inline">Analytics</span>
             </button>
-            <!-- Only dashboard is active for this demo -->
         </nav>
 
-        <div class="p-4 border-t border-gray-800">
-            <div class="bg-gray-800/50 rounded-lg p-3">
-                <p class="text-xs text-gray-400 mb-1">System Status</p>
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="text-xs font-bold text-green-400">Live & Connected</span>
+        <div class="p-4 border-t border-royal-gold/20">
+            <div class="bg-black/30 rounded-lg p-3 text-center md:text-left">
+                <p class="text-[10px] text-gray-400 mb-1 hidden md:block">AI Connection</p>
+                <div class="flex items-center justify-center md:justify-start gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]"></div>
+                    <span class="text-xs font-bold text-green-400 hidden md:inline">Online</span>
                 </div>
             </div>
         </div>
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col relative overflow-hidden">
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-royal-dark">
         
         <!-- TOP HEADER -->
-        <header class="h-16 border-b border-gray-800 bg-royal-card/80 backdrop-blur flex justify-between items-center px-6">
-            <h2 class="text-xl font-semibold text-white">Member Performance Overview</h2>
-            <div class="flex items-center gap-4">
-                <div id="loader" class="flex items-center gap-2 text-yellow-500">
-                    <i class="fas fa-circle-notch fa-spin"></i>
-                    <span class="text-xs font-bold">ANALYZING DATA...</span>
-                </div>
+        <header class="h-16 border-b border-royal-gold/20 bg-royal-card/80 backdrop-blur flex justify-between items-center px-6">
+            <h2 class="text-lg md:text-xl font-bold text-white"><i class="fas fa-search-dollar text-royal-gold mr-2"></i> Financial Audit</h2>
+            <div id="loader" class="flex items-center gap-2 text-royal-gold">
+                <i class="fas fa-circle-notch fa-spin"></i>
+                <span class="text-xs font-bold tracking-wider">ANALYZING DATA...</span>
             </div>
         </header>
 
-        <!-- CONTENT AREA -->
-        <div class="flex-1 overflow-auto p-6 relative">
+        <!-- DASHBOARD AREA -->
+        <div class="flex-1 overflow-auto p-4 md:p-6 relative custom-scrollbar">
             
-            <!-- STATS GRID -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-royal-card border border-gray-700 p-5 rounded-xl">
-                    <p class="text-gray-400 text-xs font-bold uppercase">Total Profit Distributed</p>
+            <!-- SUMMARY CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <!-- Total Profit -->
+                <div class="glass-panel p-5 rounded-xl border-l-4 border-l-green-500 relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-coins text-6xl text-green-500"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Total Distributed</p>
                     <p id="total-profit-dist" class="text-2xl font-bold text-green-400 mt-1">₹0</p>
                 </div>
-                <div class="bg-royal-card border border-gray-700 p-5 rounded-xl">
-                    <p class="text-gray-400 text-xs font-bold uppercase">Avg. Member Score</p>
-                    <p id="avg-score" class="text-2xl font-bold text-yellow-400 mt-1">0.0</p>
+                
+                <!-- Average Score -->
+                <div class="glass-panel p-5 rounded-xl border-l-4 border-l-royal-gold relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-chart-pie text-6xl text-royal-gold"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Avg. Performance</p>
+                    <p id="avg-score" class="text-2xl font-bold text-royal-gold mt-1">0.0</p>
                 </div>
-                <div class="bg-royal-card border border-gray-700 p-5 rounded-xl">
-                    <p class="text-gray-400 text-xs font-bold uppercase">Active Members</p>
+
+                <!-- Active Members -->
+                <div class="glass-panel p-5 rounded-xl border-l-4 border-l-blue-400 relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-users text-6xl text-blue-400"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Active Members</p>
                     <p id="active-members-count" class="text-2xl font-bold text-blue-400 mt-1">0</p>
                 </div>
-                <div class="bg-royal-card border border-gray-700 p-5 rounded-xl">
-                    <p class="text-gray-400 text-xs font-bold uppercase">Transaction Volume</p>
-                    <p id="tx-volume" class="text-2xl font-bold text-purple-400 mt-1">0</p>
+
+                <!-- Risk Factor -->
+                <div class="glass-panel p-5 rounded-xl border-l-4 border-l-red-500 relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-exclamation-triangle text-6xl text-red-500"></i>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Late Payments</p>
+                    <p id="late-payments-count" class="text-2xl font-bold text-red-400 mt-1">0</p>
                 </div>
             </div>
 
-            <!-- MEMBERS TABLE -->
-            <div class="bg-royal-card border border-gray-800 rounded-xl overflow-hidden shadow-xl">
+            <!-- ANALYTICS TABLE -->
+            <div class="glass-panel rounded-xl overflow-hidden shadow-2xl">
+                <div class="p-4 border-b border-royal-gold/10 flex justify-between items-center bg-black/20">
+                    <h3 class="text-royal-gold font-bold uppercase tracking-wide text-sm">Detailed Member Breakdown</h3>
+                    <input type="text" id="search-member" placeholder="Search member..." class="bg-royal-dark border border-royal-gold/30 rounded-full px-4 py-1 text-sm text-white focus:outline-none focus:border-royal-gold w-48">
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-700">
-                                <th class="p-4 font-semibold">Member</th>
-                                <th class="p-4 font-semibold text-center">Score</th>
+                            <tr class="bg-royal-card text-gray-400 text-xs uppercase tracking-wider">
+                                <th class="p-4 font-semibold">Member Details</th>
+                                <th class="p-4 font-semibold text-center">Nano Score</th>
                                 <th class="p-4 font-semibold text-center">Total Profit</th>
-                                <th class="p-4 font-semibold text-center">Wallet Balance</th>
-                                <th class="p-4 font-semibold text-right">Actions</th>
+                                <th class="p-4 font-semibold text-center">Current Balance</th>
+                                <th class="p-4 font-semibold text-right">AI Auditor</th>
                             </tr>
                         </thead>
-                        <tbody id="members-table-body" class="divide-y divide-gray-800 text-sm">
-                            <!-- Rows injected via JS -->
+                        <tbody id="members-table-body" class="divide-y divide-royal-gold/10 text-sm">
+                            <!-- JS Injected Rows -->
                         </tbody>
                     </table>
                 </div>
             </div>
+            
+            <!-- Footer -->
+            <div class="mt-6 text-center text-[10px] text-gray-500 uppercase tracking-widest">
+                System Powered by Gemini AI • Royal Trust Fund v2.0
+            </div>
 
         </div>
-
     </main>
 
     <!-- AI CHAT DRAWER (Right Side) -->
-    <div id="ai-drawer" class="absolute inset-y-0 right-0 w-full md:w-96 bg-[#0f141f] border-l border-gray-700 transform translate-x-full transition-transform duration-300 z-50 flex flex-col shadow-2xl">
+    <div id="ai-drawer" class="absolute inset-y-0 right-0 w-full md:w-[450px] bg-[#001030] border-l border-royal-gold/30 transform translate-x-full transition-transform duration-300 z-50 flex flex-col shadow-2xl">
         
-        <!-- AI Header -->
-        <div class="p-4 border-b border-gray-800 bg-gray-900 flex justify-between items-center">
+        <!-- Header -->
+        <div class="p-4 border-b border-royal-gold/20 bg-royal-card flex justify-between items-center shadow-lg">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <i class="fas fa-robot text-white text-sm"></i>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-royal-gold to-yellow-600 flex items-center justify-center shadow-lg border border-white/10">
+                    <i class="fas fa-robot text-royal-dark text-lg"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-white text-sm">AI Auditor</h3>
-                    <p id="ai-target-name" class="text-[10px] text-gray-400 uppercase">Select a member</p>
+                    <h3 class="font-bold text-white">AI Auditor</h3>
+                    <p id="ai-target-name" class="text-[10px] text-royal-gold uppercase tracking-wider">Select a member</p>
                 </div>
             </div>
-            <button id="close-ai" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
+            <button id="close-ai" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <!-- Chat Area -->
-        <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0f141f]">
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#001030] custom-scrollbar">
             <!-- Messages go here -->
-            <div class="ai-chat-bubble text-white">
-                <p>Namaste! 🙏 Main TCF ka AI Auditor hoon.</p>
-                <p class="mt-2 text-gray-300 text-xs">Kisi bhi member ke 'Analyze' button pe click karein, aur main unka poora financial post-mortem kar dunga.</p>
+            <div class="ai-chat-bubble text-gray-200">
+                <p><strong>Namaste! 🙏</strong></p>
+                <p class="mt-2 text-sm text-gray-300">Main TCF ka AI Auditor hoon. Main bata sakta hoon ki kisi member ka score kam kyu hai, ya unhe profit kis transaction se mila hai.</p>
+                <p class="mt-2 text-xs text-royal-gold">Shuru karne ke liye dashboard se kisi member ko "AUDIT" karein.</p>
             </div>
         </div>
 
         <!-- Input Area -->
-        <div class="p-4 border-t border-gray-800 bg-gray-900">
-            <div class="relative">
-                <input id="chat-input" type="text" placeholder="Ask about score, profit, or loans..." 
-                    class="w-full bg-gray-800 text-white rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 border border-gray-700">
-                <button id="send-btn" class="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
-                    <i class="fas fa-paper-plane text-xs"></i>
+        <div class="p-4 border-t border-royal-gold/20 bg-royal-card">
+            <div class="relative flex items-center gap-2">
+                <input id="chat-input" type="text" placeholder="Ask e.g., 'Iska score kam kyu hai?'..." 
+                    class="flex-1 bg-royal-dark text-white rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-1 focus:ring-royal-gold border border-royal-gold/20">
+                <button id="send-btn" class="bg-royal-gold hover:bg-yellow-500 text-royal-dark font-bold w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg transform active:scale-95">
+                    <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- LOGIC MODAL (For Raw Logs) -->
-    <div id="log-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="bg-gray-900 w-full max-w-2xl rounded-2xl border border-gray-700 shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="p-5 border-b border-gray-700 flex justify-between items-center">
-                <h3 id="log-modal-title" class="text-lg font-bold text-yellow-500">Breakdown</h3>
-                <button onclick="document.getElementById('log-modal').classList.add('hidden'); document.getElementById('log-modal').classList.remove('flex');" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+    <!-- LOGIC MODAL (For Nano Logic View) -->
+    <div id="log-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+        <div class="bg-[#001540] w-full max-w-2xl rounded-2xl border border-royal-gold shadow-[0_0_30px_rgba(212,175,55,0.2)] flex flex-col max-h-[85vh]">
+            <div class="p-5 border-b border-royal-gold/20 flex justify-between items-center bg-royal-card/50">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-microscope text-royal-gold text-xl"></i>
+                    <h3 id="log-modal-title" class="text-lg font-bold text-white">Nano Breakdown</h3>
+                </div>
+                <button onclick="document.getElementById('log-modal').classList.add('hidden'); document.getElementById('log-modal').classList.remove('flex');" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div id="log-modal-content" class="p-6 overflow-y-auto space-y-4 text-sm font-mono text-gray-300">
+            <div id="log-modal-content" class="p-6 overflow-y-auto space-y-4 custom-scrollbar">
                 <!-- Injected Logs -->
             </div>
         </div>
@@ -235,31 +263,33 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script type="module">
-        // --- 1. CONFIGURATION & IMPORTS ---
+        // --- 1. FIREBASE & AI IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // GLOBAL CONFIG
+        // GLOBAL CONFIG & LOGIC CONSTANTS
         const CONFIG = {
             CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
-            TARGET_SIP: 30000
+            TARGET_SIP: 30000,
+            NEW_MEMBER_PROBATION_DAYS: 180,
+            TEN_DAY_CREDIT_GRACE: 15
         };
-        const GEMINI_API_KEY = "AIzaSyBwhJNl7Rw4Xwb8esmsIes5uVX2fWlRnSE"; // USER PROVIDED
+        const GEMINI_API_KEY = "AIzaSyBwhJNl7Rw4Xwb8esmsIes5uVX2fWlRnSE"; // Provided by user
         
         let db, auth, genAI, model;
         let GLOBAL_DATA = { members: {}, transactions: {}, activeLoans: {} };
-        let CURRENT_ANALYSIS_CONTEXT = null; // Stores data of the member currently being chatted about
+        let CURRENT_ANALYSIS_CONTEXT = null; 
 
         // --- 2. INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Init Gemini
+                // Initialize AI
                 genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
                 model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
-                // Init Firebase
+                // Initialize Firebase
                 const response = await fetch('/api/firebase-config');
                 const firebaseConfig = await response.json();
                 const app = initializeApp(firebaseConfig);
@@ -267,13 +297,14 @@
                 db = getDatabase(app);
 
                 await signInAnonymously(auth);
-                console.log("🔥 Authenticated anonymously");
+                console.log("🔥 Connected to TCF Database");
 
+                // Start Data Fetch
                 await fetchDataAndAnalyze();
 
             } catch (e) {
-                console.error("Init Error:", e);
-                alert("Error initializing system: " + e.message);
+                console.error("System Error:", e);
+                document.getElementById('loader').innerHTML = `<span class="text-red-500">SYSTEM ERROR: ${e.message}</span>`;
             }
         });
 
@@ -281,7 +312,7 @@
         async function fetchDataAndAnalyze() {
             const loader = document.getElementById('loader');
             
-            // Fetch All Data
+            // Parallel Fetch
             const [membersSnap, txSnap, loansSnap] = await Promise.all([
                 get(ref(db, 'members')),
                 get(ref(db, 'transactions')),
@@ -292,209 +323,230 @@
             GLOBAL_DATA.transactions = txSnap.val() || {};
             GLOBAL_DATA.activeLoans = loansSnap.val() || {};
 
-            // Convert transactions object to array
+            // Convert transactions to array & sort
             const txArray = Object.values(GLOBAL_DATA.transactions).map((t, i) => ({...t, id: Object.keys(GLOBAL_DATA.transactions)[i]}));
+            txArray.sort((a,b) => new Date(a.date) - new Date(b.date));
             
-            // Process Member Analytics
+            renderTable(txArray);
+            loader.classList.add('hidden');
+        }
+
+        // --- 4. RENDER TABLE & STATS ---
+        function renderTable(txArray) {
             const tableBody = document.getElementById('members-table-body');
             tableBody.innerHTML = '';
             
-            let totalProfitDistributed = 0;
-            let totalScores = 0;
-            let activeCount = 0;
+            let stats = { profit: 0, scoreSum: 0, active: 0, late: 0 };
 
             for (const [memberId, member] of Object.entries(GLOBAL_DATA.members)) {
                 if(member.status !== 'Approved') continue;
-                activeCount++;
+                stats.active++;
 
-                // 1. Run Deep Analysis
+                // DEEP ANALYSIS
                 const analysis = runNanoAnalysis(memberId, member.fullName, txArray, GLOBAL_DATA.activeLoans);
                 
-                // 2. Update Globals
-                totalProfitDistributed += analysis.financials.lifetimeProfit;
-                totalScores += analysis.scoreData.totalScore;
+                // Aggregates
+                stats.profit += analysis.financials.lifetimeProfit;
+                stats.scoreSum += analysis.scoreData.totalScore;
+                if(analysis.scoreData.hasLatePayment) stats.late++;
 
-                // 3. Render Row
+                // Store for AI
+                GLOBAL_DATA.members[memberId].analysis = analysis;
+
+                // Render Row
                 const row = document.createElement('tr');
-                row.className = "hover:bg-gray-800/50 transition-colors border-b border-gray-800 group";
+                row.className = "hover:bg-white/5 transition-colors border-b border-royal-gold/10 group";
                 row.innerHTML = `
                     <td class="p-4">
                         <div class="flex items-center gap-3">
-                            <img src="${member.profilePicUrl || 'https://placehold.co/100'}" class="w-10 h-10 rounded-full border border-gray-600 object-cover">
+                            <div class="relative">
+                                <img src="${member.profilePicUrl || 'https://placehold.co/100/002366/D4AF37?text=TCF'}" class="w-12 h-12 rounded-full border-2 border-royal-gold/50 object-cover">
+                                ${analysis.scoreData.isNew ? '<span class="absolute -top-1 -right-1 bg-blue-500 text-[8px] font-bold px-1 rounded text-white">NEW</span>' : ''}
+                            </div>
                             <div>
-                                <p class="font-bold text-white text-sm">${member.fullName}</p>
-                                <p class="text-xs text-gray-500">ID: ${memberId}</p>
+                                <p class="font-bold text-white text-sm tracking-wide">${member.fullName}</p>
+                                <p class="text-[10px] text-royal-gold opacity-70">ID: ${memberId}</p>
                             </div>
                         </div>
                     </td>
                     <td class="p-4 text-center">
-                        <div class="inline-flex flex-col items-center cursor-pointer hover:scale-105 transition-transform" onclick="showScoreLogs('${memberId}')">
-                            <span class="text-lg font-bold ${getScoreColor(analysis.scoreData.totalScore)}">${analysis.scoreData.totalScore.toFixed(1)}</span>
-                            <span class="text-[10px] text-gray-500 uppercase tracking-wide">View Logic</span>
-                        </div>
+                        <button onclick="showNanoLogic('${memberId}')" class="group relative inline-flex flex-col items-center">
+                            <div class="text-lg font-bold ${getScoreColor(analysis.scoreData.totalScore)} group-hover:scale-110 transition-transform">
+                                ${analysis.scoreData.totalScore.toFixed(1)}
+                            </div>
+                            <div class="h-1 w-full bg-gray-700 rounded-full mt-1 overflow-hidden">
+                                <div class="h-full ${getScoreBarColor(analysis.scoreData.totalScore)}" style="width: ${analysis.scoreData.totalScore}%"></div>
+                            </div>
+                            <span class="text-[9px] text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-full w-24">Click for Logic</span>
+                        </button>
                     </td>
                     <td class="p-4 text-center">
                         <div class="flex flex-col">
-                            <span class="text-green-400 font-bold">₹${analysis.financials.lifetimeProfit.toFixed(2)}</span>
-                            <span class="text-[10px] text-gray-500">${analysis.financials.profitCount} payouts</span>
+                            <span class="text-green-400 font-bold tracking-wider">₹${analysis.financials.lifetimeProfit.toLocaleString('en-IN')}</span>
+                            <span class="text-[10px] text-gray-500">${analysis.financials.profitSources.length} payouts</span>
                         </div>
                     </td>
                     <td class="p-4 text-center">
-                        <span class="font-mono text-white bg-gray-800 px-2 py-1 rounded border border-gray-700">₹${analysis.financials.walletBalance.toFixed(2)}</span>
+                        <span class="font-mono text-white bg-royal-card px-3 py-1 rounded border border-royal-gold/20">
+                            ₹${analysis.financials.walletBalance.toLocaleString('en-IN')}
+                        </span>
                     </td>
                     <td class="p-4 text-right">
-                        <button onclick="openAIForMember('${memberId}')" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5 transition-all flex items-center gap-2 ml-auto">
-                            <i class="fas fa-robot"></i> Analyze
+                        <button onclick="openAIForMember('${memberId}')" class="btn-audit bg-transparent border border-royal-gold text-royal-gold hover:bg-royal-gold hover:text-royal-dark text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-2 ml-auto">
+                            <i class="fas fa-robot"></i> AUDIT
                         </button>
                     </td>
                 `;
                 tableBody.appendChild(row);
-
-                // Store analysis in global object for AI access
-                GLOBAL_DATA.members[memberId].analysis = analysis;
             }
 
-            // Update Header Stats
-            document.getElementById('total-profit-dist').innerText = `₹${totalProfitDistributed.toLocaleString('en-IN')}`;
-            document.getElementById('avg-score').innerText = activeCount ? (totalScores/activeCount).toFixed(1) : "0";
-            document.getElementById('active-members-count').innerText = activeCount;
-            document.getElementById('tx-volume').innerText = txArray.length;
-
-            loader.classList.add('hidden');
+            // Update Dashboard Cards
+            animateCounter('total-profit-dist', stats.profit, '₹');
+            animateCounter('avg-score', stats.active ? (stats.scoreSum/stats.active) : 0, '', 1);
+            animateCounter('active-members-count', stats.active);
+            animateCounter('late-payments-count', stats.late);
         }
 
-        function getScoreColor(score) {
-            if(score >= 80) return 'text-green-400';
-            if(score >= 50) return 'text-yellow-400';
-            return 'text-red-400';
-        }
-
-        // --- 4. THE NANO-LOGIC ENGINE (Returns Data + LOGS) ---
+        // --- 5. THE NANO-LOGIC ENGINE (Deep Calculations) ---
         function runNanoAnalysis(memberId, memberName, allTx, allLoans) {
-            const now = new Date();
-            const memberTx = allTx.filter(t => t.memberId === memberId || t.name === memberName); // Handle both formats
+            const memberTx = allTx.filter(t => t.memberId === memberId || t.name === memberName);
+            const logs = { capital: [], consistency: [], credit: [], events: [] };
             
-            // A. SCORING LOGIC WITH LOGS
-            const logs = { capital: [], consistency: [], credit: [] };
-            
-            // 1. Capital Score (SIP)
+            // 1. CAPITAL SCORE (SIP Weight)
             const totalSip = memberTx.filter(t => t.type === 'SIP').reduce((sum, t) => sum + (Number(t.amount)||0), 0);
-            const capRaw = Math.min(100, (totalSip / CONFIG.TARGET_SIP) * 100);
-            logs.capital.push(`Total SIP: ₹${totalSip}`);
-            logs.capital.push(`Target: ₹${CONFIG.TARGET_SIP}`);
-            logs.capital.push(`Formula: (${totalSip}/${CONFIG.TARGET_SIP}) * 100 = ${capRaw.toFixed(1)}%`);
-            
-            // 2. Consistency Score
-            // Simplified for demo: Check SIPs in last 6 months
-            let consPoints = 0;
-            const sipDates = memberTx.filter(t => t.type === 'SIP').map(t => new Date(t.date));
-            if(sipDates.length > 0) {
-                logs.consistency.push(`Found ${sipDates.length} SIP entries.`);
-                consPoints = Math.min(100, sipDates.length * 10); // 10 points per SIP
+            const capScoreRaw = Math.min(100, (totalSip / CONFIG.TARGET_SIP) * 100);
+            logs.capital.push(`Total SIP Invested: ₹${totalSip.toLocaleString()}`);
+            logs.capital.push(`Target: ₹${CONFIG.TARGET_SIP.toLocaleString()}`);
+            logs.capital.push(`Calculation: (${totalSip} / ${CONFIG.TARGET_SIP}) * 100 = ${capScoreRaw.toFixed(1)}%`);
+
+            // 2. CONSISTENCY SCORE (Regularity)
+            let consistencyPoints = 0;
+            const sipTx = memberTx.filter(t => t.type === 'SIP');
+            if(sipTx.length > 0) {
+                // Simplified: 10 points per SIP month
+                const months = new Set(sipTx.map(t => new Date(t.date).getMonth() + "-" + new Date(t.date).getFullYear()));
+                consistencyPoints = Math.min(100, months.size * 10); // 10 months = 100%
+                logs.consistency.push(`SIP made in ${months.size} distinct months.`);
             } else {
-                logs.consistency.push("No SIPs found.");
+                logs.consistency.push("No SIP transactions found.");
             }
+
+            // 3. CREDIT SCORE (Loan Behavior)
+            let creditScore = 40; // Default Neutral
+            let hasLate = false;
+            const loansTaken = memberTx.filter(t => t.type === 'Loan Taken');
             
-            // 3. Credit Behavior
-            // Check loans
-            const loans = memberTx.filter(t => t.type === 'Loan Taken');
-            let creditPoints = 100; // Start perfect
-            
-            if(loans.length === 0) {
-                creditPoints = 40; // No history
-                logs.credit.push("No Loan History: Default Score 40");
-            } else {
-                loans.forEach(loan => {
-                   // Simplified check logic
-                   logs.credit.push(`Loan of ₹${loan.amount} on ${loan.date}`);
-                   // logic assumes paid on time for demo unless flagged
+            if(loansTaken.length > 0) {
+                creditScore = 100; // Assume good start
+                loansTaken.forEach(loan => {
+                    // Find payment
+                    const payment = memberTx.find(t => t.type === 'Loan Payment' && new Date(t.date) > new Date(loan.date));
+                    if(payment) {
+                        const days = Math.floor((new Date(payment.date) - new Date(loan.date)) / (1000 * 60 * 60 * 24));
+                        logs.credit.push(`Loan ₹${loan.amount} repaid in ${days} days.`);
+                        if(days > 90) { creditScore -= 20; hasLate = true; logs.credit.push(`<span class="text-red-400">⚠️ LATE PENALTY: -20 pts (Over 90 days)</span>`); }
+                    } else {
+                        // Still active
+                        logs.credit.push(`Loan ₹${loan.amount} is currently ACTIVE.`);
+                    }
                 });
+            } else {
+                logs.credit.push("No loans taken yet (Default Score 40).");
+            }
+            creditScore = Math.max(0, creditScore);
+
+            // 4. NEW MEMBER RULE
+            const joinDate = memberTx[0] ? new Date(memberTx[0].date) : new Date();
+            const daysSinceJoin = (new Date() - joinDate) / (1000 * 3600 * 24);
+            const isNew = daysSinceJoin < CONFIG.NEW_MEMBER_PROBATION_DAYS;
+            
+            let finalTotal = (capScoreRaw * 0.4) + (consistencyPoints * 0.3) + (creditScore * 0.3);
+            
+            if(isNew) {
+                logs.events.push(`New Member Rule Applied (50% Score Reduction)`);
+                finalTotal = finalTotal * 0.5;
             }
 
-            // Weighted Total
-            const totalScore = (capRaw * 0.4) + (consPoints * 0.3) + (creditPoints * 0.3);
-
-            // B. FINANCIAL TRACING
+            // 5. FINANCIAL TRACE (Profit Genealogy)
+            // Identify incoming "Profit" or "Extra Payment"
+            const profitSources = [];
+            let walletBalance = 0;
             let lifetimeProfit = 0;
-            let profitCount = 0;
-            const profitSources = []; // Trace where money came from
 
-            // Find Transactions where this user received money
-            // NOTE: The previous logic calculated profit dynamically. Here we simulate finding "Return" credits
-            // Since original data doesn't store "Profit Received" explicitly in TX list usually, 
-            // we will simulate the calculation based on "Loan Payment" interest distribution logic.
-            
-            // Iterating ALL transactions to find where THIS user would have earned
-            allTx.forEach(tx => {
-                if(tx.type === 'Loan Payment' && (Number(tx.interestPaid)||0) > 0) {
-                    // Logic: 70% to community. Did this user qualify?
-                    // For this demo, we assume stored 'returnAmount' implies interest generated.
-                    // To accurately calculate earnings, we need the stored distribution or recalculate.
-                    // For this visualization, we will check if any "Extra Payment" (Profit) exists for this user
-                }
-            });
-
-            // Using the 'calculateTotalExtraBalance' logic from previous code essentially
-            // Filter transactions for 'profit' types if they exist, or manual credits
-            const credits = memberTx.filter(t => t.type === 'Extra Payment' || t.type === 'Profit Share'); // Adjust based on actual DB keys
-            
-            // Calculate Balance
-            let balance = 0;
             memberTx.forEach(t => {
-                if(t.type === 'Extra Payment') balance += (Number(t.amount)||0); // Profit/Credit
-                if(t.type === 'Extra Withdraw') balance -= (Number(t.amount)||0);
+                if(t.type === 'Extra Payment' || t.type === 'Profit Share') {
+                    const amount = Number(t.amount)||0;
+                    walletBalance += amount;
+                    lifetimeProfit += amount;
+                    // Mock tracing source (In real app, we need SourceID)
+                    profitSources.push({ date: t.date, amount: amount, desc: "Profit Share" });
+                }
+                if(t.type === 'Extra Withdraw') {
+                    walletBalance -= (Number(t.amount)||0);
+                }
             });
 
             return {
                 scoreData: {
-                    totalScore,
-                    breakdown: { capital: capRaw, consistency: consPoints, credit: creditPoints },
-                    logs
+                    totalScore: finalTotal,
+                    breakdown: { capital: capScoreRaw, consistency: consistencyPoints, credit: creditScore },
+                    logs,
+                    isNew,
+                    hasLatePayment: hasLate
                 },
                 financials: {
-                    lifetimeProfit: balance, // Approx for demo
-                    profitCount: credits.length,
-                    walletBalance: balance,
+                    lifetimeProfit,
+                    walletBalance,
+                    profitSources,
                     history: memberTx
                 }
             };
         }
 
-        // --- 5. UI INTERACTIONS ---
-        window.showScoreLogs = (memberId) => {
-            const data = GLOBAL_DATA.members[memberId].analysis.scoreData;
+        // --- 6. UI INTERACTION HANDLERS ---
+        window.showNanoLogic = (memberId) => {
+            const analysis = GLOBAL_DATA.members[memberId].analysis;
             const modal = document.getElementById('log-modal');
             const content = document.getElementById('log-modal-content');
             
-            document.getElementById('log-modal-title').innerText = `Score Logic: ${GLOBAL_DATA.members[memberId].fullName}`;
+            document.getElementById('log-modal-title').innerHTML = `Nano Logic: <span class="text-royal-gold">${GLOBAL_DATA.members[memberId].fullName}</span>`;
             
             let html = `
-                <div class="mb-4">
-                    <h4 class="text-blue-400 font-bold mb-2 uppercase border-b border-gray-700 pb-1">Capital Score (40%) - ${data.breakdown.capital.toFixed(1)}/100</h4>
-                    <ul class="list-disc pl-5 text-gray-400 space-y-1">
-                        ${data.logs.capital.map(l => `<li>${l}</li>`).join('')}
-                    </ul>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-black/30 p-3 rounded border border-blue-500/30">
+                        <p class="text-xs text-blue-400 font-bold uppercase">Capital (40%)</p>
+                        <p class="text-2xl font-bold text-white">${analysis.scoreData.breakdown.capital.toFixed(0)}</p>
+                    </div>
+                    <div class="bg-black/30 p-3 rounded border border-yellow-500/30">
+                        <p class="text-xs text-yellow-400 font-bold uppercase">Consistency (30%)</p>
+                        <p class="text-2xl font-bold text-white">${analysis.scoreData.breakdown.consistency.toFixed(0)}</p>
+                    </div>
+                    <div class="bg-black/30 p-3 rounded border border-green-500/30">
+                        <p class="text-xs text-green-400 font-bold uppercase">Credit (30%)</p>
+                        <p class="text-2xl font-bold text-white">${analysis.scoreData.breakdown.credit.toFixed(0)}</p>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <h4 class="text-green-400 font-bold mb-2 uppercase border-b border-gray-700 pb-1">Consistency (30%) - ${data.breakdown.consistency.toFixed(1)}/100</h4>
-                    <ul class="list-disc pl-5 text-gray-400 space-y-1">
-                        ${data.logs.consistency.map(l => `<li>${l}</li>`).join('')}
-                    </ul>
-                </div>
-                <div class="mb-4">
-                    <h4 class="text-purple-400 font-bold mb-2 uppercase border-b border-gray-700 pb-1">Credit Behavior (30%) - ${data.breakdown.credit.toFixed(1)}/100</h4>
-                    <ul class="list-disc pl-5 text-gray-400 space-y-1">
-                        ${data.logs.credit.map(l => `<li>${l}</li>`).join('')}
-                    </ul>
-                </div>
-                <div class="mt-6 p-4 bg-gray-800 rounded border border-gray-600 text-center">
-                    <p class="text-gray-400">Total Calculation</p>
-                    <p class="text-xl font-bold text-white">
-                        (${data.breakdown.capital.toFixed(0)} × 0.4) + 
-                        (${data.breakdown.consistency.toFixed(0)} × 0.3) + 
-                        (${data.breakdown.credit.toFixed(0)} × 0.3) 
-                        = <span class="text-yellow-400">${data.totalScore.toFixed(2)}</span>
-                    </p>
+                
+                <div class="space-y-4 font-mono text-sm">
+                    <div class="bg-royal-card/30 p-4 rounded border-l-2 border-blue-500">
+                        <h5 class="text-blue-300 font-bold mb-2">Calculations Log</h5>
+                        <ul class="list-none space-y-1 text-gray-400 text-xs">
+                            ${analysis.scoreData.logs.capital.map(l => `<li>• ${l}</li>`).join('')}
+                            ${analysis.scoreData.logs.consistency.map(l => `<li>• ${l}</li>`).join('')}
+                            ${analysis.scoreData.logs.credit.map(l => `<li>• ${l}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    ${analysis.scoreData.isNew ? `
+                    <div class="bg-red-900/20 p-3 rounded border border-red-500/50 flex items-center gap-3">
+                        <i class="fas fa-exclamation-circle text-red-500"></i>
+                        <p class="text-red-300 text-xs"><strong>Probation Rule:</strong> Score halved because member joined < 180 days ago.</p>
+                    </div>` : ''}
+                    
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-700">
+                        <span class="text-gray-400">Final Weighted Score</span>
+                        <span class="text-3xl font-bold text-royal-gold">${analysis.scoreData.totalScore.toFixed(2)}</span>
+                    </div>
                 </div>
             `;
             content.innerHTML = html;
@@ -502,35 +554,32 @@
             modal.classList.add('flex');
         }
 
-        // --- 6. AI AUDITOR INTEGRATION ---
+        // --- 7. AI AUDITOR SYSTEM (Hinglish) ---
         window.openAIForMember = (memberId) => {
             const member = GLOBAL_DATA.members[memberId];
             CURRENT_ANALYSIS_CONTEXT = member;
             
             document.getElementById('ai-drawer').classList.remove('translate-x-full');
-            document.getElementById('ai-target-name').innerText = `Auditing: ${member.fullName}`;
+            document.getElementById('ai-target-name').innerText = `AUDITING: ${member.fullName}`;
             
-            // Clear chat and add greeting
             const container = document.getElementById('chat-container');
             container.innerHTML = `
                 <div class="ai-chat-bubble text-white">
-                    <p><strong>Auditor Online 🤖</strong></p>
-                    <p class="mt-1">Maine <strong>${member.fullName}</strong> ka data load kar liya hai.</p>
-                    <ul class="mt-2 text-xs text-gray-300 list-disc pl-4">
-                        <li>Score: ${member.analysis.scoreData.totalScore.toFixed(1)}</li>
-                        <li>Wallet: ₹${member.analysis.financials.walletBalance}</li>
-                        <li>Transactions: ${member.analysis.financials.history.length}</li>
-                    </ul>
-                    <p class="mt-2 text-xs text-yellow-400">Poochiye, kya jaanna hai? (Score, Profit, ya Loans ke baare mein)</p>
+                    <p><strong>Ready to Audit 🤖</strong></p>
+                    <p class="mt-1 text-sm">Maine <strong>${member.fullName}</strong> ka poora data scan kar liya hai.</p>
+                    <div class="mt-2 bg-black/20 p-2 rounded text-xs text-gray-300">
+                        <p>Total Score: <span class="text-royal-gold font-bold">${member.analysis.scoreData.totalScore.toFixed(1)}</span></p>
+                        <p>Lifetime Profit: ₹${member.analysis.financials.lifetimeProfit}</p>
+                    </div>
+                    <p class="mt-2 text-xs text-yellow-400 italic">Mujhse pucchiye: "Profit kam kyu hai?" ya "Kya ye loan le sakta hai?"</p>
                 </div>
             `;
         }
-
+        
         document.getElementById('close-ai').addEventListener('click', () => {
             document.getElementById('ai-drawer').classList.add('translate-x-full');
         });
 
-        // SEND MESSAGE LOGIC
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
         const chatContainer = document.getElementById('chat-container');
@@ -538,88 +587,86 @@
         async function handleSendMessage() {
             const query = chatInput.value.trim();
             if(!query) return;
-            if(!CURRENT_ANALYSIS_CONTEXT) {
-                alert("Please select a member to analyze first.");
-                return;
-            }
+            if(!CURRENT_ANALYSIS_CONTEXT) { alert("Please select a member first!"); return; }
 
-            // Add User Bubble
-            chatContainer.innerHTML += `
-                <div class="flex justify-end mt-4">
-                    <div class="user-chat-bubble text-white max-w-[85%]">
-                        ${query}
-                    </div>
-                </div>
-            `;
+            // User Bubble
+            chatContainer.innerHTML += `<div class="flex justify-end mt-4"><div class="user-chat-bubble max-w-[85%]">${query}</div></div>`;
             chatInput.value = '';
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
-            // Add Loading Bubble
+            // Loader Bubble
             const loadingId = 'loading-' + Date.now();
             chatContainer.innerHTML += `
                 <div id="${loadingId}" class="mt-4 flex gap-1 ai-chat-bubble w-16 items-center justify-center">
-                    <div class="w-2 h-2 bg-white rounded-full typing-dot"></div>
-                    <div class="w-2 h-2 bg-white rounded-full typing-dot"></div>
-                    <div class="w-2 h-2 bg-white rounded-full typing-dot"></div>
-                </div>
-            `;
+                    <div class="w-1 h-1 rounded-full typing-dot"></div>
+                    <div class="w-1 h-1 rounded-full typing-dot"></div>
+                    <div class="w-1 h-1 rounded-full typing-dot"></div>
+                </div>`;
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
             try {
-                // PREPARE CONTEXT FOR AI
-                const contextData = {
+                // Prepare Context (JSON for AI)
+                const context = {
                     name: CURRENT_ANALYSIS_CONTEXT.fullName,
-                    stats: CURRENT_ANALYSIS_CONTEXT.analysis,
-                    rawTransactions: CURRENT_ANALYSIS_CONTEXT.analysis.financials.history.slice(-10) // Last 10 tx for context
+                    scoreBreakdown: CURRENT_ANALYSIS_CONTEXT.analysis.scoreData,
+                    financials: CURRENT_ANALYSIS_CONTEXT.analysis.financials,
+                    // Sending RAW logic logs to AI so it can explain "Why"
+                    logicLogs: CURRENT_ANALYSIS_CONTEXT.analysis.scoreData.logs
                 };
 
-                const prompt = `
-                    You are the Chief Financial Auditor of 'Trust Community Fund' (TCF).
+                const systemPrompt = `
+                    You are the 'Royal Trust Fund Auditor'. Respond in Hinglish (Hindi + English).
+                    Analyze this JSON data deeply to answer the user.
                     
-                    CONTEXT DATA (JSON):
-                    ${JSON.stringify(contextData)}
-
-                    USER QUERY: "${query}"
-
-                    INSTRUCTIONS:
-                    1. Answer in a mix of Hindi (Latin script) and English (Hinglish).
-                    2. Analyze the JSON data deep down. If the score is low, explain EXACTLY why based on the logs provided in the data.
-                    3. Be professional but conversational.
-                    4. Use bold text for numbers (e.g., **₹500**).
-                    5. If asked about profit source, look at the logs.
-                    6. Keep answer under 100 words unless detailed analysis is asked.
+                    DATA: ${JSON.stringify(context)}
+                    
+                    RULES:
+                    1. If score is low, verify from 'logicLogs' why (e.g., Late Loan, Low SIP).
+                    2. If asked about Profit, explain based on 'lifetimeProfit'.
+                    3. Be polite but strict about financial discipline.
+                    4. Use formatting: **Bold** for numbers.
                 `;
 
-                const result = await model.generateContent(prompt);
-                const response = result.response;
-                const text = response.text();
+                const result = await model.generateContent([systemPrompt, query]);
+                const text = result.response.text();
 
-                // Remove loader
                 document.getElementById(loadingId).remove();
-
-                // Add AI Response
                 chatContainer.innerHTML += `
                     <div class="mt-4 mr-auto max-w-[90%]">
-                        <div class="ai-chat-bubble text-white prose prose-invert prose-sm">
+                        <div class="ai-chat-bubble text-gray-200 text-sm leading-relaxed">
                             ${marked.parse(text)}
                         </div>
-                    </div>
-                `;
+                    </div>`;
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                chatContainer.innerHTML += `<div class="ai-chat-bubble text-red-300 mt-4">Error: ${error.message}</div>`;
+                chatContainer.innerHTML += `<div class="ai-chat-bubble text-red-400 mt-4">Error: ${error.message}</div>`;
             }
-            
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         sendBtn.addEventListener('click', handleSendMessage);
-        chatInput.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') handleSendMessage();
-        });
+        chatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleSendMessage());
 
+        // Utilities
+        function getScoreColor(s) { return s >= 80 ? 'text-green-400' : s >= 50 ? 'text-royal-gold' : 'text-red-400'; }
+        function getScoreBarColor(s) { return s >= 80 ? 'bg-green-500' : s >= 50 ? 'bg-royal-gold' : 'bg-red-500'; }
+        function animateCounter(id, target, prefix='', decimals=0) {
+            const el = document.getElementById(id);
+            const start = 0; 
+            const duration = 1000;
+            let startTime = null;
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const val = progress * (target - start) + start;
+                el.innerText = prefix + val.toLocaleString('en-IN', {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+                if (progress < 1) window.requestAnimationFrame(step);
+            }
+            window.requestAnimationFrame(step);
+        }
     </script>
 </body>
 </html>
+
 
