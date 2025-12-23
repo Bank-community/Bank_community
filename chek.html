@@ -78,10 +78,10 @@
 </head>
 <body class="h-screen flex overflow-hidden">
 
-    <!-- SECURITY OVERLAY (Hidden by default, shown if check fails) -->
+    <!-- SECURITY OVERLAY -->
     <div id="security-check" class="fixed inset-0 z-[100] bg-[#001540] flex flex-col items-center justify-center">
         <div class="animate-spin text-royal-gold text-4xl mb-4"><i class="fas fa-circle-notch"></i></div>
-        <p class="text-royal-gold font-bold tracking-widest text-sm">VERIFYING ADMIN CREDENTIALS...</p>
+        <p class="text-royal-gold font-bold tracking-widest text-sm">VERIFYING ADMIN (princekbc2)...</p>
     </div>
 
     <!-- SIDEBAR -->
@@ -205,7 +205,9 @@
         // CONFIG & KEYS
         const CONFIG = { TARGET_SIP: 30000, NEW_MEMBER_PROBATION_DAYS: 180 };
         const GEMINI_API_KEY = "AIzaSyBwhJNl7Rw4Xwb8esmsIes5uVX2fWlRnSE"; 
-        const ADMIN_UID = 'hWsZo6gONzOOccP7y4GCT4oV93A2'; // MUST MATCH LOGIN.HTML
+        
+        // --- UPDATED SECURITY CONSTANT ---
+        const ALLOWED_ADMIN_EMAIL = 'princekbc2@gmail.com'; 
 
         let db, auth, genAI, model;
         let GLOBAL_DATA = { members: {}, transactions: {}, activeLoans: {} };
@@ -223,13 +225,13 @@
                 genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
                 model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
-                // --- SECURITY CHECK (CRITICAL) ---
+                // --- SECURITY CHECK (EMAIL BASED) ---
                 onAuthStateChanged(auth, (user) => {
                     const securityScreen = document.getElementById('security-check');
                     
-                    if (user && user.uid === ADMIN_UID) {
+                    if (user && user.email === ALLOWED_ADMIN_EMAIL) {
                         // User is verified Admin
-                        console.log("✅ Admin Verified");
+                        console.log("✅ Admin Verified: " + user.email);
                         securityScreen.classList.add('hidden'); // Remove overlay
                         fetchDataAndAnalyze(); // Start Data Load
                     } else {
@@ -326,7 +328,7 @@
             document.getElementById('late-payments-count').innerText = stats.late;
         }
 
-        // --- LOGIC ENGINE (Simplified for Brevity but functional) ---
+        // --- LOGIC ENGINE ---
         function runNanoAnalysis(memberId, memberName, allTx, allLoans) {
             const memberTx = allTx.filter(t => t.memberId === memberId || t.name === memberName);
             const logs = { capital: [], consistency: [], credit: [] };
@@ -422,4 +424,5 @@
     </script>
 </body>
 </html>
+
 
