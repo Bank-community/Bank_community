@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
-    <!-- Firebase SDKs (v8 Compat) -->
+    <!-- Firebase SDKs (v8 Compat for Login) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
@@ -86,17 +86,18 @@
                     <i class="fas fa-crown text-2xl"></i>
                 </div>
                 <h1 class="font-serif text-3xl font-bold text-royal-blue mb-2 tracking-wide">Welcome Back</h1>
-                <p class="text-sm font-medium text-gray-500 uppercase tracking-widest">Trust कम्युनिटी में आपका स्वागत है।</p>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-widest">TCF Admin Panel</p>
             </div>
 
             <form id="loginForm" class="space-y-5">
                 <div class="group">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email ID</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Admin Email</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                             <i class="fas fa-envelope"></i>
                         </div>
-                        <input type="email" id="email" required value="bankcommunityloan@gmail.com" readonly
+                        <!-- UPDATED EMAIL HERE -->
+                        <input type="email" id="email" required value="princekbc2@gmail.com" readonly
                             class="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 font-medium outline-none cursor-not-allowed">
                     </div>
                 </div>
@@ -109,7 +110,7 @@
                         </div>
                         <input type="password" id="password" required 
                             class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium outline-none focus:border-[#D4AF37] transition-colors"
-                            placeholder="Enter your password">
+                            placeholder="Enter admin password">
                     </div>
                 </div>
 
@@ -150,9 +151,7 @@
             const loginBtn = document.getElementById('loginBtn');
             const loader = document.getElementById('loader');
 
-            // Redirect Logic in URL
             const urlParams = new URLSearchParams(window.location.search);
-            // Default to analytics.html if no redirect param
             const redirectUrl = urlParams.get('redirect') || 'analytics.html';
 
             loginForm.addEventListener('submit', (e) => {
@@ -164,20 +163,22 @@
 
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
-                const ADMIN_UID = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
+                
+                // UPDATED SECURITY CHECK: EMAIL BASED
+                const ALLOWED_EMAIL = 'princekbc2@gmail.com';
 
                 auth.signInWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         const user = userCredential.user;
-                        if (user.uid === ADMIN_UID) {
+                        if (user.email === ALLOWED_EMAIL) {
                             sessionStorage.setItem('isAdminLoggedIn', 'true');
                             window.location.href = redirectUrl; 
                         } else {
-                            throw new Error("Unauthorized Access ID.");
+                            throw new Error("Unauthorized Email.");
                         }
                     })
                     .catch((error) => {
-                        errorEl.querySelector('span').textContent = 'गलत पासवर्ड या अनाधिकृत एक्सेस।';
+                        errorEl.querySelector('span').textContent = 'गलत पासवर्ड या अनाधिकृत ईमेल।';
                         errorEl.classList.remove('hidden');
                         loginBtn.disabled = false;
                         document.getElementById('loginBtnText').classList.remove('hidden');
@@ -189,4 +190,5 @@
     </script>
 </body>
 </html>
+
 
