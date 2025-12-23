@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -12,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
-    <!-- Firebase SDKs (v8 Compat for Login) -->
+    <!-- Firebase SDKs (v8 as per your original code) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
@@ -46,12 +48,30 @@
             align-items: center;
         }
 
+        /* Royal Card Style */
         .royal-card {
             background: rgba(255, 255, 255, 0.98);
             border: 1px solid rgba(212, 175, 55, 0.3);
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
         }
 
+        /* Gold Gradient Text */
+        .text-gold-gradient {
+            background: linear-gradient(to right, #B8860B, #D4AF37, #B8860B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Input Styling */
+        .royal-input {
+            transition: all 0.3s ease;
+        }
+        .royal-input:focus {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        /* Button Styling */
         .btn-royal {
             background: linear-gradient(135deg, #002366 0%, #001540 100%);
             border: 1px solid #D4AF37;
@@ -64,11 +84,13 @@
             background: linear-gradient(135deg, #003399 0%, #002366 100%);
         }
 
+        /* Loader */
         .loader {
             border: 3px solid rgba(255,255,255,0.3);
             border-top: 3px solid #D4AF37;
             border-radius: 50%;
-            width: 20px; height: 20px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -79,116 +101,158 @@
     <div class="w-full max-w-md">
         <!-- Main Card -->
         <div class="royal-card rounded-2xl p-8 relative overflow-hidden">
+            <!-- Decorative Top Border -->
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
 
             <div class="text-center mb-8">
+                <!-- Icon/Logo Placeholder -->
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#001540] border-2 border-[#D4AF37] text-[#D4AF37] mb-4 shadow-lg">
                     <i class="fas fa-crown text-2xl"></i>
                 </div>
+                
                 <h1 class="font-serif text-3xl font-bold text-royal-blue mb-2 tracking-wide">Welcome Back</h1>
-                <p class="text-sm font-medium text-gray-500 uppercase tracking-widest">TCF Admin Panel</p>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-widest">Trust कम्युनिटी में आपका स्वागत है।</p>
             </div>
 
             <form id="loginForm" class="space-y-5">
+                <!-- Email Input -->
                 <div class="group">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Admin Email</label>
+                    <label for="email" class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1 group-focus-within:text-[#D4AF37] transition-colors">
+                        Email ID
+                    </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                             <i class="fas fa-envelope"></i>
                         </div>
-                        <!-- UPDATED EMAIL HERE -->
-                        <input type="email" id="email" required value="princekbc2@gmail.com" readonly
-                            class="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 font-medium outline-none cursor-not-allowed">
+                        <input type="email" id="email" required
+       value="bankcommunityloan@gmail.com"
+       readonly
+       class="royal-input w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 font-medium outline-none cursor-not-allowed"
+       placeholder="Enter your email">
                     </div>
                 </div>
 
+                <!-- Password Input -->
                 <div class="group">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
+                    <label for="password" class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1 group-focus-within:text-[#D4AF37] transition-colors">
+                        Password
+                    </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                             <i class="fas fa-lock"></i>
                         </div>
                         <input type="password" id="password" required 
-                            class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium outline-none focus:border-[#D4AF37] transition-colors"
-                            placeholder="Enter admin password">
+                            class="royal-input w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium outline-none placeholder-gray-300"
+                            placeholder="Enter your password">
                     </div>
                 </div>
 
+                <!-- Login Button -->
                 <button type="submit" id="loginBtn" class="btn-royal w-full py-3.5 rounded-xl text-white font-bold tracking-wide flex items-center justify-center gap-2 mt-4">
                     <span id="loginBtnText">SECURE LOGIN</span>
                     <div id="loader" class="loader hidden"></div>
                 </button>
             </form>
 
+            <!-- Error Message -->
             <div id="errorMessage" class="hidden mt-6 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold text-center flex items-center justify-center gap-2">
                 <i class="fas fa-exclamation-circle"></i>
                 <span></span>
             </div>
 
-            <p class="text-center text-[10px] text-gray-400 mt-8 font-medium">SECURED BY TRUST COMMUNITY FUND &copy; 2025</p>
+            <!-- Footer -->
+            <p class="text-center text-[10px] text-gray-400 mt-8 font-medium">
+                SECURED BY TRUST COMMUNITY FUND &copy; 2025
+            </p>
         </div>
     </div>
 
     <script>
+        // --- EXISTING LOGIC (PRESERVED) ---
         async function initializeAppWithConfig() {
             try {
+                // Vercel se config laayein
                 const response = await fetch('/api/firebase-config');
-                if (!response.ok) throw new Error('Config Load Failed');
+                if (!response.ok) throw new Error('कॉन्फ़िगरेशन लोड करने में विफल। (Config Load Failed)');
+                
                 const config = await response.json();
-                if (!firebase.apps.length) firebase.initializeApp(config);
+                
+                // Firebase v8 tarike se initialize karein
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(config);
+                }
+                
                 setupLoginListener();
+
             } catch (error) {
                 console.error("Initialization failed:", error);
-                document.getElementById('errorMessage').classList.remove('hidden');
-                document.getElementById('errorMessage').querySelector('span').textContent = "Config Error: " + error.message;
+                const errorMessageElement = document.getElementById('errorMessage');
+                errorMessageElement.querySelector('span').textContent = error.message;
+                errorMessageElement.classList.remove('hidden');
             }
         }
 
         function setupLoginListener() {
             const auth = firebase.auth(); 
+
             const loginForm = document.getElementById('loginForm');
-            const errorEl = document.getElementById('errorMessage');
+            const errorMessageElement = document.getElementById('errorMessage');
+            const errorText = errorMessageElement.querySelector('span');
             const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
             const loader = document.getElementById('loader');
 
             const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect') || 'analytics.html';
+            const redirectUrl = urlParams.get('redirect');
 
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                errorEl.classList.add('hidden');
+                errorMessageElement.classList.add('hidden');
+                
+                // UI Loading State
                 loginBtn.disabled = true;
-                document.getElementById('loginBtnText').classList.add('hidden');
+                loginBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                loginBtnText.classList.add('hidden');
                 loader.classList.remove('hidden');
 
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
-                
-                // UPDATED SECURITY CHECK: EMAIL BASED
-                const ALLOWED_EMAIL = 'princekbc2@gmail.com';
+                const adminUid = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
 
                 auth.signInWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         const user = userCredential.user;
-                        if (user.email === ALLOWED_EMAIL) {
+
+                        if (user.uid === adminUid) {
                             sessionStorage.setItem('isAdminLoggedIn', 'true');
-                            window.location.href = redirectUrl; 
+                            window.location.href = redirectUrl || '/admin.html'; 
                         } else {
-                            throw new Error("Unauthorized Email.");
+                            // Redirect to the original requested page OR index.html
+                            window.location.href = redirectUrl || '/index.html'; 
                         }
                     })
                     .catch((error) => {
-                        errorEl.querySelector('span').textContent = 'गलत पासवर्ड या अनाधिकृत ईमेल।';
-                        errorEl.classList.remove('hidden');
+                        errorText.textContent = 'गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।';
+                        errorMessageElement.classList.remove('hidden');
+                        console.error("Login Error:", error.code, error.message);
+                        
+                        // Reset Button UI on error
                         loginBtn.disabled = false;
-                        document.getElementById('loginBtnText').classList.remove('hidden');
+                        loginBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                        loginBtnText.classList.remove('hidden');
                         loader.classList.add('hidden');
                     });
             });
         }
+        
+        // App ko initialize karein
         initializeAppWithConfig();
     </script>
 </body>
 </html>
+
+
+
+
 
 
