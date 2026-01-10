@@ -1,5 +1,5 @@
 // Cache ka naya version (V19 - Background Color Fix)
-const CACHE_NAME = 'bank-community-cache-v19-bg-fix'; 
+const CACHE_NAME = 'bank-community-cache-v20-bg-fix'; 
 
 // Zaroori files jinko install ke time cache karna hai
 const APP_SHELL_URLS = [
