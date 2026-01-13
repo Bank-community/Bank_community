@@ -217,9 +217,7 @@
                     <option value="grocery">Grocery Credit</option>
                     <option value="credit">10-Day Credit</option>
                     <option value="recharge">Recharge</option>
-                    <option value="product">Product on EMI</option>
-                    <option value="personal">Personal Loan</option>
-                    <option value="business">Business Loan</option>
+                    <!-- Removed Product, Personal, Business options -->
                 </select>
             </div>
             <div class="form-group" id="amt-group">
@@ -235,17 +233,7 @@
                 </select>
             </div>
 
-            <!-- Product EMI Group (New) -->
-            <div id="product-emi-group" style="display:none;">
-                <div class="form-group">
-                    <label>Product Name</label>
-                    <input type="text" id="prod-name-input" class="form-control" placeholder="e.g. Redmi A4 5G">
-                </div>
-                <div class="form-group">
-                    <label>Monthly EMI Amount</label>
-                    <input type="number" id="emi-input" class="form-control" placeholder="e.g. 1560">
-                </div>
-            </div>
+            <!-- Removed Product EMI Group inputs -->
 
             <button class="btn-gen" id="btn-create">Create Card</button>
             <div id="gen-result" style="margin-top:20px;"></div>
@@ -272,9 +260,6 @@
                 amtInput: document.getElementById('amt-input'),
                 provSelect: document.getElementById('prov-select'),
                 provGroup: document.getElementById('prov-group'),
-                prodGroup: document.getElementById('product-emi-group'),
-                prodNameInput: document.getElementById('prod-name-input'),
-                emiInput: document.getElementById('emi-input'),
                 btnCreate: document.getElementById('btn-create'),
                 genResult: document.getElementById('gen-result')
             }
@@ -562,12 +547,10 @@
         state.els.tSelect.onchange = () => {
             const val = state.els.tSelect.value;
             state.els.provGroup.style.display = 'none';
-            state.els.prodGroup.style.display = 'none';
+            // Removed product toggle logic
             
             if (val === 'recharge') {
                 state.els.provGroup.style.display = 'block';
-            } else if (val === 'product') {
-                state.els.prodGroup.style.display = 'block';
             }
         }
 
@@ -595,13 +578,7 @@
                 // Auto calc half as dummy EMI if manual
                 emiVal = Math.round(amt / 2); 
             }
-            else if(typeKey === 'product') {
-                dbType = 'Product on EMI';
-                extraInfo = state.els.prodNameInput.value || 'Gadget';
-                emiVal = state.els.emiInput.value || '';
-            }
-            else if(typeKey === 'personal') dbType = 'Personal Loan';
-            else if(typeKey === 'business') dbType = 'Business Loan';
+            // Removed logic for product, personal, business generation
 
             // Check if existing loan exists to fetch real Date
             const existing = state.activeLoans.find(l => l.memberId === mId && l.loanType === dbType);
