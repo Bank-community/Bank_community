@@ -1,0 +1,530 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><meta name='viewport' content='width=device-width, initial-scale=1'/><meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TCF Unit Guarantor Pool System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-bg: #FDFBF7;      
+            --color-primary: #1e3a8a; 
+            --color-accent: #d4af37;  
+            --color-text: #1f2937;    
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow: hidden; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Node Styles */
+        .node circle {
+            fill: #fff;
+            stroke: var(--color-primary);
+            stroke-width: 2.5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .node circle:hover {
+            stroke: var(--color-accent);
+            filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
+            r: 18px; 
+        }
+
+        .node text {
+            font-size: 14px; 
+            font-family: 'Inter', sans-serif;
+            fill: var(--color-text);
+            text-shadow: 
+                2px 2px 0px #FDFBF7, 
+                -2px -2px 0px #FDFBF7, 
+                -2px 2px 0px #FDFBF7, 
+                2px -2px 0px #FDFBF7;
+            pointer-events: none;
+            font-weight: 700;
+        }
+
+        /* Link Styles */
+        .link {
+            fill: none;
+            stroke: #94a3b8; 
+            stroke-width: 1.5px;
+            transition: stroke 0.3s;
+        }
+
+        /* Special States */
+        .node--locked circle {
+            fill: #f3f4f6;
+            stroke: #9ca3af;
+            stroke-dasharray: 4;
+        }
+        .node--locked text { fill: #6b7280; }
+        .node--alert circle { stroke: #ef4444; } 
+        .node--profit circle { stroke: #16a34a; } 
+
+        /* Top Image Panel Transition */
+        #top-image-panel {
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .panel-hidden {
+            transform: translateY(-100%);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative">
+
+    <!-- TOP IMAGE PANEL (Always Visible, Collapsible) -->
+    <div id="top-image-panel" class="absolute top-0 left-0 w-full z-40 bg-white/95 backdrop-blur-md border-b-4 border-blue-900 rounded-b-2xl">
+        
+        <!-- Controls Bar inside Panel -->
+        <div class="flex justify-between items-center px-4 py-2 border-b border-gray-100">
+            <h2 id="panel-title" class="font-bold text-blue-900 text-sm md:text-base flex items-center gap-2">
+                <i class="fa-solid fa-info-circle"></i> <span id="title-text">Why TCF?</span>
+            </h2>
+            <button onclick="togglePanel()" class="text-gray-500 hover:text-blue-900 transition-colors text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
+                <i id="toggle-icon" class="fa-solid fa-chevron-up"></i> Hide
+            </button>
+        </div>
+
+        <!-- Image Container -->
+        <div id="panel-content" class="w-full flex justify-center p-2 bg-gray-50/50 transition-all duration-300" style="max-height: 35vh; overflow: hidden;">
+            <img id="detail-img" src="https://ik.imagekit.io/kdtvm0r78/1000140770_ooIuVRHMu.jpg" 
+                 class="h-full object-contain max-h-[30vh] rounded shadow-sm" 
+                 alt="Info View">
+        </div>
+    </div>
+
+    <!-- REOPEN BUTTON (Visible only when panel is hidden AND Master Switch is ON) -->
+    <div id="reopen-btn" class="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 hidden">
+        <button onclick="togglePanel()" class="bg-blue-900 text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-800 transition-transform active:scale-95">
+            <i class="fa-solid fa-image"></i> Show Image
+        </button>
+    </div>
+
+    <!-- Main Visualization Container -->
+    <div id="viz-container" class="flex-grow w-full h-full cursor-move bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiNkMWQ1ZGIiIG9wYWNpdHk9IjAuMiIvPjwvc3ZnPg==')]"></div>
+
+    <!-- NEW BOTTOM TOGGLE SWITCH (Clean Layout) -->
+    <div class="absolute bottom-16 right-4 z-50 flex flex-col items-end gap-2">
+        <!-- Reset Zoom (kept discreetly as a small button just in case, optional) -->
+        <button onclick="resetZoom()" class="mb-2 bg-white text-gray-500 p-2 rounded-full shadow-md hover:text-blue-900 transition-all" title="Reset Center">
+            <i class="fa-solid fa-crosshairs"></i>
+        </button>
+
+        <!-- The Main Toggle -->
+        <label class="inline-flex items-center cursor-pointer bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-xl border border-blue-100 ring-1 ring-black/5">
+            <span class="mr-3 text-sm font-bold text-blue-900">Show Images</span>
+            <input type="checkbox" id="master-switch" class="sr-only peer" checked onchange="toggleMasterSwitch(this)">
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+        </label>
+    </div>
+
+    <!-- Footer -->
+    <div class="absolute bottom-0 w-full bg-blue-900 text-white p-2 md:p-3 text-[10px] md:text-xs z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] border-t-4 border-yellow-500">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-1">
+            <div class="flex items-center gap-2 text-yellow-400">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span class="font-bold tracking-wide">OFFICIAL NOTICE</span>
+            </div>
+            <p class="opacity-90 max-w-4xl font-light">
+                Rule-based support system. Not a market security. Subject to TCF verification.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. DATA STRUCTURE ---
+        const treeData = {
+            name: "TCF UNIT System",
+            type: "root",
+            children: [
+              {
+                name: "Why TCF?",
+                image: "https://ik.imagekit.io/kdtvm0r78/1000140770_ooIuVRHMu.jpg",
+                children: [
+                    { name: "TCF Unit System" },
+                    { name: "Fills Bank Gap" },
+                    { name: "With Responsibility" },
+                    { name: "1 Unit = ₹100" },
+                ]
+              },
+              {
+                name: "Loan Rules",
+                image: "https://ik.imagekit.io/kdtvm0r78/1000140771_ceDbqjZM4.jpg",
+                children: [
+                    { name: "Min Loan ₹25k" },
+                    { name: "Guarantor Mandatory" },
+                    { name: "70% Asset Girvi" }
+                ]
+              },
+              {
+                name: "Interest Rates",
+                image: "https://ik.imagekit.io/kdtvm0r78/1000140772_T8Fr7kwix.jpg",
+                children: [
+                    {
+                        name: "TCF Members",
+                        children: [
+                            { 
+                                name: "₹25k - ₹50k", 
+                                type: "profit",
+                                children: [
+                                    { name: "12M @ 2%", type: "leaf-data" },
+                                    { name: "24M @ 2.5%", type: "leaf-data" }
+                                ]
+                            },
+                            { 
+                                name: "₹50k - ₹1L", 
+                                type: "profit",
+                                children: [
+                                    { name: "12M @ 1.5%", type: "leaf-data" },
+                                    { name: "24M @ 2%", type: "leaf-data" }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        name: "Other Members",
+                        children: [
+                            { 
+                                name: "₹25k - ₹50k", 
+                                children: [
+                                    { name: "12M @ 2.5%", type: "leaf-data" },
+                                    { name: "24M @ 3%", type: "leaf-data" }
+                                ]
+                            },
+                            { 
+                                name: "₹50k - ₹1L", 
+                                children: [
+                                    { name: "12M @ 2.5%", type: "leaf-data" },
+                                    { name: "24M @ 3%", type: "leaf-data" }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+              },
+              {
+                name: "EMI & Risk",
+                image: "https://ik.imagekit.io/kdtvm0r78/1000140773_GX16xXuYg.jpg",
+                children: [
+                    { name: "12/24 Month Tenure" },
+                    { 
+                        name: "Missed EMI", 
+                        type: "alert",
+                        children: [
+                            { name: "Pay Interest Only", type: "alert" },
+                            { name: "Penalty: 0.5%", type: "alert" }
+                        ]
+                    },
+                    { 
+                        name: "Full Default", 
+                        type: "alert",
+                        children: [
+                            { name: "1. Sell Asset (70%)" },
+                            { name: "2. Guarantor (20%)" },
+                            { name: "3. Bank Wallet (10%)" }
+                        ]
+                    }
+                ]
+              },
+              {
+                name: "Unit Rules",
+                image: "https://ik.imagekit.io/kdtvm0r78/1000140774_cIj8o5_5f.jpg",
+                children: [
+                    { name: "6 Month Lock invest Unit", type: "locked" },
+                    { 
+                        name: "Unlimited Transfer", 
+                        children: [{name: "Members to Member"}]
+                    },
+                    { 
+                        name: "Sell to Bank", 
+                        children: [
+                            { name: "Every 3 Months" },
+                            { name: "Main Wallet Transfer" }
+                        ]
+                    }
+                ]
+              },
+              {
+                name: "Distribution",
+                type: "profit",
+                image: "https://ik.imagekit.io/kdtvm0r78/1000140775_y3NptelIH.jpg",
+                children: [
+                    { name: "60% Investors" },
+                    { name: "20% Guarantor" },
+                    { name: "20% Bank Wallet" }
+                ]
+              }
+            ]
+        };
+
+        // --- 2. PANEL LOGIC ---
+        const panel = document.getElementById('top-image-panel');
+        const content = document.getElementById('panel-content');
+        const imgElement = document.getElementById('detail-img');
+        const titleText = document.getElementById('title-text');
+        const reopenBtn = document.getElementById('reopen-btn');
+        
+        let isPanelOpen = true;
+        let isMasterImageOn = true; 
+
+        // NEW: Master Switch Logic
+        function toggleMasterSwitch(checkbox) {
+            isMasterImageOn = checkbox.checked;
+
+            if (isMasterImageOn) {
+                // TURN ON
+                // Restore panel visibility if it was meant to be open
+                if (isPanelOpen) {
+                    panel.classList.remove('panel-hidden');
+                } else {
+                    reopenBtn.classList.remove('hidden');
+                }
+            } else {
+                // TURN OFF
+                // Force Hide Panel immediately
+                panel.classList.add('panel-hidden');
+                // Hide reopen button
+                reopenBtn.classList.add('hidden');
+            }
+        }
+
+        function togglePanel() {
+            // Logic updated to respect Master Switch
+            if (!isMasterImageOn) return; 
+
+            if (isPanelOpen) {
+                // Hide
+                panel.classList.add('panel-hidden');
+                reopenBtn.classList.remove('hidden');
+                isPanelOpen = false;
+            } else {
+                // Show
+                panel.classList.remove('panel-hidden');
+                reopenBtn.classList.add('hidden');
+                isPanelOpen = true;
+            }
+        }
+
+        function updatePanel(name, imageUrl) {
+            // CRITICAL: Only update if Master Switch is ON
+            if (!isMasterImageOn) return;
+
+            titleText.textContent = name;
+            if(imageUrl) {
+                imgElement.src = imageUrl;
+                if(!isPanelOpen) {
+                    // Manually open panel
+                    panel.classList.remove('panel-hidden');
+                    reopenBtn.classList.add('hidden');
+                    isPanelOpen = true;
+                }
+            }
+        }
+
+        // --- 3. D3 SETUP ---
+        const container = document.getElementById("viz-container");
+        let width = container.clientWidth;
+        let height = container.clientHeight;
+
+        const svg = d3.select("#viz-container").append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            // Use standard viewbox starting at 0,0
+            .attr("viewBox", [0, 0, width, height]);
+
+        const g = svg.append("g");
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.3, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // --- 4. TREE LOGIC ---
+        let i = 0;
+        const duration = 600;
+        const root = d3.hierarchy(treeData, d => d.children);
+
+        // Initial Collapse Logic
+        root.children.forEach(child => {
+            if(child.children) {
+                child._children = child.children;
+                child._children.forEach(collapse);
+                child.children = null; 
+            }
+        });
+
+        function collapse(d) {
+            if (d.children) {
+                d._children = d.children;
+                d._children.forEach(collapse);
+                d.children = null;
+            }
+        }
+        
+        const tree = d3.tree().nodeSize([50, 180]); // Adjusted spacing
+
+        root.x0 = height / 2;
+        root.y0 = 0;
+
+        update(root);
+        
+        // INITIAL ZOOM POSITIONING
+        function resetZoom() {
+            const isMobile = width < 768;
+            const scale = isMobile ? 0.6 : 0.8;
+            
+            const initialX = isMobile ? 60 : 100;
+            const initialY = height / 2;
+
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(initialX, initialY).scale(scale)
+            );
+        }
+        
+        setTimeout(resetZoom, 100);
+
+        function update(source) {
+            const treeData = tree(root);
+            const nodes = treeData.descendants();
+            const links = treeData.links();
+
+            // Normalize Y for fixed depth
+            nodes.forEach(d => { d.y = d.depth * 180; });
+
+            // --- NODES ---
+            const node = g.selectAll('g.node')
+                .data(nodes, d => d.id || (d.id = ++i));
+
+            const nodeEnter = node.enter().append('g')
+                .attr('class', d => `node ${d.data.type === 'locked' ? 'node--locked' : ''} ${d.data.type === 'alert' ? 'node--alert' : ''} ${d.data.type === 'profit' ? 'node--profit' : ''}`)
+                .attr("transform", d => `translate(${source.y0},${source.x0})`)
+                .on('click', (event, d) => {
+                    click(event, d);
+                });
+
+            nodeEnter.append('circle')
+                .attr('class', 'node-circle')
+                .attr('r', 1e-6)
+                .style("fill", d => d._children ? "#d4af37" : "#fff");
+
+            nodeEnter.append('text')
+                .attr("dy", ".35em")
+                .attr("x", d => d.children || d._children ? -20 : 20)
+                .attr("text-anchor", d => d.children || d._children ? "end" : "start")
+                .text(d => d.data.name)
+                .style("fill-opacity", 1e-6) 
+                .style("font-weight", d => d.data.type === 'leaf-data' ? "700" : "600") 
+                .style("fill", d => d.data.type === 'alert' ? '#dc2626' : (d.data.type === 'leaf-data' ? '#0f172a' : '#1f2937'));
+
+            // UPDATE
+            const nodeUpdate = node.merge(nodeEnter).transition().duration(duration)
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            nodeUpdate.select('circle.node-circle')
+                .attr('r', d => d.depth === 0 ? 18 : 12)
+                .style("fill", d => {
+                    if (d.data.type === 'locked') return "#f3f4f6";
+                    return d._children ? "#eff6ff" : "#fff";
+                })
+                .style("stroke", d => {
+                    if (d.data.type === 'alert') return "#ef4444";
+                    if (d.data.type === 'profit') return "#16a34a";
+                    return d._children ? "#d4af37" : (d.data.type === 'locked' ? '#9ca3af' : '#1e3a8a');
+                });
+
+            nodeUpdate.select('text')
+                .style("fill-opacity", 1);
+
+            // EXIT
+            const nodeExit = node.exit().transition().duration(duration)
+                .attr("transform", d => `translate(${source.y},${source.x})`)
+                .remove();
+
+            nodeExit.select('circle').attr('r', 1e-6);
+            nodeExit.select('text').style("fill-opacity", 1e-6);
+
+            // --- LINKS ---
+            const link = g.selectAll('path.link')
+                .data(links, d => d.target.id);
+
+            const linkEnter = link.enter().insert('path', "g")
+                .attr("class", "link")
+                .attr('d', d => {
+                    const o = {x: source.x0, y: source.y0};
+                    return diagonal(o, o);
+                });
+
+            const linkUpdate = link.merge(linkEnter).transition().duration(duration)
+                .attr('d', d => diagonal(d.source, d.target));
+
+            link.exit().transition().duration(duration)
+                .attr('d', d => {
+                    const o = {x: source.x, y: source.y};
+                    return diagonal(o, o);
+                })
+                .remove();
+
+            nodes.forEach(d => {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+
+            function diagonal(s, d) {
+                return `M ${s.y} ${s.x}
+                        C ${(s.y + d.y) / 2} ${s.x},
+                          ${(s.y + d.y) / 2} ${d.x},
+                          ${d.y} ${d.x}`;
+            }
+        }
+
+        function click(event, d) {
+            event.stopPropagation();
+
+            // LOGIC CHANGED: Only show/update image if Master Switch is ON
+            if (d.data.image && isMasterImageOn) {
+                updatePanel(d.data.name, d.data.image);
+            }
+
+            // Toggle Children
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+            update(d);
+        }
+
+        window.addEventListener('resize', () => {
+            width = container.clientWidth;
+            height = container.clientHeight;
+            resetZoom();
+        });
+
+    </script>
+</body>
+</html>
