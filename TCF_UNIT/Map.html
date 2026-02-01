@@ -79,61 +79,55 @@
         .node--alert circle { stroke: #ef4444; } 
         .node--profit circle { stroke: #16a34a; } 
 
-        /* Top Image Panel Transition */
-        #top-image-panel {
-            transition: all 0.3s ease-in-out;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .panel-hidden {
-            transform: translateY(-100%);
+        /* Animation for Panels */
+        .slide-up {
+            margin-top: -35vh; /* Hides image */
         }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col relative">
 
-    <!-- TOP IMAGE PANEL (Always Visible, Collapsible) -->
-    <div id="top-image-panel" class="absolute top-0 left-0 w-full z-40 bg-white/95 backdrop-blur-md border-b-4 border-blue-900 rounded-b-2xl">
+    <!-- TOP DISPLAY CONTAINER -->
+    <div id="top-container" class="absolute top-0 left-0 w-full z-40 bg-transparent transition-all duration-500 ease-in-out">
         
-        <!-- Controls Bar inside Panel -->
-        <div class="flex justify-between items-center px-4 py-2 border-b border-gray-100">
-            <h2 id="panel-title" class="font-bold text-blue-900 text-sm md:text-base flex items-center gap-2">
-                <i class="fa-solid fa-info-circle"></i> <span id="title-text">Why TCF?</span>
-            </h2>
-            <button onclick="togglePanel()" class="text-gray-500 hover:text-blue-900 transition-colors text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
-                <i id="toggle-icon" class="fa-solid fa-chevron-up"></i> Hide
-            </button>
-        </div>
-
-        <!-- Image Container -->
-        <div id="panel-content" class="w-full flex justify-center p-2 bg-gray-50/50 transition-all duration-300" style="max-height: 35vh; overflow: hidden;">
+        <!-- Image Panel (No Header Bar) -->
+        <div id="image-panel" class="w-full flex justify-center bg-white/90 backdrop-blur-sm shadow-sm transition-all duration-500 overflow-hidden" style="max-height: 35vh; border-bottom: 1px solid #e5e7eb;">
             <img id="detail-img" src="https://ik.imagekit.io/kdtvm0r78/1000140770_ooIuVRHMu.jpg" 
-                 class="h-full object-contain max-h-[30vh] rounded shadow-sm" 
+                 class="h-full object-contain max-h-[30vh] mt-2 mb-2 rounded shadow-sm" 
                  alt="Info View">
         </div>
-    </div>
 
-    <!-- REOPEN BUTTON (Visible only when panel is hidden AND Master Switch is ON) -->
-    <div id="reopen-btn" class="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 hidden">
-        <button onclick="togglePanel()" class="bg-blue-900 text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-800 transition-transform active:scale-95">
-            <i class="fa-solid fa-image"></i> Show Image
-        </button>
+        <!-- Title Bar (Floating below image or Fixed at top) -->
+        <div id="title-bar" class="w-full flex justify-center py-2 transition-all duration-300">
+            <div class="bg-blue-900/90 backdrop-blur text-white px-6 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-semibold tracking-wide">
+                <i class="fa-solid fa-info-circle text-yellow-400"></i> 
+                <span id="title-text">Why TCF?</span>
+            </div>
+        </div>
     </div>
 
     <!-- Main Visualization Container -->
     <div id="viz-container" class="flex-grow w-full h-full cursor-move bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiNkMWQ1ZGIiIG9wYWNpdHk9IjAuMiIvPjwvc3ZnPg==')]"></div>
 
-    <!-- NEW BOTTOM TOGGLE SWITCH (Clean Layout) -->
-    <div class="absolute bottom-16 right-4 z-50 flex flex-col items-end gap-2">
-        <!-- Reset Zoom (kept discreetly as a small button just in case, optional) -->
-        <button onclick="resetZoom()" class="mb-2 bg-white text-gray-500 p-2 rounded-full shadow-md hover:text-blue-900 transition-all" title="Reset Center">
+    <!-- BOTTOM CONTROLS (YouTube + Toggle) -->
+    <div class="absolute bottom-16 right-4 z-50 flex flex-row items-center gap-3">
+        
+        <!-- YouTube Button -->
+        <a href="https://youtu.be/0GHfXDdk5Co?si=_f5MD2qy2KL-8F3h" target="_blank" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full shadow-xl transition-transform active:scale-95 no-underline">
+            <i class="fa-brands fa-youtube text-lg"></i>
+            <span class="text-xs font-bold hidden md:inline">Watch Video</span>
+        </a>
+
+        <!-- Reset Zoom (Icon Only) -->
+        <button onclick="resetZoom()" class="bg-white text-blue-900 p-2.5 rounded-full shadow-xl hover:bg-gray-50 active:scale-95 border border-blue-100" title="Center View">
             <i class="fa-solid fa-crosshairs"></i>
         </button>
 
-        <!-- The Main Toggle -->
-        <label class="inline-flex items-center cursor-pointer bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-xl border border-blue-100 ring-1 ring-black/5">
-            <span class="mr-3 text-sm font-bold text-blue-900">Show Images</span>
+        <!-- Master Toggle Switch -->
+        <label class="inline-flex items-center cursor-pointer bg-white/95 backdrop-blur px-3 py-2 rounded-full shadow-xl border border-blue-100 ring-1 ring-black/5">
+            <span class="mr-2 text-xs font-bold text-blue-900">Show Images</span>
             <input type="checkbox" id="master-switch" class="sr-only peer" checked onchange="toggleMasterSwitch(this)">
-            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
         </label>
     </div>
 
@@ -153,7 +147,7 @@
     <script>
         // --- 1. DATA STRUCTURE ---
         const treeData = {
-            name: "TCF UNIT System",
+            name: "TCF UNIT SYSTEM", // Name Updated
             type: "root",
             children: [
               {
@@ -277,13 +271,11 @@
         };
 
         // --- 2. PANEL LOGIC ---
-        const panel = document.getElementById('top-image-panel');
-        const content = document.getElementById('panel-content');
+        const imagePanel = document.getElementById('image-panel');
         const imgElement = document.getElementById('detail-img');
         const titleText = document.getElementById('title-text');
-        const reopenBtn = document.getElementById('reopen-btn');
+        const titleBar = document.getElementById('title-bar');
         
-        let isPanelOpen = true;
         let isMasterImageOn = true; 
 
         // NEW: Master Switch Logic
@@ -291,36 +283,17 @@
             isMasterImageOn = checkbox.checked;
 
             if (isMasterImageOn) {
-                // TURN ON
-                // Restore panel visibility if it was meant to be open
-                if (isPanelOpen) {
-                    panel.classList.remove('panel-hidden');
-                } else {
-                    reopenBtn.classList.remove('hidden');
-                }
+                // TURN ON: Show Image Panel
+                imagePanel.style.marginTop = "0px";
+                imagePanel.style.opacity = "1";
+                // Move Title Bar slightly down to accommodate image
+                titleBar.classList.remove('pt-2'); // Reset padding
             } else {
-                // TURN OFF
-                // Force Hide Panel immediately
-                panel.classList.add('panel-hidden');
-                // Hide reopen button
-                reopenBtn.classList.add('hidden');
-            }
-        }
-
-        function togglePanel() {
-            // Logic updated to respect Master Switch
-            if (!isMasterImageOn) return; 
-
-            if (isPanelOpen) {
-                // Hide
-                panel.classList.add('panel-hidden');
-                reopenBtn.classList.remove('hidden');
-                isPanelOpen = false;
-            } else {
-                // Show
-                panel.classList.remove('panel-hidden');
-                reopenBtn.classList.add('hidden');
-                isPanelOpen = true;
+                // TURN OFF: Hide Image Panel (Pull Up)
+                imagePanel.style.marginTop = "-35vh";
+                imagePanel.style.opacity = "0";
+                // Add padding to Title Bar so it sits nicely at top
+                titleBar.classList.add('pt-2');
             }
         }
 
@@ -331,12 +304,6 @@
             titleText.textContent = name;
             if(imageUrl) {
                 imgElement.src = imageUrl;
-                if(!isPanelOpen) {
-                    // Manually open panel
-                    panel.classList.remove('panel-hidden');
-                    reopenBtn.classList.add('hidden');
-                    isPanelOpen = true;
-                }
             }
         }
 
@@ -348,7 +315,6 @@
         const svg = d3.select("#viz-container").append("svg")
             .attr("width", "100%")
             .attr("height", "100%")
-            // Use standard viewbox starting at 0,0
             .attr("viewBox", [0, 0, width, height]);
 
         const g = svg.append("g");
@@ -366,7 +332,6 @@
         const duration = 600;
         const root = d3.hierarchy(treeData, d => d.children);
 
-        // Initial Collapse Logic
         root.children.forEach(child => {
             if(child.children) {
                 child._children = child.children;
@@ -383,19 +348,20 @@
             }
         }
         
-        const tree = d3.tree().nodeSize([50, 180]); // Adjusted spacing
+        const tree = d3.tree().nodeSize([50, 180]); 
 
         root.x0 = height / 2;
         root.y0 = 0;
 
         update(root);
         
-        // INITIAL ZOOM POSITIONING
+        // INITIAL ZOOM POSITIONING (Moved Right)
         function resetZoom() {
             const isMobile = width < 768;
             const scale = isMobile ? 0.6 : 0.8;
             
-            const initialX = isMobile ? 60 : 100;
+            // INCREASED X VALUE: Moved further right as requested
+            const initialX = isMobile ? 120 : 250; 
             const initialY = height / 2;
 
             svg.transition().duration(750).call(
@@ -411,7 +377,6 @@
             const nodes = treeData.descendants();
             const links = treeData.links();
 
-            // Normalize Y for fixed depth
             nodes.forEach(d => { d.y = d.depth * 180; });
 
             // --- NODES ---
@@ -503,12 +468,11 @@
         function click(event, d) {
             event.stopPropagation();
 
-            // LOGIC CHANGED: Only show/update image if Master Switch is ON
+            // LOGIC: Only show/update image if Master Switch is ON
             if (d.data.image && isMasterImageOn) {
                 updatePanel(d.data.name, d.data.image);
             }
 
-            // Toggle Children
             if (d.children) {
                 d._children = d.children;
                 d.children = null;
@@ -528,3 +492,4 @@
     </script>
 </body>
 </html>
+
