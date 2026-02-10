@@ -1,19 +1,16 @@
 // user-main.js
-// FINAL UPDATE: Connects Notification Logic & Device Verification
-// 1. Checks Cache first for instant load.
-// 2. Verifies User Identity (Critical for Notification System).
-// 3. Requests Notification Permission on load.
+// ULTIMATE INSTANT LOAD UPDATE: Shows Cached Data IMMEDIATELY (0ms Latency).
+// Then syncs with Firebase in background.
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
 
 let VAPID_KEY = null;
+let swRegistration = null; // Store Service Worker Registration
 
 // --- STEP 1: IMMEDIATE CACHE RENDER (The Magic Trick) ---
-// Firebase initialize hone ka wait MAT karo. Turant purana data dikhao.
 initUI(null);
 try {
-    // Database 'null' pass kar rahe hain taaki sirf cache load ho.
     fetchAndProcessData(null, renderPage);
 } catch (e) {
     console.log("Initial cache load skipped:", e);
@@ -35,20 +32,19 @@ async function checkAuthAndInitialize() {
           firebase.initializeApp(firebaseConfig);
         }
         
-        registerServiceWorker();
+        // 1. Service Worker Register karein aur reference save karein
+        swRegistration = await registerServiceWorker();
         
         const auth = firebase.auth();
         const database = firebase.database();
 
         // --- STEP 2: BACKGROUND SYNC ---
-        // Jab user login confirm ho jaye, tab naya data lao.
         auth.onAuthStateChanged(user => {
             runAppLogic(database);
         });
 
     } catch (error) {
         console.error("FATAL: Could not initialize application.", error);
-        // Error tabhi dikhao agar cache bhi load nahi hua ho
         const hasContent = document.getElementById('memberContainer').children.length > 1;
         if (!hasContent) {
             showLoadingError(`Application failed to initialize: ${error.message}`);
@@ -63,103 +59,94 @@ async function runAppLogic(database) {
     try {
         const handleDataUpdate = (data) => {
             if (!data) return;
-            // UI Update karo (Fresh Data se)
-            // Note: renderPage hi ab notification check trigger karega
             renderPage(data);
             
-            // Device verification check (Notification ke liye zaroori)
+            // Device verification check
             if (data.processedMembers) {
                 verifyDeviceAndSetupNotifications(database, data.processedMembers);
             }
         };
 
-        // Ab Fresh Data fetch karo
         await fetchAndProcessData(database, handleDataUpdate);
 
     } catch (error) {
         console.error("Failed to run main app logic:", error);
-        // Silent fail if cache is already visible
     }
 }
 
 /**
- * Service Worker ko register karta hai.
+ * Service Worker ko register karta hai aur Registration object return karta hai
  */
-function registerServiceWorker() {
+async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => console.log('Service Worker registered with scope:', registration.scope))
-      .catch(error => console.error('Service Worker registration failed:', error));
+    try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered with scope:', registration.scope);
+        return registration;
+    } catch (error) {
+        console.error('Service Worker registration failed:', error);
+        return null;
+    }
   }
+  return null;
 }
 
 /**
  * Device ko verify aur notifications ke liye setup karta hai.
- * Yahi function LocalStorage mein 'verifiedMemberId' save karega.
  */
 async function verifyDeviceAndSetupNotifications(database, allMembers) {
     try {
         let memberId = localStorage.getItem('verifiedMemberId');
-        let isNewVerification = false;
 
-        // Agar ID nahi hai, to user se pucho "Aap kaun ho?"
         if (!memberId) {
             memberId = await promptForDeviceVerification(allMembers);
             if (memberId) {
                 localStorage.setItem('verifiedMemberId', memberId);
-                isNewVerification = true; // Flag ki abhi verify hua hai
             } else {
-                return; // User ne cancel kar diya
+                return; 
             }
         }
         
-        // Browser Notification Permission maango
         const permissionGranted = await requestNotificationPermission();
-        
         if (permissionGranted) {
             try {
-                // Optional: Server pe token bhejo (agar future mein push chahiye)
-                await registerForPushNotifications(database, memberId);
+                // Pass Service Worker Registration explicitly
+                await registerForPushNotifications(database, memberId, swRegistration);
             } catch (regError) {
-                console.warn("Push reg skipped (Local Mode active):", regError);
+                console.error("Push Notification Registration Failed:", regError);
             }
         }
-
-        // Agar abhi naya verify hua hai, to reload karo taaki Notifications turant dikhein
-        if (isNewVerification) {
-            window.location.reload();
-        }
-
     } catch (error) {
         console.error('Device verification or notification setup failed:', error);
     }
 }
 
-async function registerForPushNotifications(database, memberId) {
-    if (!VAPID_KEY) return;
+// === MAJOR UPDATE: USES FIREBASE MESSAGING FOR CONSOLE SUPPORT ===
+async function registerForPushNotifications(database, memberId, registration) {
+    if (!VAPID_KEY || !registration) return;
 
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        return;
-    }
+    try {
+        const messaging = firebase.messaging();
+        
+        // Firebase ko hamara custom Service Worker use karne ko bolein
+        messaging.useServiceWorker(registration);
 
-    const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
+        // Get FCM Token (Console Compatible)
+        const token = await messaging.getToken({ vapidKey: VAPID_KEY });
 
-    if (subscription === null) {
-        subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: VAPID_KEY,
-        });
-    }
-
-    const token = subscription.toJSON().keys.p256dh;
-    if (token) {
-        const tokenRef = database.ref(`members/${memberId}/notificationTokens/${token}`);
-        await tokenRef.set(true);
+        if (token) {
+            console.log("FCM Token Generated:", token);
+            // Save token to DB
+            const tokenRef = database.ref(`members/${memberId}/notificationTokens/${token}`);
+            await tokenRef.set(true);
+        } else {
+            console.log('No registration token available. Request permission to generate one.');
+        }
+    } catch (err) {
+        console.log('An error occurred while retrieving token. ', err);
     }
 }
 
-// PWA Install Prompt Handler
 window.deferredInstallPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -195,4 +182,3 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
-
