@@ -1,52 +1,46 @@
-// user-main.js (VERCEL API COMPATIBLE + SW READY FIX)
+// user-main.js (DEBUG MODE 🛠️)
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
 
-// 🔥 AAPKI VAPID KEY (Jo aapne chat me di thi)
 const VAPID_KEY = "BE1NgqUcrYaBxWxd0hRrtW7wES0PJ-orGaxlGVj-oT1UZyJwLaaAk7z6KczQ2ZrSy_XjSwkL6WjpX_gHMpXPp3M";
 
-// Global variable
 let swRegistration = null;
 
-// UI Initialization
 initUI(null);
 
 // 1. App Initialization
 async function checkAuthAndInitialize() {
     try {
-        // Step 1: Vercel API se Config Load karein (WAIT karein)
+        // Step 1 check
+        // alert("DEBUG: App Start. Checking Firebase Config..."); 
+
         if (!firebase.apps.length) {
-            console.log("Fetching config from Vercel API...");
             const response = await fetch('/api/firebase-config');
-            
-            if (!response.ok) throw new Error("Failed to fetch firebase config");
-            
-            const config = await response.json();
-            firebase.initializeApp(config);
-            console.log("Firebase Initialized via API");
+            if (response.ok) {
+                const config = await response.json();
+                firebase.initializeApp(config);
+            } else {
+                alert("Error: Config API Failed!");
+            }
         }
         
-        // Step 2: Service Worker Register (Background me start kar dein)
+        // Step 2 check
         registerServiceWorker();
         
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // Step 3: Auth State Change
         auth.onAuthStateChanged(user => {
             if (user) {
-                console.log("User Logged In:", user.uid);
+                // alert("DEBUG: User Logged In: " + user.uid);
                 runAppLogic(db);
             } else {
-                console.log("User Not Logged In");
                 window.location.href = 'login.html';
             }
         });
 
     } catch (error) {
-        console.error("CRITICAL INIT ERROR:", error);
-        // Agar API fail ho jaye, to user ko bata dein
-        alert("System Error: Could not connect to server. Please refresh.");
+        alert("CRITICAL INIT ERROR: " + error.message);
     }
 }
 
@@ -55,7 +49,6 @@ async function runAppLogic(database) {
         if (!data) return;
         renderPage(data);
         
-        // Notification Setup Trigger
         if (data.processedMembers) {
             verifyDeviceAndSetupNotifications(database, data.processedMembers);
         }
@@ -68,11 +61,14 @@ async function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         try {
             const reg = await navigator.serviceWorker.register('/sw.js');
+            // alert("DEBUG: SW Registered!"); 
             return reg;
         } catch (e) {
-            console.error('SW Registration Failed:', e);
+            alert("DEBUG: SW Registration Failed: " + e.message);
             return null;
         }
+    } else {
+        alert("DEBUG: Browser does not support Service Worker!");
     }
 }
 
@@ -90,59 +86,62 @@ async function verifyDeviceAndSetupNotifications(database, allMembers) {
         const permission = await requestNotificationPermission();
         
         if (permission) {
+            // alert("DEBUG: Permission Granted. Starting Token Logic...");
             await registerForPushNotifications(database, memberId);
+        } else {
+            alert("DEBUG: Notification Permission DENIED.");
         }
     } catch (e) {
-        console.log("Setup warning:", e);
+        alert("Setup Error: " + e.message);
     }
 }
 
-// 4. Token Logic (MAIN FIX FOR "NO ACTIVE SERVICE WORKER")
+// 4. Token Logic (Strict Debugging)
 async function registerForPushNotifications(database, memberId) {
-    if (!VAPID_KEY) return;
+    if (!VAPID_KEY) {
+        alert("Error: VAPID Key Missing!");
+        return;
+    }
 
     try {
-        // 👇👇 YAHI HAI WO FIX 👇👇
-        // Ye line browser ko rok kar rakhegi jab tak Service Worker "Active" na ho jaye.
-        console.log("Waiting for Service Worker to be ready...");
+        // alert("DEBUG: Waiting for SW Ready...");
+        
+        // Yahan Code Atak Sakta Hai - Isliye Check Lagaya Hai
+        if (!('serviceWorker' in navigator)) {
+            throw new Error("No Service Worker Support");
+        }
+
         const registration = await navigator.serviceWorker.ready;
-        console.log("Service Worker is READY!", registration);
+        // alert("DEBUG: SW is Ready! Getting Token...");
 
         const messaging = firebase.messaging();
         
-        // Ab Token maangne me error nahi aayega
         const token = await messaging.getToken({ 
             vapidKey: VAPID_KEY,
             serviceWorkerRegistration: registration 
         });
 
         if (token) {
-            // Token mil gaya, ab Database me save karein
+            // alert("DEBUG: Token Generated! Saving to DB...");
+            
+            // Database Write Try
             await database.ref(`members/${memberId}/notificationTokens/${token}`).set(true);
             
-            console.log("✅ Token Generated & Saved:", token);
-            // Aap chahein to confirm karne ke liye ek baar alert laga sakte hain:
-            // alert("Notification Connected Successfully!");
-
-            // Token refresh logic
-            messaging.onTokenRefresh(async () => {
-                const refreshedToken = await messaging.getToken({ 
-                    vapidKey: VAPID_KEY, 
-                    serviceWorkerRegistration: registration 
-                });
-                await database.ref(`members/${memberId}/notificationTokens/${refreshedToken}`).set(true);
-            });
+            // ✅ SUCCESS MESSAGE
+            alert("✅ SUCCESS: Notification Connected! Token Saved."); 
 
         } else {
-            console.log("No registration token available.");
+            alert("DEBUG: Token null mila. Browser error?");
         }
         
     } catch (err) {
-        console.error('Token Error:', err);
+        // 🔴 ASLI ERROR YAHAN DIKHEGA
+        alert("🔴 TOKEN ERROR: " + err.message + " | Name: " + err.name);
+        console.error(err);
     }
 }
 
-// Install Button Logic
+// Install Button
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredInstallPrompt = e;
