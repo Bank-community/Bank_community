@@ -1,177 +1,135 @@
-// user-main.js
-// ULTIMATE INSTANT LOAD UPDATE: Shows Cached Data IMMEDIATELY (0ms Latency).
-// Then syncs with Firebase in background.
-
+// user-main.js - FULL UPDATED CODE
 import { fetchAndProcessData } from './user-data.js';
-import { initUI, renderPage, showLoadingError, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
+import { initUI, renderPage, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
 
 let VAPID_KEY = null;
 let swRegistration = null;
 
-// --- STEP 1: IMMEDIATE CACHE RENDER ---
+// UI Initialization
 initUI(null);
-try {
-    fetchAndProcessData(null, renderPage);
-} catch (e) {
-    console.log("Initial cache load skipped:", e);
-}
 
-/**
- * App ko shuru karne ka mukhya function.
- */
+// 1. App Initialization
 async function checkAuthAndInitialize() {
     try {
+        // Config load karein
         const response = await fetch('/api/firebase-config');
-        if (!response.ok) throw new Error('Configuration failed to load.');
+        if (!response.ok) throw new Error('Config failed');
         const firebaseConfig = await response.json();
         
-        VAPID_KEY = firebaseConfig.vapidKey;
+        VAPID_KEY = firebaseConfig.vapidKey; // VAPID Key zaroori hai
 
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         
-        // Service Worker Register
+        // Service Worker Register karein
         swRegistration = await registerServiceWorker();
         
         const auth = firebase.auth();
-        const database = firebase.database();
+        const db = firebase.database();
 
-        // --- STEP 2: BACKGROUND SYNC & AUTH CHECK ---
         auth.onAuthStateChanged(user => {
             if (user) {
-                // CASE 1: User Login Hai -> Data Load karo
-                console.log("User authorized:", user.uid);
-                runAppLogic(database);
+                runAppLogic(db);
             } else {
-                // CASE 2: User Login NAHI Hai -> Login Page par bhejo
-                console.log("User not logged in. Redirecting...");
                 window.location.href = 'login.html';
             }
         });
 
     } catch (error) {
-        console.error("FATAL: Could not initialize application.", error);
-        // Agar error aaye aur user login na ho, to bhi login page par bhejo
-        setTimeout(() => {
-             window.location.href = 'login.html';
-        }, 2000);
+        console.error("Init Error:", error);
     }
 }
 
-/**
- * Mukhya application logic (Network Fetch).
- */
 async function runAppLogic(database) {
-    try {
-        const handleDataUpdate = (data) => {
-            if (!data) return;
-            renderPage(data);
-            
-            if (data.processedMembers) {
-                verifyDeviceAndSetupNotifications(database, data.processedMembers);
-            }
-        };
-
-        await fetchAndProcessData(database, handleDataUpdate);
-
-    } catch (error) {
-        console.error("Failed to run main app logic:", error);
-    }
-}
-
-/**
- * Service Worker Registration
- */
-async function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        return registration;
-    } catch (error) {
-        console.error('Service Worker registration failed:', error);
-        return null;
-    }
-  }
-  return null;
-}
-
-/**
- * Device Verification & Notification Logic
- */
-async function verifyDeviceAndSetupNotifications(database, allMembers) {
-    try {
-        let memberId = localStorage.getItem('verifiedMemberId');
-
-        if (!memberId) {
-            memberId = await promptForDeviceVerification(allMembers);
-            if (memberId) {
-                localStorage.setItem('verifiedMemberId', memberId);
-            } else {
-                return; 
-            }
-        }
+    // Data fetch logic wahi rahegi
+    const handleDataUpdate = (data) => {
+        if (!data) return;
+        renderPage(data);
         
-        const permissionGranted = await requestNotificationPermission();
-        if (permissionGranted) {
-            try {
-                await registerForPushNotifications(database, memberId, swRegistration);
-            } catch (regError) {
-                console.error("Push Notification Registration Failed:", regError);
-            }
+        // Notification Setup Trigger
+        if (data.processedMembers) {
+            verifyDeviceAndSetupNotifications(database, data.processedMembers);
         }
-    } catch (error) {
-        console.error('Device verification failed:', error);
+    };
+    await fetchAndProcessData(database, handleDataUpdate);
+}
+
+// 2. Service Worker Registration
+async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            console.log('SW Registered:', reg.scope);
+            return reg;
+        } catch (e) {
+            console.error('SW Fail:', e);
+            return null;
+        }
     }
 }
 
-async function registerForPushNotifications(database, memberId, registration) {
-    if (!VAPID_KEY || !registration) return;
+// 3. Notification & Token Setup
+async function verifyDeviceAndSetupNotifications(database, allMembers) {
+    let memberId = localStorage.getItem('verifiedMemberId');
+
+    // Agar ID nahi hai to user se poochein
+    if (!memberId) {
+        memberId = await promptForDeviceVerification(allMembers);
+        if (memberId) localStorage.setItem('verifiedMemberId', memberId);
+        else return;
+    }
+    
+    // Permission maangein
+    const permission = await requestNotificationPermission();
+    
+    if (permission) {
+        // Token generate aur save karein
+        await registerForPushNotifications(database, memberId);
+    }
+}
+
+// 4. Token Logic (DATABASE MEIN SAVE KARNA)
+async function registerForPushNotifications(database, memberId) {
+    if (!VAPID_KEY || !swRegistration) return;
 
     try {
         const messaging = firebase.messaging();
-        messaging.useServiceWorker(registration);
-
-        const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+        
+        // Service worker ka use karein token lene ke liye
+        const token = await messaging.getToken({ 
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: swRegistration 
+        });
 
         if (token) {
-            console.log("FCM Token Generated:", token);
-            const tokenRef = database.ref(`members/${memberId}/notificationTokens/${token}`);
-            await tokenRef.set(true);
+            console.log("Device Token:", token);
+            // Database mein token save karein
+            await database.ref(`members/${memberId}/notificationTokens/${token}`).set(true);
+            
+            // Token refresh listener
+            messaging.onTokenRefresh(() => {
+                messaging.getToken().then((refreshedToken) => {
+                    database.ref(`members/${memberId}/notificationTokens/${refreshedToken}`).set(true);
+                });
+            });
         }
     } catch (err) {
         console.log('Token error:', err);
     }
 }
 
-window.deferredInstallPrompt = null;
-
+// Install Button Logic (Same as before)
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredInstallPrompt = e;
     const installContainer = document.getElementById('install-button-container');
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-
-    if (installContainer && !isStandalone) {
-        installContainer.innerHTML = `
-        <div class="dynamic-buttons-wrapper" style="padding-top: 0;">
-            <button id="installAppBtn" class="civil-button btn-glossy" style="background-image: linear-gradient(to top, #218838, #28a745); color: white; border: none; border-radius: 12px; width: auto; box-shadow: 0 4px 15px rgba(33, 136, 56, 0.4);">
-                <i data-feather="download-cloud"></i> <b>Install App</b>
-            </button>
-        </div>`;
+    if (installContainer) {
+        installContainer.innerHTML = `<div class="dynamic-buttons-wrapper" style="padding-top:0;"><button id="installAppBtn" class="civil-button btn-glossy" style="background:#28a745;color:white;border-radius:12px;"><i data-feather="download-cloud"></i> Install App</button></div>`;
         feather.replace();
-
-        const installBtn = document.getElementById('installAppBtn');
-        if (installBtn) {
-            installBtn.addEventListener('click', async () => {
-                const promptEvent = window.deferredInstallPrompt;
-                if (!promptEvent) return;
-                promptEvent.prompt();
-                await promptEvent.userChoice;
-                window.deferredInstallPrompt = null;
-                installContainer.innerHTML = '';
-            });
-        }
+        document.getElementById('installAppBtn').addEventListener('click', async () => {
+            window.deferredInstallPrompt.prompt();
+            window.deferredInstallPrompt = null;
+            installContainer.innerHTML = '';
+        });
     }
 });
 
