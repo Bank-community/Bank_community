@@ -1,5 +1,5 @@
-// Cache ka naya version (V18) taaki changes turant apply hon
-const CACHE_NAME = 'bank-community-cache-v18-fixed';
+// Cache ka naya version (V21) taaki changes turant apply hon
+const CACHE_NAME = 'bank-community-cache-v21-fixed';
 
 // Zaroori files jinko install ke time cache karna hai
 const APP_SHELL_URLS = [
