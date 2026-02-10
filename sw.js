@@ -1,5 +1,5 @@
-// Cache version V22 (Version badha diya taki turant update ho)
-const CACHE_NAME = 'bank-community-cache-v22-push-fixed';
+// Cache ka naya version (V25) - FORCE UPDATE
+const CACHE_NAME = 'bank-community-cache-v25-force-update';
 
 const APP_SHELL_URLS = [
   '/',
@@ -7,9 +7,9 @@ const APP_SHELL_URLS = [
   '/login.html',
   '/admin.html',
   '/manifest-user.json',
-  '/favicon.ico',
   '/user-style.css',
-  '/user-main.js',
+  '/user-main.js', // Isko naya load karega
+  '/user-ui.js',
   '/notifications.html'
 ];
 
@@ -21,7 +21,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// 2. Activate Event
+// 2. Activate Event (Purana cache saaf karna)
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
@@ -32,87 +32,62 @@ self.addEventListener('activate', event => {
 
 // 3. Fetch Event
 self.addEventListener('fetch', event => {
+  // API calls humesha network se lein
   if (event.request.url.includes('/api/') || new URL(event.request.url).origin !== self.location.origin) {
     return; 
   }
+  
+  // HTML aur JS files ke liye Network First try karein
+  if (event.request.headers.get('accept').includes('text/html') || event.request.url.includes('.js')) {
+      event.respondWith(
+        fetch(event.request)
+          .then(res => {
+            // Naya version cache me daalo
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+            return res;
+          })
+          .catch(() => caches.match(event.request)) // Network fail ho to purana dikhao
+      );
+      return;
+  }
+
+  // Baaki images/css ke liye Cache First
   event.respondWith(
     caches.match(event.request).then(res => res || fetch(event.request))
   );
 });
 
-// ==========================================
-// 🚀 BACKGROUND NOTIFICATION LOGIC (MAIN)
-// ==========================================
-
+// 4. Push Notification Event
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push Received.');
-
   let data = {};
-  
   if (event.data) {
-    try {
-      // Firebase JSON data parse karein
-      data = event.data.json();
-    } catch (e) {
-      console.log('Push data text:', event.data.text());
-      data = { notification: { title: 'New Message', body: event.data.text() } };
-    }
+    try { data = event.data.json(); } catch (e) { data = { notification: { body: event.data.text() } }; }
   }
 
-  // Title aur Body set karein (Priority: Notification Payload > Data Payload)
-  const title = (data.notification && data.notification.title) || (data.data && data.data.title) || 'Trust Community Fund';
-  const body = (data.notification && data.notification.body) || (data.data && data.data.body) || 'New update available.';
-  const image = (data.notification && data.notification.image) || (data.data && data.data.image) || null;
-  
-  // URL logic: Agar Firebase Console se "click_action" aaye ya data me "url" ho
-  const targetUrl = (data.data && data.data.click_action) || (data.data && data.data.url) || '/notifications.html';
-
+  const title = (data.notification && data.notification.title) || 'Trust Community Fund';
   const options = {
-    body: body,
-    icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg', // App Icon
-    badge: 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg', // Small Notification Bar Icon
+    body: (data.notification && data.notification.body) || 'New Notification',
+    icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg',
     vibrate: [200, 100, 200],
-    image: image, // Agar koi badi image bheji gayi ho
-    data: {
-      url: targetUrl
-    },
-    actions: [
-      {action: 'open_url', title: 'View Details'}
-    ]
+    data: { url: '/notifications.html' }
   };
 
-  // Browser ko notification dikhane ke liye force karein
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// ==========================================
-// 👆 NOTIFICATION CLICK LOGIC (App Open Karna)
-// ==========================================
-
+// 5. Click Event
 self.addEventListener('notificationclick', function(event) {
-  console.log('[Service Worker] Notification click received.');
-
-  event.notification.close(); // Notification band karein
-
-  // Kahan jana hai?
+  event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/notifications.html';
-
-  // Check karein agar App pehle se khula hai?
   event.waitUntil(
     clients.matchAll({type: 'window', includeUncontrolled: true}).then(function(clientList) {
-      // 1. Agar tab khula hai, to use focus karein
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
-        if (client.url.includes(targetUrl) && 'focus' in client) {
-          return client.focus();
-        }
+        if (client.url.includes(targetUrl) && 'focus' in client) return client.focus();
       }
-      // 2. Agar tab nahi khula, to naya window kholein
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });
