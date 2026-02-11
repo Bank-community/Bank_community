@@ -32,7 +32,7 @@
         .back-btn { background: none; border: none; color: var(--gold); cursor: pointer; margin-right: 15px; padding: 5px; }
         .header h1 { font-size: 1.2em; text-transform: uppercase; letter-spacing: 1px; margin: 0; font-weight: 700; }
 
-        /* TABS */
+        /* MAIN TABS (Due, History, Notices) */
         .tabs-container { background: white; padding: 10px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 60px; z-index: 99; }
         .tabs { display: flex; background: #f1f3f5; border-radius: 25px; padding: 4px; }
         .tab { flex: 1; border: none; background: none; padding: 10px; border-radius: 20px; font-weight: 600; color: #666; font-size: 0.9em; cursor: pointer; transition: 0.3s; }
@@ -41,6 +41,78 @@
         .content { display: none; padding: 20px 15px; max-width: 600px; margin: 0 auto; }
         .content.active { display: block; animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* === SUB FILTER BUTTONS (HISTORY) === */
+        .sub-filter-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            scrollbar-width: none; /* Hide scrollbar */
+        }
+        .sub-filter-container::-webkit-scrollbar { display: none; }
+        
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #555;
+            font-size: 0.85em;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .filter-chip.active {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
+            box-shadow: 0 4px 10px rgba(212, 175, 55, 0.4);
+        }
+
+        /* === HISTORY TAB === */
+        .history-header {
+            text-align: center; padding: 15px; margin-bottom: 20px; 
+            color: var(--primary); font-weight: 800; background: #eef2ff; border-radius: 12px;
+            border: 1px solid #e0e7ff;
+        }
+        .history-boxes { display: flex; gap: 10px; margin-bottom: 25px; }
+        .h-box { flex: 1; padding: 15px 10px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        .h-box.sip { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+        .h-box.repay { background: linear-gradient(135deg, #0288d1, #01579b); }
+        .h-box.loan { background: linear-gradient(135deg, #c62828, #b71c1c); }
+        
+        .h-val { font-size: 1.2em; font-weight: 800; display: block; margin-top: 5px; }
+        .h-lbl { font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; font-weight: 700; }
+
+        .hist-list { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .hist-item { padding: 15px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+        .hist-item:last-child { border-bottom: none; }
+        .hist-info h5 { margin: 0; font-size: 0.95em; color: #333; font-weight: 700; display: flex; align-items: center; gap: 5px; }
+        .hist-info p { margin: 2px 0 0 0; font-size: 0.75em; color: #888; }
+        .hist-amt { font-weight: 700; font-size: 1em; }
+        .hist-today { background-color: #fffde7; border-left: 4px solid var(--gold); }
+        
+        /* Rank Badge for SIP */
+        .rank-badge {
+            background-color: var(--primary);
+            color: white;
+            font-size: 0.7em;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .rank-1 { background-color: var(--gold); color: black; box-shadow: 0 0 5px var(--gold); }
+        .rank-2 { background-color: #C0C0C0; color: black; } /* Silver */
+        .rank-3 { background-color: #CD7F32; color: white; } /* Bronze */
 
         /* === 1. SIP CARD === */
         .sip-card {
@@ -64,7 +136,7 @@
         }
         .sip-btn:active { transform: scale(0.95); }
 
-        /* === 2. LOAN CARD (PRD LOGIC) === */
+        /* === 2. LOAN CARD === */
         .loan-card {
             background: white; border-radius: 16px; 
             box-shadow: 0 8px 25px rgba(0,0,0,0.08); margin-bottom: 25px;
@@ -93,7 +165,7 @@
         .status-item div:first-child { font-size: 0.7em; color: #999; font-weight: 700; text-transform: uppercase; }
         .status-item div:last-child { font-size: 1.1em; font-weight: 800; color: var(--primary); }
         
-        /* URGENT ALERT STYLE (86+ Days) */
+        /* URGENT ALERT STYLE */
         .urgent-alert {
             background: linear-gradient(135deg, #d32f2f, #b71c1c); 
             color: white; 
@@ -118,30 +190,7 @@
         .btn-pay { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,35,102,0.3); }
         .btn-detail { background: white; border: 2px solid #eee; color: #555; }
 
-        /* === HISTORY TAB === */
-        .history-header {
-            text-align: center; padding: 15px; margin-bottom: 20px; 
-            color: var(--primary); font-weight: 800; background: #eef2ff; border-radius: 12px;
-            border: 1px solid #e0e7ff;
-        }
-        .history-boxes { display: flex; gap: 10px; margin-bottom: 25px; }
-        .h-box { flex: 1; padding: 15px 10px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
-        .h-box.sip { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
-        .h-box.repay { background: linear-gradient(135deg, #0288d1, #01579b); }
-        .h-box.loan { background: linear-gradient(135deg, #c62828, #b71c1c); }
-        
-        .h-val { font-size: 1.2em; font-weight: 800; display: block; margin-top: 5px; }
-        .h-lbl { font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; font-weight: 700; }
-
-        .hist-list { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .hist-item { padding: 15px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
-        .hist-item:last-child { border-bottom: none; }
-        .hist-info h5 { margin: 0; font-size: 0.95em; color: #333; font-weight: 700; }
-        .hist-info p { margin: 2px 0 0 0; font-size: 0.75em; color: #888; }
-        .hist-amt { font-weight: 700; font-size: 1em; }
-        .hist-today { background-color: #fffde7; border-left: 4px solid var(--gold); }
-
-        /* NOTICES TAB (FIXED IMAGE) */
+        /* NOTICES TAB */
         .notice-card { background: white; border-radius: 16px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #eee; }
         .notice-img { width: 100%; height: 200px; object-fit: cover; display: block; }
         .notice-content { padding: 20px; }
@@ -167,22 +216,13 @@
 
     <div class="tabs-container">
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('due')">Due Payments</button>
-            <button class="tab" onclick="switchTab('history')">History</button>
+            <button class="tab active" onclick="switchTab('history')">History</button>
+            <button class="tab" onclick="switchTab('due')">Due Payments</button>
             <button class="tab" onclick="switchTab('notices')">Notices</button>
         </div>
     </div>
 
-    <!-- 1. DUE PAYMENTS TAB -->
-    <div id="due" class="content active">
-        <div id="sipContainer"></div>
-        <div id="loanContainer">
-            <p class="loading">Checking dues...</p>
-        </div>
-    </div>
-
-    <!-- 2. HISTORY TAB -->
-    <div id="history" class="content">
+    <div id="history" class="content active">
         <div class="history-header">
             <i data-feather="calendar" style="width: 16px; vertical-align: middle;"></i>
             <span id="monthDisplay">Current Month</span> Overview
@@ -203,33 +243,49 @@
             </div>
         </div>
 
+        <div class="sub-filter-container">
+            <button class="filter-chip active" onclick="filterHistory('ALL', this)">All</button>
+            <button class="filter-chip" onclick="filterHistory('SIP', this)">SIP Rank 🏆</button>
+            <button class="filter-chip" onclick="filterHistory('LOAN', this)">Loan</button>
+            <button class="filter-chip" onclick="filterHistory('REPAY', this)">Repay</button>
+        </div>
+
         <div id="historyContainer" class="hist-list">
             <p class="loading">Loading transactions...</p>
         </div>
     </div>
 
-    <!-- 3. NOTICES TAB -->
+    <div id="due" class="content">
+        <div id="sipContainer"></div>
+        <div id="loanContainer">
+            <p class="loading">Checking dues...</p>
+        </div>
+    </div>
+
     <div id="notices" class="content">
         <div id="noticesContainer"></div>
     </div>
 
     <script>
         const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
-        const CACHE_KEY = 'tcf_notifications_cache_v4';
+        const CACHE_KEY = 'tcf_notifications_cache_v5';
 
-        // --- Date Parser Helper ---
+        // Global Variables to store data for filtering
+        let globalTransactions = [];
+        let globalMembers = {};
+        let globalMemberId = null;
+
         function parseSmartDate(input) {
             if (!input) return new Date();
             let d = new Date(input);
             if (!isNaN(d.getTime())) return d;
-            // Handle custom formats if needed
             let clean = String(input).replace(/,/g, ' ').replace(/-/g, ' ').replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
             return new Date(clean); 
         }
 
         async function init() {
             try {
-                // 1. Try Cache First
+                // 1. Try Cache
                 loadFromCache();
                 
                 // 2. Firebase Init
@@ -250,6 +306,7 @@
                 try {
                     const data = JSON.parse(cached);
                     const memberId = localStorage.getItem('verifiedMemberId');
+                    globalMemberId = memberId;
                     if (memberId) processAndRender(memberId, data);
                 } catch (e) { console.error("Cache error", e); }
             }
@@ -258,6 +315,8 @@
         async function fetchData() {
             const db = firebase.database();
             const memberId = localStorage.getItem('verifiedMemberId');
+            globalMemberId = memberId;
+            
             if(!memberId) {
                 document.getElementById('loanContainer').innerHTML = '<div class="loading">Please verify device in Home page first.</div>';
                 return;
@@ -276,12 +335,172 @@
             const activeLoans = data.activeLoans || {}; 
             const notices = data.admin?.notifications?.manual || {};
 
+            // Store for filtering
+            globalMembers = members;
+            globalTransactions = Object.values(transactions);
+
             const profile = members[memberId] || {};
+
+            // Update Summaries (Static Month View)
+            updateMonthSummary(transactions);
+
+            // Default Load: History ALL
+            filterHistory('ALL', document.querySelector('.filter-chip.active'));
 
             renderSIP(memberId, profile);
             renderLoans(memberId, activeLoans, members); 
-            renderHistoryAndSummary(memberId, transactions, members);
             renderNotices(notices);
+        }
+
+        function updateMonthSummary(txsObject) {
+            const txs = Object.values(txsObject);
+            const sipValEl = document.getElementById('totalSipVal');
+            const repayValEl = document.getElementById('totalRepayVal');
+            const loanValEl = document.getElementById('totalLoanVal');
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            document.getElementById('monthDisplay').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            // Calculate Totals for Current Month ONLY
+            let totalSIP = 0, totalRepayment = 0, totalLoanGiven = 0;
+
+            txs.forEach(t => {
+                const d = parseSmartDate(t.date || t.timestamp);
+                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                    const amt = parseFloat(t.amount || 0);
+                    const pPaid = parseFloat(t.principalPaid || 0);
+                    const iPaid = parseFloat(t.interestPaid || 0);
+                    const totalPaid = pPaid + iPaid > 0 ? pPaid + iPaid : amt;
+
+                    if (t.type === 'SIP' || t.type === 'Extra Payment') totalSIP += amt;
+                    else if (t.type === 'Loan Payment') totalRepayment += totalPaid;
+                    else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) totalLoanGiven += amt;
+                }
+            });
+
+            sipValEl.textContent = `₹${totalSIP.toLocaleString('en-IN')}`;
+            repayValEl.textContent = `₹${totalRepayment.toLocaleString('en-IN')}`;
+            loanValEl.textContent = `₹${totalLoanGiven.toLocaleString('en-IN')}`;
+        }
+
+        // === MAIN FILTER LOGIC ===
+        function filterHistory(type, btnElement) {
+            // UI Update
+            if(btnElement) {
+                document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+
+            const el = document.getElementById('historyContainer');
+            el.innerHTML = '';
+
+            if (globalTransactions.length === 0) {
+                el.innerHTML = '<p class="loading">No transactions found.</p>';
+                return;
+            }
+
+            let filteredTxs = [];
+            const now = new Date();
+            const todayStr = now.toDateString();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            // FILTER & SORT LOGIC
+            if (type === 'SIP') {
+                // SIP: Current Month ONLY + Sort by Amount (High to Low)
+                filteredTxs = globalTransactions.filter(t => {
+                    const d = parseSmartDate(t.date || t.timestamp);
+                    return (t.type === 'SIP' || t.type === 'Extra Payment') && 
+                           d.getMonth() === currentMonth && 
+                           d.getFullYear() === currentYear;
+                }).sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
+
+            } else if (type === 'LOAN') {
+                // LOAN: All Time + Sort by Date
+                filteredTxs = globalTransactions.filter(t => 
+                    t.type === 'Loan Taken' || t.type.includes('Withdraw')
+                ).sort((a, b) => parseSmartDate(b.date) - parseSmartDate(a.date));
+
+            } else if (type === 'REPAY') {
+                // REPAY: All Time + Sort by Date
+                filteredTxs = globalTransactions.filter(t => 
+                    t.type === 'Loan Payment'
+                ).sort((a, b) => parseSmartDate(b.date) - parseSmartDate(a.date));
+
+            } else {
+                // ALL: All Time + Sort by Date
+                filteredTxs = globalTransactions.sort((a, b) => 
+                    parseSmartDate(b.date) - parseSmartDate(a.date)
+                );
+            }
+
+            if (filteredTxs.length === 0) {
+                el.innerHTML = '<p class="loading">No records found for this category.</p>';
+                return;
+            }
+
+            // RENDER LOGIC
+            filteredTxs.forEach((t, index) => {
+                let name = t.memberId === globalMemberId ? 'You' : (globalMembers[t.memberId]?.fullName || 'Member');
+                let displayAmount = t.amount;
+                let colorClass = 'green-text';
+                let sign = '+';
+                let subText = '';
+                
+                // Colors & Signs
+                if (t.type === 'Loan Payment') {
+                    const principal = parseFloat(t.principalPaid || 0);
+                    const interest = parseFloat(t.interestPaid || 0);
+                    displayAmount = principal + interest;
+                    subText = `(Prin: ${principal}, Int: ${interest})`;
+                } else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
+                    colorClass = 'red-text';
+                    sign = '-';
+                }
+
+                // Date logic
+                const tDate = parseSmartDate(t.date);
+                const isToday = tDate.toDateString() === todayStr;
+                
+                let highlightClass = '';
+                let dateDisplay = `${tDate.getDate()} ${tDate.toLocaleString('default', {month:'short'})}`;
+
+                // Logic specific to Filters
+                if (type === 'ALL') {
+                     if (isToday) {
+                         highlightClass = 'hist-today';
+                         dateDisplay = 'Today';
+                     }
+                }
+
+                // Ranking Logic for SIP
+                let rankHtml = '';
+                if (type === 'SIP') {
+                    const rank = index + 1;
+                    let rankClass = 'rank-badge';
+                    if (rank === 1) rankClass += ' rank-1';
+                    else if (rank === 2) rankClass += ' rank-2';
+                    else if (rank === 3) rankClass += ' rank-3';
+                    
+                    rankHtml = `<span class="${rankClass}">${rank}</span>`;
+                    dateDisplay = `${tDate.getDate()} ${tDate.toLocaleString('default', {month:'short'})}`; // Keep date
+                }
+
+                el.innerHTML += `
+                    <div class="hist-item ${highlightClass}">
+                        <div class="hist-info">
+                            <h5>${rankHtml} ${name} ${isToday && type === 'ALL' ? '<span style="font-size:0.7em; background:#2e7d32; color:white; padding:1px 4px; border-radius:4px;">NEW</span>' : ''}</h5>
+                            <p>${t.type} • ${dateDisplay} ${subText}</p>
+                        </div>
+                        <div class="hist-amt" style="color: var(--${colorClass === 'red-text' ? 'red-text' : 'green-text'})">
+                            ${sign}₹${(displayAmount||0).toLocaleString('en-IN')}
+                        </div>
+                    </div>
+                `;
+            });
         }
 
         function renderSIP(mid, profile) {
@@ -314,6 +533,12 @@
                         <a href="qr.html?amount=${sipAmount}&type=sip" class="sip-btn">PAY NOW</a>
                     </div>
                 `;
+            } else if (status === 'Paid') {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 20px; background: white; border-radius: 12px; margin-bottom: 20px;">
+                        <i data-feather="check-circle" style="color: green; width: 40px; height: 40px;"></i>
+                        <p style="margin-top: 10px; font-weight: 600;">Current Month SIP Paid!</p>
+                    </div>`;
             }
         }
 
@@ -323,33 +548,26 @@
 
             const myLoans = Object.values(loans).filter(l => l.memberId === mid && l.status === 'Active');
 
-            if (myLoans.length === 0 && document.getElementById('sipContainer').innerHTML === '') {
-                container.innerHTML = '<div style="text-align:center; padding:40px;"><i data-feather="check-circle" style="color:#2e7d32; width:40px; height:40px;"></i><p style="margin-top:10px; font-weight:600;">No dues pending.</p></div>';
-                feather.replace();
-                return;
+            if (myLoans.length === 0 && document.getElementById('sipContainer').innerHTML.includes('No dues')) {
+                // Handled in renderSIP logic or left empty
             }
 
             myLoans.forEach(loan => {
                 const mem = members[mid] || {};
                 let d = parseSmartDate(loan.loanDate || loan.date);
-                
-                // --- PRD CALCULATION LOGIC ---
                 const diffTime = Math.abs(new Date() - d);
                 const daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                 const outstanding = parseFloat(loan.outstandingAmount || loan.amount || 0);
 
-                let color = '#2e7d32'; // Green (<30)
+                let color = '#2e7d32'; // Green
                 let statusText = 'On Track';
                 let progressPercent = (daysPassed / 90) * 100;
                 let showUrgentAlert = false;
 
-                // Rules: 30-85 Days (Due/Warning)
                 if (daysPassed >= 30 && daysPassed <= 85) {
                     color = '#e65100'; // Orange
                     statusText = 'Payment Due';
-                } 
-                // Rules: 86+ Days (Urgent)
-                else if (daysPassed >= 86) {
+                } else if (daysPassed >= 86) {
                     color = '#d32f2f'; // Red
                     statusText = 'CRITICAL / OVERDUE';
                     progressPercent = 100;
@@ -407,87 +625,6 @@
             feather.replace();
         }
 
-        function renderHistoryAndSummary(mid, txs, members) {
-            const el = document.getElementById('historyContainer');
-            
-            // Boxes
-            const sipValEl = document.getElementById('totalSipVal');
-            const repayValEl = document.getElementById('totalRepayVal');
-            const loanValEl = document.getElementById('totalLoanVal');
-            
-            el.innerHTML = '';
-            
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            const todayStr = now.toDateString();
-            
-            document.getElementById('monthDisplay').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-            const currentMonthTxs = Object.values(txs).filter(t => {
-                const d = parseSmartDate(t.date || t.timestamp);
-                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-            }).sort((a,b) => parseSmartDate(b.date) - parseSmartDate(a.date));
-
-            // Totals
-            let totalSIP = 0, totalRepayment = 0, totalLoanGiven = 0;
-
-            currentMonthTxs.forEach(t => {
-                const amt = parseFloat(t.amount || 0);
-                const pPaid = parseFloat(t.principalPaid || 0);
-                const iPaid = parseFloat(t.interestPaid || 0);
-                const totalPaid = pPaid + iPaid > 0 ? pPaid + iPaid : amt;
-
-                if (t.type === 'SIP' || t.type === 'Extra Payment') totalSIP += amt;
-                else if (t.type === 'Loan Payment') totalRepayment += totalPaid;
-                else if (t.type === 'Loan Taken' || t.type === 'Extra Withdraw') totalLoanGiven += amt;
-            });
-
-            sipValEl.textContent = `₹${totalSIP.toLocaleString('en-IN')}`;
-            repayValEl.textContent = `₹${totalRepayment.toLocaleString('en-IN')}`;
-            loanValEl.textContent = `₹${totalLoanGiven.toLocaleString('en-IN')}`;
-
-            if (currentMonthTxs.length === 0) {
-                el.innerHTML = '<p class="loading">No transactions this month.</p>';
-                return;
-            }
-
-            // Render List with TODAY highlight
-            currentMonthTxs.forEach(t => {
-                let name = t.memberId === mid ? 'You' : (members[t.memberId]?.fullName || 'Member');
-                let displayAmount = t.amount;
-                let colorClass = 'green-text';
-                let sign = '+';
-                
-                if (t.type === 'Loan Payment') {
-                    const principal = parseFloat(t.principalPaid || 0);
-                    const interest = parseFloat(t.interestPaid || 0);
-                    displayAmount = principal + interest;
-                } else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
-                    colorClass = 'red-text';
-                    sign = '-';
-                }
-
-                const tDate = parseSmartDate(t.date);
-                const isToday = tDate.toDateString() === todayStr;
-                const highlightClass = isToday ? 'hist-today' : '';
-                const dateDisplay = isToday ? 'Today' : `${tDate.getDate()}th ${tDate.toLocaleString('default', {month:'short'})}`;
-
-                el.innerHTML += `
-                    <div class="hist-item ${highlightClass}">
-                        <div class="hist-info">
-                            <h5>${name} ${isToday ? '<span style="font-size:0.7em; background:#2e7d32; color:white; padding:1px 4px; border-radius:4px;">NEW</span>' : ''}</h5>
-                            <p>${t.type} • ${dateDisplay}</p>
-                        </div>
-                        <div class="hist-amt" style="color: var(--${colorClass === 'red-text' ? 'red-text' : 'green-text'})">
-                            ${sign}₹${(displayAmount||0).toLocaleString('en-IN')}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // --- FIXED: NOTICE IMAGE DISPLAY ---
         function renderNotices(notices) {
             const el = document.getElementById('noticesContainer');
             el.innerHTML = '';
@@ -499,9 +636,7 @@
             }
 
             list.forEach(n => {
-                // Ensure Image URL is valid or use fallback
                 const imgSrc = n.imageUrl || n.image || DEFAULT_IMG;
-
                 el.innerHTML += `
                     <div class="notice-card">
                         <img src="${imgSrc}" class="notice-img" alt="Notice" onerror="this.src='${DEFAULT_IMG}'">
@@ -519,7 +654,11 @@
             document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+            
+            // Handle active state
+            const btn = Array.from(document.querySelectorAll('.tab')).find(b => b.textContent.includes(id === 'due' ? 'Due' : (id === 'history' ? 'History' : 'Notices')));
+            if(btn) btn.classList.add('active');
+            else event.target.classList.add('active');
         }
 
         window.onload = init;
@@ -527,5 +666,3 @@
     </script>
 </body>
 </html>
-
-
