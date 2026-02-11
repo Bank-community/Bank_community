@@ -1,38 +1,34 @@
-// user-main.js (DEBUG MODE 🛠️)
+// user-main.js (FINAL PRODUCTION VERSION)
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, promptForDeviceVerification, requestNotificationPermission } from './user-ui.js';
 
+// Aapki VAPID Key
 const VAPID_KEY = "BE1NgqUcrYaBxWxd0hRrtW7wES0PJ-orGaxlGVj-oT1UZyJwLaaAk7z6KczQ2ZrSy_XjSwkL6WjpX_gHMpXPp3M";
-
-let swRegistration = null;
 
 initUI(null);
 
-// 1. App Initialization
+// 1. App Start
 async function checkAuthAndInitialize() {
     try {
-        // Step 1 check
-        // alert("DEBUG: App Start. Checking Firebase Config..."); 
-
+        // Step 1: Config Fetch
         if (!firebase.apps.length) {
             const response = await fetch('/api/firebase-config');
             if (response.ok) {
                 const config = await response.json();
                 firebase.initializeApp(config);
-            } else {
-                alert("Error: Config API Failed!");
             }
         }
         
-        // Step 2 check
-        registerServiceWorker();
+        // Step 2: Register SW (Background)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
         
         const auth = firebase.auth();
         const db = firebase.database();
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                // alert("DEBUG: User Logged In: " + user.uid);
                 runAppLogic(db);
             } else {
                 window.location.href = 'login.html';
@@ -40,7 +36,7 @@ async function checkAuthAndInitialize() {
         });
 
     } catch (error) {
-        alert("CRITICAL INIT ERROR: " + error.message);
+        console.error("Init Error:", error);
     }
 }
 
@@ -49,6 +45,7 @@ async function runAppLogic(database) {
         if (!data) return;
         renderPage(data);
         
+        // Notification Setup
         if (data.processedMembers) {
             verifyDeviceAndSetupNotifications(database, data.processedMembers);
         }
@@ -56,27 +53,10 @@ async function runAppLogic(database) {
     await fetchAndProcessData(database, handleDataUpdate);
 }
 
-// 2. Service Worker Registration
-async function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        try {
-            const reg = await navigator.serviceWorker.register('/sw.js');
-            // alert("DEBUG: SW Registered!"); 
-            return reg;
-        } catch (e) {
-            alert("DEBUG: SW Registration Failed: " + e.message);
-            return null;
-        }
-    } else {
-        alert("DEBUG: Browser does not support Service Worker!");
-    }
-}
-
-// 3. Setup Logic
+// 2. Setup Notification
 async function verifyDeviceAndSetupNotifications(database, allMembers) {
     try {
         let memberId = localStorage.getItem('verifiedMemberId');
-
         if (!memberId) {
             memberId = await promptForDeviceVerification(allMembers);
             if (memberId) localStorage.setItem('verifiedMemberId', memberId);
@@ -84,36 +64,21 @@ async function verifyDeviceAndSetupNotifications(database, allMembers) {
         }
         
         const permission = await requestNotificationPermission();
-        
         if (permission) {
-            // alert("DEBUG: Permission Granted. Starting Token Logic...");
             await registerForPushNotifications(database, memberId);
-        } else {
-            alert("DEBUG: Notification Permission DENIED.");
         }
     } catch (e) {
-        alert("Setup Error: " + e.message);
+        console.log(e);
     }
 }
 
-// 4. Token Logic (Strict Debugging)
+// 3. Token Generation (Tested & Verified Logic)
 async function registerForPushNotifications(database, memberId) {
-    if (!VAPID_KEY) {
-        alert("Error: VAPID Key Missing!");
-        return;
-    }
+    if (!VAPID_KEY) return;
 
     try {
-        // alert("DEBUG: Waiting for SW Ready...");
-        
-        // Yahan Code Atak Sakta Hai - Isliye Check Lagaya Hai
-        if (!('serviceWorker' in navigator)) {
-            throw new Error("No Service Worker Support");
-        }
-
+        // 🔥 WAHI FIX JO KAAM KAR GAYA: Wait for Ready
         const registration = await navigator.serviceWorker.ready;
-        // alert("DEBUG: SW is Ready! Getting Token...");
-
         const messaging = firebase.messaging();
         
         const token = await messaging.getToken({ 
@@ -122,22 +87,12 @@ async function registerForPushNotifications(database, memberId) {
         });
 
         if (token) {
-            // alert("DEBUG: Token Generated! Saving to DB...");
-            
-            // Database Write Try
+            // Database me save karein
             await database.ref(`members/${memberId}/notificationTokens/${token}`).set(true);
-            
-            // ✅ SUCCESS MESSAGE
-            alert("✅ SUCCESS: Notification Connected! Token Saved."); 
-
-        } else {
-            alert("DEBUG: Token null mila. Browser error?");
+            console.log("Token Updated in DB");
         }
-        
     } catch (err) {
-        // 🔴 ASLI ERROR YAHAN DIKHEGA
-        alert("🔴 TOKEN ERROR: " + err.message + " | Name: " + err.name);
-        console.error(err);
+        console.error('Token Error:', err);
     }
 }
 
