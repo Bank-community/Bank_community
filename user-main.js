@@ -116,3 +116,70 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
+
+
+
+
+// === NOTIFICATION SYSTEM FIX (Add this to bottom of user-main.js) ===
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBVCDW0Q8YaTPz_MO9FTve1FaPu42jtO2c",
+    authDomain: "bank-master-data.firebaseapp.com",
+    databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bank-master-data",
+    storageBucket: "bank-master-data.firebasestorage.app",
+    messagingSenderId: "778113641069",
+    appId: "1:778113641069:web:f2d584555dee89b8ca2d64"
+};
+
+// Initialize Firebase only if not already done
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const messaging = firebase.messaging();
+const db = firebase.database();
+const auth = firebase.auth();
+
+// 1. Permission Mango aur Token Save Karo
+async function requestNotificationPermission() {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Permission mil gayi!');
+            
+            // Token generate karo
+            const token = await messaging.getToken();
+            if (token) {
+                console.log('Token:', token);
+                saveTokenToDatabase(token);
+            }
+        } else {
+            console.log('Permission nahi mili.');
+        }
+    } catch (err) {
+        console.log('Token error:', err);
+    }
+}
+
+// 2. Token ko Database mein Save Karo (Member ID ke neeche)
+function saveTokenToDatabase(token) {
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            // Ye wahi rasta hai jahan Admin Panel dhundhta hai
+            const updates = {};
+            updates[`/members/${user.uid}/notificationTokens/${token}`] = true;
+            db.ref().update(updates);
+            console.log("Token Saved for User:", user.uid);
+        }
+    });
+}
+
+// 3. Page Load hone par Permission mango
+document.addEventListener('DOMContentLoaded', () => {
+    // Thoda wait karke permission mango taaki user ghabra na jaye
+    setTimeout(() => {
+        requestNotificationPermission();
+    }, 2000);
+});
+
