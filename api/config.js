@@ -1,28 +1,32 @@
-// api/config.js
-export default function handler(req, res) {
-  // CORS Headers (Browser ko permission dene ke liye)
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+// File Path: /api/config.js
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  // Yahan wohi Config bhejo jo Frontend ko chahiye
+// यह एक Vercel सर्वरलेस फंक्शन है।
+// यह सर्वर पर चलता है, यूजर के ब्राउज़र में नहीं।
+export default function handler(request, response) {
+  
+  // process.env सुरक्षित रूप से Vercel डैशबोर्ड में सेट किए गए आपके 
+  // Environment Variables को एक्सेस करता है।
   const config = {
-    apiKey: process.env.FIREBASE_API_KEY || "AIzaSyBVCDW0Q8YaTPz_MO9FTve1FaPu42jtO2c",
-    authDomain: "bank-master-data.firebaseapp.com",
-    databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bank-master-data",
-    storageBucket: "bank-master-data.firebasestorage.app",
-    messagingSenderId: "778113641069",
-    appId: "1:778113641069:web:f2d584555dee89b8ca2d64",
-    // VAPID Key Notification ke liye
-    vapidKey: "BE1NgqUcrYaBxWxd0hRrtW7wES0PJ-orGaxlGVj-oT1UZyJwLaaAk7z6KczQ2ZrSy_XjSwkL6WjpX_gHMpXPp3M"
+    firebase: {
+      apiKey: process.env.FIREBASE_API_KEY,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.FIREBASE_APP_ID,
+      measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+    },
+    imgbb: {
+      // एडमिन पैनल के लिए पुरानी API Key
+      apiKey: process.env.IMGBB_API_KEY,
+      // लोन फॉर्म के लिए नई API Key
+      formApiKey: process.env.IMGBB_API_KEY_FORM,
+    }
   };
 
-  res.status(200).json(config);
+  // हम कॉन्फ़िगरेशन को JSON रेस्पॉन्स के रूप में भेजते हैं।
+  response.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate');
+  response.status(200).json(config);
 }
+
