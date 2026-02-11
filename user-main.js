@@ -1,119 +1,111 @@
-// user-main.js (MERGED & FIXED VERSION)
-
-// 1. IMPORTS
+// user-main.js (API CONFIG VERSION - FIXED)
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage, promptForDeviceVerification } from './user-ui.js';
 
-// 2. CONFIGURATION (Hardcoded is safer & faster here)
-const firebaseConfig = {
-    apiKey: "AIzaSyBVCDW0Q8YaTPz_MO9FTve1FaPu42jtO2c",
-    authDomain: "bank-master-data.firebaseapp.com",
-    databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bank-master-data",
-    storageBucket: "bank-master-data.firebasestorage.app",
-    messagingSenderId: "778113641069",
-    appId: "1:778113641069:web:f2d584555dee89b8ca2d64"
-};
+// Global Variables
+let auth, db, messaging;
+let VAPID_KEY = null;
 
-// 3. INITIALIZE FIREBASE (Only Once)
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-const auth = firebase.auth();
-const db = firebase.database();
-const messaging = firebase.messaging();
-
-// UI Init
+// 1. UI LOAD IMMEDIATELY (Taaki screen safed na dikhe)
 initUI(null);
 
-// 4. MAIN ENTRY POINT (App Start)
-async function startApp() {
-    console.log("App Starting...");
-    
-    // Auth Check Listener
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            console.log("User Logged In:", user.uid);
-            
-            // A. Load Data & UI
-            await runAppLogic(db);
-            
-            // B. Setup Notifications (Background)
-            requestNotificationPermission();
-            
-        } else {
-            console.log("No User, Redirecting...");
-            // Agar login page alag hai to redirect karo, nahi to yahin login dikhao
-             window.location.href = 'login.html'; // Yahan apna login page check kar lena
+// 2. MAIN START FUNCTION
+async function initializeApp() {
+    try {
+        console.log("Fetching config from API...");
+        
+        // Step A: API se Config lo
+        const response = await fetch('/api/config');
+        if (!response.ok) throw new Error("Config API Failed");
+        
+        const firebaseConfig = await response.json();
+        VAPID_KEY = firebaseConfig.vapidKey; // Notification ke liye key
+
+        // Step B: Firebase Start karo
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-    });
+
+        auth = firebase.auth();
+        db = firebase.database();
+        messaging = firebase.messaging();
+
+        // Step C: Service Worker Register karo
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log("SW Registered", reg))
+                .catch(err => console.log("SW Fail", err));
+        }
+
+        // Step D: Login Check & Data Load
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("User Logged In:", user.uid);
+                // Data Load karo
+                runAppLogic(db);
+                // Notification Permission mango
+                setupNotifications(user.uid);
+            } else {
+                console.log("User Not Logged In -> Login Page");
+                window.location.href = 'login.html';
+            }
+        });
+
+    } catch (error) {
+        console.error("Critical Init Error:", error);
+        // Agar API fail ho jaye, tab bhi login page par bhejo
+        setTimeout(() => window.location.href = 'login.html', 3000);
+    }
 }
 
-// 5. DATA LOADING LOGIC
+// 3. DATA LOGIC
 async function runAppLogic(database) {
     const handleDataUpdate = (data) => {
         if (!data) return;
-        renderPage(data); // UI Render karo
+        renderPage(data);
     };
-    
-    // Data fetch karo ('user-data.js' se)
     await fetchAndProcessData(database, handleDataUpdate);
 }
 
-// 6. NOTIFICATION PERMISSION & TOKEN
-async function requestNotificationPermission() {
+// 4. NOTIFICATION LOGIC (API Key use karega)
+async function setupNotifications(uid) {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            console.log('Notification Permission Granted.');
+            console.log("Notification Permission Granted");
             
-            // Token Generate
-            const token = await messaging.getToken();
+            // Token Generate karo
+            const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+            
             if (token) {
-                saveTokenToDatabase(token);
-            } else {
-                console.log("No Instance ID token available.");
+                console.log("FCM Token Generated");
+                // Database mein Token save karo
+                const updates = {};
+                updates[`/members/${uid}/notificationTokens/${token}`] = true;
+                db.ref().update(updates);
             }
-        } else {
-            console.log('Notification Permission Denied.');
         }
     } catch (err) {
-        console.error('Notification Error:', err);
+        console.error("Notification Setup Error:", err);
     }
 }
 
-// 7. SAVE TOKEN TO DB
-function saveTokenToDatabase(token) {
-    const user = auth.currentUser;
-    if (user) {
-        const updates = {};
-        updates[`/members/${user.uid}/notificationTokens/${token}`] = true;
-        
-        db.ref().update(updates)
-            .then(() => console.log("Token Saved to DB"))
-            .catch(err => console.error("Token Save Error:", err));
-    }
-}
-
-// 8. INSTALL BUTTON LOGIC
+// 5. INSTALL BUTTON
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredInstallPrompt = e;
-    const installContainer = document.getElementById('install-button-container');
-    if (installContainer) {
-        installContainer.innerHTML = `<div class="dynamic-buttons-wrapper" style="padding-top:0;"><button id="installAppBtn" class="civil-button btn-glossy" style="background:#28a745;color:white;border-radius:12px;"><i data-feather="download-cloud"></i> Install App</button></div>`;
-        if(typeof feather !== 'undefined') feather.replace();
+    const container = document.getElementById('install-button-container');
+    if (container) {
+        container.innerHTML = `<div style="padding-top:0;"><button id="installAppBtn" class="civil-button btn-glossy" style="background:#28a745;color:white;border-radius:12px;">Install App</button></div>`;
         document.getElementById('installAppBtn').addEventListener('click', async () => {
             if(window.deferredInstallPrompt) {
                 window.deferredInstallPrompt.prompt();
-                await window.deferredInstallPrompt.userChoice;
                 window.deferredInstallPrompt = null;
-                installContainer.innerHTML = '';
+                container.innerHTML = '';
             }
         });
     }
 });
 
-// START EVERYTHING
-document.addEventListener('DOMContentLoaded', startApp);
+// Start Everything
+document.addEventListener('DOMContentLoaded', initializeApp);
