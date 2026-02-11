@@ -1,67 +1,64 @@
-// Cache ka naya version (V25) - FORCE UPDATE
-const CACHE_NAME = 'bank-community-cache-v25-force-update';
+// sw.js (FAIL-SAFE VERSION v30)
+const CACHE_NAME = 'bank-community-cache-v30-failsafe';
 
+// Hum sirf wohi files cache karenge jo 100% hoti hain
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
-  '/login.html',
-  '/admin.html',
-  '/manifest-user.json',
+  '/user-main.js',
   '/user-style.css',
-  '/user-main.js', // Isko naya load karega
-  '/user-ui.js',
-  '/notifications.html'
+  '/manifest-user.json'
 ];
 
-// 1. Install Event
+// 1. Install Event (CRASH PROOF)
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Turant naya SW active karein
+  // Turant active ho jao, wait mat karo
+  self.skipWaiting();
+  
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL_URLS))
+    caches.open(CACHE_NAME).then(cache => {
+      // Agar cache fail bhi ho jaye, to bhi SW install ho jayega (Error catch kar liya)
+      return cache.addAll(APP_SHELL_URLS).catch(err => {
+        console.warn("Cache warning (Ignored):", err);
+      });
+    })
   );
 });
 
-// 2. Activate Event (Purana cache saaf karna)
+// 2. Activate Event (Claim Clients Immediately)
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
-    )).then(() => self.clients.claim())
+    Promise.all([
+      self.clients.claim(), // Turant control le lo
+      caches.keys().then(keys => Promise.all(
+        keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+      ))
+    ])
   );
 });
 
 // 3. Fetch Event
 self.addEventListener('fetch', event => {
-  // API calls humesha network se lein
   if (event.request.url.includes('/api/') || new URL(event.request.url).origin !== self.location.origin) {
-    return; 
+    return;
   }
   
-  // HTML aur JS files ke liye Network First try karein
-  if (event.request.headers.get('accept').includes('text/html') || event.request.url.includes('.js')) {
-      event.respondWith(
-        fetch(event.request)
-          .then(res => {
-            // Naya version cache me daalo
-            const resClone = res.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
-            return res;
-          })
-          .catch(() => caches.match(event.request)) // Network fail ho to purana dikhao
-      );
-      return;
-  }
-
-  // Baaki images/css ke liye Cache First
   event.respondWith(
-    caches.match(event.request).then(res => res || fetch(event.request))
+    fetch(event.request)
+      .then(res => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 
-// 4. Push Notification Event
+// 4. PUSH NOTIFICATION (MAIN LOGIC)
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push Received.');
   let data = {};
+  
   if (event.data) {
     try { data = event.data.json(); } catch (e) { data = { notification: { body: event.data.text() } }; }
   }
@@ -77,7 +74,7 @@ self.addEventListener('push', function(event) {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// 5. Click Event
+// 5. CLICK LOGIC
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/notifications.html';
