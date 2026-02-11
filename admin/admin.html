@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Panel</title>
+
+    <link rel="icon" href="https://ik.imagekit.io/kdtvm0r78/20251213_102309.png?updatedAt=1765601629184" type="image/jpeg">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/phosphor-icons"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 antialiased">
+
+    <div class="relative min-h-screen md:flex">
+        <aside id="sidebar" class="sidebar-mobile fixed inset-y-0 left-0 bg-white shadow-xl w-64 z-30 md:relative md:translate-x-0 flex flex-col transition-transform duration-300 ease-in-out">
+            <div class="p-6 flex items-center justify-between border-b">
+                <span class="text-2xl font-bold text-indigo-600">Admin Panel</span>
+                <button id="closeMobileMenuBtn" class="md:hidden text-gray-500 hover:text-gray-800"><i class="ph-x text-2xl"></i></button>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700 active" data-view="dashboard"><i class="ph-layout text-xl mr-3"></i><span>Dashboard</span></a>
+
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="rules-manager">
+                    <i class="ph-file-text text-xl mr-3"></i><span>Rules Manager</span>
+                </a>
+
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="tcf-page">
+                    <i class="ph-chart-pie-slice text-xl mr-3"></i><span>TCF UNIT (Dashboard)</span>
+                </a>
+
+                <a href="#" class="sidebar-item flex items-center justify-between p-3 rounded-lg text-gray-700" data-view="approvals">
+                    <div class="flex items-center"><i class="ph-check-square-offset text-xl mr-3"></i><span>Approvals</span></div>
+                    <span id="pending-count-badge" class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                </a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="all-members"><i class="ph-users-three text-xl mr-3"></i><span>All Members</span></a>
+
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry (SIP/Loan)</span></a>
+
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="tcf-entry"><i class="ph-plus-circle text-xl mr-3"></i><span>TCF Entry</span></a>
+
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="add-product"><i class="ph-plus-circle text-xl mr-3"></i><span>Add Product</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="all-products"><i class="ph-package text-xl mr-3"></i><span>All Products</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="notification-manager">
+                <i class="ph-bell text-xl mr-3"></i><span>Notification Manager</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="manage-cards"><i class="ph-cards text-xl mr-3"></i><span>Manage Cards</span></a>
+
+                <!-- UPDATED: Replaced Page Settings with App Buttons -->
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="page-settings">
+                    <i class="ph-squares-four text-xl mr-3"></i><span>App Buttons</span>
+                </a>
+
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="new-registration">
+                <i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t bg-gray-50">
+                <button id="logoutBtn" class="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600 transition-colors">
+                    <i class="ph-sign-out text-xl mr-3"></i><span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 overflow-y-auto h-screen">
+            <header class="mb-6">
+                <div class="flex justify-between items-center">
+                    <h1 id="view-title" class="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
+                    <div class="flex items-center gap-4">
+                        <button id="home-btn" class="hidden text-gray-600 hover:text-indigo-600 focus:outline-none" title="Go to Dashboard">
+                            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 21.5H15C16.1046 21.5 17 20.6046 17 19.5V14.5C17 13.9477 16.5523 13.5 16 13.5H8C7.44772 13.5 7 13.9477 7 14.5V19.5C7 20.6046 7.89543 21.5 9 21.5Z" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 10.5L11.4142 2.08579C11.7893 1.71071 12.4224 1.71071 12.7975 2.08579L21 10.5" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button id="dashboard-entry-btn" class="hidden md:flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition">
+                            <i class="ph-plus-circle text-xl"></i>
+                            <span class="font-semibold">New Entry</span>
+                        </button>
+                        <button id="mobileMenuBtn" class="md:hidden text-gray-600 focus:outline-none"><i class="ph-list text-3xl"></i></button>
+                    </div>
+                </div>
+                <div id="dashboard-header-stats" class="hidden mt-4"></div>
+            </header>
+
+            <div id="dashboard-view" class="view active"></div>
+            <div id="view-balance-view" class="view"></div>
+            <div id="rules-manager-view" class="view"></div>
+            <div id="approvals-view" class="view"></div>
+            <div id="all-members-view" class="view"></div>
+            <div id="data-entry-view" class="view"></div>
+            <div id="tcf-entry-view" class="view"></div> 
+            <div id="tcf-page-view" class="view"></div> 
+            <div id="data-explorer-view" class="view"></div>
+            <div id="add-product-view" class="view"></div>
+            <div id="all-products-view" class="view"></div>
+            <div id="notification-manager-view" class="view space-y-8">
+                <!-- Notification Content -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">System Status</h3>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-semibold text-gray-700">Notification System</p>
+                            <p class="text-sm text-gray-500">Enable or disable all automated and manual notifications.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notification-system-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Create Manual Notification</h3>
+                    <form id="manual-notification-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2 required-label">Notification Image</label>
+                            <div id="notification-image-preview" class="product-image-upload-preview">
+                                <span>Click to upload (16:9 ratio recommended)</span>
+                            </div>
+                            <input type="file" id="notification-image-file" class="hidden" accept="image/*" required>
+                        </div>
+                        <div>
+                            <label for="notification-title" class="block text-sm font-medium text-gray-700 mb-1 required-label">Title</label>
+                            <input type="text" id="notification-title" placeholder="e.g., Special Diwali Offer!" class="form-input w-full p-3 rounded-lg" required>
+                        </div>
+                        <div>
+                            <label for="notification-link" class="block text-sm font-medium text-gray-700 mb-1">Explore Link (Optional)</label>
+                            <input type="url" id="notification-link" placeholder="https://example.com/offer" class="form-input w-full p-3 rounded-lg">
+                        </div>
+                        <div class="text-right">
+                            <button type="submit" id="publish-notification-btn" class="btn-primary flex items-center justify-center text-white font-bold py-2 px-6 rounded-lg">
+                                <span>Publish Notification</span>
+                                <span class="loader hidden"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Active Manual Notifications</h3>
+                    <div id="manual-notifications-list" class="space-y-3">
+                        <p class="text-gray-500 text-center py-4">No manual notifications found.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Scheduled Automated Notifications</h3>
+                    <div id="automated-notifications-queue" class="space-y-3">
+                        <p class="text-gray-500 text-center py-4">No scheduled notifications found.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="manage-cards-view" class="view"></div>
+
+            <!-- This container will now host the Button Manager -->
+            <div id="page-settings-view" class="view"></div>
+
+            <div id="new-registration-view" class="view"></div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="reviewModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editMemberModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editProductModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editTransactionModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="penaltyHistoryModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editPenaltyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="burnMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="addPenaltyMoneyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="dashboardButtonModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editNotificationModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+    <div id="editRuleModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
+
+    <div id="confirmModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center scale-95">
+            <h3 id="confirmModalTitle" class="text-xl font-bold text-gray-800">Are you sure?</h3>
+            <p id="confirmModalMessage" class="text-gray-600 my-4">This action cannot be undone.</p>
+            <div class="flex justify-center gap-4 mt-6">
+                <button id="confirmCancelBtn" class="px-6 py-2 font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="confirmOkBtn" class="px-6 py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
+        <div class="modal-content relative bg-white p-2 rounded-lg shadow-xl max-w-3xl w-full">
+            <button id="closeImageViewer" class="absolute -top-4 -right-4 bg-white rounded-full h-8 w-8 flex items-center justify-center text-xl">&times;</button>
+            <img id="fullImageView" src="" class="max-h-[80vh] w-full object-contain">
+        </div>
+    </div>
+
+    <div id="registrationReviewModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
+         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800">Confirm Registration Details</h2>
+                <button id="editRegistrationBtn" class="text-sm font-semibold text-indigo-600 hover:underline">Edit</button>
+            </div>
+            <div id="registrationReviewContent" class="p-6 max-h-[70vh] overflow-y-auto">
+            </div>
+            <div class="p-4 bg-gray-50 border-t flex justify-end gap-4">
+                <button class="close-modal-btn px-6 py-2 text-gray-700 bg-gray-200 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="confirmSubmitRegistrationBtn" class="btn-primary flex items-center justify-center text-white font-bold py-2 px-6 rounded-lg">
+                    <span>Confirm & Submit</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 left-5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-transform transform -translate-x-[120%] z-50 shadow-lg"><p id="toastMessage"></p></div>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('Admin Panel ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('Admin Panel ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+
+   <script type="module" src="./core/app.js"></script>
+
+</body>
+</html>
