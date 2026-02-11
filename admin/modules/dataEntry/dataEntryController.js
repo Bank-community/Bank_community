@@ -237,26 +237,21 @@ async function handleDataEntrySubmission(e) {
     }
 }
 
-// === 🔥 NOTIFICATION TRIGGER (THE FIX) ===
+// === 🔥 NOTIFICATION TRIGGER (RELATIVE URL FIX) ===
 async function sendTransactionNotification(memberId, details) {
     try {
-        console.log(`[DEBUG] Checking Token for Member: ${memberId}`);
-
         // Step A: Get Member Token
         const snapshot = await get(ref(db, `members/${memberId}/notificationTokens`));
 
         if (!snapshot.exists()) {
-            alert("⚠️ Alert: Is member ke paas Notification Token nahi hai. App install/open karwayein.");
-            console.warn("Token not found for member");
+            console.warn("User has no token.");
             return;
         }
 
         const tokens = Object.keys(snapshot.val());
         const latestToken = tokens[tokens.length - 1]; 
 
-        console.log("[DEBUG] Token Found:", latestToken);
-
-        // Step B: Prepare Data
+        // Step B: Prepare Message
         let title = "TCF Alert";
         let body = "New transaction update.";
         const amountStr = "₹" + (details.amount || 0).toLocaleString('en-IN');
@@ -265,13 +260,11 @@ async function sendTransactionNotification(memberId, details) {
             case 'SIP': title = "✅ SIP Received"; body = `Received ${amountStr} for your monthly SIP.`; break;
             case 'Loan Taken': title = "💰 Loan Disbursed"; body = `Your loan of ${amountStr} is active now.`; break;
             case 'Loan Payment': title = "✅ Payment Received"; body = `Received ${amountStr} for loan repayment.`; break;
-            default: body = `Transaction of ${amountStr} recorded.`;
         }
 
-        // Step C: Call Vercel API (FULL URL)
-        console.log("[DEBUG] Sending request to https://bankcommunity.sbs/api/send-notification");
-
-        const response = await fetch('https://bankcommunity.sbs/api/send-notification', {
+        // Step C: Call Vercel API (Relative Path)
+        // 👇👇 YAHAN CHANGE KIYA HAI 👇👇
+        const response = await fetch('/api/send-notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -282,21 +275,18 @@ async function sendTransactionNotification(memberId, details) {
             })
         });
 
-        const result = await response.json();
-
         if (response.ok) {
-            console.log("[SUCCESS] Notification Sent!", result);
-            alert("✅ Notification Sent Successfully!");
+            console.log("Notification Sent!");
+            // alert hataya taaki user disturb na ho
         } else {
-            console.error("[ERROR] Server Response:", result);
-            alert("❌ Server Error: " + (result.error || "Unknown Error"));
+            console.error("Server Error");
         }
 
     } catch (error) {
-        console.error("[FATAL] Notification Failed:", error);
-        alert("❌ Network/Code Error: " + error.message);
+        console.error("Notification Failed:", error);
     }
 }
+
 
 function saveDefaults() {
     const activeBtn = document.querySelector('.category-btn.bg-green-100') 
