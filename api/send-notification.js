@@ -1,15 +1,12 @@
-// api/send-notification.js (CORS FIXED v2)
+// api/send-notification.js (FINAL & CORRECTED)
 const admin = require('firebase-admin');
 
-// 1. Firebase Init (Cache handled)
+// 1. Firebase Setup
 if (!admin.apps.length) {
   try {
-    // Vercel Environment Variable se Key lein
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      // Apna Database URL yahan confirm karein
       databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app"
     });
   } catch (error) {
@@ -18,18 +15,20 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req, res) {
-  // --- 🔥 CORS FIX (महत्वपूर्ण बदलाव) ---
-  // '*' ka matlab hai kisi bhi device se request aane do
+  // 🔥🔥🔥 YAHAN HAI WO CODE (Sabse upar) 🔥🔥🔥
+  
+  // 1. Browser ko permission do (CORS Allow)
   res.setHeader('Access-Control-Allow-Origin', '*'); 
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Preflight Check (Browser pehle ye check karta hai)
+  // 2. Agar browser sirf check karne aya hai (Preflight), to "Haan" bol do
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Sirf POST request allow karein
+  // --- Main Code Shuru ---
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -58,14 +57,12 @@ export default async function handler(req, res) {
       }
     };
 
-    // Firebase ko message bhejo
     const response = await admin.messaging().send(message);
-    console.log("Notification Sent:", response);
-    
+    console.log("Success:", response);
     return res.status(200).json({ success: true, id: response });
 
   } catch (error) {
     console.error('API Error:', error);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error.message });
   }
 }
