@@ -1,7 +1,6 @@
-// sw.js (FAIL-SAFE VERSION v30)
-const CACHE_NAME = 'bank-community-cache-v30-failsafe';
+// sw.js (DATA-ONLY FIX v31)
+const CACHE_NAME = 'bank-community-cache-v31-fixed';
 
-// Hum sirf wohi files cache karenge jo 100% hoti hain
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -10,26 +9,21 @@ const APP_SHELL_URLS = [
   '/manifest-user.json'
 ];
 
-// 1. Install Event (CRASH PROOF)
+// 1. Install
 self.addEventListener('install', event => {
-  // Turant active ho jao, wait mat karo
   self.skipWaiting();
-  
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      // Agar cache fail bhi ho jaye, to bhi SW install ho jayega (Error catch kar liya)
-      return cache.addAll(APP_SHELL_URLS).catch(err => {
-        console.warn("Cache warning (Ignored):", err);
-      });
+      return cache.addAll(APP_SHELL_URLS).catch(err => console.warn(err));
     })
   );
 });
 
-// 2. Activate Event (Claim Clients Immediately)
+// 2. Activate
 self.addEventListener('activate', event => {
   event.waitUntil(
     Promise.all([
-      self.clients.claim(), // Turant control le lo
+      self.clients.claim(),
       caches.keys().then(keys => Promise.all(
         keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
       ))
@@ -37,12 +31,11 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 3. Fetch Event
+// 3. Fetch
 self.addEventListener('fetch', event => {
   if (event.request.url.includes('/api/') || new URL(event.request.url).origin !== self.location.origin) {
     return;
   }
-  
   event.respondWith(
     fetch(event.request)
       .then(res => {
@@ -54,21 +47,34 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 4. PUSH NOTIFICATION (MAIN LOGIC)
+// 4. PUSH NOTIFICATION (UPDATED LOGIC)
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push Received.');
-  let data = {};
-  
+
+  let payload = {};
   if (event.data) {
-    try { data = event.data.json(); } catch (e) { data = { notification: { body: event.data.text() } }; }
+    try { 
+      payload = event.data.json(); 
+    } catch (e) { 
+      // Agar JSON nahi hai to text maan lo
+      payload = { data: { body: event.data.text() } }; 
+    }
   }
 
-  const title = (data.notification && data.notification.title) || 'Trust Community Fund';
+  // 🔥 IMPORTANT FIX: Data ab seedha 'data' object me hoga
+  // API se humne bhej 'data: { title: ... }'
+  const data = payload.data || payload; // Fallback
+
+  const title = data.title || 'Trust Community Fund';
   const options = {
-    body: (data.notification && data.notification.body) || 'New Notification',
-    icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg',
+    body: data.body || 'New Notification',
+    icon: data.icon || 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg',
     vibrate: [200, 100, 200],
-    data: { url: '/notifications.html' }
+    data: { url: data.url || '/notifications.html' },
+    // Actions button bhi add kar sakte hain
+    actions: [
+      { action: 'open', title: 'Check Now' }
+    ]
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -77,13 +83,17 @@ self.addEventListener('push', function(event) {
 // 5. CLICK LOGIC
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+
   const targetUrl = (event.notification.data && event.notification.data.url) || '/notifications.html';
+
   event.waitUntil(
     clients.matchAll({type: 'window', includeUncontrolled: true}).then(function(clientList) {
+      // Agar app khula hai to wahan focus karo
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url.includes(targetUrl) && 'focus' in client) return client.focus();
       }
+      // Agar app band hai to kholo
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );

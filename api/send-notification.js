@@ -1,7 +1,6 @@
-// api/send-notification.js (FINAL & CORRECTED)
+// api/send-notification.js (DATA-ONLY MODE)
 const admin = require('firebase-admin');
 
-// 1. Firebase Setup
 if (!admin.apps.length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -15,45 +14,31 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req, res) {
-  // 🔥🔥🔥 YAHAN HAI WO CODE (Sabse upar) 🔥🔥🔥
-  
-  // 1. Browser ko permission do (CORS Allow)
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*'); 
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // 2. Agar browser sirf check karne aya hai (Preflight), to "Haan" bol do
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // --- Main Code Shuru ---
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
     const { token, title, body, url } = req.body;
-
     if (!token) return res.status(400).json({ error: 'Missing Token' });
 
+    // 🔥 CHANGE: Hum 'notification' key nahi bhejenge.
+    // Sab kuch 'data' ke andar bhejenge taaki SW control le sake.
     const message = {
       token: token,
-      notification: {
-        title: title,
-        body: body
-      },
       data: {
+        title: title || 'Alert',
+        body: body || 'New update',
         url: url || '/notifications.html',
-        click_action: url || '/notifications.html'
+        icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg',
+        click_action: '/notifications.html'
       },
       android: {
-        priority: 'high',
-        notification: {
-          sound: 'default',
-          icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg'
-        }
+        priority: 'high'
       }
     };
 
