@@ -1,18 +1,37 @@
-// api/send-notification.js
+// api/send-notification.js (CORS ENABLED)
 const admin = require('firebase-admin');
 
-// Environment Variable se Key nikalo
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-
+// 1. Service Account Setup
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://bank-community-loan-default-rtdb.firebaseio.com" // Yahan apna DB URL check kar lena
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      // Apna database URL sahi se check kar lena
+      databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app"
+    });
+  } catch (error) {
+    console.error("Firebase Init Error:", error);
+  }
 }
 
 export default async function handler(req, res) {
-  // Sirf POST request allow karo
+  // 2. CORS HEADERS (Permission Code) - Localhost se baat karne ke liye zaroori hai
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*'); // '*' ka matlab kisi bhi device se allow karo
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Browser pehle OPTIONS request bhejta hai check karne ke liye
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  // 3. Sirf POST request allow karo
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -23,6 +42,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing Data' });
   }
 
+  // 4. Message Payload
   const message = {
     token: token,
     notification: {
@@ -38,7 +58,7 @@ export default async function handler(req, res) {
       notification: {
         sound: 'default',
         channelId: 'default',
-        icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg' // App Icon
+        icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg'
       }
     }
   };
