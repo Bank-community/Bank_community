@@ -223,40 +223,11 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
 
     const distribution = [];
     const memberName = paymentRecord.name;
-
-    // --- CHECK: SIP ZERO CONDITION ---
-    // Is the member using their own money?
-    // We assume if interest rate matches SIP_ZERO (.005 approx) or logic dictates
-    // Here we use a heuristic: If 100% of interest goes to Bank/Self, it's SIP Zero.
-    
-    // Logic: Calculate strict 0.5% vs 0.7% based on loan amount isn't possible here without loan context.
-    // Instead, we use the "SIP Zero" rule: 
-    // If outstanding loan <= SIP Balance, we assume this payment falls under SIP Zero rules.
-    
-    // Note: Since we need to know if *this specific payment* was SIP Zero, 
-    // we rely on the caller passing the correct state or we infer.
-    // For now, we apply the split based on the rule provided.
-
-    // Let's assume standard logic first, but if SIP Balance covers Loan, we switch mode.
-    // However, Profit Distribution usually happens *after* payment is recorded.
-    
-    // NEW LOGIC:
-    // If Interest Rate implies SIP Zero (we can't easily know rate from just amount), 
-    // We will stick to the User's defined split logic for the SYSTEM.
-    
-    // For this module, we will export a generic calculator that views can use.
     
     // -- STANDARD DISTRIBUTION (Default) --
     // 10% Self, 10% Guarantor, 80% Community
     
     let selfSharePct = 0.10;
-    let guarantorSharePct = 0.10;
-    let communitySharePct = 0.80;
-    let bankSharePct = 0.0;
-
-    // Check if this is a "SIP Zero" transaction
-    // (This requires the View to pass a flag 'isSipZeroMode', or we calculate it)
-    // For safety in this file, we assume Normal unless specified.
     
     const selfShare = totalInterest * selfSharePct;
     distribution.push({ 
@@ -264,9 +235,6 @@ export function calculateProfitDistribution(paymentRecord, allData, activeLoansD
         share: selfShare, 
         type: 'Self Return (10%)' 
     });
-
-    // Guarantor (Only if Normal)
-    // ... (Existing Guarantor Logic) ...
 
     return { distribution }; 
 }
@@ -330,8 +298,8 @@ export function getLoanEligibility(memberName, score, allData) {
         return { eligible: false, reason: `${Math.ceil(CONFIG.MEMBERSHIP.MIN_DAYS - daysActive)} days left` };
     }
 
-    // Determine Multiplier
-    const { LIMITS } = CONFIG;
+    // Determine Multiplier - FIXED BUG HERE
+    const LIMITS = CONFIG.LOAN_LIMITS; // Fixed: accessing LOAN_LIMITS correctly
     let multiplier = LIMITS.TIER1_MAX;
 
     if (score >= LIMITS.TIER3_SCORE) multiplier = LIMITS.TIER4_MAX; // 2.0x
