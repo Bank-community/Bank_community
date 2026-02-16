@@ -1,5 +1,5 @@
-// sw.js (DATA-ONLY FIX v31)
-const CACHE_NAME = 'bank-community-cache-v32-fixed';
+// sw.js (DATA-ONLY FIX v33)
+const CACHE_NAME = 'bank-community-cache-v33-fixed';
 
 const APP_SHELL_URLS = [
   '/',
