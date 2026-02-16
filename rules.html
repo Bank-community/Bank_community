@@ -3,227 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trust Community Fund - Rules & Videos</title>
+    <title>Trust Rules & Videos</title>
     <script src="https://unpkg.com/phosphor-icons"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --royal-blue: #0a192f;
-            --gold: #d4af37;
-            --gold-light: #f3e5ab;
-            --white: #ffffff;
-            --bg-gray: #f3f4f6;
+            --royal-blue: #051024;
+            --gold: #b88a44;
+            --gold-light: #f5e0b6;
+            --bg-gray: #f0f2f5;
         }
 
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--bg-gray);
-            margin: 0;
-            padding: 0;
-            padding-bottom: 40px;
+            margin: 0; padding: 0;
+            padding-bottom: 60px;
         }
 
-        /* --- HEADER SECTION --- */
-        .header-banner {
-            background: linear-gradient(to bottom, #050b14, #0a192f);
-            padding: 20px;
+        /* --- HEADER --- */
+        .header-box {
+            background: var(--royal-blue);
+            padding: 15px;
             text-align: center;
-            border-bottom: 4px solid var(--gold);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-bottom: 3px solid var(--gold);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             position: sticky;
             top: 0;
-            z-index: 50;
+            z-index: 100;
         }
-
-        .logo-area {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-
-        .logo-img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 2px solid var(--gold);
-        }
-
+        
         .header-title {
-            font-family: 'Cinzel', serif;
             color: var(--gold);
+            font-family: 'Cinzel', serif;
             font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
             margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
         }
 
-        /* --- NAVIGATION BAR --- */
+        /* --- NAVIGATION BAR (Left Rules / Right Videos) --- */
         .nav-bar {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* Space between Left and Right */
             align-items: center;
             padding: 15px 20px;
             background: white;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
         }
 
-        .back-btn {
-            background-color: #0044cc;
-            color: white;
+        .nav-btn {
             border: none;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        /* --- TOGGLE BUTTONS (Rules vs Videos) --- */
-        .toggle-container {
-            display: flex;
-            gap: 10px;
-        }
-
-        .pill-btn {
-            background-color: var(--royal-blue);
-            color: var(--gold);
-            border: 1px solid var(--gold);
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 13px;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        .pill-btn.active {
-            background-color: var(--gold);
+        /* RULES BUTTON (Left) */
+        #btn-rules {
+            background-color: white;
             color: var(--royal-blue);
-            box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+            border: 2px solid var(--royal-blue);
+        }
+        #btn-rules.active {
+            background-color: var(--royal-blue);
+            color: white;
         }
 
-        /* --- CONTENT GRIDS --- */
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            padding: 20px;
-            max-width: 1200px;
+        /* VIDEOS BUTTON (Right) */
+        #btn-videos {
+            background-color: white;
+            color: #c4302b; /* YouTube Red */
+            border: 2px solid #c4302b;
+        }
+        #btn-videos.active {
+            background-color: #c4302b;
+            color: white;
+        }
+
+        /* --- CONTENT AREA --- */
+        .content-container {
+            padding: 0 15px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
 
-        /* --- CARDS STYLE --- */
-        .card {
+        /* Rule Card Style */
+        .rule-card {
             background: white;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
             border: 1px solid #e5e7eb;
         }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        /* Rule Image */
-        .rule-image {
+        .rule-img {
             width: 100%;
             height: auto;
             display: block;
-            border-bottom: 1px solid #eee;
         }
-
-        .card-footer {
+        .rule-footer {
             padding: 12px;
             text-align: center;
+            font-weight: 600;
+            color: #333;
+            border-top: 1px solid #eee;
+        }
+
+        /* Video Card Style */
+        .video-card {
             background: white;
-        }
-
-        .card-title {
-            color: var(--royal-blue);
-            font-weight: 700;
-            font-size: 16px;
-            margin: 0;
-            font-family: 'Cinzel', serif;
-        }
-
-        /* Video Embed */
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
+            border-radius: 15px;
             overflow: hidden;
-            background: #000;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-
-        .video-container iframe {
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Ratio */
+            height: 0;
+            background: black;
+        }
+        .video-wrapper iframe {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             border: 0;
         }
+        .video-title {
+            padding: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 15px;
+        }
 
-        .loader-container {
+        /* Loader */
+        .status-msg {
             text-align: center;
             padding: 40px;
-            width: 100%;
             color: #666;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <header class="header-banner">
-        <div class="logo-area">
-            <img src="https://ik.imagekit.io/kdtvm0r78/20251213_102309.png?updatedAt=1765601629184" class="logo-img" alt="Logo">
-            <h1 class="header-title">Trust Rules</h1>
-        </div>
+    <header class="header-box">
+        <h1 class="header-title">Trust Rules</h1>
     </header>
 
     <div class="nav-bar">
-        <button class="back-btn" onclick="history.back()">
-            <i class="ph-arrow-left"></i> BACK
+        <button id="btn-rules" class="nav-btn active">
+            <i class="ph-file-text text-xl"></i> RULES
         </button>
+
+        <button id="btn-videos" class="nav-btn">
+            VIDEOS <i class="ph-youtube-logo text-xl"></i>
+        </button>
+    </div>
+
+    <div class="content-container">
         
-        <div class="toggle-container">
-            <button id="btn-show-rules" class="pill-btn active">
-                <i class="ph-file-text"></i> <span id="rules-count">0</span> Rules
-            </button>
-            <button id="btn-show-videos" class="pill-btn">
-                <i class="ph-youtube-logo"></i> <span id="videos-count">0</span> Videos
-            </button>
+        <div id="rules-section">
+            <div class="status-msg"><i class="ph-spinner ph-spin"></i> Loading Rules...</div>
         </div>
-    </div>
 
-    <div id="rules-section" class="content-grid">
-        <div class="loader-container">
-            <i class="ph-spinner ph-spin text-2xl"></i> Loading Rules...
+        <div id="videos-section" class="hidden">
+            <div class="status-msg"><i class="ph-spinner ph-spin"></i> Loading Videos...</div>
         </div>
-    </div>
 
-    <div id="videos-section" class="content-grid hidden">
-        <div class="loader-container">
-            <i class="ph-spinner ph-spin text-2xl"></i> Loading Videos...
-        </div>
     </div>
 
     <script type="module" src="rules.js"></script>
