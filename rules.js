@@ -1,18 +1,16 @@
 // rules.js
 
-// Firebase Config Import (Path check kar lena agar file alag folder me hai)
+// 1. Firebase Imports (Path wahi rakhein jo aapke admin.html me chalta hai)
 import { db } from './core/firebaseConfig.js'; 
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-// --- Elements ---
-const rulesContainer = document.getElementById('rules-container');
-const videosContainer = document.getElementById('videos-container');
-const btnRules = document.getElementById('show-rules-btn');
-const btnVideos = document.getElementById('show-videos-btn');
-const rulesBadge = document.getElementById('rules-badge');
-const videosBadge = document.getElementById('videos-badge');
+// 2. DOM Elements
+const btnRules = document.getElementById('btn-rules');
+const btnVideos = document.getElementById('btn-videos');
+const rulesSection = document.getElementById('rules-section');
+const videosSection = document.getElementById('videos-section');
 
-// --- Helper: Get YouTube ID from URL ---
+// --- HELPER: YouTube URL se ID nikalna ---
 function getYouTubeID(url) {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -20,86 +18,82 @@ function getYouTubeID(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// --- 1. FETCH RULES (Images) ---
+// --- 3. FETCH RULES (From admin/rules) ---
 const rulesRef = ref(db, 'admin/rules');
 onValue(rulesRef, (snapshot) => {
     const data = snapshot.val();
-    rulesContainer.innerHTML = ''; // Clear loader
+    rulesSection.innerHTML = ''; // Clear loader
 
     if (!data) {
-        rulesContainer.innerHTML = '<div class="loader-box">No rules found.</div>';
-        rulesBadge.textContent = '(0)';
+        rulesSection.innerHTML = '<div class="status-msg">No rules found.</div>';
         return;
     }
 
-    const rulesList = Object.values(data);
-    rulesBadge.textContent = `(${rulesList.length})`;
-
-    rulesList.forEach(rule => {
+    const list = Object.values(data);
+    list.forEach(rule => {
         const div = document.createElement('div');
-        div.className = 'cert-card';
+        div.className = 'rule-card';
         div.innerHTML = `
-            <img src="${rule.imageUrl}" alt="Rule" class="cert-image" loading="lazy">
-            <div class="cert-footer">
-                <h3 class="cert-title">${rule.title || 'Official Rule'}</h3>
-            </div>
+            <img src="${rule.imageUrl}" alt="Rule" class="rule-img" loading="lazy">
+            <div class="rule-footer">${rule.title || 'Rule'}</div>
         `;
-        rulesContainer.appendChild(div);
+        rulesSection.appendChild(div);
     });
 });
 
-// --- 2. FETCH VIDEOS (YouTube) ---
-// Note: Hum 'admin/videos' check kar rahe hain kyunki controller wahi save karta hai.
+// --- 4. FETCH VIDEOS (From admin/videos) ---
+// Screenshot ke hisab se data 'admin/videos' mein hai
 const videosRef = ref(db, 'admin/videos');
 onValue(videosRef, (snapshot) => {
     const data = snapshot.val();
-    videosContainer.innerHTML = ''; // Clear loader
+    videosSection.innerHTML = ''; // Clear loader
 
     if (!data) {
-        videosContainer.innerHTML = '<div class="loader-box">No videos found.<br><small>Add videos from Admin > Rules Manager</small></div>';
-        videosBadge.textContent = '(0)';
-        console.warn("No videos found at path: admin/videos");
+        videosSection.innerHTML = '<div class="status-msg">No videos found.</div>';
+        // Debugging ke liye console me print karega
+        console.log("Videos path checked: admin/videos (Data is empty or null)");
         return;
     }
 
-    const videosList = Object.values(data);
-    videosBadge.textContent = `(${videosList.length})`;
-
-    videosList.forEach(video => {
+    const list = Object.values(data);
+    list.forEach(video => {
         const videoId = getYouTubeID(video.url);
-        if (!videoId) return;
-
-        const div = document.createElement('div');
-        div.className = 'video-card';
-        div.innerHTML = `
-            <div class="video-wrapper">
-                <iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen referrerpolicy="no-referrer"></iframe>
-            </div>
-            <div class="video-info">
-                <div class="play-icon"><i class="ph-play-fill"></i></div>
-                <div class="video-text">
-                    <h3>${video.title || 'Tutorial Video'}</h3>
+        if(videoId) {
+            const div = document.createElement('div');
+            div.className = 'video-card';
+            div.innerHTML = `
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>
                 </div>
-            </div>
-        `;
-        videosContainer.appendChild(div);
+                <div class="video-title">${video.title || 'Video Tutorial'}</div>
+            `;
+            videosSection.appendChild(div);
+        }
     });
 }, (error) => {
+    // Agar permission error aaye to yahan dikhega
+    videosSection.innerHTML = `<div class="status-msg" style="color:red;">Error: ${error.message}</div>`;
     console.error("Firebase Error:", error);
-    videosContainer.innerHTML = `<div class="loader-box text-red-500">Error loading videos: ${error.message}</div>`;
 });
 
-// --- 3. TOGGLE TABS Logic ---
+// --- 5. BUTTON CLICK LOGIC (Toggle) ---
+
 btnRules.addEventListener('click', () => {
+    // Style update
     btnRules.classList.add('active');
     btnVideos.classList.remove('active');
-    rulesContainer.classList.remove('hidden');
-    videosContainer.classList.add('hidden');
+    
+    // View update
+    rulesSection.classList.remove('hidden');
+    videosSection.classList.add('hidden');
 });
 
 btnVideos.addEventListener('click', () => {
+    // Style update
     btnVideos.classList.add('active');
     btnRules.classList.remove('active');
-    videosContainer.classList.remove('hidden');
-    rulesContainer.classList.add('hidden');
+    
+    // View update
+    videosSection.classList.remove('hidden');
+    rulesSection.classList.add('hidden');
 });
