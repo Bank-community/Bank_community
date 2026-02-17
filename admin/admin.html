@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Panel</title>
-
+    
     <link rel="icon" href="https://ik.imagekit.io/kdtvm0r78/20251213_102309.png?updatedAt=1765601629184" type="image/jpeg">
     <link rel="apple-touch-icon" href="https://i.ibb.co/xSNPXDc8/1753150042002.jpg">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/phosphor-icons"></script>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-100 antialiased">
@@ -24,9 +24,13 @@
                 <span class="text-2xl font-bold text-indigo-600">Admin Panel</span>
                 <button id="closeMobileMenuBtn" class="md:hidden text-gray-500 hover:text-gray-800"><i class="ph-x text-2xl"></i></button>
             </div>
-
+            
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700 active" data-view="dashboard"><i class="ph-layout text-xl mr-3"></i><span>Dashboard</span></a>
+                
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="return-profit">
+                    <i class="ph-currency-inr text-xl mr-3"></i><span>Return Profit</span>
+                </a>
 
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="rules-manager">
                     <i class="ph-file-text text-xl mr-3"></i><span>Rules Manager</span>
@@ -35,25 +39,24 @@
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="tcf-page">
                     <i class="ph-chart-pie-slice text-xl mr-3"></i><span>TCF UNIT (Dashboard)</span>
                 </a>
-
+                
                 <a href="#" class="sidebar-item flex items-center justify-between p-3 rounded-lg text-gray-700" data-view="approvals">
                     <div class="flex items-center"><i class="ph-check-square-offset text-xl mr-3"></i><span>Approvals</span></div>
                     <span id="pending-count-badge" class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
                 </a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="all-members"><i class="ph-users-three text-xl mr-3"></i><span>All Members</span></a>
-
+                
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-entry"><i class="ph-note-pencil text-xl mr-3"></i><span>Data Entry (SIP/Loan)</span></a>
-
+                
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="tcf-entry"><i class="ph-plus-circle text-xl mr-3"></i><span>TCF Entry</span></a>
-
+                
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="data-explorer"><i class="ph-database text-xl mr-3"></i><span>Data Explorer</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="add-product"><i class="ph-plus-circle text-xl mr-3"></i><span>Add Product</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="all-products"><i class="ph-package text-xl mr-3"></i><span>All Products</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="notification-manager">
                 <i class="ph-bell text-xl mr-3"></i><span>Notification Manager</span></a>
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="manage-cards"><i class="ph-cards text-xl mr-3"></i><span>Manage Cards</span></a>
-
-                <!-- UPDATED: Replaced Page Settings with App Buttons -->
+                
                 <a href="#" class="sidebar-item flex items-center p-3 rounded-lg text-gray-700" data-view="page-settings">
                     <i class="ph-squares-four text-xl mr-3"></i><span>App Buttons</span>
                 </a>
@@ -62,7 +65,7 @@
                 <i class="ph-user-plus text-xl mr-3"></i><span>New Registration</span>
                 </a>
             </nav>
-
+            
             <div class="p-4 border-t bg-gray-50">
                 <button id="logoutBtn" class="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600 transition-colors">
                     <i class="ph-sign-out text-xl mr-3"></i><span>Logout</span>
@@ -87,9 +90,12 @@
                 </div>
                 <div id="dashboard-header-stats" class="hidden mt-4"></div>
             </header>
-
+            
             <div id="dashboard-view" class="view active"></div>
             <div id="view-balance-view" class="view"></div>
+            
+            <div id="return-profit-view" class="view"></div>
+
             <div id="rules-manager-view" class="view"></div>
             <div id="approvals-view" class="view"></div>
             <div id="all-members-view" class="view"></div>
@@ -100,7 +106,6 @@
             <div id="add-product-view" class="view"></div>
             <div id="all-products-view" class="view"></div>
             <div id="notification-manager-view" class="view space-y-8">
-                <!-- Notification Content -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">System Status</h3>
                     <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -148,7 +153,7 @@
                         <p class="text-gray-500 text-center py-4">No manual notifications found.</p>
                     </div>
                 </div>
-
+                
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Scheduled Automated Notifications</h3>
                     <div id="automated-notifications-queue" class="space-y-3">
@@ -158,15 +163,13 @@
             </div>
 
             <div id="manage-cards-view" class="view"></div>
-
-            <!-- This container will now host the Button Manager -->
+            
             <div id="page-settings-view" class="view"></div>
-
+            
             <div id="new-registration-view" class="view"></div>
         </main>
     </div>
 
-    <!-- Modals -->
     <div id="reviewModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editMemberModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
     <div id="editProductModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0"></div>
@@ -189,14 +192,14 @@
             </div>
         </div>
     </div>
-
+    
     <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
         <div class="modal-content relative bg-white p-2 rounded-lg shadow-xl max-w-3xl w-full">
             <button id="closeImageViewer" class="absolute -top-4 -right-4 bg-white rounded-full h-8 w-8 flex items-center justify-center text-xl">&times;</button>
             <img id="fullImageView" src="" class="max-h-[80vh] w-full object-contain">
         </div>
     </div>
-
+    
     <div id="registrationReviewModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4 opacity-0">
          <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg scale-95">
             <div class="p-4 border-b flex justify-between items-center">
@@ -214,9 +217,9 @@
             </div>
         </div>
     </div>
-
+    
     <div id="toast" class="fixed bottom-5 left-5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-transform transform -translate-x-[120%] z-50 shadow-lg"><p id="toastMessage"></p></div>
-
+    
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -228,7 +231,7 @@
         });
       }
     </script>
-
+    
    <script type="module" src="./core/app.js"></script>
 
 </body>

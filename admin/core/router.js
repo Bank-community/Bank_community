@@ -6,6 +6,9 @@ const routes = {
     'dashboard': { path: '../modules/dashboard/dashboardController.js' },
     'view-balance': { path: '../modules/balance/balanceController.js' },
 
+    // NEW: Return Profit Module
+    'return-profit': { path: '../modules/returnProfit/returnProfitController.js' },
+
     // TCF Dashboard
     'tcf-page': { path: '../modules/tcf/tcfController.js' },
 
@@ -21,10 +24,7 @@ const routes = {
     'all-products': { path: '../modules/products/productListController.js' },
     'notification-manager': { path: '../modules/notifications/notificationController.js' },
     'manage-cards': { path: '../modules/cards/cardsController.js' },
-
-    // --- UPDATED: REPLACED PAGE SETTINGS WITH BUTTON MANAGER ---
     'page-settings': { path: '../modules/settings/buttonController.js' },
-
     'new-registration': { path: '../modules/registration/registrationController.js' }
 };
 
@@ -61,7 +61,6 @@ export async function navigateTo(viewId) {
     }
 
     // 4. Update Header Title
-    // Custom Title logic for the new manager
     let displayTitle = viewId ? viewId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Dashboard';
     if(viewId === 'page-settings') displayTitle = "App Button Manager";
 

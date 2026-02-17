@@ -1,6 +1,6 @@
 // modules/explorer/explorerController.js
 import { db } from '../../core/firebaseConfig.js';
-import { ref, onValue, remove, update, get, query, orderByChild, equalTo, off } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+import { ref, onValue, remove, update, get, query, orderByChild, equalTo, off, increment } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 import { showToast, showConfirmation, openModal, closeModal, setButtonState } from '../../shared/uiComponents.js';
 
 let transactionsListener = null;
@@ -20,7 +20,7 @@ export async function init() {
     const container = document.getElementById('data-explorer-view');
 
     // 1. Filter Change Listeners
-    container.addEventListener('input', (e) => { // Changed to 'input' for better date handling
+    container.addEventListener('input', (e) => { 
         if (e.target.id === 'explorer-name-filter') {
             currentFilters.name = e.target.value;
             renderTable();
@@ -30,7 +30,7 @@ export async function init() {
             renderTable();
         }
         if (e.target.id === 'explorer-date-filter') {
-            currentFilters.date = e.target.value; // Valid date or empty string
+            currentFilters.date = e.target.value; 
             renderTable();
         }
     });
@@ -59,12 +59,11 @@ export async function init() {
         if (e.target.closest('.edit-transaction-btn')) {
             const btn = e.target.closest('.edit-transaction-btn');
             const txId = btn.dataset.txId;
-            // Pass full data to modal
             renderEditTransactionModal(txId, allTransactions[txId], allMembersData);
         }
     });
 
-    // 3. Edit Modal Form Submit Listener (Delegated to Body)
+    // 3. Edit Modal Form Submit Listener
     document.body.addEventListener('submit', async (e) => {
         if (e.target.id === 'edit-transaction-form') {
             e.preventDefault();
@@ -76,7 +75,6 @@ export async function init() {
 export async function render() {
     const container = document.getElementById('data-explorer-view');
 
-    // Skeleton UI with Reset Button
     container.innerHTML = `
         <div class="bg-white p-4 rounded-xl shadow-md mb-6">
             <div class="flex justify-between items-center mb-4">
@@ -154,35 +152,28 @@ function renderTable() {
     const container = document.getElementById('explorer-results-container');
     if (!container) return;
 
-    // --- FIX 1: Reset Container Classes for Scrolling ---
     container.className = "bg-white rounded-xl shadow-md overflow-x-auto";
-    // ----------------------------------------------------
 
     let filtered = Object.values(allTransactions);
 
-    // Apply Filters
     if (currentFilters.name !== 'all') {
         filtered = filtered.filter(tx => tx.memberId === currentFilters.name);
     }
     if (currentFilters.type !== 'all') {
         filtered = filtered.filter(tx => tx.type === currentFilters.type);
     }
-    // Date Filter Logic (Empty string check handles "Show All")
     if (currentFilters.date && currentFilters.date !== '') {
         filtered = filtered.filter(tx => tx.date && new Date(tx.date).toISOString().split('T')[0] === currentFilters.date);
     }
 
-    // Sort by Date (Newest First)
     filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
     if (filtered.length === 0) {
-        // Restore centering just for the "No Found" message
         container.className = "bg-white rounded-xl shadow-md overflow-x-auto min-h-[200px] flex flex-col items-center justify-center";
         container.innerHTML = `<p class="text-center text-gray-500 p-8">No matching transactions found.</p>`;
         return;
     }
 
-    // --- FIX 2: Added whitespace-nowrap to cells and min-w-max to table ---
     const tableHTML = `
         <table class="w-full text-sm text-left text-gray-500 min-w-max">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10">
@@ -236,21 +227,14 @@ function renderTable() {
     container.innerHTML = tableHTML;
 }
 
-// --- Action Logic ---
-
-// FIX 3: Defined Locally to avoid Import Error
 function renderEditTransactionModal(txId, transaction, allMembersData) {
     const modal = document.getElementById('editTransactionModal');
-    if (!modal) {
-        console.error("Edit Modal container not found!");
-        return;
-    }
+    if (!modal) return;
     const date = new Date(transaction.date).toISOString().split('T')[0];
     const memberName = allMembersData[transaction.memberId]?.fullName || 'Unknown';
 
     let fieldsHTML = '';
 
-    // Dynamic Fields based on Type
     if (transaction.type === 'Loan Taken' && transaction.loanType === 'Recharge') {
         const rechargeDetails = transaction.rechargeDetails || {};
         fieldsHTML = `
@@ -376,6 +360,22 @@ async function handleDeleteTransaction(txId) {
             const updates = {};
             updates[`/transactions/${txId}`] = null;
 
+            // --- 1. Reverse Member Account Balance ---
+            // If Money was Added (SIP/Extra), now SUBTRACT.
+            if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
+                updates[`/members/${tx.memberId}/accountBalance`] = increment(-tx.amount);
+            }
+            // If Money was Deducted (Withdraw/Loan Taken), now ADD.
+            else if (tx.type === 'SIP Withdrawal' || tx.type === 'Loan Taken' || tx.type === 'Extra Withdraw') {
+                updates[`/members/${tx.memberId}/accountBalance`] = increment(tx.amount);
+            }
+            // Loan Payment: Only reverse the Principal amount (Subtract)
+            else if (tx.type === 'Loan Payment') {
+                updates[`/members/${tx.memberId}/accountBalance`] = increment(-tx.principalPaid);
+            }
+            // ------------------------------------------
+
+            // 2. Reverse Loan Status if Needed
             if (tx.type === 'Loan Taken' && tx.linkedLoanId) {
                 updates[`/activeLoans/${tx.linkedLoanId}`] = null;
             }

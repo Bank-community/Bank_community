@@ -3,15 +3,17 @@ import { db } from '../../core/firebaseConfig.js';
 import { ref, push, update, serverTimestamp, increment, onValue, off, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 import { setButtonState, showToast } from '../../shared/uiComponents.js';
 import { uploadImage } from '../../shared/utils.js';
+import { calculateLoanDetails } from './loanCalculator.js'; 
 
 import { 
     getEntryFormHTML, 
     toggleFields, 
     toggleLoanFields, 
     updateBalanceDisplay, 
-    fillProductDetails,
-    updateDropdownOptions,
-    highlightCategoryBtn
+    fillProductDetails, 
+    updateDropdownOptions, 
+    highlightCategoryBtn,
+    updateTenureOptions 
 } from './dataEntryView.js';
 
 let dataEntryListener = null;
@@ -22,6 +24,8 @@ let activeLoansData = {};
 export async function init() {
     console.log("Data Entry Module Initialized");
     const container = document.getElementById('data-entry-view');
+
+    // === EVENT LISTENERS ===
 
     container.addEventListener('click', (e) => {
         const btn = e.target.closest('.category-btn');
@@ -44,12 +48,36 @@ export async function init() {
         }
     });
 
+    // NEW: Live Amount Change Listener (Updates Duration Dropdown)
+    container.addEventListener('input', (e) => {
+        if (e.target.id === 'loan-amount') {
+            const amount = parseFloat(e.target.value);
+            updateTenureOptions(amount); // Update dropdown based on 25k limit
+            handleLoanPreviewUpdate();   // Recalculate if duration is already selected
+        }
+    });
+
     container.addEventListener('change', async (e) => {
         const target = e.target;
+
+        // UI Toggles
         if (target.id === 'entry-type') toggleFields(target.value);
-        if (target.id === 'entry-name') updateBalanceDisplay(target.value, allMembersData, activeLoansData);
         if (target.id === 'loan-type') toggleLoanFields(target.value);
+
+        // Member Selection & Balance Update
+        if (target.id === 'entry-name') {
+            updateBalanceDisplay(target.value, allMembersData, activeLoansData);
+        }
+
+        // Product & Loan Specifics
         if (target.id === 'emi-product-select') fillProductDetails(target.value, allProductsData);
+
+        // NEW: Duration Change Listener (Updates EMI Preview)
+        if (target.id === 'loan-duration') {
+            handleLoanPreviewUpdate();
+        }
+
+        // Loan Payment Auto-fill
         if (target.id === 'active-loan-select') {
             const loanId = target.value;
             if (loanId && activeLoansData[loanId]) {
@@ -57,6 +85,33 @@ export async function init() {
             }
         }
     });
+}
+
+// === HELPER: LIVE LOAN PREVIEW ===
+function handleLoanPreviewUpdate() {
+    const amount = document.getElementById('loan-amount')?.value;
+    const duration = document.getElementById('loan-duration')?.value;
+
+    // UI Elements
+    const previewBox = document.getElementById('loan-emi-preview');
+    const rateEl = document.getElementById('preview-interest-rate');
+    const emiEl = document.getElementById('preview-emi-amount');
+    const totalEl = document.getElementById('preview-total-amount');
+
+    if (!amount || !duration) {
+        if(previewBox) previewBox.classList.add('hidden');
+        return;
+    }
+
+    // Calculate Loan Details
+    const result = calculateLoanDetails(amount, duration);
+
+    if (result && previewBox) {
+        previewBox.classList.remove('hidden');
+        rateEl.innerHTML = result.rateDescription;
+        emiEl.textContent = `₹ ${result.monthlyEmi.toLocaleString('en-IN')}`;
+        totalEl.textContent = `₹ ${result.totalRepayment.toLocaleString('en-IN')}`;
+    }
 }
 
 export async function render() {
@@ -74,9 +129,12 @@ export async function render() {
 
         container.innerHTML = getEntryFormHTML(allMembersData, allProductsData);
 
+        // Restore Defaults logic
         const d = JSON.parse(localStorage.getItem('dataEntryDefaults'));
         if(d && d.category) {
+            // Convert 'tcf' to 'sip' for backward compatibility if needed
             if (d.category === 'tcf') d.category = 'sip'; 
+
             const btn = container.querySelector(`.category-btn[data-category="${d.category}"]`);
             if(btn) btn.click();
             setTimeout(() => applyDefaults(), 50);
@@ -149,6 +207,7 @@ async function handleDataEntrySubmission(e) {
         let newSip = currentSip;
         let transactionDetails = {};
 
+        // === 1. SIP DEPOSIT ===
         if (type === 'sip') {
             const amount = parseFloat(document.getElementById('sip-payment').value);
             if(!amount) throw new Error("Enter SIP Amount");
@@ -157,6 +216,7 @@ async function handleDataEntrySubmission(e) {
             updates[`/members/${memberId}/accountBalance`] = newSip;
             transactionDetails = { type: 'SIP', amount };
         } 
+        // === 2. SIP WITHDRAWAL ===
         else if (type === 'sip_withdrawal') {
             const amount = parseFloat(document.getElementById('sip-withdrawal-amount').value);
             updates[`/transactions/${txId}`] = { ...baseTx, type: 'SIP Withdrawal', amount };
@@ -164,46 +224,106 @@ async function handleDataEntrySubmission(e) {
             updates[`/members/${memberId}/accountBalance`] = newSip;
             transactionDetails = { type: 'SIP Withdrawal', amount };
         }
+        // === 3. LOAN TAKEN (DEDUCT FROM SIP) ===
         else if (type === 'loan') {
             const loanType = document.getElementById('loan-type').value;
+            const loanId = push(ref(db, 'activeLoans')).key;
             let amount = 0;
-            let details = {};
-            if(loanType === 'Product on EMI') {
+            let loanMeta = {}; 
+
+            if (loanType === 'Personal Loan') {
+                // Calculator Logic
+                amount = parseFloat(document.getElementById('loan-amount').value);
+                const duration = document.getElementById('loan-duration').value;
+
+                if (!amount || !duration) throw new Error("Amount and Duration are required.");
+
+                const calc = calculateLoanDetails(amount, duration);
+
+                loanMeta = {
+                    tenureMonths: parseInt(duration),
+                    monthlyEmi: calc.monthlyEmi,
+                    totalRepaymentExpected: calc.totalRepayment,
+                    interestDetails: calc.details, 
+                    loanCategory: calc.details.category 
+                };
+
+            } else if (loanType === 'Product on EMI') {
                 amount = parseFloat(document.getElementById('emi-product-price').value);
-                details.productDetails = { name: document.getElementById('emi-product-name').value, monthlyEmi: parseFloat(document.getElementById('emi-monthly-payment').value) };
+                loanMeta.productDetails = { 
+                    name: document.getElementById('emi-product-name').value, 
+                    monthlyEmi: parseFloat(document.getElementById('emi-monthly-payment').value) 
+                };
             } else if (loanType === 'Recharge') {
                 amount = parseFloat(document.getElementById('loan-amount').value);
-                details.rechargeDetails = { operator: document.getElementById('recharge-operator').value, rechargeEmi: parseFloat(document.getElementById('recharge-emi').value) };
+                loanMeta.rechargeDetails = { 
+                    operator: document.getElementById('recharge-operator').value, 
+                    rechargeEmi: parseFloat(document.getElementById('recharge-emi').value) 
+                };
             } else {
                 amount = parseFloat(document.getElementById('loan-amount').value);
             }
-            const loanId = push(ref(db, 'activeLoans')).key;
-            updates[`/transactions/${txId}`] = { ...baseTx, type: 'Loan Taken', amount, loanType, linkedLoanId: loanId, ...details };
-            updates[`/activeLoans/${loanId}`] = { loanId, memberId, memberName, loanType, originalAmount: amount, outstandingAmount: amount, loanDate: new Date(date).toISOString(), status: 'Active', timestamp, ...details };
+
+            // Save Transaction
+            updates[`/transactions/${txId}`] = { ...baseTx, type: 'Loan Taken', amount, loanType, linkedLoanId: loanId, ...loanMeta };
+
+            // Save Active Loan
+            updates[`/activeLoans/${loanId}`] = { 
+                loanId, 
+                memberId, 
+                memberName, 
+                loanType, 
+                originalAmount: amount, 
+                outstandingAmount: amount, 
+                loanDate: new Date(date).toISOString(), 
+                status: 'Active', 
+                timestamp, 
+                ...loanMeta 
+            };
+
             updates['/lifetimeStats/totalLoanIssued'] = increment(amount);
+
+            // === [IMPORTANT UPDATE] ===
+            // Deduct Loan Amount from SIP Balance (Logic: Net Balance)
+            // Example: 30,500 - 50,000 = -19,500
             newSip -= amount;
             updates[`/members/${memberId}/accountBalance`] = newSip;
+            // ==========================
+
             transactionDetails = { type: 'Loan Taken', amount, loanType };
         }
+        // === 4. LOAN PAYMENT (ADD BACK TO SIP) ===
         else if (type === 'loan_payment') {
             const principal = parseFloat(document.getElementById('loan-payment-amount').value) || 0;
             const interest = parseFloat(document.getElementById('interest-amount').value) || 0;
             const loanId = document.getElementById('active-loan-select').value;
+
             updates[`/transactions/${txId}`] = { ...baseTx, type: 'Loan Payment', principalPaid: principal, interestPaid: interest, paidForLoanId: loanId };
+
             const currentLoan = activeLoansData[loanId];
             if(currentLoan) {
-                const newOut = currentLoan.outstandingAmount - principal;
-                updates[`/activeLoans/${loanId}/outstandingAmount`] = newOut;
-                if(newOut <= 0) updates[`/activeLoans/${loanId}/status`] = 'Paid';
+                const newOut = parseFloat(currentLoan.outstandingAmount) - principal;
+                if (newOut <= 0.9) { 
+                    updates[`/activeLoans/${loanId}`] = null; // Close Loan
+                } else {
+                    updates[`/activeLoans/${loanId}/outstandingAmount`] = newOut;
+                }
             }
+
+            // === [IMPORTANT UPDATE] ===
+            // Add Principal Paid BACK to SIP Balance
+            // Example: -19,500 + 5000 = -14,500
             newSip += principal;
             updates[`/members/${memberId}/accountBalance`] = newSip;
+            // ==========================
+
             if(interest > 0) {
                 const penaltyId = push(ref(db, 'penaltyWallet/incomes')).key;
                 updates[`/penaltyWallet/incomes/${penaltyId}`] = { amount: interest * 0.10, from: memberName, reason: "10% of Return", timestamp: serverTimestamp() };
             }
             transactionDetails = { type: 'Loan Payment', amount: principal + interest };
         }
+        // === 5. EXTRAS ===
         else if (type === 'extra_payment') {
             const amount = parseFloat(document.getElementById('extra-balance-amount').value);
             updates[`/transactions/${txId}`] = { ...baseTx, type: 'Extra Payment', amount };
@@ -220,14 +340,12 @@ async function handleDataEntrySubmission(e) {
             updates[`/penaltyWallet/incomes/${pid}`] = { amount: penalty, from: memberName, reason: "Penalty", timestamp, originalTxId: txId };
         }
 
-        // 1. SAVE TO DB
         await update(ref(db), updates);
-
-        // 2. SEND NOTIFICATION (With Alerts for Debugging)
         await sendTransactionNotification(memberId, transactionDetails);
 
-        showToast("Transaction Saved & Notification Sent!");
+        showToast("Transaction Saved Successfully!");
         document.getElementById('data-entry-form').reset();
+        if(document.getElementById('loan-emi-preview')) document.getElementById('loan-emi-preview').classList.add('hidden');
 
     } catch (err) {
         console.error(err);
@@ -237,21 +355,14 @@ async function handleDataEntrySubmission(e) {
     }
 }
 
-// === 🔥 NOTIFICATION TRIGGER (RELATIVE URL FIX) ===
 async function sendTransactionNotification(memberId, details) {
     try {
-        // Step A: Get Member Token
         const snapshot = await get(ref(db, `members/${memberId}/notificationTokens`));
-
-        if (!snapshot.exists()) {
-            console.warn("User has no token.");
-            return;
-        }
+        if (!snapshot.exists()) return;
 
         const tokens = Object.keys(snapshot.val());
         const latestToken = tokens[tokens.length - 1]; 
 
-        // Step B: Prepare Message
         let title = "TCF Alert";
         let body = "New transaction update.";
         const amountStr = "₹" + (details.amount || 0).toLocaleString('en-IN');
@@ -262,31 +373,15 @@ async function sendTransactionNotification(memberId, details) {
             case 'Loan Payment': title = "✅ Payment Received"; body = `Received ${amountStr} for loan repayment.`; break;
         }
 
-        // Step C: Call Vercel API (Relative Path)
-        // 👇👇 YAHAN CHANGE KIYA HAI 👇👇
-        const response = await fetch('/api/send-notification', {
+        await fetch('/api/send-notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                token: latestToken,
-                title: title,
-                body: body,
-                url: '/notifications.html' 
-            })
+            body: JSON.stringify({ token: latestToken, title, body, url: '/notifications.html' })
         });
-
-        if (response.ok) {
-            console.log("Notification Sent!");
-            // alert hataya taaki user disturb na ho
-        } else {
-            console.error("Server Error");
-        }
-
     } catch (error) {
         console.error("Notification Failed:", error);
     }
 }
-
 
 function saveDefaults() {
     const activeBtn = document.querySelector('.category-btn.bg-green-100') 
