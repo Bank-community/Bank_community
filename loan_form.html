@@ -278,7 +278,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
-  <script>
+<script>
     async function checkAuthAndInitialize() {
         try {
             const response = await fetch('/api/config.js');
@@ -308,6 +308,8 @@
         function updateUI() {
             const cat = loanCategory.value;
             const amt = parseFloat(amountInp.value) || 0;
+            
+            // Product Input visibility
             if(cat === 'product') {
                 productSec.classList.remove('hidden');
                 productInp.required = true;
@@ -315,36 +317,51 @@
                 productSec.classList.add('hidden');
                 productInp.required = false;
             }
+            
+            // Limit message
             document.getElementById('limit-msg').classList.toggle('hidden', amt <= 50000);
+            
             durationSelect.innerHTML = '';
             if(amt === 0) {
                 durationSelect.innerHTML = '<option>Enter amount first...</option>';
                 return;
             }
+
             let opts = [];
+
+            // --- UPDATED LOGIC STARTS HERE ---
             if(cat === 'personal') {
-                if(amt < 15000) {
-                    opts = [
-                        {val: '1-1.0-0', txt: '1 Month (1% Interest)'},
-                        {val: '2-1.5-0', txt: '2 Months (1.5% Interest)'},
-                        {val: '3-1.66-0', txt: '3 Months (1.66% Interest)'}
-                    ];
-                } else if(amt < 30000) {
-                    opts = [
-                        {val: '1-1.0-0', txt: '1 Month (1% Interest)'},
-                        {val: '2-1.5-0', txt: '2 Months (1.5% Interest)'},
-                        {val: '3-1.66-0', txt: '3 Months (1.66% Interest)'},
-                        {val: '4-1.66-0', txt: '4 Months (1.66% Interest)'},
-                        {val: '5-1.66-0', txt: '5 Months (1.66% Interest)'}
-                    ];
+                if(amt < 25000) {
+                    // Less than 25,000 Logic
+                    
+                    // 1 Month (1% Total)
+                    opts.push({val: '1-1.0-0', txt: '1 Month (1% Total Interest)'});
+                    
+                    // 2 Months (3% Total -> 1.5% per month)
+                    opts.push({val: '2-1.5-0', txt: '2 Months (3% Total Interest)'});
+                    
+                    // 3 Months (5% Total -> ~1.66% per month)
+                    opts.push({val: '3-1.666666667-0', txt: '3 Months (5% Total Interest)'});
+
+                    // 4 to 12 Months (1% per month EMI System)
+                    for(let m = 4; m <= 12; m++) {
+                        opts.push({val: `${m}-1.0-0`, txt: `${m} Months (1% Monthly Interest)`});
+                    }
+
                 } else {
+                    // 25,000 or More Logic
+                    // 6, 9, 12 Months only at 0.7%
                     opts = [
-                        {val: '6-0.66-0.5', txt: '6 Months (0.66% Int + 0.5% Fee)'},
-                        {val: '9-0.66-0.5', txt: '9 Months (0.66% Int + 0.5% Fee)'},
-                        {val: '12-0.66-0.5', txt: '12 Months (0.66% Int + 0.5% Fee)'}
+                        {val: '6-0.7-0', txt: '6 Months (0.7% Monthly Interest)'},
+                        {val: '9-0.7-0', txt: '9 Months (0.7% Monthly Interest)'},
+                        {val: '12-0.7-0', txt: '12 Months (0.7% Monthly Interest)'}
                     ];
                 }
-            } else {
+            } 
+            // --- UPDATED LOGIC ENDS HERE ---
+            
+            else {
+                // Product Loan Logic (Existing logic kept as requested)
                 if(amt >= 30000) {
                     opts = [
                         {val: '6-0.5-100', txt: '6 Months (0.5% Int + ₹100 Fee)'},
@@ -362,6 +379,7 @@
                     ];
                 }
             }
+
             opts.forEach(o => {
                 const el = document.createElement('option');
                 el.value = o.val;
@@ -398,8 +416,10 @@
             const amt = parseFloat(amountInp.value);
             const [months, intRate, feeRaw] = durationSelect.value.split('-').map(Number);
             let fee = 0;
+            // Fee calculation logic
             if(loanCategory.value === 'personal' && amt >= 30000) fee = amt * (feeRaw/100);
             else if(loanCategory.value === 'product' || (amt >= 30000 && loanCategory.value === 'product')) fee = feeRaw;
+            
             const monthlyInt = amt * (intRate/100);
             const totalPay = amt + (monthlyInt * months);
             const emi = Math.ceil(totalPay / months);
@@ -411,7 +431,7 @@
             document.getElementById('displayName').innerText = member.fullName;
             document.getElementById('displayMobile').innerText = member.mobileNumber || 'N/A';
             document.getElementById('displayAmount').innerText = amt.toFixed(2);
-            document.getElementById('displayRate').innerText = `${intRate}% Monthly for ${months} Months`;
+            document.getElementById('displayRate').innerText = `${intRate.toFixed(2)}% Monthly for ${months} Months`;
             document.getElementById('displayEMI').innerText = emi.toFixed(2);
             document.getElementById('displayTotal').innerText = totalPay.toFixed(2);
             document.getElementById('repaymentDate').innerText = endD.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
@@ -528,7 +548,8 @@
     }
 
     checkAuthAndInitialize();
-  </script>
+</script>
+
 </body>
 </html>
 
