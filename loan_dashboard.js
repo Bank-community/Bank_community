@@ -173,7 +173,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi,
     const loanId = `card-${loan.loanId}`;
     
     const footerText = (tenureMonths > 3) 
-        ? '⚠️ PAY EVERY MONTH 1 TO 10 OTHERWISE 1% PENALTY' 
+        ? '⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY' 
         : 'Standard terms apply.';
 
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
@@ -229,7 +229,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
     const loanId = `card-${loan.loanId}`;
 
     const footerText = (tenureMonths > 3) 
-        ? '⚠️ PAY EVERY MONTH 1 TO 10 OTHERWISE 1% PENALTY' 
+        ? '⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY' 
         : 'Standard terms apply. Pay on time.';
 
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
