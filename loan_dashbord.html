@@ -141,16 +141,26 @@
         
         /* === UNIVERSAL CARD ELEMENTS === */
         
-        /* Top Row */
-        .pc-top { display: flex; justify-content: space-between; align-items: flex-start; z-index: 2; position: relative; padding-left: 60px; /* Space for circle */ }
+        /* Top Row - Title Left, Download Middle/Adjusted */
+        .pc-top { 
+            display: flex; justify-content: space-between; align-items: flex-start; 
+            z-index: 2; position: relative; 
+            padding-right: 60px; /* Space for the Right Circle */
+            padding-left: 5px; /* Slight left adjust */
+        }
         .pc-bank { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; font-weight: 700; opacity: 0.9; }
         .pc-download {
             cursor: pointer; background: rgba(255,255,255,0.25); border-radius: 50%; width: 32px; height: 32px; 
             display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);
+            /* Positioning logic handled by flex in top row usually, but can be adjusted */
         }
 
-        /* Middle Row - LEFT ALIGNED */
-        .pc-middle { margin-top: 15px; position: relative; z-index: 2; text-align: left; padding-left: 60px; }
+        /* Middle Row - LEFT ALIGNED (Using Space vacated by Circle) */
+        .pc-middle { 
+            margin-top: 15px; position: relative; z-index: 2; text-align: left; 
+            padding-right: 70px; /* Ensure text doesn't hit the right circle */
+            padding-left: 5px;   /* Clean left alignment */
+        }
         .pc-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0; line-height: 1.1; }
         .pc-date { font-size: 10px; letter-spacing: 1px; display: block; margin-bottom: 4px; }
         .pc-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; margin-top: 2px; }
@@ -171,21 +181,42 @@
             z-index: 2;
         }
 
-        /* Days/Months Circle (Left Side for ALL cards) */
-        .pc-days-circle {
-            position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
-            width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
+        /* === DAYS/MONTHS CIRCLE (MOVED TO RIGHT) === */
+        .pc-days-circle, .gold-badge {
+            position: absolute; 
+            right: 20px; /* Moved to Right */
+            left: auto;  /* Unset Left */
+            top: 50%; transform: translateY(-50%);
+            width: 55px; height: 55px; border-radius: 50%; 
+            border: 2px solid rgba(255,255,255,0.5);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(4px); z-index: 5;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        .card-premium .pc-days-circle {
+        
+        /* Specific Styles for Premium Badge */
+        .gold-badge {
             background: var(--gold-plate);
             border-color: #fff;
             color: #3e2702;
+            right: 20px; top: 20px; /* Top Right for Gold Badge usually looks better, but keeping consistent center-right if preferred. Let's keep it center right for uniformity */
+            transform: translateY(0); /* Reset transform if we want custom top position */
+            top: 25px; /* Position it nicely at top right or middle right. User said "Right side". Let's put it aligned with Title area */
         }
-        .day-num { font-size: 16px; font-weight: 900; line-height: 1; }
-        .day-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+        
+        /* Consistency: Let's center-right align all badges */
+        .pc-days-circle, .gold-badge {
+            top: 40%; /* Approx alignment with Title */
+            transform: translateY(0);
+        }
+
+        .card-premium .gold-badge {
+            background: var(--gold-plate);
+            border: 2px solid #fff;
+        }
+
+        .day-num, .gb-num { font-size: 16px; font-weight: 900; line-height: 1; }
+        .day-label, .gb-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
         
         /* Progress Bar for Premium */
         .premium-progress {
