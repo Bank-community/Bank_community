@@ -1,6 +1,6 @@
 // loan_dashboard.js
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v3'; // Version bumped
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v4'; // Version bumped
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
@@ -139,17 +139,26 @@ function updateUI(loans) {
         // === CARD SELECTION LOGIC ===
         let cardHTML = '';
         
-        if (l.loanType === 'Personal Loan') {
+        // 1. Specific Cards
+        if (l.loanType === '10 Days Credit') {
+            cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
+        }
+        else if (l.loanType === 'Recharge') {
+            cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
+        }
+        // 2. Personal Loan Logic (High vs Small)
+        else if (l.loanType === 'Personal Loan' || amount >= 25000) {
             if (amount >= 25000) {
-                // LUXURY CARD (Blue/Gold)
+                // LUXURY CARD (Blue/Gold) - HIGH VALUE
                 cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             } else {
-                // PLATINUM CARD (White/Blue) - New for Small Loans
+                // PLATINUM CARD (White/Blue) - SMALL VALUE
                 cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             }
-        } else {
-            // STANDARD CARDS (10 Days, Recharge, etc.)
-            cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
+        }
+        // 3. Fallback (Default to Small Loan style)
+        else {
+            cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
         }
         
         const el = document.createElement('div');
@@ -158,13 +167,12 @@ function updateUI(loans) {
     });
 }
 
-// --- 1. LUXURY CARD (Blue >= 25k) ---
+// --- 1. LUXURY CARD (High Value >= 25k) ---
 function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
     const loanId = `card-${loan.loanId}`;
     
-    // EMI Logic: Show ONLY if tenure > 3 months
     const showEmi = tenureMonths > 3;
     const rate = loan.interestDetails?.rate ? (loan.interestDetails.rate * 100).toFixed(1) : '0.7';
     const totalDays = tenureMonths * 30; 
@@ -173,9 +181,9 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     <div class="premium-card-wrapper card-premium" id="${loanId}">
         <div class="pc-texture"></div>
         
-        <div class="gold-badge">
-            <span class="gb-num">${tenureMonths || '-'}</span>
-            <span class="gb-label">MTHS</span>
+        <div class="pc-days-circle" style="background:var(--gold-plate); border-color:#fff; color:#3e2702;">
+            <span class="day-num">${tenureMonths || 12}</span>
+            <span class="day-label">MTHS</span>
         </div>
 
         <div class="pc-top">
@@ -187,8 +195,10 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 
         <div class="pc-middle">
             <div class="pc-date">${dateStr}</div>
-            <h1 class="pc-title gold-text">${loan.loanType}</h1>
-            <div class="premium-progress">
+            <h1 class="pc-title gold-text">PERSONAL LOAN</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#D4AF37;">HIGH VALUE</div>
+            
+            <div class="premium-progress" style="margin-top:8px;">
                 DAY ${daysActive} OF ${totalDays || '365'}
             </div>
         </div>
@@ -210,13 +220,12 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     </div>`;
 }
 
-// --- 2. PLATINUM CARD (White < 25k) ---
+// --- 2. PLATINUM CARD (Small Value < 25k) ---
 function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
     const loanId = `card-${loan.loanId}`;
 
-    // EMI Logic: Show ONLY if tenure > 3 months
     const showEmi = tenureMonths > 3;
 
     return `
@@ -237,8 +246,8 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
 
         <div class="pc-middle">
             <span class="pc-date">${dateStr}</span>
-            <h1 class="pc-title">SMALL LOAN</h1>
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">PERSONAL</div>
+            <h1 class="pc-title">PERSONAL LOAN</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">SMALL VALUE</div>
         </div>
 
         <div class="pc-bottom">
@@ -298,14 +307,14 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
             </div>
         </div>
 
-        <div class="pc-middle" style="text-align:right;">
+        <div class="pc-middle">
             <span class="pc-date" style="color:inherit; opacity:0.8;">${dateStr}</span>
             <h1 class="pc-title" style="font-size:18px;">${title}</h1>
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
         </div>
 
         <div class="pc-bottom">
-            <div class="pc-profile-group" style="margin-left:60px;">
+            <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" crossorigin="anonymous" style="border-color:#fff;">
                 <div class="pc-name">${loan.memberName}</div>
             </div>
@@ -394,8 +403,6 @@ state.els.btnCreate.onclick = () => {
     };
     
     let html = '';
-    // Manual generator only supports Standard Cards (10 days/Recharge)
-    // But if someone manually enters 50k for 10 days credit, it shows Gold (Standard) as per logic
     let providerInfo = (typeKey === 'recharge') ? state.els.provSelect.value : '';
     html = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
     
