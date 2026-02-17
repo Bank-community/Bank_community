@@ -1,6 +1,6 @@
 // loan_dashboard.js
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v7'; 
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v8'; 
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
@@ -139,14 +139,14 @@ function updateUI(loans) {
         else if (l.loanType === 'Personal Loan' || amount >= 25000) {
             if (amount >= 25000) {
                 // LUXURY CARD (High Value)
-                cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+                cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount, l);
             } else {
                 // PLATINUM CARD (Small Value)
-                cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+                cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount, l);
             }
         }
         else {
-            cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+            cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount, l);
         }
         
         const el = document.createElement('div');
@@ -155,20 +155,33 @@ function updateUI(loans) {
     });
 }
 
+// === HELPER: Format Rate ===
+function getFormattedRate(loan) {
+    if (loan.interestDetails && loan.interestDetails.rate) {
+        // Convert 0.015 to 1.5
+        const percent = parseFloat(loan.interestDetails.rate) * 100;
+        // Remove trailing zeros (e.g. 1.50 -> 1.5)
+        return `{${parseFloat(percent.toFixed(2))}%}`; 
+    }
+    return ''; // Return empty if no rate found
+}
+
 // --- 1. LUXURY CARD (High Value) ---
-function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi, loanData) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
     const loanId = `card-${loan.loanId}`;
     
-    // Logic: If tenure > 3 months, show Penalty text
     const footerText = (tenureMonths > 3) 
         ? '⚠️ PAY EVERY MONTH 1 TO 10 OTHERWISE 1% PENALTY' 
         : 'Standard terms apply.';
 
-    // Show EMI only if explicitly available or long tenure
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
-    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
+    
+    // Get Rate string e.g., "{0.7%}" or "{1.5%}"
+    const rateStr = getFormattedRate(loanData);
+    
+    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')} <span style="color:#D4AF37; font-weight:800;">${rateStr}</span>` : '';
 
     return `
     <div class="premium-card-wrapper card-premium" id="${loanId}">
@@ -210,7 +223,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 }
 
 // --- 2. PLATINUM CARD (Small Value) ---
-function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi, loanData) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
     const loanId = `card-${loan.loanId}`;
@@ -220,7 +233,12 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         : 'Standard terms apply. Pay on time.';
 
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
-    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
+    
+    // Get Rate string
+    const rateStr = getFormattedRate(loanData);
+    
+    // Updated EMI Display with Rate
+    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')} <span style="color:#2563eb; font-weight:800;">${rateStr}</span>` : '';
 
     return `
     <div class="premium-card-wrapper card-platinum" id="${loanId}">
@@ -301,7 +319,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
             </div>
         </div>
 
-        <div class="pc-middle">
+        <div class="pc-middle" style="padding-left: 70px;">
             <span class="pc-date" style="color:inherit; opacity:0.8;">${dateStr}</span>
             <h1 class="pc-title" style="font-size:18px;">${title}</h1>
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
