@@ -115,12 +115,6 @@
         .card-platinum .pc-texture {
              background: radial-gradient(circle at 80% 20%, rgba(0, 35, 102, 0.05) 0%, transparent 20%);
         }
-        .card-platinum .pc-days-circle {
-            border-color: var(--primary-blue);
-            background: rgba(255, 255, 255, 0.8);
-            color: var(--primary-blue);
-        }
-        .card-platinum .day-num { font-weight: 900; }
         .card-platinum .pc-bank { color: var(--primary-blue); opacity: 0.8; }
         .card-platinum .pc-title { color: var(--primary-blue); text-shadow: none; }
         .card-platinum .pc-date { color: #6b7280; font-weight: 600; }
@@ -141,26 +135,16 @@
         
         /* === UNIVERSAL CARD ELEMENTS === */
         
-        /* Top Row - Title Left, Download Middle/Adjusted */
-        .pc-top { 
-            display: flex; justify-content: space-between; align-items: flex-start; 
-            z-index: 2; position: relative; 
-            padding-right: 60px; /* Space for the Right Circle */
-            padding-left: 5px; /* Slight left adjust */
-        }
+        /* Layout Grid */
+        .pc-top { display: flex; justify-content: space-between; align-items: flex-start; z-index: 2; position: relative; padding: 0 5px; }
         .pc-bank { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; font-weight: 700; opacity: 0.9; }
         .pc-download {
             cursor: pointer; background: rgba(255,255,255,0.25); border-radius: 50%; width: 32px; height: 32px; 
             display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);
-            /* Positioning logic handled by flex in top row usually, but can be adjusted */
         }
 
-        /* Middle Row - LEFT ALIGNED (Using Space vacated by Circle) */
-        .pc-middle { 
-            margin-top: 15px; position: relative; z-index: 2; text-align: left; 
-            padding-right: 70px; /* Ensure text doesn't hit the right circle */
-            padding-left: 5px;   /* Clean left alignment */
-        }
+        /* Middle Row */
+        .pc-middle { margin-top: 15px; position: relative; z-index: 2; text-align: left; padding: 0 5px; }
         .pc-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0; line-height: 1.1; }
         .pc-date { font-size: 10px; letter-spacing: 1px; display: block; margin-bottom: 4px; }
         .pc-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; margin-top: 2px; }
@@ -171,9 +155,17 @@
         .pc-pic { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .pc-name { font-size: 14px; font-weight: 700; margin-left: 12px; text-transform: capitalize; }
         
-        .pc-amount-group { text-align: right; }
-        .pc-emi-label { font-size: 10px; display: block; opacity: 0.9; margin-bottom: 2px; }
-        .pc-amount { font-size: 26px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1; }
+        /* Amount & EMI */
+        .pc-amount-group { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .pc-emi-label { 
+            font-size: 10px; opacity: 0.9; font-weight: 600;
+            margin-bottom: 0px; 
+            letter-spacing: 0.5px;
+        }
+        .pc-amount { 
+            font-size: 26px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1; 
+            margin-top: 2px; /* Pull closer to EMI */
+        }
 
         .pc-footer { 
             position: absolute; bottom: 0; left: 0; width: 100%; 
@@ -181,56 +173,38 @@
             z-index: 2;
         }
 
-        /* === DAYS/MONTHS CIRCLE (MOVED TO RIGHT) === */
-        .pc-days-circle, .gold-badge {
-            position: absolute; 
-            right: 20px; /* Moved to Right */
-            left: auto;  /* Unset Left */
-            top: 50%; transform: translateY(-50%);
+        /* === BADGES (Universal Styles) === */
+        /* These classes will be applied via JS to swap sides */
+        .badge-left {
+            position: absolute; left: 20px; top: 50%; transform: translateY(-50%); z-index: 5;
+        }
+        .badge-right {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%); z-index: 5;
+        }
+
+        .pc-badge-circle {
             width: 55px; height: 55px; border-radius: 50%; 
             border: 2px solid rgba(255,255,255,0.5);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(4px); z-index: 5;
+            text-align: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(4px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         
-        /* Specific Styles for Premium Badge */
-        .gold-badge {
+        /* Style variations for badges */
+        .card-premium .pc-badge-circle {
             background: var(--gold-plate);
             border-color: #fff;
             color: #3e2702;
-            right: 20px; top: 20px; /* Top Right for Gold Badge usually looks better, but keeping consistent center-right if preferred. Let's keep it center right for uniformity */
-            transform: translateY(0); /* Reset transform if we want custom top position */
-            top: 25px; /* Position it nicely at top right or middle right. User said "Right side". Let's put it aligned with Title area */
         }
+        .card-platinum .pc-badge-circle {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .day-num { font-size: 15px; font-weight: 900; line-height: 1; }
+        .day-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
         
-        /* Consistency: Let's center-right align all badges */
-        .pc-days-circle, .gold-badge {
-            top: 40%; /* Approx alignment with Title */
-            transform: translateY(0);
-        }
-
-        .card-premium .gold-badge {
-            background: var(--gold-plate);
-            border: 2px solid #fff;
-        }
-
-        .day-num, .gb-num { font-size: 16px; font-weight: 900; line-height: 1; }
-        .day-label, .gb-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
-        
-        /* Progress Bar for Premium */
-        .premium-progress {
-            margin-top: 5px;
-            font-family: 'Manrope', sans-serif;
-            font-size: 10px;
-            color: #D4AF37;
-            background: rgba(0,0,0,0.3);
-            padding: 4px 10px;
-            border-radius: 20px;
-            display: inline-block;
-            border: 1px solid rgba(212, 175, 55, 0.3);
-        }
-
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
         .modal-overlay.visible { visibility: visible; opacity: 1; }
