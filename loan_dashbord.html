@@ -78,7 +78,7 @@
             padding: 20px; display: flex; flex-direction: column; transition: transform 0.2s;
         }
 
-        /* 1. LUXURY THEME (Blue/Gold for >= 25k) */
+        /* 1. LUXURY THEME (Blue/Gold) */
         .card-premium {
             background: radial-gradient(circle at 50% 30%, #002a7a 0%, #001233 100%);
             border: 1px solid #a6862d;
@@ -105,8 +105,15 @@
             padding: 8px 0;
         }
         .card-premium .pc-date { color: #D4AF37; opacity: 0.9; }
+        
+        /* New Time Tag for Premium */
+        .card-premium .loan-tenure-tag {
+            color: #D4AF37;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            border-bottom: 1px dashed rgba(212, 175, 55, 0.5);
+        }
 
-        /* 2. PLATINUM THEME (White for Small Loans < 25k) */
+        /* 2. PLATINUM THEME (White) */
         .card-platinum {
             background: var(--platinum-gradient);
             color: var(--primary-blue);
@@ -128,14 +135,20 @@
             font-weight: 700;
         }
         .card-platinum .pc-emi-label { color: #4b5563; font-weight: 600; }
+        .card-platinum .loan-tenure-tag {
+            color: var(--primary-blue);
+            background: rgba(0, 35, 102, 0.05);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
 
-        /* 3. STANDARD THEMES (Recharge, 10 Days) */
+        /* 3. STANDARD THEMES */
         .card-10days { background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C); color: #2a2a2a; }
         .card-recharge { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); color: white; }
         
-        /* === UNIVERSAL CARD ELEMENTS === */
+        /* === CARD LAYOUT === */
         
-        /* Layout Grid */
+        /* Top Row */
         .pc-top { display: flex; justify-content: space-between; align-items: flex-start; z-index: 2; position: relative; padding: 0 5px; }
         .pc-bank { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; font-weight: 700; opacity: 0.9; }
         .pc-download {
@@ -143,14 +156,22 @@
             display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);
         }
 
-        /* Middle Row */
-        .pc-middle { margin-top: 15px; position: relative; z-index: 2; text-align: left; padding: 0 5px; }
-        .pc-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0; line-height: 1.1; }
+        /* Middle Row - Full Left Alignment */
+        .pc-middle { 
+            margin-top: 10px; position: relative; z-index: 2; text-align: left; 
+            padding-left: 0px; /* Pushed fully left */
+            padding-right: 60px; /* Avoid Right Circle */
+        }
+        .pc-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0; line-height: 1; }
         .pc-date { font-size: 10px; letter-spacing: 1px; display: block; margin-bottom: 4px; }
         .pc-subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; margin-top: 2px; }
 
         /* Bottom Row */
-        .pc-bottom { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; position: relative; padding-bottom: 30px; }
+        .pc-bottom { 
+            margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; 
+            z-index: 2; position: relative; 
+            padding-bottom: 40px; /* Increased bottom padding to push Amount/EMI DOWN */
+        }
         .pc-profile-group { display: flex; align-items: center; }
         .pc-pic { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .pc-name { font-size: 14px; font-weight: 700; margin-left: 12px; text-transform: capitalize; }
@@ -158,13 +179,25 @@
         /* Amount & EMI */
         .pc-amount-group { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
         .pc-emi-label { 
-            font-size: 10px; opacity: 0.9; font-weight: 600;
-            margin-bottom: 0px; 
+            font-size: 11px; opacity: 1; font-weight: 700;
+            margin-bottom: 2px; 
             letter-spacing: 0.5px;
         }
         .pc-amount { 
-            font-size: 26px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1; 
-            margin-top: 2px; /* Pull closer to EMI */
+            font-size: 28px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1; 
+        }
+
+        /* New Center Month Tag */
+        .loan-tenure-tag {
+            position: absolute;
+            bottom: 30px; /* Just above footer */
+            left: 0; width: 100%;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 4;
         }
 
         .pc-footer { 
@@ -173,37 +206,19 @@
             z-index: 2;
         }
 
-        /* === BADGES (Universal Styles) === */
-        /* These classes will be applied via JS to swap sides */
-        .badge-left {
-            position: absolute; left: 20px; top: 50%; transform: translateY(-50%); z-index: 5;
-        }
-        .badge-right {
-            position: absolute; right: 20px; top: 50%; transform: translateY(-50%); z-index: 5;
-        }
-
-        .pc-badge-circle {
-            width: 55px; height: 55px; border-radius: 50%; 
-            border: 2px solid rgba(255,255,255,0.5);
+        /* Days Circle (RIGHT SIDE & SMALLER) */
+        .pc-days-circle {
+            position: absolute; right: 15px; top: 45%; transform: translateY(-50%);
+            width: 45px; height: 45px; /* Smaller Size */
+            border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(4px);
+            text-align: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(4px); z-index: 5;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
+        .card-premium .pc-days-circle { background: var(--gold-plate); border-color: #fff; color: #3e2702; }
         
-        /* Style variations for badges */
-        .card-premium .pc-badge-circle {
-            background: var(--gold-plate);
-            border-color: #fff;
-            color: #3e2702;
-        }
-        .card-platinum .pc-badge-circle {
-            background: rgba(255, 255, 255, 0.8);
-            border-color: var(--primary-blue);
-            color: var(--primary-blue);
-        }
-
-        .day-num { font-size: 15px; font-weight: 900; line-height: 1; }
-        .day-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+        .day-num { font-size: 14px; font-weight: 900; line-height: 1; }
+        .day-label { font-size: 6px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
         
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
