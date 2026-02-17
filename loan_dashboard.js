@@ -1,6 +1,6 @@
 // loan_dashboard.js
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v5'; // Version bumped
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v6'; 
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
@@ -27,18 +27,15 @@ const state = {
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         loadFromCache();
-
         const res = await fetch(PRELOAD_CONFIG_URL);
         if(res.ok) {
             const config = await res.json();
             if (!firebase.apps.length) firebase.initializeApp(config);
         }
-        
         firebase.auth().onAuthStateChanged(u => {
             if(u) loadData(); 
             else window.location.href = `/login.html?redirect=${window.location.pathname}`;
         });
-
     } catch(e) { console.error("Init Error:", e); }
 });
 
@@ -77,34 +74,29 @@ async function loadData() {
             db.ref('activeLoans').once('value'),
             db.ref('members').once('value')
         ]);
-
         const membersVal = mSnap.val() || {};
         const loansVal = lSnap.val() || {};
-
         state.members = membersVal;
         localStorage.setItem(CACHE_KEY, JSON.stringify({
             members: membersVal,
             rawLoans: loansVal,
             timestamp: Date.now()
         }));
-
         state.activeLoans = processLoanData(loansVal, state.members);
         updateUI(state.activeLoans);
         fillDropdown();
         state.els.loader.classList.add('hidden');
-
     } catch(e) {
         console.error(e);
         state.els.loader.classList.add('hidden');
     }
 }
 
-// --- UI UPDATES (MAIN LOGIC) ---
+// --- UI UPDATES ---
 function updateUI(loans) {
     const total = loans.reduce((s,l) => s + parseFloat(l.outstandingAmount || 0), 0);
     state.els.count.textContent = loans.length;
     state.els.amt.textContent = `₹${total.toLocaleString('en-IN')}`;
-
     state.els.container.innerHTML = '';
     
     if(!loans.length) {
@@ -125,7 +117,6 @@ function updateUI(loans) {
         let emiAmount = null;
         let tenureMonths = l.tenureMonths || 0; 
         
-        // Extract Details
         if (l.rechargeDetails) {
             providerOrProduct = l.rechargeDetails.operator;
             emiAmount = l.rechargeDetails.rechargeEmi;
@@ -136,27 +127,24 @@ function updateUI(loans) {
         }
         if (l.monthlyEmi) emiAmount = l.monthlyEmi;
 
-        // === CARD SELECTION LOGIC ===
+        // === CARD SELECTION ===
         let cardHTML = '';
         
-        // 1. Specific Cards
         if (l.loanType === '10 Days Credit') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
         else if (l.loanType === 'Recharge') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
-        // 2. Personal Loan Logic (High vs Small)
         else if (l.loanType === 'Personal Loan' || amount >= 25000) {
             if (amount >= 25000) {
-                // LUXURY CARD (Blue/Gold) - HIGH VALUE
+                // LUXURY CARD (High Value)
                 cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             } else {
-                // PLATINUM CARD (White/Blue) - SMALL VALUE
+                // PLATINUM CARD (Small Value)
                 cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             }
         }
-        // 3. Fallback (Default to Small Loan style)
         else {
             cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
         }
@@ -168,22 +156,28 @@ function updateUI(loans) {
 }
 
 // --- 1. LUXURY CARD (High Value >= 25k) ---
+// Structure: Month Left, Days Right, EMI Top-Right
 function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
     const loanId = `card-${loan.loanId}`;
     
-    const showEmi = tenureMonths > 3;
+    // EMI Show Logic: Tenure > 3 OR explicit EMI exists
+    const showEmi = (tenureMonths > 3) || (emi && emi > 0);
     const rate = loan.interestDetails?.rate ? (loan.interestDetails.rate * 100).toFixed(1) : '0.7';
-    const totalDays = tenureMonths * 30; 
 
     return `
     <div class="premium-card-wrapper card-premium" id="${loanId}">
         <div class="pc-texture"></div>
         
-        <div class="gold-badge">
-            <span class="gb-num">${tenureMonths || 12}</span>
-            <span class="gb-label">MTHS</span>
+        <div class="pc-badge-circle badge-left">
+            <span class="day-num">${tenureMonths || 12}</span>
+            <span class="day-label">MTHS</span>
+        </div>
+
+        <div class="pc-badge-circle badge-right">
+            <span class="day-num">${daysActive}</span>
+            <span class="day-label">DAYS</span>
         </div>
 
         <div class="pc-top">
@@ -193,14 +187,10 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
             </div>
         </div>
 
-        <div class="pc-middle">
+        <div class="pc-middle" style="padding-left: 70px; padding-right: 70px;">
             <div class="pc-date">${dateStr}</div>
             <h1 class="pc-title gold-text">PERSONAL LOAN</h1>
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#D4AF37;">HIGH VALUE</div>
-            
-            <div class="premium-progress" style="margin-top:8px;">
-                DAY ${daysActive} OF ${totalDays || '365'}
-            </div>
         </div>
 
         <div class="pc-bottom">
@@ -221,20 +211,26 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 }
 
 // --- 2. PLATINUM CARD (Small Value < 25k) ---
+// Structure: Days Left, Month Right, EMI Top-Right
 function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
     const loanId = `card-${loan.loanId}`;
 
-    const showEmi = tenureMonths > 3;
+    const showEmi = (tenureMonths > 3) || (emi && emi > 0);
 
     return `
     <div class="premium-card-wrapper card-platinum" id="${loanId}">
         <div class="pc-texture"></div>
         
-        <div class="pc-days-circle">
+        <div class="pc-badge-circle badge-left">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
+        </div>
+
+        <div class="pc-badge-circle badge-right">
+            <span class="day-num">${tenureMonths || 6}</span>
+            <span class="day-label">MTHS</span>
         </div>
 
         <div class="pc-top">
@@ -244,7 +240,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
             </div>
         </div>
 
-        <div class="pc-middle">
+        <div class="pc-middle" style="padding-left: 70px; padding-right: 70px;">
             <span class="pc-date">${dateStr}</span>
             <h1 class="pc-title">PERSONAL LOAN</h1>
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">SMALL VALUE</div>
@@ -268,6 +264,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
 }
 
 // --- 3. STANDARD CARD (10 Days / Recharge) ---
+// Structure: Days Left, No Right Badge, EMI Top-Right
 function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, emi) {
     const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
     const pic = loan.pic || defaultPic;
@@ -295,7 +292,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
     <div class="premium-card-wrapper ${cardClass}" id="${loanId}">
         <div class="pc-texture"></div>
         
-        <div class="pc-days-circle">
+        <div class="pc-badge-circle badge-left">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -307,7 +304,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
             </div>
         </div>
 
-        <div class="pc-middle">
+        <div class="pc-middle" style="padding-left: 70px;">
             <span class="pc-date" style="color:inherit; opacity:0.8;">${dateStr}</span>
             <h1 class="pc-title" style="font-size:18px;">${title}</h1>
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
