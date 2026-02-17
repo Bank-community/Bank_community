@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#002366">
-    <title>Trust Rules - Community Gallery</title>
+    <title>Trust Rules & Videos</title>
     
-    <!-- Royal Theme CSS -->
     <link rel="stylesheet" href="user-style.css">
     <script src="https://unpkg.com/feather-icons"></script>
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -28,7 +26,7 @@
             border-radius: 20px;
             padding: 5px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             position: relative;
             overflow: hidden;
         }
@@ -69,25 +67,67 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* --- Tab Switcher Styles (NEW) --- */
+        .tab-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent-gold);
+            border-radius: 50px;
+            padding: 4px;
+            margin: 0 10px 20px 10px;
+            position: relative;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            background: transparent;
+            color: #ccc;
+            font-weight: 600;
+            font-size: 0.95em;
+            cursor: pointer;
+            border-radius: 40px;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-gold);
+            color: #002366;
+            box-shadow: 0 4px 10px rgba(212, 175, 55, 0.4);
+            font-weight: 800;
+        }
+
         .nav-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding: 0 10px;
         }
 
+        /* --- Grid & Cards --- */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             padding: 5px;
+            display: none; /* Hidden by default, JS controls this */
+        }
+        
+        .gallery-grid.active-view {
+            display: grid; /* Only show when active */
+        }
+
+        /* Video Grid - Single column on mobile looks better for videos, or 2 if compact */
+        .video-grid {
+            grid-template-columns: 1fr; /* 1 Video per row on mobile */
         }
 
         @media (min-width: 768px) {
-            .gallery-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
+            .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+            .video-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         .rule-card {
@@ -109,23 +149,30 @@
 
         .rule-img-wrapper {
             width: 100%;
-            padding-top: 141.4%;
+            padding-top: 141.4%; /* Aspect Ratio for documents */
             position: relative;
             background: #f8f9fa;
         }
 
-        .rule-img {
+        /* Video specific wrapper - 16:9 Aspect Ratio */
+        .video-wrapper {
+            width: 100%;
+            padding-top: 56.25%; 
+            position: relative;
+            background: #000;
+        }
+
+        .rule-img, .video-iframe {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
         }
-
-        .rule-card:hover .rule-img {
-            transform: scale(1.05);
+        
+        .video-iframe {
+            border: none;
         }
 
         .rule-info {
@@ -165,7 +212,7 @@
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- LIGHTBOX STYLES --- */
+        /* --- LIGHTBOX STYLES (UNCHANGED) --- */
         #ruleModal .modal-content {
             background: transparent;
             box-shadow: none;
@@ -178,7 +225,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: visible !important; /* Allow close button to be outside if needed */
+            overflow: visible !important;
         }
 
         #ruleFullImg {
@@ -194,7 +241,6 @@
             z-index: 2001;
         }
         
-        /* RESTORING THE GLOBAL RED CIRCLE CLOSE BUTTON */
         .close {
             position: absolute;
             top: 20px;
@@ -203,13 +249,11 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            z-index: 2010 !important; /* Highest Z-Index */
+            z-index: 2010 !important;
             line-height: 1;
-            
-            /* The Style from user-style.css */
             width: 38px;
             height: 38px;
-            background-color: var(--danger-color); /* #dc3545 */
+            background-color: var(--danger-color);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -222,7 +266,6 @@
         .close:active { transform: scale(0.9); }
         .close:hover { background-color: #c82333; }
 
-        /* Navigation Arrows */
         .modal-nav-btn {
             position: fixed;
             top: 50%;
@@ -282,25 +325,38 @@
             <a href="index.html" class="civil-button btn-glossy" style="padding: 8px 18px; border-radius: 50px; font-size: 0.9em;">
                 <i data-feather="arrow-left" style="width: 18px; height: 18px;"></i> Back
             </a>
-            <span id="ruleCountBadge" style="background: var(--primary-color); color: var(--accent-gold); padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85em; border: 1px solid var(--accent-gold);">
+            <span id="contentCountBadge" style="background: var(--primary-color); color: var(--accent-gold); padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85em; border: 1px solid var(--accent-gold);">
                 Loading...
             </span>
         </div>
 
-        <div id="rulesContainer" class="gallery-grid animate-on-scroll">
+        <div class="tab-container animate-on-scroll">
+            <button id="btnRules" class="tab-btn active" onclick="switchTab('rules')">
+                <i data-feather="file-text" style="width:16px; height:16px; vertical-align:text-bottom;"></i> Rules
+            </button>
+            <button id="btnVideos" class="tab-btn" onclick="switchTab('videos')">
+                <i data-feather="youtube" style="width:16px; height:16px; vertical-align:text-bottom;"></i> Video Rules
+            </button>
+        </div>
+
+        <div id="rulesContainer" class="gallery-grid active-view animate-on-scroll">
             <div class="status-container">
                 <div class="loader-spinner"></div>
                 <p>Loading Rules...</p>
             </div>
         </div>
 
+        <div id="videosContainer" class="gallery-grid video-grid animate-on-scroll">
+            <div class="status-container">
+                <div class="loader-spinner"></div>
+                <p>Loading Videos...</p>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Lightbox Modal -->
     <div id="ruleModal" class="modal">
-        <!-- GLOBAL RED CIRCLE CLOSE BUTTON -->
         <span class="close" id="closeRuleModal">×</span>
-        
         <button id="prevBtn" class="modal-nav-btn"><i data-feather="chevron-left"></i></button>
         <button id="nextBtn" class="modal-nav-btn"><i data-feather="chevron-right"></i></button>
         
@@ -315,8 +371,15 @@
         const CACHE_KEY_RULES = 'tcf_rules_cache_v2'; 
         const DEFAULT_IMAGE = 'https://via.placeholder.com/400x600?text=No+Image';
 
-        const container = document.getElementById('rulesContainer');
-        const countBadge = document.getElementById('ruleCountBadge');
+        // Elements
+        const rulesContainer = document.getElementById('rulesContainer');
+        const videosContainer = document.getElementById('videosContainer');
+        const countBadge = document.getElementById('contentCountBadge');
+        
+        const btnRules = document.getElementById('btnRules');
+        const btnVideos = document.getElementById('btnVideos');
+
+        // Lightbox Elements
         const modal = document.getElementById('ruleModal');
         const fullImg = document.getElementById('ruleFullImg');
         const closeBtn = document.getElementById('closeRuleModal');
@@ -325,7 +388,9 @@
         const imageCounter = document.getElementById('imageCounter');
 
         let allRulesData = [];
+        let allVideosData = [];
         let currentImageIndex = 0;
+        let activeTab = 'rules'; // 'rules' or 'videos'
 
         document.addEventListener('DOMContentLoaded', async () => {
             feather.replace();
@@ -334,6 +399,37 @@
             setupNavigation();
         });
 
+        // --- TAB SWITCHING LOGIC ---
+        window.switchTab = function(tabName) {
+            activeTab = tabName;
+            
+            if (tabName === 'rules') {
+                // UI Changes
+                btnRules.classList.add('active');
+                btnVideos.classList.remove('active');
+                
+                // View Changes
+                rulesContainer.classList.add('active-view');
+                videosContainer.classList.remove('active-view');
+                
+                // Update Count
+                countBadge.textContent = `${allRulesData.length} Rules`;
+            } else {
+                // UI Changes
+                btnVideos.classList.add('active');
+                btnRules.classList.remove('active');
+                
+                // View Changes
+                videosContainer.classList.add('active-view');
+                rulesContainer.classList.remove('active-view');
+                
+                // Update Count
+                countBadge.textContent = `${allVideosData.length} Videos`;
+            }
+            feather.replace();
+        }
+
+        // --- FIREBASE LOGIC ---
         function loadRulesFromCache() {
             const cachedData = localStorage.getItem(CACHE_KEY_RULES);
             if (cachedData) {
@@ -357,48 +453,59 @@
                 }
 
                 const db = firebase.database();
-                const rulesRef = db.ref('admin/rules');
                 
+                // 1. Fetch Rules
+                const rulesRef = db.ref('admin/rules');
                 rulesRef.on('value', (snapshot) => {
                     const rawData = snapshot.val();
-                    let rulesArray = [];
-
-                    if (rawData) {
-                        if (Array.isArray(rawData)) {
-                            rulesArray = rawData.filter(item => item); 
-                        } else {
-                            rulesArray = Object.keys(rawData).map(key => ({
-                                id: key,
-                                ...rawData[key]
-                            }));
-                        }
-                    }
-
+                    let rulesArray = processFirebaseData(rawData);
                     saveRulesToCache(rulesArray);
                     renderRules(rulesArray);
+                });
+
+                // 2. Fetch Videos (NEW)
+                const videosRef = db.ref('admin/videos');
+                videosRef.on('value', (snapshot) => {
+                    const rawData = snapshot.val();
+                    allVideosData = processFirebaseData(rawData);
+                    renderVideos(allVideosData);
                 });
 
             } catch (error) {
                 console.error("Firebase Error:", error);
                 if (!localStorage.getItem(CACHE_KEY_RULES)) {
-                    container.innerHTML = `<div class="status-container" style="color:red;">Error loading rules.<br>${error.message}</div>`;
-                    countBadge.textContent = 'Error';
+                    rulesContainer.innerHTML = `<div class="status-container" style="color:red;">Error loading.<br>${error.message}</div>`;
                 }
             }
         }
 
+        function processFirebaseData(rawData) {
+            if (!rawData) return [];
+            if (Array.isArray(rawData)) {
+                return rawData.filter(item => item);
+            } else {
+                return Object.keys(rawData).map(key => ({
+                    id: key,
+                    ...rawData[key]
+                }));
+            }
+        }
+
+        // --- RENDER RULES (IMAGES) ---
         function renderRules(rules) {
-            allRulesData = rules; 
+            allRulesData = rules;
             
+            if (activeTab === 'rules') {
+                countBadge.textContent = `${rules.length} Rules`;
+            }
+
             if (!rules || rules.length === 0) {
-                container.innerHTML = `<div class="status-container"><i data-feather="file-minus" style="width:40px;height:40px;color:#aaa;"></i><p>No Rules Found.</p></div>`;
+                rulesContainer.innerHTML = `<div class="status-container"><i data-feather="file-minus" style="width:40px;height:40px;color:#aaa;"></i><p>No Rules Found.</p></div>`;
                 feather.replace();
-                countBadge.textContent = '0 Rules';
                 return;
             }
 
-            countBadge.textContent = `${rules.length} Rules`;
-            container.innerHTML = ''; 
+            rulesContainer.innerHTML = ''; 
 
             rules.forEach((rule, index) => {
                 const card = document.createElement('div');
@@ -415,14 +522,63 @@
                     </div>
                     ${rule.title ? `<div class="rule-info"><h3 class="rule-name">${rule.title}</h3></div>` : ''}
                 `;
-                container.appendChild(card);
+                rulesContainer.appendChild(card);
             });
             
+            // Re-trigger animation
             setTimeout(() => {
-                document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
+                document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
             }, 100);
         }
 
+        // --- RENDER VIDEOS (NEW FUNCTION) ---
+        function renderVideos(videos) {
+            if (activeTab === 'videos') {
+                countBadge.textContent = `${videos.length} Videos`;
+            }
+
+            if (!videos || videos.length === 0) {
+                videosContainer.innerHTML = `<div class="status-container"><i data-feather="video-off" style="width:40px;height:40px;color:#aaa;"></i><p>No Videos Found.</p></div>`;
+                feather.replace();
+                return;
+            }
+
+            videosContainer.innerHTML = '';
+
+            videos.forEach((video) => {
+                const videoId = getYouTubeID(video.url);
+                const card = document.createElement('div');
+                card.className = 'rule-card animate-on-scroll'; // Re-using card style
+                
+                // Embed URL or Thumbnail
+                const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+
+                card.innerHTML = `
+                    <div class="video-wrapper">
+                        ${embedUrl ? 
+                            `<iframe class="video-iframe" src="${embedUrl}" title="${video.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>` 
+                            : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;">Invalid URL</div>`
+                        }
+                    </div>
+                    <div class="rule-info">
+                        <h3 class="rule-name">${video.title || 'Untitled Video'}</h3>
+                    </div>
+                `;
+                videosContainer.appendChild(card);
+            });
+             
+            feather.replace();
+        }
+
+        // --- HELPER: Extract YouTube ID ---
+        function getYouTubeID(url) {
+            if(!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // --- LIGHTBOX LOGIC (Same as before) ---
         function openLightbox(index) {
             currentImageIndex = index;
             updateLightboxContent();
@@ -452,51 +608,29 @@
         }
 
         function setupNavigation() {
-            prevBtn.onclick = (e) => {
-                e.stopPropagation();
-                currentImageIndex--;
-                updateLightboxContent();
-            };
-
-            nextBtn.onclick = (e) => {
-                e.stopPropagation();
-                currentImageIndex++;
-                updateLightboxContent();
-            };
+            prevBtn.onclick = (e) => { e.stopPropagation(); currentImageIndex--; updateLightboxContent(); };
+            nextBtn.onclick = (e) => { e.stopPropagation(); currentImageIndex++; updateLightboxContent(); };
 
             window.addEventListener('keydown', (e) => {
                 if (!modal.classList.contains('show')) return;
-                
-                if (e.key === 'ArrowLeft') {
-                    currentImageIndex--;
-                    updateLightboxContent();
-                } else if (e.key === 'ArrowRight') {
-                    currentImageIndex++;
-                    updateLightboxContent();
-                } else if (e.key === 'Escape') {
-                    closeLightbox();
-                }
+                if (e.key === 'ArrowLeft') { currentImageIndex--; updateLightboxContent(); }
+                else if (e.key === 'ArrowRight') { currentImageIndex++; updateLightboxContent(); }
+                else if (e.key === 'Escape') { closeLightbox(); }
             });
 
             closeBtn.addEventListener('click', closeLightbox);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeLightbox();
-            });
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeLightbox(); });
         }
 
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('is-visible');
-                    observer.unobserve(entry.target);
+                    // observer.unobserve(entry.target); // Keep observing for tab switches
                 }
             });
         }, { threshold: 0.1 });
 
-        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
-
     </script>
 </body>
 </html>
-
-
