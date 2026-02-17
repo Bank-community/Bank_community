@@ -1,6 +1,6 @@
 // loan_dashboard.js
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v4'; // Version bumped
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v5'; // Version bumped
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
@@ -181,9 +181,9 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     <div class="premium-card-wrapper card-premium" id="${loanId}">
         <div class="pc-texture"></div>
         
-        <div class="pc-days-circle" style="background:var(--gold-plate); border-color:#fff; color:#3e2702;">
-            <span class="day-num">${tenureMonths || 12}</span>
-            <span class="day-label">MTHS</span>
+        <div class="gold-badge">
+            <span class="gb-num">${tenureMonths || 12}</span>
+            <span class="gb-label">MTHS</span>
         </div>
 
         <div class="pc-top">
