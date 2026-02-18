@@ -241,6 +241,7 @@
 
         function setupLoginListeners() {
             const auth = firebase.auth(); 
+            const db = firebase.database(); // Database connection zaroori hai check karne ke liye
             const googleProvider = new firebase.auth.GoogleAuthProvider();
 
             // Elements
@@ -250,15 +251,40 @@
             const redirectUrl = urlParams.get('redirect');
             const adminUid = 'hWsZo6gONzOOccP7y4GCT4oV93A2';
 
-            // --- A. GOOGLE LOGIN LOGIC ---
+            // --- A. SMART GOOGLE LOGIN LOGIC ---
             googleBtn.addEventListener('click', () => {
                 hideError();
                 
-                // Sign in with popup
                 auth.signInWithPopup(googleProvider)
-                    .then((result) => {
+                    .then(async (result) => {
                         const user = result.user;
-                        handleRedirect(user, adminUid, redirectUrl);
+                        
+                        // Check 1: Agar Admin hai
+                        if (user.uid === adminUid) {
+                            sessionStorage.setItem('isAdminLoggedIn', 'true');
+                            window.location.href = redirectUrl || '/admin.html';
+                            return;
+                        }
+
+                        // Check 2: Agar Normal Member hai (Database Check)
+                        // Hum check karenge ki kya ye email hamare database mein exist karta hai?
+                        try {
+                            const snapshot = await db.ref('members').orderByChild('email').equalTo(user.email).once('value');
+                            
+                            if (snapshot.exists()) {
+                                // BINGO! Ye member hamare list mein hai.
+                                // User ko login hone do.
+                                console.log("Member verified via Google");
+                                window.location.href = redirectUrl || '/index.html';
+                            } else {
+                                // ❌ ERROR: Ye Google ID asli hai, par ye hamara member nahi hai.
+                                await auth.signOut(); // Logout kar do turant
+                                showError("Access Denied: Your email is not registered in our Community.");
+                            }
+                        } catch (dbError) {
+                            console.error("Verification Failed", dbError);
+                            showError("System Error during verification.");
+                        }
                     })
                     .catch((error) => {
                         console.error("Google Login Error:", error);
@@ -266,7 +292,7 @@
                     });
             });
 
-            // --- B. EMAIL/PASSWORD LOGIN LOGIC ---
+            // --- B. MANUAL EMAIL/PASSWORD LOGIN LOGIC ---
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 hideError();
@@ -289,7 +315,6 @@
 
         // --- HELPER: Redirect Logic ---
         function handleRedirect(user, adminUid, redirectUrl) {
-            // Check if user is admin
             if (user.uid === adminUid) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 window.location.href = redirectUrl || '/admin.html'; 
@@ -366,5 +391,6 @@
         // Start App
         initializeAppWithConfig();
     </script>
+
 </body>
 </html>
