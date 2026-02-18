@@ -117,7 +117,7 @@
             5.62868 2.87868ZM8 17C8 16.5858 8.33579 16.25 
             8.75 16.25H11.75C12.1642 16.25 12.5 16.5858 
             12.5 17C12.5 17.4142 12.1642 17.75 11.75 
-            17.75H8.75C8.33579 17.75 8 17.4142 8 17ZM8 
+            17.75H8.75C8.33579 17.75 8 17ZM8 
             13C8 12.5858 8.33579 12.25 8.75 12.25H14.75
             C15.1642 12.25 15.5 12.5858 15.5 13C15.5 
             13.4142 15.1642 13.75 14.75 13.75H8.75C8.33579 
@@ -288,6 +288,18 @@
     </div>
     
     <div id="notification-popup-container"></div>
+
+    <script type="module">
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+            .then((registration) => {
+                console.log('✅ Service Worker Registered with scope:', registration.scope);
+            })
+            .catch((err) => {
+                console.log('❌ Service Worker registration failed:', err);
+            });
+        }
+    </script>
 
     <script type="module" src="user-main.js"></script>
 
