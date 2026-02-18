@@ -1,19 +1,17 @@
-// api/cron-job.js
 import admin from 'firebase-admin';
 
-// --- FIREBASE INIT (WITH FIX) ---
+// --- FIREBASE INIT (3-VAR METHOD) ---
 if (!admin.apps.length) {
   try {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    if (process.env.FIREBASE_PRIVATE_KEY) {
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
       
-      // 🔥 MAGIC FIX For Private Key
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: privateKey,
+        }),
         databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app"
       });
     }
@@ -26,9 +24,8 @@ export default async function handler(req, res) {
   const today = new Date();
   const day = today.getDate();
 
-  // 1-10 Date Check
   if (day < 1 || day > 10) {
-      return res.status(200).json({ message: "Aaj reminder ka din nahi hai." });
+      return res.status(200).json({ message: "No reminders today (Not 1-10)." });
   }
 
   try {
