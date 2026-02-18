@@ -1,26 +1,25 @@
 import admin from 'firebase-admin';
 
-// --- FIREBASE INIT (3-VAR METHOD) ---
+// --- BASE64 DECODING LOGIC ---
 if (!admin.apps.length) {
   try {
-    if (process.env.FIREBASE_PRIVATE_KEY) {
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
-      
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+      const buffer = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64');
+      const serviceAccount = JSON.parse(buffer.toString('utf-8'));
+
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey,
-        }),
+        credential: admin.credential.cert(serviceAccount),
         databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app"
       });
     }
   } catch (error) {
-    console.error("Firebase Init Error:", error);
+    console.error("Init Error:", error);
   }
 }
 
 export default async function handler(req, res) {
+  // ... (Baaki code same rahega) ...
+  // Niche ka code wahi purana wala use karein jo 1-10 date check karta hai
   const today = new Date();
   const day = today.getDate();
 
