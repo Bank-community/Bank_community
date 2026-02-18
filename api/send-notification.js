@@ -1,30 +1,30 @@
 import admin from 'firebase-admin';
 
-// --- ROBUST FIREBASE INITIALIZATION ---
+// --- BASE64 DECODING LOGIC ---
 if (!admin.apps.length) {
   try {
-    // Check agar teeno cheezein available hain
-    if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
-      throw new Error("Missing Firebase Env Variables (Project ID, Email, or Private Key)");
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_BASE64 is missing!");
     }
 
-    // 🔥 PRIVATE KEY REPAIR:
-    // Ye line tooti hui key ko jodti hai (New lines fix)
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+    // 1. Base64 se wapas JSON string banana
+    const buffer = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64');
+    const serviceAccountJson = buffer.toString('utf-8');
+    
+    // 2. JSON Parse karna
+    const serviceAccount = JSON.parse(serviceAccountJson);
+
+    console.log("🔑 Decoded Project ID:", serviceAccount.project_id); // Debugging ke liye
 
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey,
-      }),
+      credential: admin.credential.cert(serviceAccount),
       databaseURL: "https://bank-master-data-default-rtdb.asia-southeast1.firebasedatabase.app"
     });
 
-    console.log("✅ Firebase Initialized via Separate Variables");
+    console.log("✅ Firebase Initialized with Base64 Method");
 
   } catch (error) {
-    console.error("❌ Firebase Init Error:", error.message);
+    console.error("❌ Init Error:", error.message);
     process.env.FIREBASE_INIT_ERROR = error.message;
   }
 }
@@ -66,7 +66,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("Send Error:", error);
-    // Agar Google 404 deta hai, to hum clean error dikhayenge
     return res.status(500).json({ error: error.message });
   }
 }
