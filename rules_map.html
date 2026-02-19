@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TCF Loan Rules - Stable Map</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-bg: #FDFBF7;      
+            --color-primary: #1e3a8a; /* Royal Blue */
+            --color-accent: #d4af37;  /* Gold */
+            --color-text: #1f2937;    
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow: hidden; 
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* INFO PANEL */
+        #info-panel {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .panel-hidden {
+            opacity: 0 !important;
+            pointer-events: none;
+            transform: translateY(-20px) !important;
+        }
+
+        /* Node Styles */
+        .node circle {
+            fill: #fff;
+            stroke: var(--color-primary);
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        /* Hover Effect (Desktop) */
+        .node circle:hover {
+            stroke: var(--color-accent);
+            fill: #fffbeb;
+            r: 15px; 
+        }
+
+        .node text {
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            fill: var(--color-text);
+            text-shadow: 
+                2px 2px 0px #FDFBF7, 
+                -2px -2px 0px #FDFBF7, 
+                -2px 2px 0px #FDFBF7, 
+                2px -2px 0px #FDFBF7;
+            pointer-events: none;
+            font-weight: 600;
+        }
+
+        /* Link Styles */
+        .link {
+            fill: none;
+            stroke: #cbd5e1;
+            stroke-width: 1.5px;
+            transition: stroke 0.3s;
+        }
+
+        /* Active State */
+        .node--active circle {
+            stroke: var(--color-accent) !important;
+            stroke-width: 3px;
+            fill: #fffbeb !important;
+        }
+
+        /* Specific Node Colors */
+        .node--root circle { stroke: #d4af37; stroke-width: 4px; }
+        .node--root text { font-size: 16px; fill: #1e3a8a; font-weight: 800; }
+        
+        .node--gold circle { stroke: #d4af37; } 
+        .node--gold text { color: #854d0e; }
+
+        .node--alert circle { stroke: #ef4444; } 
+        .node--alert text { fill: #b91c1c; }
+
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative">
+
+    <!-- TOP CONTROL BAR -->
+    <div class="absolute top-0 left-0 w-full z-30 p-3 flex justify-between items-start pointer-events-none">
+        
+        <!-- INFO PANEL -->
+        <div id="info-panel" class="bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-lg border-l-4 border-blue-900 pointer-events-auto max-w-lg transition-all duration-300">
+            <h1 id="header-title" class="text-lg font-bold text-blue-900 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-scale-balanced text-yellow-500"></i>
+                <span>TCF LOAN RULES</span>
+            </h1>
+            <p id="header-desc" class="text-sm text-gray-600 font-medium leading-snug">
+                Tap nodes to see Eligibility & Rates.
+            </p>
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="flex flex-col gap-3 pointer-events-auto">
+            <button onclick="toggleInfoPanel()" id="toggle-btn" class="bg-white hover:bg-blue-50 text-blue-900 shadow-md p-3 rounded-full border border-blue-100 flex items-center justify-center w-12 h-12 transition-all active:scale-95">
+                <i id="eye-icon" class="fa-solid fa-eye text-lg"></i>
+            </button>
+            <button onclick="resetZoom()" class="bg-white hover:bg-gray-50 text-gray-700 shadow-md p-3 rounded-full border border-gray-200 flex items-center justify-center w-12 h-12 transition-all active:scale-95">
+                <i class="fa-solid fa-crosshairs text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIZ CONTAINER -->
+    <div id="viz-container" class="flex-grow w-full h-full cursor-move bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiMxZTNhOGEiIG9wYWNpdHk9IjAuMDUiLz48L3N2Zz4=')]"></div>
+
+    <!-- FOOTER -->
+    <div class="absolute bottom-0 w-full bg-blue-900 text-white p-2 text-[10px] md:text-xs z-20 border-t-4 border-yellow-500 text-center">
+        <i class="fa-solid fa-shield-halved text-yellow-400 mr-1"></i>
+        <span class="font-bold text-yellow-400">CORE VALUES:</span>
+        <span class="opacity-90">Discipline • Transparency • Community Safety</span>
+    </div>
+
+    <script>
+        // --- 1. DATA (Fixed & Structured) ---
+        const treeData = {
+            name: "TCF LOAN RULES",
+            type: "root",
+            tooltip: "Tap on any section to see details.",
+            children: [
+                {
+                    name: "Loan Eligibility",
+                    type: "section",
+                    tooltip: "Eligibility is based on your SIP Amount",
+                    children: [
+                        { 
+                            name: "SIP < ₹25,000", 
+                            children: [{name: "Get 1.5× Loan", type: "gold"}]
+                        },
+                        { 
+                            name: "SIP ≥ ₹25,000", 
+                            children: [{name: "Get 2× Loan", type: "gold"}]
+                        },
+                        { 
+                            name: "Max Limit", 
+                            children: [{name: "₹50,000 Only", type: "gold"}] 
+                        }
+                    ]
+                },
+                {
+                    name: "Loan < ₹25k",
+                    type: "section",
+                    tooltip: "Interest rates for smaller loans",
+                    children: [
+                        { name: "1 Month", children: [{name: "1% Interest"}] },
+                        { name: "2 Months", children: [{name: "3% Interest"}] },
+                        { name: "3 Months", children: [{name: "5% Interest"}] },
+                        { name: "4-12 Months", children: [{name: "1% / Month (EMI)", type: "gold"}] }
+                    ]
+                },
+                {
+                    name: "Loan ≥ ₹25k",
+                    type: "section",
+                    tooltip: "Standard EMI system for larger loans",
+                    children: [
+                        { name: "Interest Rate", children: [{name: "0.7% / Month", type: "gold"}] },
+                        { name: "System", children: [{name: "Mandatory EMI"}] }
+                    ]
+                },
+                {
+                    name: "EMI Rules",
+                    type: "alert",
+                    tooltip: "Strict payment deadlines apply",
+                    children: [
+                        { name: "Due Date", children: [{name: "1st - 10th"}] },
+                        { 
+                            name: "Late Penalty", 
+                            type: "alert",
+                            tooltip: "Warning: Penalty applies on Total Loan",
+                            children: [{name: "0.5% of Total Loan", type: "alert"}] 
+                        }
+                    ]
+                },
+                {
+                    name: "Guarantor",
+                    type: "section",
+                    tooltip: "Responsibility & Risk",
+                    children: [
+                        { name: "If Member Fails", children: [{name: "Guarantor Pays"}] },
+                        { name: "Risk Level", children: [{name: "100% on Guarantor", type: "alert"}] }
+                    ]
+                }
+            ]
+        };
+
+        // --- 2. SETUP ---
+        // Declare 'i' globally here to prevent ReferenceError
+        let i = 0; 
+        const duration = 500;
+        let isPanelVisible = true;
+
+        // Elements
+        const infoPanel = document.getElementById('info-panel');
+        const eyeIcon = document.getElementById('eye-icon');
+        const headerTitle = document.getElementById('header-title');
+        const headerDesc = document.getElementById('header-desc');
+
+        const container = document.getElementById("viz-container");
+        let width = container.clientWidth;
+        let height = container.clientHeight;
+
+        const svg = d3.select("#viz-container").append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", [-width / 2, -height / 2, width, height]);
+
+        const g = svg.append("g");
+
+        // Zoom Behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.3, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // --- 3. TREE LAYOUT ---
+        const root = d3.hierarchy(treeData, d => d.children);
+        
+        // Node size controls spacing [Height, Width]
+        // Reduced height slightly to keep things compact
+        const tree = d3.tree().nodeSize([45, 160]); 
+
+        root.x0 = 0;
+        root.y0 = 0;
+
+        // Initial Collapse logic
+        if(root.children) {
+            root.children.forEach(d => {
+                if(d.children) {
+                    d._children = d.children;
+                    d._children.forEach(collapseRecursive);
+                    d.children = null;
+                }
+            });
+        }
+
+        function collapseRecursive(d) {
+            if(d.children) {
+                d._children = d.children;
+                d._children.forEach(collapseRecursive);
+                d.children = null;
+            }
+        }
+
+        // --- 4. CLICK HANDLER (STABLE - NO JUMP) ---
+        function click(event, d) {
+            // STOP PROPAGATION prevents zooming when clicking a node
+            event.stopPropagation();
+            
+            // Update Text
+            updateHeaderText(d);
+
+            // Visual Active State
+            d3.selectAll('.node').classed('node--active', false);
+            d3.select(this).classed('node--active', true);
+
+            // Toggle Logic
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+            
+            // IMPORTANT: Just update the tree. DO NOT call zoom/transition here.
+            // This prevents the "jumping" effect.
+            update(d);
+        }
+
+        // --- 5. UPDATE FUNCTION ---
+        function update(source) {
+            const treeData = tree(root);
+            const nodes = treeData.descendants();
+            const links = treeData.links();
+
+            // Fixed Depth Spacing
+            nodes.forEach(d => { d.y = d.depth * 160; });
+
+            // -- Nodes --
+            const node = g.selectAll('g.node')
+                .data(nodes, d => d.id || (d.id = ++i));
+
+            const nodeEnter = node.enter().append('g')
+                .attr('class', d => {
+                    let c = 'node ';
+                    if(d.data.type === 'root') c += 'node--root ';
+                    if(d.data.type === 'gold') c += 'node--gold ';
+                    if(d.data.type === 'alert') c += 'node--alert ';
+                    return c;
+                })
+                .attr("transform", d => `translate(${source.y0},${source.x0})`)
+                .on('click', click);
+
+            nodeEnter.append('circle')
+                .attr('class', 'node-circle')
+                .attr('r', 1e-6)
+                .style("fill", d => d._children ? "#d4af37" : "#fff");
+
+            nodeEnter.append('text')
+                .attr("dy", ".35em")
+                .attr("x", d => d.children || d._children ? -20 : 20)
+                .attr("text-anchor", d => d.children || d._children ? "end" : "start")
+                .text(d => d.data.name)
+                .style("fill-opacity", 1e-6);
+
+            // Update
+            const nodeUpdate = node.merge(nodeEnter).transition().duration(duration)
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            nodeUpdate.select('circle.node-circle')
+                .attr('r', d => d.data.type === 'root' ? 20 : 12)
+                .style("fill", d => d._children ? "#eff6ff" : "#fff")
+                .style("stroke", d => {
+                    if (d.data.type === 'root') return "#1e3a8a";
+                    if (d.data.type === 'alert') return "#ef4444";
+                    if (d.data.type === 'gold') return "#d4af37";
+                    return d._children ? "#d4af37" : "#1e3a8a";
+                });
+
+            nodeUpdate.select('text').style("fill-opacity", 1);
+
+            // Exit
+            const nodeExit = node.exit().transition().duration(duration)
+                .attr("transform", d => `translate(${source.y},${source.x})`)
+                .remove();
+
+            nodeExit.select('circle').attr('r', 1e-6);
+            nodeExit.select('text').style("fill-opacity", 1e-6);
+
+            // -- Links --
+            const link = g.selectAll('path.link')
+                .data(links, d => d.target.id);
+
+            const linkEnter = link.enter().insert('path', "g")
+                .attr("class", "link")
+                .attr('d', d => {
+                    const o = {x: source.x0, y: source.y0};
+                    return diagonal(o, o);
+                });
+
+            const linkUpdate = link.merge(linkEnter).transition().duration(duration)
+                .attr('d', d => diagonal(d.source, d.target));
+
+            link.exit().transition().duration(duration)
+                .attr('d', d => {
+                    const o = {x: source.x, y: source.y};
+                    return diagonal(o, o);
+                })
+                .remove();
+
+            nodes.forEach(d => {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+
+            function diagonal(s, d) {
+                return `M ${s.y} ${s.x}
+                        C ${(s.y + d.y) / 2} ${s.x},
+                          ${(s.y + d.y) / 2} ${d.x},
+                          ${d.y} ${d.x}`;
+            }
+        }
+
+        // --- 6. UTILITIES ---
+
+        function updateHeaderText(d) {
+            const name = d.data.name;
+            const info = d.data.tooltip || (d.children || d._children ? "Tap to see sub-rules..." : name);
+            
+            let icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+            if (d.data.type === 'alert') icon = '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>';
+            if (d.data.type === 'gold') icon = '<i class="fa-solid fa-coins text-yellow-500"></i>';
+            if (d.data.type === 'root') icon = '<i class="fa-solid fa-scale-balanced text-yellow-500"></i>';
+            
+            headerTitle.querySelector('span').textContent = name;
+            headerTitle.querySelector('i').outerHTML = icon;
+            headerDesc.textContent = info;
+            
+            if (!isPanelVisible) toggleInfoPanel();
+        }
+
+        function toggleInfoPanel() {
+            isPanelVisible = !isPanelVisible;
+            if (isPanelVisible) {
+                infoPanel.classList.remove('panel-hidden');
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            } else {
+                infoPanel.classList.add('panel-hidden');
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            }
+        }
+
+        function resetZoom() {
+            const isMobile = window.innerWidth < 768;
+            
+            // Adjust start position so root is on the left
+            const scale = isMobile ? 0.6 : 0.8;
+            const xOffset = isMobile ? width * 0.3 : width * 0.2; 
+            
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(xOffset, 0).scale(scale)
+            );
+            
+            updateHeaderText({data: treeData});
+        }
+
+        // Start
+        update(root);
+        
+        // Initial positioning delay
+        setTimeout(resetZoom, 100);
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            width = container.clientWidth;
+            height = container.clientHeight;
+            svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+            update(root);
+        });
+
+    </script>
+</body>
+</html>
+
