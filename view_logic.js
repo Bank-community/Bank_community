@@ -617,15 +617,40 @@ function calculateCapitalScore(memberName, untilDate, allData) {
 }
 
 function calculateConsistencyScore(memberData, untilDate) {
-    const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
-    const recentMemberData = memberData.filter(r => r.date >= oneYearAgo); if (recentMemberData.length === 0) return 0;
+    // 1. Sabse pehle member ke saare SIP records nikal lo
+    const allSipData = memberData.filter(r => r.sipPayment > 0);
+    
+    // Agar member ka abhi tak sirf 1 hi SIP aaya hai (ya ek bhi nahi), to uski consistency abhi zero hai
+    if (allSipData.length <= 1) return 0;
+
+    // 2. Pehle SIP ko poori tarah se skip kar do (slice(1) ka use karke)
+    const validSips = allSipData.slice(1);
+
+    // 3. Ab in valid SIPs mein se sirf pichle 1 saal (1 year) ka data check karo
+    const oneYearAgo = new Date(untilDate); 
+    oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
+    
+    const recentValidSips = validSips.filter(r => r.date >= oneYearAgo); 
+    if (recentValidSips.length === 0) return 0;
+
+    // 4. Mahine ke hisaab se points calculate karo
     const sipHistory = {};
-    recentMemberData.filter(r => r.sipPayment > 0).forEach(r => { const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`; if (!sipHistory[monthKey]) { sipHistory[monthKey] = r.date.getDate() <= CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5; } });
+    recentValidSips.forEach(r => { 
+        const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`; 
+        if (!sipHistory[monthKey]) { 
+            sipHistory[monthKey] = r.date.getDate() <= CONFIG.SIP_ON_TIME_LIMIT ? 10 : 5; 
+        } 
+    });
+    
     if (Object.keys(sipHistory).length === 0) return 0;
+    
+    // 5. Final Percentage nikal lo
     const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
     const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
+    
     return (consistencyPoints / (monthsConsidered * 10)) * 100;
 }
+
 
 function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData = {}) {
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
