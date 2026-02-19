@@ -1,7 +1,7 @@
 // --- CONFIGURATION CONSTANTS ---
 const CONFIG = {
     CAPITAL_WEIGHT: 0.40, CONSISTENCY_WEIGHT: 0.30, CREDIT_BEHAVIOR_WEIGHT: 0.30,
-    CAPITAL_SCORE_TARGET_SIP: 30000,
+    CAPITAL_SCORE_TARGET_SIP: 50000,
     LOAN_LIMIT_TIER1_SCORE: 50, LOAN_LIMIT_TIER2_SCORE: 60, LOAN_LIMIT_TIER3_SCORE: 80,
     LOAN_LIMIT_TIER1_MAX: 1.0, LOAN_LIMIT_TIER2_MAX: 1.5, LOAN_LIMIT_TIER3_MAX: 1.8, LOAN_LIMIT_TIER4_MAX: 2.0,
     MINIMUM_MEMBERSHIP_DAYS: 60, MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE: 30,
@@ -608,32 +608,42 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
 }
 
 function calculateCapitalScore(memberName, untilDate, allData) {
-    const daysToReview = 180;
+    // 18 Mahine (approx 540 days) ka limit
+    const daysToReview = 540;
     const startDate = new Date(untilDate.getTime() - daysToReview * 24 * 3600 * 1000);
-    const memberTransactions = allData.filter(r => r.name === memberName && r.date >= startDate && r.date <= untilDate);
-    const totalSipAmount = memberTransactions.reduce((sum, tx) => sum + tx.sipPayment, 0);
+    
+    // Member ka data nikalo
+    const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
+    
+    // Sabhi SIPs nikal kar pehli SIP ko hata do (slice(1) se), aur sirf pichle 18 mahine ka data rakho
+    const allSips = memberData.filter(r => r.sipPayment > 0);
+    const validSips = allSips.slice(1).filter(r => r.date >= startDate);
+    
+    // Bachi hui SIPs ka total karo
+    const totalSipAmount = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
+    
+    // Score calculate karo
     const normalizedScore = (totalSipAmount / CONFIG.CAPITAL_SCORE_TARGET_SIP) * 100;
     return Math.min(100, Math.max(0, normalizedScore));
 }
 
+
 function calculateConsistencyScore(memberData, untilDate) {
-    // 1. Sabse pehle member ke saare SIP records nikal lo
     const allSipData = memberData.filter(r => r.sipPayment > 0);
-    
-    // Agar member ka abhi tak sirf 1 hi SIP aaya hai (ya ek bhi nahi), to uski consistency abhi zero hai
+    // Agar member ne sirf 1 hi SIP diya hai, to consistency 0 (kyunki first SIP skip karna hai)
     if (allSipData.length <= 1) return 0;
 
-    // 2. Pehle SIP ko poori tarah se skip kar do (slice(1) ka use karke)
+    // Pehle SIP ko skip karo
     const validSips = allSipData.slice(1);
 
-    // 3. Ab in valid SIPs mein se sirf pichle 1 saal (1 year) ka data check karo
-    const oneYearAgo = new Date(untilDate); 
-    oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
+    // Aaj se thik 18 mahine pichhe ki date nikalo
+    const eighteenMonthsAgo = new Date(untilDate); 
+    eighteenMonthsAgo.setMonth(untilDate.getMonth() - 18);
     
-    const recentValidSips = validSips.filter(r => r.date >= oneYearAgo); 
+    // Sirf 18 mahine ke andar wali SIPs filter karo
+    const recentValidSips = validSips.filter(r => r.date >= eighteenMonthsAgo); 
     if (recentValidSips.length === 0) return 0;
 
-    // 4. Mahine ke hisaab se points calculate karo
     const sipHistory = {};
     recentValidSips.forEach(r => { 
         const monthKey = `${r.date.getFullYear()}-${r.date.getMonth()}`; 
@@ -644,7 +654,6 @@ function calculateConsistencyScore(memberData, untilDate) {
     
     if (Object.keys(sipHistory).length === 0) return 0;
     
-    // 5. Final Percentage nikal lo
     const consistencyPoints = Object.values(sipHistory).reduce((a, b) => a + b, 0);
     const monthsConsidered = Math.max(1, Object.keys(sipHistory).length);
     
@@ -652,23 +661,35 @@ function calculateConsistencyScore(memberData, untilDate) {
 }
 
 
+
 function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData = {}) {
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
-    const oneYearAgo = new Date(untilDate); oneYearAgo.setFullYear(untilDate.getFullYear() - 1);
+    
+    // 1 saal ki jagah ab 18 mahine ka calculation
+    const eighteenMonthsAgo = new Date(untilDate); 
+    eighteenMonthsAgo.setMonth(untilDate.getMonth() - 18);
+    
     const memberActiveLoans = Object.values(activeLoansData).filter(loan => loan.memberName === memberName);
-    const loansInLastYear = memberData.filter(r => r.loan > 0 && r.date >= oneYearAgo && r.loanType === 'Loan'); 
-    if (loansInLastYear.length === 0) {
+    
+    // Pichle 18 mahine mein liye gaye loans
+    const recentLoans = memberData.filter(r => r.loan > 0 && r.date >= eighteenMonthsAgo && r.loanType === 'Loan'); 
+    
+    if (recentLoans.length === 0) {
         const firstTransactionDate = memberData[0]?.date;
         if (!firstTransactionDate) return 40;
         const membershipDays = (untilDate - firstTransactionDate) / (1000 * 3600 * 24);
         if (membershipDays < CONFIG.MINIMUM_MEMBERSHIP_FOR_CREDIT_SCORE) return 40; 
+        
         const sipData = memberData.filter(r => r.sipPayment > 0);
         if (sipData.length < 2) return 60;
+        
+        // First SIP ko ignore karne ke liye slice(1)
         const avgSipDay = sipData.slice(1).reduce((sum, r) => sum + r.date.getDate(), 0) / (sipData.length - 1);
         return Math.min(100, Math.max(0, (15 - avgSipDay) * 5 + 40));
     }
+    
     let totalPoints = 0; let loansProcessed = 0;
-    for (const loanRecord of loansInLastYear) {
+    for (const loanRecord of recentLoans) {
         loansProcessed++;
         const loanDetails = memberActiveLoans.find(l => new Date(l.loanDate).getTime() === loanRecord.date.getTime() && l.originalAmount === loanRecord.loan);
         if (loanDetails && loanDetails.loanType === 'Business Loan') {
@@ -701,6 +722,7 @@ function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoan
     if (loansProcessed === 0) return 40;
     return Math.max(0, Math.min(100, (totalPoints / (loansProcessed * 25)) * 100));
 }
+
 
 function getLoanEligibility(memberName, score, allData) {
     const memberData = allData.filter(r => r.name === memberName);
