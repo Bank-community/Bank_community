@@ -2,7 +2,7 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <title>Trust Community Fund</title>
+  <title>TCF - SIP Withdrawal</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -19,7 +19,8 @@
             brand: {
               teal: '#0f766e',
               gold: '#f59e0b',
-              dark: '#111827'
+              dark: '#111827',
+              red: '#ef4444'
             }
           }
         }
@@ -81,7 +82,7 @@
         padding-bottom: 6px; margin-bottom: 6px;
         border-bottom: 1px solid #e5e7eb;
     }
-    .info-label { width: 130px; font-weight: 600; color: #4b5563; font-size: 14px; }
+    .info-label { width: 140px; font-weight: 600; color: #4b5563; font-size: 14px; }
     .info-val { flex: 1; font-weight: 700; color: #111827; font-size: 16px; }
     .info-icon { width: 25px; text-align: center; color: #0f766e; margin-right: 8px; font-size: 14px; }
 
@@ -97,58 +98,59 @@
 <body>
 
   <div id="input-page" class="min-h-screen flex flex-col items-center py-6 px-4">
-    <div class="form-card p-6 rounded-xl w-full max-w-lg mb-8">
+    
+    <div id="dateBanner" class="w-full max-w-lg mb-4 hidden">
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md" role="alert">
+            <p class="font-bold">Portal Closed</p>
+            <p>Withdrawals are only allowed between <span class="font-bold">23 June</span> and <span class="font-bold">30 June</span>.</p>
+        </div>
+    </div>
+
+    <div class="form-card p-6 rounded-xl w-full max-w-lg mb-8 relative">
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">Trust Community Fund</h1>
-            <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Loan Application Portal</p>
+            <p class="text-xs text-brand-teal uppercase tracking-widest mt-1 font-bold">SIP Withdrawal Portal</p>
+        </div>
+
+        <div id="formBlocker" class="absolute inset-0 bg-white bg-opacity-80 z-50 hidden flex items-center justify-center rounded-xl cursor-not-allowed">
+            <span class="text-gray-400 font-bold transform -rotate-12 border-2 border-gray-400 p-2 rounded">ACCESS DENIED</span>
         </div>
 
         <form id="loanForm" class="space-y-4">
             <div>
-                <label class="text-sm font-semibold text-gray-700">Applicant Name</label>
+                <label class="text-sm font-semibold text-gray-700">Member Name</label>
                 <select id="nameSelect" required class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
                     <option value="" disabled selected>Loading members...</option>
                 </select>
-                <div id="walletInfo" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center text-xs">
-                    <div>
-                        <p class="text-gray-500">SIP Balance</p>
-                        <p class="font-bold text-blue-700 text-sm">₹<span id="displayWalletBalance">0</span></p>
+                
+                <div id="walletInfo" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-500">SIP Balance</span>
+                        <span class="font-bold text-blue-700 text-sm">₹<span id="displayWalletBalance">0</span></span>
                     </div>
-                    <div class="text-right">
-                        <p class="text-gray-500">Eligible Limit</p>
-                        <p class="font-bold text-green-600 text-sm">₹<span id="displayEligibleLimit">0</span></p>
+                    <div class="flex justify-between items-center text-xs pt-2 border-t border-blue-100">
+                        <span class="text-gray-500">Withdrawal Eligibility (50%)</span>
+                        <span class="font-bold text-green-600 text-sm">₹<span id="displayEligibleLimit">0</span></span>
                     </div>
+                    <input type="hidden" id="memIdField">
+                    <input type="hidden" id="joinDateField">
+                    <input type="hidden" id="addressField">
                 </div>
             </div>
 
             <div>
-                <label class="text-sm font-semibold text-gray-700">Loan Type</label>
-                <select id="loanCategory" required class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
-                    <option value="personal">Personal Loan (Cash)</option>
-                    <option value="product">Product Loan (Item/Asset)</option>
-                </select>
-            </div>
-            
-            <div id="productSection" class="hidden">
-                <label class="text-sm font-semibold text-gray-700">Product Name</label>
-                <input type="text" id="productInput" placeholder="Ex: Mobile, Laptop..." class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
-            </div>
-
-            <div>
-                <label class="text-sm font-semibold text-gray-700">Loan Amount (₹)</label>
+                <label class="text-sm font-semibold text-gray-700">Withdrawal Amount (₹)</label>
                 <input type="number" id="amount" placeholder="Enter Amount" min="1" required class="w-full p-3 border rounded-lg bg-gray-50 text-lg font-bold text-brand-teal mt-1">
                 <p id="limit-msg" class="text-xs mt-1 hidden font-semibold"></p>
             </div>
 
-            <div id="dynamicOptions">
-                <label class="text-sm font-semibold text-gray-700">Duration & Interest</label>
-                <select id="durationRateSelect" required class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
-                   <option value="" disabled selected>Enter amount first...</option>
-                </select>
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Transaction Mode</label>
+                <input type="text" value="One Time Withdrawal (0% Interest)" readonly class="w-full p-3 border rounded-lg bg-gray-100 text-gray-500 mt-1 cursor-not-allowed">
             </div>
 
             <div>
-                <label class="text-sm font-semibold text-gray-700">Additional Document (Use if not in profile)</label>
+                <label class="text-sm font-semibold text-gray-700">Verify Identity Document</label>
                 <input type="file" id="imageUpload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-teal-50 file:text-teal-700 border rounded-lg mt-1">
             </div>
 
@@ -157,7 +159,7 @@
             </div>
 
             <button type="submit" id="generateBtn" class="w-full py-4 bg-brand-teal text-white font-bold rounded-xl shadow-lg hover:bg-teal-800 transition mt-4 flex justify-center items-center">
-                GENERATE FORM <i class="fas fa-arrow-right ml-2"></i>
+                GENERATE WITHDRAWAL FORM <i class="fas fa-file-export ml-2"></i>
             </button>
         </form>
     </div>
@@ -169,7 +171,7 @@
               <i class="fas fa-arrow-left mr-2"></i> Edit
           </button>
           <button id="downloadBtn" class="bg-brand-gold text-white font-bold px-6 py-2 rounded-lg shadow-lg hover:bg-yellow-600 flex items-center">
-              <i class="fas fa-download mr-2"></i> Download A4
+              <i class="fas fa-download mr-2"></i> Download Slip
           </button>
       </div>
 
@@ -181,7 +183,7 @@
                   </div>
                   <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" crossorigin="anonymous" class="w-20 mx-auto mb-1">
                   <h1 class="text-3xl font-bold text-gray-800 tracking-wide uppercase">TRUST COMMUNITY FUND</h1>
-                  <h2 id="letterLoanCategory" class="text-lg font-bold text-brand-teal uppercase tracking-wider mt-1"></h2>
+                  <h2 class="text-lg font-bold text-brand-teal uppercase tracking-wider mt-1">SIP WITHDRAWAL REQUEST</h2>
               </div>
 
               <div class="main-info-box relative">
@@ -192,14 +194,26 @@
                   <div style="padding-right: 120px;"> 
                       <div class="info-row">
                           <div class="info-icon"><i class="fas fa-user"></i></div>
-                          <div class="info-label">Applicant:</div>
+                          <div class="info-label">Member Name:</div>
                           <div class="info-val" id="displayName"></div>
                       </div>
 
-                      <div id="guarantorRow" class="info-row hidden">
-                          <div class="info-icon"><i class="fas fa-user-shield"></i></div>
-                          <div class="info-label">Guarantor:</div>
-                          <div class="info-val text-brand-teal" id="displayGuarantor"></div>
+                      <div class="info-row">
+                          <div class="info-icon"><i class="fas fa-id-card"></i></div>
+                          <div class="info-label">Membership ID:</div>
+                          <div class="info-val" id="displayMemId"></div>
+                      </div>
+
+                      <div class="info-row">
+                          <div class="info-icon"><i class="fas fa-calendar-check"></i></div>
+                          <div class="info-label">Joining Date:</div>
+                          <div class="info-val" id="displayJoinDate"></div>
+                      </div>
+
+                      <div class="info-row">
+                          <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
+                          <div class="info-label">Address:</div>
+                          <div class="info-val text-sm font-normal" id="displayAddress"></div>
                       </div>
 
                       <div class="info-row">
@@ -208,65 +222,35 @@
                           <div class="info-val" id="displayMobile"></div>
                       </div>
 
-                      <div id="productRow" class="info-row hidden">
-                          <div class="info-icon"><i class="fas fa-box-open"></i></div>
-                          <div class="info-label">Product:</div>
-                          <div class="info-val text-brand-teal" id="displayProduct"></div>
-                      </div>
-
-                      <div class="info-row">
+                      <div class="info-row" style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
                           <div class="info-icon"><i class="fas fa-rupee-sign"></i></div>
-                          <div class="info-label">Loan Amount:</div>
+                          <div class="info-label text-brand-teal">Withdraw Amount:</div>
                           <div class="info-val text-xl text-brand-teal">₹<span id="displayAmount"></span></div>
                       </div>
-
-                      <div id="feeRow" class="info-row hidden">
-                          <div class="info-icon"><i class="fas fa-cogs"></i></div>
-                          <div class="info-label">Proc. Fee:</div>
-                          <div class="info-val">₹<span id="displayFee"></span></div>
-                      </div>
-
-                      <div class="info-row">
-                          <div class="info-icon"><i class="fas fa-percent"></i></div>
-                          <div class="info-label">Interest:</div>
-                          <div class="info-val text-sm" id="displayRate"></div>
-                      </div>
-
-                      <div class="info-row">
-                          <div class="info-icon"><i class="fas fa-chart-pie"></i></div>
-                          <div class="info-label">EMI:</div>
-                          <div class="info-val text-lg text-brand-gold">₹<span id="displayEMI"></span></div>
-                      </div>
-
+                      
                       <div class="info-row" style="border:none;">
-                          <div class="info-icon"><i class="fas fa-calendar-alt"></i></div>
-                          <div class="info-label">End Date:</div>
-                          <div class="info-val" id="repaymentDate"></div>
+                          <div class="info-icon"><i class="fas fa-percentage"></i></div>
+                          <div class="info-label">Interest Applied:</div>
+                          <div class="info-val text-sm text-gray-500">0% (Self Withdrawal)</div>
                       </div>
                   </div>
                   
-                  <div style="border-top: 2px dashed #cbd5e1; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; align-items: flex-end;">
-                      <div class="flex items-center">
-                          <div class="info-icon"><i class="fas fa-file-invoice-dollar"></i></div>
-                          <div class="info-label text-brand-teal">Total Payable:</div>
-                          <div class="info-val text-xl font-bold text-gray-800">₹<span id="displayTotal"></span></div>
-                      </div>
-                      
-                      <div class="text-center" style="min-width: 100px;">
-                           <img id="displaySignature" src="" crossorigin="anonymous" class="h-10 object-contain mx-auto mb-1 hidden">
+                  <div style="border-top: 2px dashed #cbd5e1; margin-top: 20px; padding-top: 10px; display: flex; justify-content: flex-end;">
+                      <div class="text-center" style="min-width: 120px;">
+                           <img id="displaySignature" src="" crossorigin="anonymous" class="h-12 object-contain mx-auto mb-1 hidden">
                            <div id="noSignatureText" class="text-[10px] text-gray-300 hidden">No Digital Sig</div>
-                           <div class="text-[9px] text-gray-400 border-t border-gray-300 px-2">Applicant Signature</div>
+                           <div class="text-[9px] text-gray-400 border-t border-gray-300 px-2 mt-1">Member Signature</div>
                       </div>
                   </div>
               </div>
 
               <div class="mx-auto w-full mb-4">
-                  <div class="border-l-4 border-red-500 bg-red-50 p-3 rounded-r-md flex items-start">
-                      <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-3"></i>
+                  <div class="border-l-4 border-blue-500 bg-blue-50 p-3 rounded-r-md flex items-start">
+                      <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
                       <div>
-                          <h3 class="text-xs font-bold text-red-800 uppercase">Important Notice (महत्वपूर्ण सूचना)</h3>
-                          <p class="text-xs text-red-700 mt-1 font-medium">
-                              EMI every month 1 to 10 tarikh tak jama karein. Yadi late hua to loan amount ka 1% extra charges lagega.
+                          <h3 class="text-xs font-bold text-blue-800 uppercase">Acknowledgement</h3>
+                          <p class="text-xs text-blue-700 mt-1 font-medium">
+                              I hereby confirm the withdrawal of the above amount from my SIP balance. I understand this will reduce my total savings in the fund.
                           </p>
                       </div>
                   </div>
@@ -287,16 +271,13 @@
               </div>
 
               <div style="margin-top: auto;">
-                  <p class="text-center italic text-brand-teal text-sm font-medium mb-8">
-                      "I request the bank community members to please approve this loan application."
-                  </p>
                   <div class="flex justify-between items-end px-10 pb-4 border-t border-gray-100 pt-4">
                       <div class="text-center">
                            <img src="https://ik.imagekit.io/kdtvm0r78/20251206_210616.png" crossorigin="anonymous" class="w-28 opacity-80" style="mix-blend-mode: multiply;">
                            <p class="text-[10px] text-gray-500 uppercase font-bold mt-1">Community Stamp</p>
                       </div>
                       <div class="text-center">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Authorized Signature</p>
+                        <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Approved By</p>
                         <img src="https://ik.imagekit.io/kdtvm0r78/image.png" crossorigin="anonymous" class="w-36">
                         <p class="text-[10px] text-brand-teal font-bold mt-1">Prime Members</p>
                       </div>
@@ -326,132 +307,112 @@
 
     function runAppLogic() {
         let membersData = {};
-        let currentMaxLimit = 50000; // Default Global Max
+        let currentMaxLimit = 0;
 
         const nameSelect = document.getElementById('nameSelect');
-        const loanCategory = document.getElementById('loanCategory');
         const amountInp = document.getElementById('amount');
-        const durationSelect = document.getElementById('durationRateSelect');
         const imageUp = document.getElementById('imageUpload');
-        const productInp = document.getElementById('productInput');
-        const productSec = document.getElementById('productSection');
         const limitMsg = document.getElementById('limit-msg');
         const generateBtn = document.getElementById('generateBtn');
+        const dateBanner = document.getElementById('dateBanner');
+        const formBlocker = document.getElementById('formBlocker');
 
-        // --- NEW: Handle Limit Calculation based on Balance ---
+        // --- 1. DATE CHECK LOGIC (23 June - 30 June) ---
+        function checkDateAccess() {
+            const today = new Date();
+            const currentMonth = today.getMonth(); // 0=Jan, 5=June
+            const currentDate = today.getDate();
+            
+            // Logic: Month must be June (5) AND Date between 23 and 30
+            // Note: For testing, you might need to change conditions manually
+            
+            const isOpen = (currentMonth === 5) && (currentDate >= 23 && currentDate <= 30);
+            
+            if (!isOpen) {
+                dateBanner.classList.remove('hidden');
+                formBlocker.classList.remove('hidden');
+                generateBtn.disabled = true;
+                // Optional: To allow testing regardless of date, comment out the line above
+                // and uncomment below:
+                // console.log("Date check failed but portal kept open for testing.");
+            } else {
+                dateBanner.classList.add('hidden');
+                formBlocker.classList.add('hidden');
+                generateBtn.disabled = false;
+            }
+        }
+        
+        // Run Date Check
+        checkDateAccess();
+
+
+        // --- 2. MEMBER DATA LOGIC ---
         nameSelect.addEventListener('change', () => {
             const memberId = nameSelect.value;
             const member = membersData[memberId];
             if (!member) return;
 
-            // 1. Get Balance
+            // Balance
             const balance = parseFloat(member.accountBalance) || 0;
             document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
             
-            // 2. Calculate Dynamic Limit
-            let calculatedLimit = 0;
-            
-            // --- UPDATED LOGIC: Negative Balance check ---
-            if (balance <= 0) {
-                calculatedLimit = 0; // If balance is 0 or negative, limit is 0
-            } else if (balance < 25000) {
-                calculatedLimit = balance * 1.5; // 1.5x for low balance
-            } else {
-                calculatedLimit = balance * 2.0; // 2x for high balance
-            }
+            // Hidden fields population
+            document.getElementById('memIdField').value = member.membershipId || 'N/A';
+            document.getElementById('joinDateField').value = member.joiningDate || 'N/A';
+            document.getElementById('addressField').value = member.address || 'N/A';
 
-            // 3. Apply Global Cap (50,000)
-            currentMaxLimit = Math.min(calculatedLimit, 50000);
+            // Eligibility Logic (50% of Balance, 0 if negative)
+            let calculatedLimit = 0;
+            if (balance > 0) {
+                calculatedLimit = balance * 0.5; // 50%
+            } else {
+                calculatedLimit = 0;
+            }
             
-            // 4. Update UI
+            currentMaxLimit = Math.floor(calculatedLimit); // Round down
             document.getElementById('displayEligibleLimit').innerText = currentMaxLimit.toLocaleString('en-IN');
             document.getElementById('walletInfo').classList.remove('hidden');
 
-            // 5. Re-validate if amount already entered
+            // Re-validate
             updateUI(); 
         });
 
         function updateUI() {
-            const cat = loanCategory.value;
             const amt = parseFloat(amountInp.value) || 0;
             
-            // Product visibility
-            if(cat === 'product') {
-                productSec.classList.remove('hidden');
-                productInp.required = true;
-            } else {
-                productSec.classList.add('hidden');
-                productInp.required = false;
-            }
-            
-            // --- Limit Validation Logic ---
+            // Limit Validation
             if (amt > 0) {
                 limitMsg.classList.remove('hidden');
-                if (amt > currentMaxLimit) {
-                    limitMsg.innerText = `Exceeds eligible limit (Max: ₹${currentMaxLimit})`;
+                if (currentMaxLimit === 0) {
+                    limitMsg.innerText = "Balance is too low for withdrawal.";
+                    limitMsg.className = "text-xs mt-1 font-semibold text-red-600";
+                    generateBtn.disabled = true;
+                    generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else if (amt > currentMaxLimit) {
+                    limitMsg.innerText = `Exceeds 50% eligibility (Max: ₹${currentMaxLimit})`;
                     limitMsg.className = "text-xs mt-1 font-semibold text-red-600";
                     generateBtn.disabled = true;
                     generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 } else {
                     limitMsg.innerText = "Amount is within limit.";
                     limitMsg.className = "text-xs mt-1 font-semibold text-green-600";
-                    generateBtn.disabled = false;
-                    generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    // Only enable if portal is open
+                    if(formBlocker.classList.contains('hidden')) {
+                        generateBtn.disabled = false;
+                        generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
                 }
             } else {
                 limitMsg.classList.add('hidden');
-                generateBtn.disabled = false;
-                generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
-
-            durationSelect.innerHTML = '';
-            // Don't show duration if limit exceeded OR limit is 0
-            if(amt === 0 || amt > currentMaxLimit || currentMaxLimit === 0) { 
-                durationSelect.innerHTML = '<option>Enter valid amount first...</option>';
-                return;
-            }
-
-            let opts = [];
-            if(cat === 'personal') {
-                if(amt < 25000) {
-                    opts.push({val: '1-1.0-0', txt: '1 Month (1% Total Interest)'});
-                    opts.push({val: '2-1.5-0', txt: '2 Months (3% Total Interest)'});
-                    opts.push({val: '3-1.666666667-0', txt: '3 Months (5% Total Interest)'});
-                    for(let m = 4; m <= 12; m++) opts.push({val: `${m}-1.0-0`, txt: `${m} Months (1% Monthly Interest)`});
-                } else {
-                    opts = [
-                        {val: '6-0.7-0', txt: '6 Months (0.7% Monthly Interest)'},
-                        {val: '9-0.7-0', txt: '9 Months (0.7% Monthly Interest)'},
-                        {val: '12-0.7-0', txt: '12 Months (0.7% Monthly Interest)'}
-                    ];
-                }
-            } else {
-                if(amt >= 30000) {
-                    opts = [
-                        {val: '6-0.5-100', txt: '6 Months (0.5% Int + ₹100 Fee)'},
-                        {val: '9-0.5-100', txt: '9 Months (0.5% Int + ₹100 Fee)'},
-                        {val: '12-0.5-100', txt: '12 Months (0.5% Int + ₹100 Fee)'}
-                    ];
-                } else {
-                    const fee = amt > 5000 ? 100 : 0;
-                    for(let m=1; m<=5; m++) opts.push({val: `${m}-1.0-${fee}`, txt: `${m} Months (1% Int${fee?'+₹100 Fee':''})`});
-                }
-            }
-
-            opts.forEach(o => {
-                const el = document.createElement('option');
-                el.value = o.val;
-                el.innerText = o.txt;
-                durationSelect.appendChild(el);
-            });
         }
 
-        loanCategory.addEventListener('change', updateUI);
         amountInp.addEventListener('input', updateUI);
 
+        // Fetch Members
         firebase.database().ref('members').once('value').then(snap => {
             membersData = snap.val() || {};
-            nameSelect.innerHTML = '<option value="" disabled selected>Select Applicant</option>';
+            nameSelect.innerHTML = '<option value="" disabled selected>Select Member</option>';
             Object.entries(membersData)
                 .filter(([_, m]) => m.status === 'Approved')
                 .sort((a,b) => a[1].fullName.localeCompare(b[1].fullName))
@@ -467,58 +428,31 @@
         const paperScaler = document.getElementById('paper-scaler');
         const capture = document.getElementById('capture');
 
+        // GENERATE SLIP
         document.getElementById('loanForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const member = membersData[nameSelect.value];
             if(!member) return alert('Select member');
             
             const amt = parseFloat(amountInp.value);
-            // Double Check Limit on Submit (Security)
             if (amt > currentMaxLimit) {
-                alert(`Loan amount exceeds the eligible limit of ₹${currentMaxLimit}`);
+                alert(`Amount exceeds 50% limit of ₹${currentMaxLimit}`);
                 return;
             }
 
-            const [months, intRate, feeRaw] = durationSelect.value.split('-').map(Number);
-            let fee = 0;
-            if(loanCategory.value === 'personal' && amt >= 30000) fee = amt * (feeRaw/100);
-            else if(loanCategory.value === 'product' || (amt >= 30000 && loanCategory.value === 'product')) fee = feeRaw;
-            
-            const monthlyInt = amt * (intRate/100);
-            const totalPay = amt + (monthlyInt * months);
-            const emi = Math.ceil(totalPay / months);
-            const endD = new Date();
-            endD.setMonth(endD.getMonth() + months);
-
+            // Populate Preview Fields
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
-            document.getElementById('letterLoanCategory').innerText = loanCategory.value === 'personal' ? 'PERSONAL LOAN' : 'PRODUCT LOAN';
             document.getElementById('displayName').innerText = member.fullName;
             document.getElementById('displayMobile').innerText = member.mobileNumber || 'N/A';
+            
+            // New Fields
+            document.getElementById('displayMemId').innerText = member.membershipId || 'N/A';
+            document.getElementById('displayJoinDate').innerText = member.joiningDate || 'N/A';
+            document.getElementById('displayAddress').innerText = member.address || 'N/A';
+            
             document.getElementById('displayAmount').innerText = amt.toFixed(2);
-            document.getElementById('displayRate').innerText = `${intRate.toFixed(2)}% Monthly for ${months} Months`;
-            document.getElementById('displayEMI').innerText = emi.toFixed(2);
-            document.getElementById('displayTotal').innerText = totalPay.toFixed(2);
-            document.getElementById('repaymentDate').innerText = endD.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
-            const guarRow = document.getElementById('guarantorRow');
-            if(member.guarantorName && member.guarantorName !== 'N/A') {
-                document.getElementById('displayGuarantor').innerText = member.guarantorName;
-                guarRow.classList.remove('hidden'); guarRow.style.display = 'flex';
-            } else { guarRow.classList.add('hidden'); }
-
-            const prodRow = document.getElementById('productRow');
-            if(loanCategory.value === 'product') {
-                prodRow.classList.remove('hidden'); prodRow.style.display = 'flex';
-                document.getElementById('displayProduct').innerText = productInp.value;
-            } else { prodRow.classList.add('hidden'); }
-
-            const feeRow = document.getElementById('feeRow');
-            if(fee > 0) {
-                feeRow.classList.remove('hidden'); feeRow.style.display = 'flex';
-                document.getElementById('displayFee').innerText = fee.toFixed(2);
-            } else { feeRow.classList.add('hidden'); }
-
-            // IMAGE LOGIC (Helper)
+            // Images Logic
             const setImg = (id, url) => {
                 const img = document.getElementById(id);
                 if(url) {
@@ -568,6 +502,8 @@
 
             inputPage.classList.add('hidden');
             previewOverlay.style.display = 'flex';
+            
+            // Auto Scale
             const screenW = window.innerWidth;
             const paperW = capture.offsetWidth; 
             if(screenW < paperW + 40) {
@@ -607,7 +543,7 @@
                 });
                 paperScaler.style.transform = currentTransform;
                 const link = document.createElement('a');
-                link.download = `Loan_${document.getElementById('displayName').innerText.replace(/\s/g,'_')}.png`;
+                link.download = `Withdrawal_${document.getElementById('displayName').innerText.replace(/\s/g,'_')}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 btn.innerHTML = '<i class="fas fa-check mr-2"></i> Done';
