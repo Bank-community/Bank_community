@@ -109,7 +109,18 @@
                 <select id="nameSelect" required class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
                     <option value="" disabled selected>Loading members...</option>
                 </select>
+                <div id="walletInfo" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center text-xs">
+                    <div>
+                        <p class="text-gray-500">Wallet Balance</p>
+                        <p class="font-bold text-blue-700 text-sm">₹<span id="displayWalletBalance">0</span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-gray-500">Eligible Limit</p>
+                        <p class="font-bold text-green-600 text-sm">₹<span id="displayEligibleLimit">0</span></p>
+                    </div>
+                </div>
             </div>
+
             <div>
                 <label class="text-sm font-semibold text-gray-700">Loan Type</label>
                 <select id="loanCategory" required class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
@@ -117,29 +128,35 @@
                     <option value="product">Product Loan (Item/Asset)</option>
                 </select>
             </div>
+            
             <div id="productSection" class="hidden">
                 <label class="text-sm font-semibold text-gray-700">Product Name</label>
                 <input type="text" id="productInput" placeholder="Ex: Mobile, Laptop..." class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
             </div>
+
             <div>
                 <label class="text-sm font-semibold text-gray-700">Loan Amount (₹)</label>
-                <input type="number" id="amount" placeholder="Max 50,000" min="1" max="50000" required class="w-full p-3 border rounded-lg bg-gray-50 text-lg font-bold text-brand-teal mt-1">
-                <p id="limit-msg" class="text-xs text-red-500 mt-1 hidden">Maximum limit is ₹50,000</p>
+                <input type="number" id="amount" placeholder="Enter Amount" min="1" required class="w-full p-3 border rounded-lg bg-gray-50 text-lg font-bold text-brand-teal mt-1">
+                <p id="limit-msg" class="text-xs mt-1 hidden font-semibold"></p>
             </div>
+
             <div id="dynamicOptions">
                 <label class="text-sm font-semibold text-gray-700">Duration & Interest</label>
                 <select id="durationRateSelect" required class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
                    <option value="" disabled selected>Enter amount first...</option>
                 </select>
             </div>
+
             <div>
                 <label class="text-sm font-semibold text-gray-700">Additional Document (Use if not in profile)</label>
                 <input type="file" id="imageUpload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-teal-50 file:text-teal-700 border rounded-lg mt-1">
             </div>
+
             <div class="mt-4 rounded-lg overflow-hidden border">
                 <img src="https://ik.imagekit.io/kdtvm0r78/1000119828-optimized_C4_53shzy.jpg" alt="Rules" class="w-full h-auto">
             </div>
-            <button type="submit" class="w-full py-4 bg-brand-teal text-white font-bold rounded-xl shadow-lg hover:bg-teal-800 transition mt-4 flex justify-center items-center">
+
+            <button type="submit" id="generateBtn" class="w-full py-4 bg-brand-teal text-white font-bold rounded-xl shadow-lg hover:bg-teal-800 transition mt-4 flex justify-center items-center">
                 GENERATE FORM <i class="fas fa-arrow-right ml-2"></i>
             </button>
         </form>
@@ -249,7 +266,7 @@
                       <div>
                           <h3 class="text-xs font-bold text-red-800 uppercase">Important Notice (महत्वपूर्ण सूचना)</h3>
                           <p class="text-xs text-red-700 mt-1 font-medium">
-                              EMI every month 1 to 10 tarikh tak jama karein. Yadi late hua to loan amount ka 0.5% extra charges lagega.
+                              EMI every month 1 to 10 tarikh tak jama karein. Yadi late hua to loan amount ka 1% extra charges lagega.
                           </p>
                       </div>
                   </div>
@@ -309,6 +326,7 @@
 
     function runAppLogic() {
         let membersData = {};
+        let currentMaxLimit = 50000; // Default Global Max
 
         const nameSelect = document.getElementById('nameSelect');
         const loanCategory = document.getElementById('loanCategory');
@@ -317,11 +335,43 @@
         const imageUp = document.getElementById('imageUpload');
         const productInp = document.getElementById('productInput');
         const productSec = document.getElementById('productSection');
+        const limitMsg = document.getElementById('limit-msg');
+        const generateBtn = document.getElementById('generateBtn');
+
+        // --- NEW: Handle Limit Calculation based on Balance ---
+        nameSelect.addEventListener('change', () => {
+            const memberId = nameSelect.value;
+            const member = membersData[memberId];
+            if (!member) return;
+
+            // 1. Get Balance
+            const balance = parseFloat(member.accountBalance) || 0;
+            document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
+            
+            // 2. Calculate Dynamic Limit
+            let calculatedLimit = 0;
+            if (balance < 25000) {
+                calculatedLimit = balance * 1.5; // 1.5x for low balance
+            } else {
+                calculatedLimit = balance * 2.0; // 2x for high balance
+            }
+
+            // 3. Apply Global Cap (50,000)
+            currentMaxLimit = Math.min(calculatedLimit, 50000);
+            
+            // 4. Update UI
+            document.getElementById('displayEligibleLimit').innerText = currentMaxLimit.toLocaleString('en-IN');
+            document.getElementById('walletInfo').classList.remove('hidden');
+
+            // 5. Re-validate if amount already entered
+            updateUI(); 
+        });
 
         function updateUI() {
             const cat = loanCategory.value;
             const amt = parseFloat(amountInp.value) || 0;
             
+            // Product visibility
             if(cat === 'product') {
                 productSec.classList.remove('hidden');
                 productInp.required = true;
@@ -330,11 +380,29 @@
                 productInp.required = false;
             }
             
-            document.getElementById('limit-msg').classList.toggle('hidden', amt <= 50000);
-            
+            // --- NEW: Limit Validation Logic ---
+            if (amt > 0) {
+                limitMsg.classList.remove('hidden');
+                if (amt > currentMaxLimit) {
+                    limitMsg.innerText = `Exceeds eligible limit (Max: ₹${currentMaxLimit})`;
+                    limitMsg.className = "text-xs mt-1 font-semibold text-red-600";
+                    generateBtn.disabled = true;
+                    generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    limitMsg.innerText = "Amount is within limit.";
+                    limitMsg.className = "text-xs mt-1 font-semibold text-green-600";
+                    generateBtn.disabled = false;
+                    generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                limitMsg.classList.add('hidden');
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
             durationSelect.innerHTML = '';
-            if(amt === 0) {
-                durationSelect.innerHTML = '<option>Enter amount first...</option>';
+            if(amt === 0 || amt > currentMaxLimit) { // Don't show duration if limit exceeded
+                durationSelect.innerHTML = '<option>Enter valid amount first...</option>';
                 return;
             }
 
@@ -398,7 +466,14 @@
             e.preventDefault();
             const member = membersData[nameSelect.value];
             if(!member) return alert('Select member');
+            
             const amt = parseFloat(amountInp.value);
+            // Double Check Limit on Submit (Security)
+            if (amt > currentMaxLimit) {
+                alert(`Loan amount exceeds the eligible limit of ₹${currentMaxLimit}`);
+                return;
+            }
+
             const [months, intRate, feeRaw] = durationSelect.value.split('-').map(Number);
             let fee = 0;
             if(loanCategory.value === 'personal' && amt >= 30000) fee = amt * (feeRaw/100);
@@ -420,7 +495,6 @@
             document.getElementById('displayTotal').innerText = totalPay.toFixed(2);
             document.getElementById('repaymentDate').innerText = endD.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
-            // Guarantor & Product Logic...
             const guarRow = document.getElementById('guarantorRow');
             if(member.guarantorName && member.guarantorName !== 'N/A') {
                 document.getElementById('displayGuarantor').innerText = member.guarantorName;
@@ -453,7 +527,6 @@
             
             setImg('apiApplicantPhoto', member.profilePicUrl);
             
-            // --- NEW: Signature Logic ---
             const sigImg = document.getElementById('displaySignature');
             const noSig = document.getElementById('noSignatureText');
             if(member.signatureUrl) {
@@ -465,15 +538,11 @@
                 noSig.classList.remove('hidden');
             }
 
-            // --- NEW: Documents Logic (Front & Back) ---
             const docSection = document.getElementById('docSection');
             const manFile = imageUp.files[0];
-            
-            // Determine Front URL: Use manual upload if present, otherwise stored DB data
-            let frontUrl = member.documentFrontUrl || member.documentUrl; // fallback to old 'documentUrl'
+            let frontUrl = member.documentFrontUrl || member.documentUrl;
             let backUrl = member.documentBackUrl;
 
-            // Manual Upload Override for FRONT only (if user uploads something in generating form)
             if(manFile) {
                 const reader = new FileReader();
                 reader.onload = e => {
@@ -483,7 +552,6 @@
                 };
                 reader.readAsDataURL(manFile);
             } else {
-                // Using only Database Data
                 if(frontUrl || backUrl) {
                     setImg('docFrontImg', frontUrl);
                     setImg('docBackImg', backUrl);
