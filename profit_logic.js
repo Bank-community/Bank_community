@@ -1,9 +1,5 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v6.0 - SECURITY + SORTING FIX)
-// Features: 
-// 1. Hidden Security Layer (3 Taps + Password)
-// 2. Auth Guard
-// 3. Sorting Fixed
+// MASTER PROFIT LOGIC (v6.1 - SECURITY FIX)
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -12,73 +8,85 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0
 
 // --- GLOBAL VARIABLES ---
 let db, auth;
-let rawMembers = {};
-let rawTransactions = {};
-let rawActiveLoans = {};
-let allTransactionsList = [];
-let memberDataMap = new Map();
-let transactionsByMember = {}; 
-let renderedMembersCache = []; // Sorting ke liye data yahan rahega
-let securityTaps = 0; // Click counter for security
+let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {};
+let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
+let securityTaps = 0; 
 
 const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
-const SECURITY_PIN = '74123690'; // Your Set Password
+const SECURITY_PIN = '74123690'; 
 
 // --- INITIALIZATION ---
-// Pehle Security System load hoga, Data nahi.
-document.addEventListener("DOMContentLoaded", setupSecuritySystem);
+// FIX: Event Listener hata diya, direct call kar rahe hain
+setupSecuritySystem(); 
 
 // ==========================================
-// 1. SECURITY SYSTEM LOGIC
+// 1. SECURITY SYSTEM LOGIC (Improved)
 // ==========================================
 function setupSecuritySystem() {
+    console.log("🔒 Security System Initialized");
+    
     const sensor = document.getElementById('security-sensor');
     const inputBox = document.getElementById('security-input-box');
     const passInput = document.getElementById('security-pass');
     const verifyBtn = document.getElementById('security-btn');
     const errorMsg = document.getElementById('security-error');
+    const loaderText = document.querySelector('#security-sensor h2'); // Text element
 
-    // 1. Sensor Logic (3 Taps on "Calculating Data")
+    // 1. Sensor Logic
     if (sensor) {
-        sensor.addEventListener('click', () => {
+        sensor.addEventListener('click', (e) => {
             securityTaps++;
-            console.log("Security Tap:", securityTaps);
+            console.log("Tap Count:", securityTaps);
+            
+            // FEEDBACK: Mobile vibrate (agar support kare)
+            if (navigator.vibrate) navigator.vibrate(50);
+            
+            // VISUAL FEEDBACK: Text change karein taaki pata chale click hua
+            if(loaderText && securityTaps < 3) {
+                loaderText.textContent = `UNLOCKING... (${securityTaps}/3)`;
+            }
+
             if (securityTaps >= 3) {
                 // 3rd click par input box dikhayein
-                inputBox.classList.add('visible');
+                if(inputBox) inputBox.classList.add('visible');
+                if(loaderText) loaderText.textContent = "ENTER ACCESS CODE";
             }
         });
+    } else {
+        console.error("❌ Sensor Element Not Found in HTML");
     }
 
     // 2. Verify Password
     if (verifyBtn && passInput) {
         verifyBtn.addEventListener('click', () => {
             if (passInput.value === SECURITY_PIN) {
-                // Success: Hide Overlay & Start System
-                document.getElementById('loader-overlay').classList.add('hidden');
-                checkAuthAndInit(); // Ab asli data load shuru hoga
+                // Success: Screen Hatao
+                const overlay = document.getElementById('loader-overlay');
+                if(overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 500); // Animation ke baad remove
+                }
+                
+                checkAuthAndInit(); // Asli Data Load Function Call
             } else {
-                // Fail
                 errorMsg.classList.remove('hidden');
                 passInput.value = '';
-                passInput.focus();
+                if(navigator.vibrate) navigator.vibrate([100, 50, 100]); // Error Vibrate
             }
         });
-        
-        // Enter key support
-        passInput.addEventListener('keypress', (e) => {
+
+        // Enter Key Support
+        passInput.addEventListener('keyup', (e) => {
             if (e.key === 'Enter') verifyBtn.click();
         });
     }
 }
 
 // ==========================================
-// 2. MAIN APP LOGIC (Starts after unlock)
+// 2. MAIN APP LOGIC (Authentication & Data)
 // ==========================================
 async function checkAuthAndInit() {
     try {
-        // showSystemLoader("Verifying Session..."); // Overlay already removed
-
         // 1. Fetch Config
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
@@ -92,19 +100,15 @@ async function checkAuthAndInit() {
         // 3. AUTH GUARD
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("✅ Authenticated as:", user.email);
-                fetchAllData(); // Proceed to load data
+                fetchAllData(); 
             } else {
-                console.warn("⚠️ Not logged in. Redirecting...");
                 window.location.href = 'login.html'; 
             }
         });
         
-        // Sorting Listener Attach Karein
         setupSortingListener();
 
     } catch (error) {
-        console.error("Init Error:", error);
         alert("System Error: " + error.message);
     }
 }
@@ -112,8 +116,9 @@ async function checkAuthAndInit() {
 // --- DATA FETCHING ---
 async function fetchAllData() {
     try {
-        injectScannerUI(0); // Show initial scanner UI
-        document.getElementById('scanner-text').textContent = "Connecting Database...";
+        injectScannerUI(0);
+        const scannerText = document.getElementById('scanner-text');
+        if(scannerText) scannerText.textContent = "Connecting Database...";
         
         const [membersSnap, txSnap, loansSnap] = await Promise.all([
             get(ref(db, 'members')),
@@ -130,19 +135,20 @@ async function fetchAllData() {
         prepareAndStartQueue();
 
     } catch (error) {
-        alert("Database Error: " + error.message);
+        console.error(error);
+        alert("Data Error: " + error.message);
     }
 }
 
-// --- STEP 1: PREPARE DATA ---
+// --- PREPARE DATA ---
 function prepareAndStartQueue() {
-    document.getElementById('scanner-text').textContent = "Organizing Data...";
+    const scannerText = document.getElementById('scanner-text');
+    if(scannerText) scannerText.textContent = "Processing Records...";
     
     allTransactionsList = [];
     memberDataMap.clear();
     transactionsByMember = {};
 
-    // Map Basic Info
     for (const id in rawMembers) {
         if (rawMembers[id].status === 'Approved') {
             memberDataMap.set(id, {
@@ -154,7 +160,6 @@ function prepareAndStartQueue() {
         }
     }
 
-    // Process Transactions
     let idCounter = 0;
     for (const txId in rawTransactions) {
         const tx = rawTransactions[txId];
@@ -184,24 +189,17 @@ function prepareAndStartQueue() {
             default: continue;
         }
         allTransactionsList.push(record);
-        
-        if(transactionsByMember[tx.memberId]) {
-            transactionsByMember[tx.memberId].push(record);
-        }
+        if(transactionsByMember[tx.memberId]) transactionsByMember[tx.memberId].push(record);
     }
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
-    
-    // UI Update
     injectScannerUI(memberIdsToProcess.length);
     startLiveQueue(memberIdsToProcess);
 }
 
-// --- STEP 2: LIVE QUEUE (One by One) ---
-let communityStats = {
-    totalMembers: 0, totalSip: 0, totalProfitDistributed: 0, totalWalletLiability: 0
-};
+// --- LIVE QUEUE ---
+let communityStats = { totalMembers: 0, totalSip: 0, totalProfitDistributed: 0, totalWalletLiability: 0 };
 
 function startLiveQueue(memberIds) {
     let index = 0;
@@ -209,21 +207,25 @@ function startLiveQueue(memberIds) {
 
     function processNext() {
         if (index >= total) {
-            document.getElementById('scanner-text').textContent = "Dashboard Ready ✅";
+            const scannerText = document.getElementById('scanner-text');
+            if(scannerText) scannerText.textContent = "Dashboard Ready ✅";
             setTimeout(() => {
                 const scanner = document.getElementById('live-scanner-status');
                 if(scanner) scanner.remove();
-            }, 2000);
+            }, 1000);
             return;
         }
 
         const id = memberIds[index];
         const m = rawMembers[id];
 
-        // Update Scanner UI
-        document.getElementById('scanner-text').textContent = `Calculating: ${m.fullName}...`;
-        document.getElementById('scanner-count').textContent = `${index + 1}/${total}`;
-        document.getElementById('scanner-bar').style.width = `${((index + 1) / total) * 100}%`;
+        const scannerText = document.getElementById('scanner-text');
+        const scannerCount = document.getElementById('scanner-count');
+        const scannerBar = document.getElementById('scanner-bar');
+
+        if(scannerText) scannerText.textContent = `Analyzing: ${m.fullName}`;
+        if(scannerCount) scannerCount.textContent = `${index + 1}/${total}`;
+        if(scannerBar) scannerBar.style.width = `${((index + 1) / total) * 100}%`;
 
         setTimeout(() => {
             try {
@@ -234,7 +236,6 @@ function startLiveQueue(memberIds) {
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
                 
                 let scoreObj = { totalScore: 0 };
-                // Using External Score Engine
                 if (typeof calculatePerformanceScore === 'function') {
                     scoreObj = calculatePerformanceScore(m.fullName, new Date(), allTransactionsList, rawActiveLoans);
                 }
@@ -248,27 +249,24 @@ function startLiveQueue(memberIds) {
                 renderedMembersCache.push(memberObj);
                 appendMemberCard(memberObj);
 
-                // Update Stats
                 communityStats.totalMembers++;
                 communityStats.totalSip += totalSip;
                 communityStats.totalProfitDistributed += lifetimeProfit;
                 communityStats.totalWalletLiability += walletData.total;
                 
                 updateSummaryUI(communityStats);
-
-            } catch (err) { console.error(`Error calculating ${m.fullName}:`, err); }
+            } catch (err) { console.error(err); }
 
             index++;
-            setTimeout(processNext, 5); // Fast processing
-        }, 5);
+            setTimeout(processNext, 2);
+        }, 2);
     }
     processNext();
 }
 
-// --- RENDERING & UI UTILS ---
+// --- UI & SORTING ---
 function injectScannerUI(totalCount) {
     const grid = document.getElementById('members-grid');
-    // Agar pehle se scanner hai to use reuse karein ya replace karein
     const existingScanner = document.getElementById('live-scanner-status');
     if (existingScanner) existingScanner.remove();
 
@@ -286,11 +284,12 @@ function injectScannerUI(totalCount) {
         <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
             <div id="scanner-bar" class="bg-[#D4AF37] h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>`;
-    grid.prepend(scanner); // Top pe lagayein
+    if(grid) grid.prepend(scanner);
 }
 
 function appendMemberCard(m) {
     const grid = document.getElementById('members-grid');
+    if(!grid) return;
     let scoreColor = m.score >= 80 ? 'text-green-500' : (m.score >= 50 ? 'text-yellow-500' : 'text-red-500');
 
     const card = document.createElement('div');
@@ -323,38 +322,24 @@ function appendMemberCard(m) {
             View History
         </button>`;
     
-    // History Access ke liye Global Variable
     window[`history_${m.id}`] = m.walletHistory;
-    
     grid.appendChild(card);
 }
 
-// ==========================================
-// 3. SORTING LOGIC (The Fix)
-// ==========================================
 function setupSortingListener() {
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
-        sortSelect.addEventListener('change', (e) => {
-            handleSort(e.target.value);
-        });
+        sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
     }
 }
 
 function handleSort(criteria) {
-    if (!renderedMembersCache || renderedMembersCache.length === 0) {
-        console.warn("Data not ready for sorting yet.");
-        return;
-    }
-
-    // Grid Clear
+    if (!renderedMembersCache || renderedMembersCache.length === 0) return;
     const grid = document.getElementById('members-grid');
-    
-    // Scanner ko bacha ke rakhein ya remove kar dein (yahan remove kar rahe hain kyunki calculation done hai)
+    if(!grid) return;
     grid.innerHTML = '';
-
+    
     let sortedData = [...renderedMembersCache];
-
     switch (criteria) {
         case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
         case 'score': sortedData.sort((a, b) => b.score - a.score); break;
@@ -362,12 +347,10 @@ function handleSort(criteria) {
         case 'name': 
         default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
     }
-
     sortedData.forEach(member => appendMemberCard(member));
 }
 
-
-// --- UTILS & MATH (SAME AS BEFORE) ---
+// --- UTILS ---
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
     allTransactionsList.filter(r => r.returnAmount > 0).forEach(paymentRecord => {
@@ -425,48 +408,15 @@ function calculateProfitDistribution(paymentRecord) {
 }
 
 function updateSummaryUI(s) { 
-    document.getElementById('total-members').textContent = s.totalMembers; 
-    document.getElementById('total-community-sip').textContent = formatCurrency(s.totalSip); 
-    document.getElementById('total-community-profit').textContent = formatCurrency(s.totalProfitDistributed); 
-    document.getElementById('total-wallet-liability').textContent = formatCurrency(s.totalWalletLiability); 
-}
-function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
-
-// Global Scope Export for Modal Button
-window.showLocalHistory = function(memberId) {
-    const history = window[`history_${memberId}`] || [];
-    const modal = document.getElementById('history-modal');
-    const list = document.getElementById('modal-history-list');
-    const nameEl = document.getElementById('modal-member-name');
-    
-    // Find name from cache
-    const member = renderedMembersCache.find(m => m.id === memberId);
-    nameEl.textContent = member ? member.name : 'Member';
-    
-    list.innerHTML = '';
-    if(history.length === 0) {
-        list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No history found.</p>';
-    } else {
-        // Reverse for latest first
-        [...history].reverse().forEach(h => {
-            const isPos = h.amount > 0;
-            const dateStr = new Date(h.date).toLocaleDateString('en-GB');
-            list.innerHTML += `
-                <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                    <div>
-                        <p class="text-xs font-bold text-gray-700 capitalize">${h.type.replace('_', ' ')}</p>
-                        <p class="text-[10px] text-gray-400">${dateStr}</p>
-                    </div>
-                    <span class="font-bold text-sm ${isPos ? 'text-green-600' : 'text-red-500'}">
-                        ${isPos ? '+' : ''}${formatCurrency(h.amount)}
-                    </span>
-                </div>`;
-        });
+    const els = {
+        'total-members': s.totalMembers,
+        'total-community-sip': formatCurrency(s.totalSip),
+        'total-community-profit': formatCurrency(s.totalProfitDistributed),
+        'total-wallet-liability': formatCurrency(s.totalWalletLiability)
+    };
+    for(const id in els) {
+        const el = document.getElementById(id);
+        if(el) el.textContent = els[id];
     }
-    
-    modal.classList.remove('hidden');
-    
-    // Close Logic
-    document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
-    modal.onclick = (e) => { if(e.target === modal) modal.classList.add('hidden'); };
 }
+function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-
