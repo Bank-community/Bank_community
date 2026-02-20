@@ -1,6 +1,9 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v6.1 - FIXED CALCULATION LOOP)
-// Fix: Calculates Undistributed Profit exactly ONCE.
+// MASTER PROFIT LOGIC (v7.0 - ACCURATE SYNC)
+// Features: 
+// 1. One-time Global Leak Calculation (Fixes the huge number bug)
+// 2. High-Water Mark Sync (Prevents duplicate adds)
+// 3. Date Lock (Only allows sync on 20th)
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -13,8 +16,10 @@ let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {}, rawPenaltyWallet
 let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
 
 // Tracking Variables
-let totalUndistributedCalculated = 0; 
-let totalAlreadySynced = 0;           
+let totalNetReturnCalculated = 0; // Total 90% Interest
+let totalDistributedCalculated = 0; // Total actually given to members
+let totalUndistributedCalculated = 0; // The Difference
+let totalAlreadySynced = 0; // Read from DB
 
 const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
@@ -23,7 +28,7 @@ document.addEventListener("DOMContentLoaded", checkAuthAndInit);
 
 async function checkAuthAndInit() {
     try {
-        showSystemLoader("Verifying Session...");
+        // showSystemLoader("Verifying Session...");
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
@@ -39,16 +44,21 @@ async function checkAuthAndInit() {
                 window.location.href = 'login.html';
             }
         });
+        
+        // Sorting Listener Attach
+        const sortSelect = document.getElementById('sort-select');
+        if(sortSelect) {
+            sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
+        }
+
     } catch (error) {
-        showError("System Error: " + error.message);
+        alert("System Error: " + error.message);
     }
 }
 
 // --- DATA FETCHING ---
 async function fetchAllData() {
     try {
-        showSystemLoader("Loading Database...");
-        
         const [membersSnap, txSnap, loansSnap, walletSnap] = await Promise.all([
             get(ref(db, 'members')),
             get(ref(db, 'transactions')),
@@ -63,25 +73,26 @@ async function fetchAllData() {
         rawActiveLoans = loansSnap.exists() ? loansSnap.val() : {};
         rawPenaltyWallet = walletSnap.exists() ? walletSnap.val() : {};
 
+        // Get the marker: How much have we ALREADY moved to wallet?
         totalAlreadySynced = (rawPenaltyWallet.metadata && rawPenaltyWallet.metadata.totalUndistributedSynced) || 0;
 
         prepareAndStartQueue();
 
     } catch (error) {
-        showError("Database Error: " + error.message);
+        alert("Database Error: " + error.message);
     }
 }
 
 // --- STEP 1: PREPARE DATA ---
 function prepareAndStartQueue() {
-    showSystemLoader("Analyzing Records...");
-    
     allTransactionsList = [];
     memberDataMap.clear();
     transactionsByMember = {};
     
-    // IMPORTANT: Reset Counter Here
-    totalUndistributedCalculated = 0; 
+    // Reset Counters
+    totalNetReturnCalculated = 0;
+    totalDistributedCalculated = 0;
+    totalUndistributedCalculated = 0;
 
     // Map Basic Info
     for (const id in rawMembers) {
@@ -118,7 +129,7 @@ function prepareAndStartQueue() {
             case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
             case 'Loan Payment':
                 record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
-                record.returnAmount = tx.interestPaid || 0;
+                record.returnAmount = tx.interestPaid || 0; // Only Interest
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
@@ -129,8 +140,8 @@ function prepareAndStartQueue() {
     }
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
-    // FIX: Calculate Global Leaks ONCE here, before UI loop starts
-    calculateTotalSystemLeaks();
+    // --- CRITICAL FIX: CALCULATE LEAKS ONCE HERE ---
+    calculateGlobalProfitStats();
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
     document.getElementById('loader-overlay').classList.add('hidden');
@@ -139,31 +150,45 @@ function prepareAndStartQueue() {
     startLiveQueue(memberIdsToProcess);
 }
 
-// --- NEW FUNCTION: CALCULATE LEAKS ONCE ---
-function calculateTotalSystemLeaks() {
-    console.log("🔍 Calculating System Leaks (One-Time Run)...");
+// --- NEW LOGIC: GLOBAL CALCULATION (Accurate Math) ---
+function calculateGlobalProfitStats() {
+    console.log("🔍 Calculating Global Stats...");
+    
+    // 1. Calculate Total Net Return (All Interest Paid - 10% Admin)
+    // Note: We assume 'tx.returnAmount' is the full interest paid by user.
+    // The "10% Admin deduction" logic happens conceptually.
+    
     const profitTx = allTransactionsList.filter(r => r.returnAmount > 0);
     
     profitTx.forEach(tx => {
-        const totalInterest = tx.returnAmount;
-        const payerInfo = memberDataMap.get(tx.memberId);
+        const fullInterest = tx.returnAmount;
         
-        // 1. Guarantor Leak Check
-        // Agar Guarantor nahi hai ya 'Xxxxx' hai, to 10% Bank ka hua
-        if (payerInfo && (!payerInfo.guarantorName || payerInfo.guarantorName === 'Xxxxx')) {
-            totalUndistributedCalculated += (totalInterest * 0.10);
-        }
+        // 10% is Admin Fee (Already gone)
+        // 90% is what enters the Profit Distribution System
+        const netReturnForDistribution = fullInterest * 0.90;
+        
+        totalNetReturnCalculated += netReturnForDistribution;
 
-        // 2. Inactivity Penalty Check
-        // Hame dekhna hai ki is transaction ke waqt, distribution me se kitna penalty kata
-        const distResult = calculateProfitDistribution(tx, true); // True flag = Dry Run
+        // Now, let's see how much actually got distributed to people
+        const distResult = calculateProfitDistribution(tx); // Uses the logic to see who got what
         
-        if (distResult && distResult.lostAmount) {
-            totalUndistributedCalculated += distResult.lostAmount;
+        if (distResult && distResult.distribution) {
+            distResult.distribution.forEach(share => {
+                totalDistributedCalculated += share.share;
+            });
         }
     });
+
+    // The Magic Formula
+    // Undistributed = (Total Available to Distribute) - (Actually Distributed)
+    totalUndistributedCalculated = totalNetReturnCalculated - totalDistributedCalculated;
     
-    console.log("✅ Total Undistributed Calculated:", totalUndistributedCalculated);
+    // Round to avoid floating point errors (e.g. 1026.8999999)
+    totalUndistributedCalculated = Math.round(totalUndistributedCalculated * 100) / 100;
+
+    console.log(`✅ Net Return (90%): ${totalNetReturnCalculated}`);
+    console.log(`✅ Distributed: ${totalDistributedCalculated}`);
+    console.log(`✅ Undistributed (Leak): ${totalUndistributedCalculated}`);
 }
 
 // --- STEP 2: LIVE QUEUE ---
@@ -178,18 +203,22 @@ function startLiveQueue(memberIds) {
     function processNext() {
         if (index >= total) {
             document.getElementById('scanner-text').textContent = "Dashboard Ready ✅";
-            initWalletSyncUI(); // Sync Button Show karein
+            
+            // Show Sync UI
+            initWalletSyncUI();
+            
             setTimeout(() => {
                 const scanner = document.getElementById('live-scanner-status');
                 if(scanner) scanner.remove();
-            }, 2000);
+            }, 1000);
             return;
         }
 
         const id = memberIds[index];
         const m = rawMembers[id];
 
-        document.getElementById('scanner-text').textContent = `Calculating: ${m.fullName}...`;
+        // Update Scanner Text
+        document.getElementById('scanner-text').textContent = `Analyzing: ${m.fullName}`;
         document.getElementById('scanner-count').textContent = `${index + 1}/${total}`;
         document.getElementById('scanner-bar').style.width = `${((index + 1) / total) * 100}%`;
 
@@ -222,75 +251,126 @@ function startLiveQueue(memberIds) {
                 
                 updateSummaryUI(communityStats);
 
-            } catch (err) { console.error(`Error:`, err); }
+            } catch (err) { console.error(err); }
 
             index++;
-            setTimeout(processNext, 5); 
-        }, 5);
+            setTimeout(processNext, 2); // Fast
+        }, 2);
     }
     processNext();
 }
 
-// --- UTILS (Calculations) ---
+// --- SYNC & UI LOGIC ---
+function initWalletSyncUI() {
+    const el = document.getElementById('undistributed-amount');
+    const btn = document.getElementById('sync-wallet-btn');
+    const status = document.getElementById('sync-status');
+    const dateMsg = document.getElementById('date-lock-msg');
+    
+    // Display Values
+    if (el) el.textContent = formatCurrency(totalUndistributedCalculated);
 
-// Updated to return lostAmount but NOT modify global variable
-function calculateProfitDistribution(paymentRecord, isDryRun = false) { 
-    const totalInterest = paymentRecord.returnAmount; 
-    if (totalInterest <= 0) return null; 
+    // Logic: Pending = Calculated - AlreadySynced
+    let pending = totalUndistributedCalculated - totalAlreadySynced;
     
-    let localLostAmount = 0; // Local counter for this specific calculation
-    const distribution = [{ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' }];
-    const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
-    
-    if (payerMemberInfo?.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
-        distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
+    // Round down slightly to avoid micro-decimals
+    if (pending < 1) pending = 0;
+
+    const today = new Date();
+    const isDate20 = today.getDate() === 20; // Exact Date Check
+
+    if (pending > 0) {
+        // Paisa bacha hai sync karne ke liye
+        if (isDate20) {
+            // DATE MATCHED: Show Button
+            if(btn) {
+                btn.classList.remove('hidden');
+                btn.querySelector('span').textContent = `Sync ₹${pending.toFixed(2)}`;
+                btn.onclick = () => performWalletSync(pending);
+            }
+            if(status) status.classList.add('hidden');
+            if(dateMsg) dateMsg.classList.add('hidden');
+        } else {
+            // WRONG DATE: Show Lock Message
+            if(btn) btn.classList.add('hidden');
+            if(status) status.classList.add('hidden');
+            if(dateMsg) {
+                dateMsg.classList.remove('hidden');
+                dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${pending.toFixed(0)}`;
+            }
+        }
     } else {
-        // Guarantor Missing (Leak)
-        // Note: We track this in the main loop, not here to avoid double counting during recursion
+        // Everything Synced
+        if(btn) btn.classList.add('hidden');
+        if(status) status.classList.remove('hidden');
+        if(dateMsg) dateMsg.classList.add('hidden');
     }
-
-    const communityPool = totalInterest * 0.70;
-    const userLoansBefore = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
-    
-    if (userLoansBefore.length === 0) {
-        localLostAmount += communityPool; // No loan found? All lost to bank
-        return { distribution, lostAmount: localLostAmount };
-    }
-
-    const loanDate = userLoansBefore.pop().date; 
-    const snapshotScores = {}; let totalScore = 0; 
-    
-    [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
-        if (name === paymentRecord.name) return;
-        const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans) : { totalScore: 0 };
-        if (scoreObj.totalScore > 0) { snapshotScores[name] = scoreObj; totalScore += scoreObj.totalScore; } 
-    }); 
-    
-    if (totalScore > 0) {
-        for (const name in snapshotScores) { 
-            let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
-            const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
-            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
-            
-            // Penalty Logic
-            let penaltyMultiplier = 1.0;
-            if (days > 365) penaltyMultiplier = 0.75; 
-            else if (days > 180) penaltyMultiplier = 0.90; 
-            
-            const actualShare = share * penaltyMultiplier;
-            const lostShare = share - actualShare;
-            
-            if(lostShare > 0) localLostAmount += lostShare; // Inactivity Penalty
-
-            if (actualShare > 0) distribution.push({ name, share: actualShare, type: 'Community Profit' }); 
-        } 
-    } else {
-        localLostAmount += communityPool; // No scorers
-    }
-    
-    return { distribution, lostAmount: localLostAmount }; 
 }
 
+async function performWalletSync(amount) {
+    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nThis action cannot be undone.`)) return;
+
+    const btn = document.getElementById('sync-wallet-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    try {
+        const walletRef = ref(db, 'penaltyWallet');
+        
+        // 1. Add Transaction Record
+        const newTxRef = push(child(walletRef, 'incomes'));
+        await update(newTxRef, {
+            amount: amount,
+            from: "System Profit Engine",
+            reason: "Undistributed Profit (Sync)",
+            type: "income",
+            timestamp: Date.now()
+        });
+
+        // 2. Update Balance
+        const currentBalance = parseFloat(rawPenaltyWallet.availableBalance || 0);
+        await update(walletRef, {
+            availableBalance: currentBalance + amount
+        });
+
+        // 3. Update High Water Mark (Crucial for preventing duplicates)
+        // We set 'synced' to the Current Calculated Total
+        await update(child(walletRef, 'metadata'), {
+            totalUndistributedSynced: totalUndistributedCalculated 
+        });
+
+        alert("✅ Success! Amount added to Bank Wallet.");
+        window.location.reload(); 
+
+    } catch (error) {
+        console.error(error);
+        alert("Sync Failed: " + error.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Retry';
+    }
+}
+
+// --- SORTING LOGIC (FIXED) ---
+function handleSort(criteria) {
+    if (!renderedMembersCache || renderedMembersCache.length === 0) return;
+    
+    const grid = document.getElementById('members-grid');
+    grid.innerHTML = '';
+    
+    let sortedData = [...renderedMembersCache];
+    
+    switch (criteria) {
+        case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
+        case 'score': sortedData.sort((a, b) => b.score - a.score); break;
+        case 'balance': sortedData.sort((a, b) => b.walletBalance - a.walletBalance); break;
+        case 'name': 
+        default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
+    }
+
+    sortedData.forEach(member => appendMemberCard(member));
+}
+
+// --- UTILS ---
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
     allTransactionsList.filter(r => r.returnAmount > 0).forEach(paymentRecord => {
@@ -318,73 +398,54 @@ function calculateTotalProfitForMember(memberName) {
     }, 0); 
 }
 
-// --- SYNC & UI ---
-function initWalletSyncUI() {
-    const el = document.getElementById('undistributed-amount');
-    const btn = document.getElementById('sync-wallet-btn');
-    const status = document.getElementById('sync-status');
+function calculateProfitDistribution(paymentRecord) { 
+    const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     
-    // Rounding
-    const calculated = Math.floor(totalUndistributedCalculated);
-    const synced = Math.floor(totalAlreadySynced);
-    const pending = calculated - synced;
-
-    if (el) el.textContent = formatCurrency(calculated);
-
-    // Threshold logic
-    if (pending > 10) { 
-        if(btn) {
-            btn.classList.remove('hidden');
-            btn.querySelector('span').textContent = `Add ₹${pending} to Wallet`;
-            btn.onclick = () => performWalletSync(pending, calculated);
-        }
-        if(status) status.classList.add('hidden');
-    } else {
-        if(btn) btn.classList.add('hidden');
-        if(status) status.classList.remove('hidden');
+    const distribution = [];
+    
+    // 1. Self Return (10%)
+    distribution.push({ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
+    
+    // 2. Guarantor (10%) - Only if valid
+    const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
+    if (payerMemberInfo?.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
+        distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
     }
+
+    // 3. Community Pool (70%)
+    const communityPool = totalInterest * 0.70;
+    const userLoansBefore = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
+    
+    if (userLoansBefore.length === 0) return { distribution };
+    
+    const loanDate = userLoansBefore.pop().date; 
+    const snapshotScores = {}; let totalScore = 0; 
+    
+    [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
+        if (name === paymentRecord.name) return;
+        const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans) : { totalScore: 0 };
+        if (scoreObj.totalScore > 0) { snapshotScores[name] = scoreObj; totalScore += scoreObj.totalScore; } 
+    }); 
+    
+    if (totalScore > 0) {
+        for (const name in snapshotScores) { 
+            let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
+            const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
+            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
+            
+            // Penalty Calculation
+            let multiplier = 1.0;
+            if (days > 365) multiplier = 0.75; 
+            else if (days > 180) multiplier = 0.90; 
+            
+            share *= multiplier; 
+            
+            if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
+        } 
+    }
+    return { distribution }; 
 }
 
-async function performWalletSync(amount, newTotalSynced) {
-    if(!confirm(`Are you sure you want to add ₹${amount} to the Bank Wallet?`)) return;
-
-    const btn = document.getElementById('sync-wallet-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-
-    try {
-        const walletRef = ref(db, 'penaltyWallet');
-        
-        const newTxRef = push(child(walletRef, 'incomes'));
-        await update(newTxRef, {
-            amount: amount,
-            from: "System Profit Engine",
-            reason: "Undistributed Profit (Guarantor/Penalty)",
-            type: "income",
-            timestamp: Date.now()
-        });
-
-        const currentBalance = parseFloat(rawPenaltyWallet.availableBalance || 0);
-        await update(walletRef, {
-            availableBalance: currentBalance + amount
-        });
-
-        await update(child(walletRef, 'metadata'), {
-            totalUndistributedSynced: newTotalSynced
-        });
-
-        alert("✅ Success! Amount added to Bank Wallet.");
-        window.location.reload(); 
-
-    } catch (error) {
-        console.error(error);
-        alert("Sync Failed: " + error.message);
-        btn.disabled = false;
-        btn.innerHTML = 'Retry';
-    }
-}
-
-// UI Helpers
 function injectScannerUI(totalCount) {
     const grid = document.getElementById('members-grid');
     grid.innerHTML = '';
@@ -450,10 +511,7 @@ function updateSummaryUI(s) {
     document.getElementById('total-wallet-liability').textContent = formatCurrency(s.totalWalletLiability); 
 }
 function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
-function showError(m) { alert(m); document.getElementById('loader-overlay').classList.add('hidden'); }
-function showSystemLoader(msg) { document.querySelector('#loader-overlay h2').textContent = msg; document.getElementById('loader-overlay').classList.remove('hidden'); }
 
-// Global Scope for History Modal
 window.showLocalHistory = function(memberId) {
     const history = window[`history_${memberId}`] || [];
     const modal = document.getElementById('history-modal');
@@ -482,7 +540,6 @@ window.showLocalHistory = function(memberId) {
                 </div>`;
         });
     }
-    
     modal.classList.remove('hidden');
     document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
 }
