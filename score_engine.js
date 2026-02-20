@@ -1,6 +1,6 @@
 // ==========================================
 // TCF SCORING ENGINE (v2.0)
-// Handles: Capital, Consistency, Credit (Old & New Logic)
+// Shared Logic for User Panel & Profit Dashboard
 // ==========================================
 
 // --- ENGINE CONFIGURATION ---
