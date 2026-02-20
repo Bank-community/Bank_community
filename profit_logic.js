@@ -1,9 +1,10 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v11.0 - MONTHLY TAG SYNC)
+// MASTER PROFIT LOGIC (v12.0 - INCREMENTAL MONTHLY SYNC)
 // Features: 
-// 1. Checks specific monthly tag (e.g. "inactive income feb26")
-// 2. Unlocks ONLY on the 20th.
-// 3. Syncs exact calculated gap (1026.9).
+// 1. Calculates Total Gap (Lifetime).
+// 2. Scans Wallet History to see what's already paid.
+// 3. Syncs ONLY the difference (New Month Amount).
+// 4. Locks after sync for the current month.
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -16,14 +17,15 @@ let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {}, rawPenaltyWallet
 let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
 
 // CALCULATION VARS
-let adminTotalReturn = 0;       // 8681 (From DB)
-let target90Percent = 0;        // 7812.9
-let currentlyDistributed = 0;   // 6786
-let exactGap = 0;               // 1026.9
+let adminTotalReturn = 0;       // Source of Truth (e.g. 8681)
+let target90Percent = 0;        // 90% Target (e.g. 7812.9)
+let currentlyDistributed = 0;   // Distributed to Members (e.g. 6786)
+let totalLifetimeGap = 0;       // Total System Gap (e.g. 1026.9)
+let totalInactiveSentToWallet = 0; // Sum of all previous 'inactive income' txns
 
 // SYNC FLAGS
 let currentMonthTag = "";       // e.g. "inactive income feb26"
-let isSyncedThisMonth = false;  // True if tag found in DB
+let isSyncedThisMonth = false;  
 
 const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
@@ -75,11 +77,10 @@ async function fetchAllData() {
         rawPenaltyWallet = walletSnap.exists() ? walletSnap.val() : {};
         rawAdmin = adminSnap.exists() ? adminSnap.val() : {};
 
-        // 1. Get Source of Truth
         adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
         
-        // 2. CHECK IF ALREADY SYNCED THIS MONTH
-        checkMonthlySyncStatus();
+        // CHECK HISTORY & MONTHLY STATUS
+        analyzeWalletHistory();
 
         prepareAndStartQueue();
 
@@ -88,27 +89,36 @@ async function fetchAllData() {
     }
 }
 
-// --- NEW LOGIC: CHECK MONTHLY TAG ---
-function checkMonthlySyncStatus() {
+// --- NEW LOGIC: HISTORY SCANNER ---
+function analyzeWalletHistory() {
+    // 1. Define Tag for current month
     const date = new Date();
     const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
     const mName = monthNames[date.getMonth()];
-    const yName = date.getFullYear().toString().slice(-2); // "26"
-    
-    // Tag Format: "inactive income feb26"
-    currentMonthTag = `inactive income ${mName}${yName}`;
-    
+    const yName = date.getFullYear().toString().slice(-2);
+    currentMonthTag = `inactive income ${mName}${yName}`; // "inactive income feb26"
+
+    // 2. Reset Counters
+    totalInactiveSentToWallet = 0;
     isSyncedThisMonth = false;
-    
+
     if (rawPenaltyWallet.incomes) {
-        // Loop through all wallet incomes to find the tag
         Object.values(rawPenaltyWallet.incomes).forEach(tx => {
-            if (tx.reason && tx.reason.toLowerCase().includes(currentMonthTag)) {
+            const reason = (tx.reason || "").toLowerCase();
+            
+            // Check if this transaction is an "inactive income" sync
+            if (reason.includes("inactive income")) {
+                totalInactiveSentToWallet += parseFloat(tx.amount || 0);
+            }
+
+            // Check if specifically THIS month is done
+            if (reason.includes(currentMonthTag)) {
                 isSyncedThisMonth = true;
-                console.log("✅ Found Sync Record:", tx.reason);
             }
         });
     }
+    console.log("💰 Already Sent to Wallet (Lifetime):", totalInactiveSentToWallet);
+    console.log("📅 Synced This Month?", isSyncedThisMonth);
 }
 
 // --- PREPARE DATA ---
@@ -182,7 +192,7 @@ function startLiveQueue(memberIds) {
         if (index >= total) {
             document.getElementById('scanner-text').textContent = "Dashboard Ready ✅";
             
-            // Final Calculation & UI
+            // FINAL MATH & UI
             calculateAndShowSyncUI();
             
             setTimeout(() => {
@@ -207,7 +217,6 @@ function startLiveQueue(memberIds) {
                 const walletData = calculateTotalExtraBalance(id, m.fullName);
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
                 
-                // Add to Global Distributed Sum
                 currentlyDistributed += lifetimeProfit;
 
                 let scoreObj = { totalScore: 0 };
@@ -240,32 +249,37 @@ function startLiveQueue(memberIds) {
     processNext();
 }
 
-// --- CALCULATION & UI LOGIC ---
+// --- FINAL MATH LOGIC ---
 function calculateAndShowSyncUI() {
-    // 1. Math
+    // 1. Calculate Target (90% of Admin Total)
     target90Percent = adminTotalReturn * 0.90;
-    exactGap = target90Percent - currentlyDistributed;
-    exactGap = Number(exactGap.toFixed(2)); // Rounding
+    
+    // 2. Calculate Total Lifetime Gap
+    totalLifetimeGap = target90Percent - currentlyDistributed;
+    
+    // 3. Calculate PENDING (New Month Only)
+    // Formula: (Total Lifetime Gap) - (Money Already Sent to Wallet in History)
+    let pendingToAdd = totalLifetimeGap - totalInactiveSentToWallet;
+    
+    // Rounding safety
+    pendingToAdd = Math.floor(pendingToAdd); 
+    if (pendingToAdd < 0) pendingToAdd = 0;
 
-    // Update Display
+    // Display The Lifetime Gap (Just for info)
     const el = document.getElementById('undistributed-amount');
-    if (el) el.textContent = formatCurrency(exactGap);
+    if (el) el.textContent = formatCurrency(totalLifetimeGap); // Show Total Asset Value
 
     const btn = document.getElementById('sync-wallet-btn');
     const status = document.getElementById('sync-status');
     const dateMsg = document.getElementById('date-lock-msg');
 
     const today = new Date();
-    // TEST MODE: Uncomment to test on any day
+    // TEST MODE: Uncomment next line to test
     // const isDate20 = true; 
     const isDate20 = today.getDate() === 20;
 
-    // LOGIC:
-    // 1. If already synced this month -> Show "All Synced"
-    // 2. If NOT synced:
-    //    a. If Date is 20 -> Show Button
-    //    b. If Date is NOT 20 -> Show Lock Message or "All Synced" style
-
+    // UI RULES:
+    
     if (isSyncedThisMonth) {
         // ALREADY DONE FOR THIS MONTH
         if(btn) btn.classList.add('hidden');
@@ -276,32 +290,34 @@ function calculateAndShowSyncUI() {
         if(dateMsg) dateMsg.classList.add('hidden');
     
     } else {
-        // NOT SYNCED YET
-        if (exactGap > 5) {
+        // NOT SYNCED THIS MONTH YET
+        if (pendingToAdd > 5) {
+            // New money is available (e.g. 1026.9 or next month's 500)
             if (isDate20) {
-                // UNLOCKED: Show Button
+                // DATE IS 20: SHOW BUTTON
                 if(btn) {
                     btn.classList.remove('hidden');
-                    btn.innerHTML = `<i class="fas fa-wallet"></i> <span>Sync ₹${Math.floor(exactGap)}</span>`;
-                    btn.onclick = () => performWalletSync(exactGap);
+                    // Show only the PENDING amount (Incremental)
+                    btn.innerHTML = `<i class="fas fa-wallet"></i> <span>Sync ₹${pendingToAdd}</span>`;
+                    btn.onclick = () => performWalletSync(pendingToAdd);
                 }
                 if(status) status.classList.add('hidden');
                 if(dateMsg) dateMsg.classList.add('hidden');
             } else {
-                // LOCKED: Wrong Date
+                // WRONG DATE: SHOW LOCK
                 if(btn) btn.classList.add('hidden');
                 if(status) status.classList.add('hidden');
                 if(dateMsg) {
                     dateMsg.classList.remove('hidden');
-                    dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${Math.floor(exactGap)}`;
+                    dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${pendingToAdd}`;
                 }
             }
         } else {
-            // Nothing to sync (Zero Gap)
+            // No new money generated since last sync
             if(btn) btn.classList.add('hidden');
             if(status) {
                 status.classList.remove('hidden');
-                status.textContent = "All Synced";
+                status.innerHTML = `<i class="fas fa-check-circle"></i> Up to Date`;
             }
             if(dateMsg) dateMsg.classList.add('hidden');
         }
@@ -309,7 +325,7 @@ function calculateAndShowSyncUI() {
 }
 
 async function performWalletSync(amount) {
-    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nTag: ${currentMonthTag}`)) return;
+    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nTag: ${currentMonthTag}\n\n(This is the new income for this month)`)) return;
 
     const btn = document.getElementById('sync-wallet-btn');
     btn.disabled = true;
@@ -319,8 +335,8 @@ async function performWalletSync(amount) {
         const walletRef = ref(db, 'penaltyWallet');
         
         // 1. Transaction (With Unique Tag)
-        // reason: "inactive income feb26 : 1026"
-        const reasonString = `${currentMonthTag} : ${Math.floor(amount)}`;
+        // Reason format: "inactive income feb26 : 1026"
+        const reasonString = `${currentMonthTag} : ${amount}`;
         
         const newTxRef = push(child(walletRef, 'incomes'));
         await update(newTxRef, {
@@ -337,13 +353,7 @@ async function performWalletSync(amount) {
             availableBalance: currentBalance + amount
         });
 
-        // 3. Update Metadata (Backup)
-        await update(child(walletRef, 'metadata'), {
-            lastSyncTag: currentMonthTag,
-            lastSyncAmount: amount
-        });
-
-        alert("✅ Success! Data added to Penalty Wallet.");
+        alert("✅ Success! Income Added.");
         window.location.reload(); 
 
     } catch (error) {
@@ -353,43 +363,32 @@ async function performWalletSync(amount) {
     }
 }
 
-// --- UTILS (Calculations for Cards) ---
+// --- UTILS (No Changes) ---
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
-    
-    // 1. Self Return (10%)
     distribution.push({ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
-    
-    // 2. Guarantor (10%)
     const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
     if (payerMemberInfo?.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
         distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
     }
-
-    // 3. Community Pool (70%)
     const communityPool = totalInterest * 0.70;
     const userLoansBefore = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
     if (userLoansBefore.length === 0) return { distribution };
-    
     const loanDate = userLoansBefore.pop().date; 
     const snapshotScores = {}; let totalScore = 0; 
-    
     [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return;
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans) : { totalScore: 0 };
         if (scoreObj.totalScore > 0) { snapshotScores[name] = scoreObj; totalScore += scoreObj.totalScore; } 
     }); 
-    
     if (totalScore > 0) {
         for (const name in snapshotScores) { 
             let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
             const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
             const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
-            
             let multiplier = 1.0;
             if (days > 365) multiplier = 0.75; else if (days > 180) multiplier = 0.90; 
-            
             share *= multiplier; 
             if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
         } 
