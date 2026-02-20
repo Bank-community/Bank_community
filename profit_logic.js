@@ -1,5 +1,6 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v6.1 - SECURITY FIX)
+// MASTER PROFIT LOGIC (v7.0 - SELF REPAIRING SECURITY)
+// Features: Auto-injects security box if missing, Full screen tap detection.
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -11,79 +12,128 @@ let db, auth;
 let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {};
 let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
 let securityTaps = 0; 
-
-const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const SECURITY_PIN = '74123690'; 
+const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
 // --- INITIALIZATION ---
-// FIX: Event Listener hata diya, direct call kar rahe hain
-setupSecuritySystem(); 
+// Code load hote hi Security System activate karein
+setupRobustSecurity(); 
 
 // ==========================================
-// 1. SECURITY SYSTEM LOGIC (Improved)
+// 1. ROBUST SECURITY SYSTEM (Auto-Inject)
 // ==========================================
-function setupSecuritySystem() {
-    console.log("🔒 Security System Initialized");
+function setupRobustSecurity() {
+    console.log("🔒 Robust Security Init...");
+    const overlay = document.getElementById('loader-overlay');
     
-    const sensor = document.getElementById('security-sensor');
-    const inputBox = document.getElementById('security-input-box');
-    const passInput = document.getElementById('security-pass');
-    const verifyBtn = document.getElementById('security-btn');
-    const errorMsg = document.getElementById('security-error');
-    const loaderText = document.querySelector('#security-sensor h2'); // Text element
-
-    // 1. Sensor Logic
-    if (sensor) {
-        sensor.addEventListener('click', (e) => {
-            securityTaps++;
-            console.log("Tap Count:", securityTaps);
-            
-            // FEEDBACK: Mobile vibrate (agar support kare)
-            if (navigator.vibrate) navigator.vibrate(50);
-            
-            // VISUAL FEEDBACK: Text change karein taaki pata chale click hua
-            if(loaderText && securityTaps < 3) {
-                loaderText.textContent = `UNLOCKING... (${securityTaps}/3)`;
-            }
-
-            if (securityTaps >= 3) {
-                // 3rd click par input box dikhayein
-                if(inputBox) inputBox.classList.add('visible');
-                if(loaderText) loaderText.textContent = "ENTER ACCESS CODE";
-            }
-        });
-    } else {
-        console.error("❌ Sensor Element Not Found in HTML");
+    // Agar overlay hi nahi mila to seedha data load karo (Failsafe)
+    if (!overlay) {
+        console.warn("Overlay missing, loading data directly.");
+        checkAuthAndInit();
+        return;
     }
 
-    // 2. Verify Password
-    if (verifyBtn && passInput) {
-        verifyBtn.addEventListener('click', () => {
-            if (passInput.value === SECURITY_PIN) {
-                // Success: Screen Hatao
-                const overlay = document.getElementById('loader-overlay');
-                if(overlay) {
-                    overlay.style.opacity = '0';
-                    setTimeout(() => overlay.remove(), 500); // Animation ke baad remove
-                }
-                
-                checkAuthAndInit(); // Asli Data Load Function Call
-            } else {
-                errorMsg.classList.remove('hidden');
-                passInput.value = '';
-                if(navigator.vibrate) navigator.vibrate([100, 50, 100]); // Error Vibrate
-            }
-        });
+    // Text Element dhundo taaki update kar sakein
+    let loaderText = overlay.querySelector('h2');
+    if (!loaderText) {
+        // Agar text nahi hai to create karo
+        loaderText = document.createElement('h2');
+        loaderText.className = "text-royal-blue font-bold tracking-widest mt-4";
+        overlay.appendChild(loaderText);
+    }
 
-        // Enter Key Support
-        passInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') verifyBtn.click();
-        });
+    // --- FULL SCREEN CLICK LISTENER ---
+    overlay.addEventListener('click', (e) => {
+        // Agar input box ya button pe click kiya to ignore karo
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+
+        securityTaps++;
+        
+        // VISUAL FEEDBACK (Click karte hi text badlega)
+        if (securityTaps < 3) {
+            loaderText.style.color = (securityTaps % 2 === 0) ? '#002366' : '#D4AF37'; // Blink Color
+            loaderText.textContent = `SYSTEM CHECK... (${securityTaps}/3)`;
+            if(navigator.vibrate) navigator.vibrate(50); // Mobile Vibrate
+        }
+
+        // 3 CLICKS DONE - SHOW PASSWORD BOX
+        if (securityTaps === 3) {
+            loaderText.textContent = "ENTER ACCESS PIN";
+            loaderText.style.color = "#D4AF37";
+            showOrInjectPasswordBox(overlay);
+        }
+    });
+}
+
+function showOrInjectPasswordBox(overlay) {
+    // Check karein ki box pehle se hai ya nahi
+    let inputBox = document.getElementById('security-input-box');
+    
+    if (!inputBox) {
+        console.log("📦 Injecting Password Box...");
+        // HTML Box Inject karein
+        const boxHTML = `
+            <div id="security-input-box" class="mt-6 flex flex-col items-center gap-4 transition-all duration-500 transform translate-y-4 opacity-0">
+                <input type="password" id="security-pass" placeholder="Enter PIN" inputmode="numeric" 
+                    class="px-5 py-3 border-2 border-[#D4AF37] rounded-full text-center text-lg font-bold tracking-widest outline-none shadow-lg w-48 bg-white text-blue-900 focus:scale-105 transition-transform">
+                <button id="security-btn" 
+                    class="bg-[#002366] text-white px-8 py-3 rounded-full font-bold uppercase tracking-wider hover:bg-[#D4AF37] hover:shadow-xl transition-all">
+                    UNLOCK
+                </button>
+                <p id="security-error" class="text-red-600 font-bold text-sm hidden bg-red-50 px-3 py-1 rounded">❌ Wrong PIN</p>
+            </div>
+        `;
+        // Spinner ke baad insert karein
+        overlay.insertAdjacentHTML('beforeend', boxHTML);
+        inputBox = document.getElementById('security-input-box');
+    }
+
+    // Animation ke sath dikhayein
+    setTimeout(() => {
+        inputBox.classList.remove('opacity-0', 'translate-y-4');
+        inputBox.classList.add('opacity-100', 'translate-y-0');
+        document.getElementById('security-pass').focus();
+    }, 100);
+
+    // Button Logic Bind Karein
+    bindUnlockEvents();
+}
+
+function bindUnlockEvents() {
+    const btn = document.getElementById('security-btn');
+    const input = document.getElementById('security-pass');
+    const errorMsg = document.getElementById('security-error');
+
+    // Button Click
+    btn.onclick = () => validatePassword(input.value, errorMsg);
+
+    // Enter Key
+    input.onkeyup = (e) => {
+        if (e.key === 'Enter') validatePassword(input.value, errorMsg);
+    };
+}
+
+function validatePassword(pass, errorEl) {
+    if (pass === SECURITY_PIN) {
+        // SUCCESS
+        const overlay = document.getElementById('loader-overlay');
+        overlay.style.transition = "opacity 0.5s ease";
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+            overlay.remove(); // Hata do
+            checkAuthAndInit(); // Data Load Start
+        }, 500);
+    } else {
+        // FAIL
+        errorEl.classList.remove('hidden');
+        if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        document.getElementById('security-pass').value = '';
     }
 }
 
+
 // ==========================================
-// 2. MAIN APP LOGIC (Authentication & Data)
+// 2. MAIN APP LOGIC (Data Fetching)
 // ==========================================
 async function checkAuthAndInit() {
     try {
@@ -113,7 +163,6 @@ async function checkAuthAndInit() {
     }
 }
 
-// --- DATA FETCHING ---
 async function fetchAllData() {
     try {
         injectScannerUI(0);
@@ -140,7 +189,6 @@ async function fetchAllData() {
     }
 }
 
-// --- PREPARE DATA ---
 function prepareAndStartQueue() {
     const scannerText = document.getElementById('scanner-text');
     if(scannerText) scannerText.textContent = "Processing Records...";
@@ -264,9 +312,9 @@ function startLiveQueue(memberIds) {
     processNext();
 }
 
-// --- UI & SORTING ---
 function injectScannerUI(totalCount) {
     const grid = document.getElementById('members-grid');
+    if(!grid) return; // Failsafe
     const existingScanner = document.getElementById('live-scanner-status');
     if (existingScanner) existingScanner.remove();
 
@@ -284,7 +332,7 @@ function injectScannerUI(totalCount) {
         <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
             <div id="scanner-bar" class="bg-[#D4AF37] h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>`;
-    if(grid) grid.prepend(scanner);
+    grid.prepend(scanner);
 }
 
 function appendMemberCard(m) {
@@ -336,7 +384,6 @@ function setupSortingListener() {
 function handleSort(criteria) {
     if (!renderedMembersCache || renderedMembersCache.length === 0) return;
     const grid = document.getElementById('members-grid');
-    if(!grid) return;
     grid.innerHTML = '';
     
     let sortedData = [...renderedMembersCache];
@@ -350,7 +397,6 @@ function handleSort(criteria) {
     sortedData.forEach(member => appendMemberCard(member));
 }
 
-// --- UTILS ---
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
     allTransactionsList.filter(r => r.returnAmount > 0).forEach(paymentRecord => {
@@ -419,4 +465,40 @@ function updateSummaryUI(s) {
         if(el) el.textContent = els[id];
     }
 }
-function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-
+function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
+
+window.showLocalHistory = function(memberId) {
+    const history = window[`history_${memberId}`] || [];
+    const modal = document.getElementById('history-modal');
+    const list = document.getElementById('modal-history-list');
+    const nameEl = document.getElementById('modal-member-name');
+    
+    if(!modal || !list) return;
+
+    const member = renderedMembersCache.find(m => m.id === memberId);
+    if(nameEl) nameEl.textContent = member ? member.name : 'Member';
+    
+    list.innerHTML = '';
+    if(history.length === 0) {
+        list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No history found.</p>';
+    } else {
+        [...history].reverse().forEach(h => {
+            const isPos = h.amount > 0;
+            const dateStr = new Date(h.date).toLocaleDateString('en-GB');
+            list.innerHTML += `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                    <div>
+                        <p class="text-xs font-bold text-gray-700 capitalize">${h.type.replace('_', ' ')}</p>
+                        <p class="text-[10px] text-gray-400">${dateStr}</p>
+                    </div>
+                    <span class="font-bold text-sm ${isPos ? 'text-green-600' : 'text-red-500'}">
+                        ${isPos ? '+' : ''}${formatCurrency(h.amount)}
+                    </span>
+                </div>`;
+        });
+    }
+    modal.classList.remove('hidden');
+    const closeBtn = document.getElementById('close-modal');
+    if(closeBtn) closeBtn.onclick = () => modal.classList.add('hidden');
+    modal.onclick = (e) => { if(e.target === modal) modal.classList.add('hidden'); };
+}
