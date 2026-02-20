@@ -1,9 +1,10 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v7.0 - ACCURATE SYNC)
+// MASTER PROFIT LOGIC (v8.0 - DIRECT DB SYNC)
 // Features: 
-// 1. One-time Global Leak Calculation (Fixes the huge number bug)
-// 2. High-Water Mark Sync (Prevents duplicate adds)
-// 3. Date Lock (Only allows sync on 20th)
+// 1. Uses admin/balanceStats/totalReturn as SOURCE OF TRUTH.
+// 2. Calculates 90% of that value.
+// 3. Subtracts Distributed Amount.
+// 4. Result is perfectly accurate (e.g. 1026.9).
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -12,14 +13,15 @@ import { getDatabase, ref, get, update, push, child } from "https://www.gstatic.
 
 // --- GLOBAL VARIABLES ---
 let db, auth;
-let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {}, rawPenaltyWallet = {};
+let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {}, rawPenaltyWallet = {}, rawAdmin = {};
 let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
 
 // Tracking Variables
-let totalNetReturnCalculated = 0; // Total 90% Interest
-let totalDistributedCalculated = 0; // Total actually given to members
-let totalUndistributedCalculated = 0; // The Difference
-let totalAlreadySynced = 0; // Read from DB
+let dbTotalReturn = 0; // From Admin Node
+let netReturn90Percent = 0; // 90% of DB Total
+let totalDistributedCalculated = 0; // Actually distributed
+let totalUndistributedCalculated = 0; // The Gap
+let totalAlreadySynced = 0; // From Wallet History
 
 const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
@@ -28,7 +30,6 @@ document.addEventListener("DOMContentLoaded", checkAuthAndInit);
 
 async function checkAuthAndInit() {
     try {
-        // showSystemLoader("Verifying Session...");
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
@@ -45,7 +46,6 @@ async function checkAuthAndInit() {
             }
         });
         
-        // Sorting Listener Attach
         const sortSelect = document.getElementById('sort-select');
         if(sortSelect) {
             sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
@@ -59,11 +59,13 @@ async function checkAuthAndInit() {
 // --- DATA FETCHING ---
 async function fetchAllData() {
     try {
-        const [membersSnap, txSnap, loansSnap, walletSnap] = await Promise.all([
+        // Fetch Admin Node also to get 'totalReturn'
+        const [membersSnap, txSnap, loansSnap, walletSnap, adminSnap] = await Promise.all([
             get(ref(db, 'members')),
             get(ref(db, 'transactions')),
             get(ref(db, 'activeLoans')),
-            get(ref(db, 'penaltyWallet'))
+            get(ref(db, 'penaltyWallet')),
+            get(ref(db, 'admin')) 
         ]);
 
         if (!membersSnap.exists()) throw new Error("No members found.");
@@ -72,8 +74,12 @@ async function fetchAllData() {
         rawTransactions = txSnap.exists() ? txSnap.val() : {};
         rawActiveLoans = loansSnap.exists() ? loansSnap.val() : {};
         rawPenaltyWallet = walletSnap.exists() ? walletSnap.val() : {};
+        rawAdmin = adminSnap.exists() ? adminSnap.val() : {};
 
-        // Get the marker: How much have we ALREADY moved to wallet?
+        // 1. Get the Source of Truth (8681)
+        dbTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
+        
+        // 2. Get Sync History
         totalAlreadySynced = (rawPenaltyWallet.metadata && rawPenaltyWallet.metadata.totalUndistributedSynced) || 0;
 
         prepareAndStartQueue();
@@ -90,11 +96,9 @@ function prepareAndStartQueue() {
     transactionsByMember = {};
     
     // Reset Counters
-    totalNetReturnCalculated = 0;
     totalDistributedCalculated = 0;
-    totalUndistributedCalculated = 0;
-
-    // Map Basic Info
+    
+    // Process Members
     for (const id in rawMembers) {
         if (rawMembers[id].status === 'Approved') {
             memberDataMap.set(id, {
@@ -106,7 +110,7 @@ function prepareAndStartQueue() {
         }
     }
 
-    // Process Transactions
+    // Process Transactions (For Display & Individual Profit Calculation)
     let idCounter = 0;
     for (const txId in rawTransactions) {
         const tx = rawTransactions[txId];
@@ -129,7 +133,7 @@ function prepareAndStartQueue() {
             case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
             case 'Loan Payment':
                 record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0);
-                record.returnAmount = tx.interestPaid || 0; // Only Interest
+                record.returnAmount = tx.interestPaid || 0; 
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
@@ -140,8 +144,8 @@ function prepareAndStartQueue() {
     }
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
-    // --- CRITICAL FIX: CALCULATE LEAKS ONCE HERE ---
-    calculateGlobalProfitStats();
+    // --- CRITICAL: CALCULATE GAP ---
+    calculateAccurateGap();
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
     document.getElementById('loader-overlay').classList.add('hidden');
@@ -150,45 +154,42 @@ function prepareAndStartQueue() {
     startLiveQueue(memberIdsToProcess);
 }
 
-// --- NEW LOGIC: GLOBAL CALCULATION (Accurate Math) ---
-function calculateGlobalProfitStats() {
-    console.log("🔍 Calculating Global Stats...");
+// --- NEW LOGIC: THE 100% MATCHING FORMULA ---
+function calculateAccurateGap() {
+    console.log("🔍 Calculating Gap using DB Source...");
     
-    // 1. Calculate Total Net Return (All Interest Paid - 10% Admin)
-    // Note: We assume 'tx.returnAmount' is the full interest paid by user.
-    // The "10% Admin deduction" logic happens conceptually.
-    
+    // 1. Calculate Total Distributed (Summing up what everyone got)
     const profitTx = allTransactionsList.filter(r => r.returnAmount > 0);
     
     profitTx.forEach(tx => {
-        const fullInterest = tx.returnAmount;
-        
-        // 10% is Admin Fee (Already gone)
-        // 90% is what enters the Profit Distribution System
-        const netReturnForDistribution = fullInterest * 0.90;
-        
-        totalNetReturnCalculated += netReturnForDistribution;
-
-        // Now, let's see how much actually got distributed to people
-        const distResult = calculateProfitDistribution(tx); // Uses the logic to see who got what
+        // Run the distribution logic for this transaction
+        const distResult = calculateProfitDistribution(tx); 
         
         if (distResult && distResult.distribution) {
             distResult.distribution.forEach(share => {
+                // IMPORTANT: We only count what is part of the 90% pool
+                // Self Return (10%) + Guarantor (10%) + Community (70%) = 90%
+                // Admin (10%) is already excluded from our Net Target
                 totalDistributedCalculated += share.share;
             });
         }
     });
 
-    // The Magic Formula
-    // Undistributed = (Total Available to Distribute) - (Actually Distributed)
-    totalUndistributedCalculated = totalNetReturnCalculated - totalDistributedCalculated;
+    // 2. The Formula
+    // Target = DB Total Return * 90% (e.g., 8681 * 0.9 = 7812.9)
+    netReturn90Percent = dbTotalReturn * 0.90;
     
-    // Round to avoid floating point errors (e.g. 1026.8999999)
+    // Gap = Target - Distributed
+    // Gap = 7812.9 - 6786 = 1026.9
+    totalUndistributedCalculated = netReturn90Percent - totalDistributedCalculated;
+    
+    // Rounding
     totalUndistributedCalculated = Math.round(totalUndistributedCalculated * 100) / 100;
 
-    console.log(`✅ Net Return (90%): ${totalNetReturnCalculated}`);
-    console.log(`✅ Distributed: ${totalDistributedCalculated}`);
-    console.log(`✅ Undistributed (Leak): ${totalUndistributedCalculated}`);
+    console.log(`✅ DB Total: ${dbTotalReturn}`);
+    console.log(`✅ Net Target (90%): ${netReturn90Percent}`);
+    console.log(`✅ Actually Distributed: ${totalDistributedCalculated}`);
+    console.log(`✅ Final Gap to Sync: ${totalUndistributedCalculated}`);
 }
 
 // --- STEP 2: LIVE QUEUE ---
@@ -203,10 +204,7 @@ function startLiveQueue(memberIds) {
     function processNext() {
         if (index >= total) {
             document.getElementById('scanner-text').textContent = "Dashboard Ready ✅";
-            
-            // Show Sync UI
             initWalletSyncUI();
-            
             setTimeout(() => {
                 const scanner = document.getElementById('live-scanner-status');
                 if(scanner) scanner.remove();
@@ -217,7 +215,6 @@ function startLiveQueue(memberIds) {
         const id = memberIds[index];
         const m = rawMembers[id];
 
-        // Update Scanner Text
         document.getElementById('scanner-text').textContent = `Analyzing: ${m.fullName}`;
         document.getElementById('scanner-count').textContent = `${index + 1}/${total}`;
         document.getElementById('scanner-bar').style.width = `${((index + 1) / total) * 100}%`;
@@ -254,61 +251,63 @@ function startLiveQueue(memberIds) {
             } catch (err) { console.error(err); }
 
             index++;
-            setTimeout(processNext, 2); // Fast
+            setTimeout(processNext, 2); 
         }, 2);
     }
     processNext();
 }
 
-// --- SYNC & UI LOGIC ---
+// --- SYNC & UI LOGIC (With Date Lock) ---
 function initWalletSyncUI() {
     const el = document.getElementById('undistributed-amount');
     const btn = document.getElementById('sync-wallet-btn');
     const status = document.getElementById('sync-status');
     const dateMsg = document.getElementById('date-lock-msg');
     
-    // Display Values
-    if (el) el.textContent = formatCurrency(totalUndistributedCalculated);
-
-    // Logic: Pending = Calculated - AlreadySynced
-    let pending = totalUndistributedCalculated - totalAlreadySynced;
+    // Rounding for Display
+    const calculated = Math.floor(totalUndistributedCalculated);
+    const synced = Math.floor(totalAlreadySynced);
     
-    // Round down slightly to avoid micro-decimals
-    if (pending < 1) pending = 0;
+    // Pending = Total Gap - Already Synced
+    let pending = calculated - synced;
+    if (pending < 1) pending = 0; // Zero out small diffs
+
+    if (el) el.textContent = formatCurrency(calculated);
 
     const today = new Date();
-    const isDate20 = today.getDate() === 20; // Exact Date Check
+    // TEST MODE: Uncomment next line to force button visible for testing
+    // const isDate20 = true; 
+    const isDate20 = today.getDate() === 20; 
 
     if (pending > 0) {
-        // Paisa bacha hai sync karne ke liye
         if (isDate20) {
-            // DATE MATCHED: Show Button
+            // UNLOCKED
             if(btn) {
                 btn.classList.remove('hidden');
-                btn.querySelector('span').textContent = `Sync ₹${pending.toFixed(2)}`;
-                btn.onclick = () => performWalletSync(pending);
+                btn.querySelector('span').textContent = `Sync ₹${pending}`;
+                btn.onclick = () => performWalletSync(pending, calculated);
             }
             if(status) status.classList.add('hidden');
             if(dateMsg) dateMsg.classList.add('hidden');
         } else {
-            // WRONG DATE: Show Lock Message
+            // LOCKED (Wrong Date)
             if(btn) btn.classList.add('hidden');
             if(status) status.classList.add('hidden');
             if(dateMsg) {
                 dateMsg.classList.remove('hidden');
-                dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${pending.toFixed(0)}`;
+                dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${pending}`;
             }
         }
     } else {
-        // Everything Synced
+        // ALL SYNCED
         if(btn) btn.classList.add('hidden');
         if(status) status.classList.remove('hidden');
         if(dateMsg) dateMsg.classList.add('hidden');
     }
 }
 
-async function performWalletSync(amount) {
-    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nThis action cannot be undone.`)) return;
+async function performWalletSync(amount, newTotalSyncedValue) {
+    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nThis matches the undistributed gap.`)) return;
 
     const btn = document.getElementById('sync-wallet-btn');
     btn.disabled = true;
@@ -317,7 +316,7 @@ async function performWalletSync(amount) {
     try {
         const walletRef = ref(db, 'penaltyWallet');
         
-        // 1. Add Transaction Record
+        // 1. Transaction
         const newTxRef = push(child(walletRef, 'incomes'));
         await update(newTxRef, {
             amount: amount,
@@ -327,19 +326,18 @@ async function performWalletSync(amount) {
             timestamp: Date.now()
         });
 
-        // 2. Update Balance
+        // 2. Balance Update
         const currentBalance = parseFloat(rawPenaltyWallet.availableBalance || 0);
         await update(walletRef, {
             availableBalance: currentBalance + amount
         });
 
-        // 3. Update High Water Mark (Crucial for preventing duplicates)
-        // We set 'synced' to the Current Calculated Total
+        // 3. Update High Water Mark
         await update(child(walletRef, 'metadata'), {
-            totalUndistributedSynced: totalUndistributedCalculated 
+            totalUndistributedSynced: newTotalSyncedValue
         });
 
-        alert("✅ Success! Amount added to Bank Wallet.");
+        alert("✅ Success! Wallet Updated.");
         window.location.reload(); 
 
     } catch (error) {
@@ -350,54 +348,7 @@ async function performWalletSync(amount) {
     }
 }
 
-// --- SORTING LOGIC (FIXED) ---
-function handleSort(criteria) {
-    if (!renderedMembersCache || renderedMembersCache.length === 0) return;
-    
-    const grid = document.getElementById('members-grid');
-    grid.innerHTML = '';
-    
-    let sortedData = [...renderedMembersCache];
-    
-    switch (criteria) {
-        case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
-        case 'score': sortedData.sort((a, b) => b.score - a.score); break;
-        case 'balance': sortedData.sort((a, b) => b.walletBalance - a.walletBalance); break;
-        case 'name': 
-        default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
-    }
-
-    sortedData.forEach(member => appendMemberCard(member));
-}
-
 // --- UTILS ---
-function calculateTotalExtraBalance(memberId, memberFullName) {
-    const history = [];
-    allTransactionsList.filter(r => r.returnAmount > 0).forEach(paymentRecord => {
-        const result = calculateProfitDistribution(paymentRecord);
-        const memberShare = result?.distribution.find(d => d.name === memberFullName);
-        if(memberShare && memberShare.share > 0) {
-            history.push({ type: memberShare.type || 'profit', date: paymentRecord.date, amount: memberShare.share });
-        }
-    });
-    allTransactionsList.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0)).forEach(tx => {
-        if (tx.extraBalance > 0) history.push({ type: 'manual_credit', date: tx.date, amount: tx.extraBalance });
-        if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', date: tx.date, amount: -tx.extraWithdraw });
-    });
-    history.sort((a,b) => a.date - b.date);
-    return { total: history.reduce((acc, item) => acc + item.amount, 0), history };
-}
-
-function calculateTotalProfitForMember(memberName) { 
-    return allTransactionsList.reduce((total, tx) => { 
-        if (tx.returnAmount > 0) { 
-            const share = calculateProfitDistribution(tx)?.distribution.find(d => d.name === memberName)?.share;
-            if (share) total += share; 
-        } 
-        return total; 
-    }, 0); 
-}
-
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     
@@ -406,7 +357,7 @@ function calculateProfitDistribution(paymentRecord) {
     // 1. Self Return (10%)
     distribution.push({ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
     
-    // 2. Guarantor (10%) - Only if valid
+    // 2. Guarantor (10%)
     const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
     if (payerMemberInfo?.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
         distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
@@ -444,6 +395,50 @@ function calculateProfitDistribution(paymentRecord) {
         } 
     }
     return { distribution }; 
+}
+
+// ... Rest of UI functions (calculateTotalExtraBalance, updateSummaryUI, etc.) same as before ...
+// (Sorting, Rendering, Modals - No changes needed there)
+
+function handleSort(criteria) {
+    if (!renderedMembersCache || renderedMembersCache.length === 0) return;
+    const grid = document.getElementById('members-grid');
+    grid.innerHTML = '';
+    let sortedData = [...renderedMembersCache];
+    switch (criteria) {
+        case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
+        case 'score': sortedData.sort((a, b) => b.score - a.score); break;
+        case 'balance': sortedData.sort((a, b) => b.walletBalance - a.walletBalance); break;
+        case 'name': default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
+    }
+    sortedData.forEach(member => appendMemberCard(member));
+}
+
+function calculateTotalExtraBalance(memberId, memberFullName) {
+    const history = [];
+    allTransactionsList.filter(r => r.returnAmount > 0).forEach(paymentRecord => {
+        const result = calculateProfitDistribution(paymentRecord);
+        const memberShare = result?.distribution.find(d => d.name === memberFullName);
+        if(memberShare && memberShare.share > 0) {
+            history.push({ type: memberShare.type || 'profit', date: paymentRecord.date, amount: memberShare.share });
+        }
+    });
+    allTransactionsList.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0)).forEach(tx => {
+        if (tx.extraBalance > 0) history.push({ type: 'manual_credit', date: tx.date, amount: tx.extraBalance });
+        if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', date: tx.date, amount: -tx.extraWithdraw });
+    });
+    history.sort((a,b) => a.date - b.date);
+    return { total: history.reduce((acc, item) => acc + item.amount, 0), history };
+}
+
+function calculateTotalProfitForMember(memberName) { 
+    return allTransactionsList.reduce((total, tx) => { 
+        if (tx.returnAmount > 0) { 
+            const share = calculateProfitDistribution(tx)?.distribution.find(d => d.name === memberName)?.share;
+            if (share) total += share; 
+        } 
+        return total; 
+    }, 0); 
 }
 
 function injectScannerUI(totalCount) {
@@ -499,7 +494,6 @@ function appendMemberCard(m) {
         <button onclick="showLocalHistory('${m.id}')" class="mt-4 w-full py-2 rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 hover:bg-[#002366] hover:text-white transition-colors uppercase tracking-wide">
             View History
         </button>`;
-    
     window[`history_${m.id}`] = m.walletHistory;
     grid.appendChild(card);
 }
@@ -517,10 +511,8 @@ window.showLocalHistory = function(memberId) {
     const modal = document.getElementById('history-modal');
     const list = document.getElementById('modal-history-list');
     const nameEl = document.getElementById('modal-member-name');
-    
     const member = renderedMembersCache.find(m => m.id === memberId);
     nameEl.textContent = member ? member.name : 'Member';
-    
     list.innerHTML = '';
     if(history.length === 0) {
         list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No history found.</p>';
@@ -542,4 +534,5 @@ window.showLocalHistory = function(memberId) {
     }
     modal.classList.remove('hidden');
     document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
+    modal.onclick = (e) => { if(e.target === modal) modal.classList.add('hidden'); };
 }
