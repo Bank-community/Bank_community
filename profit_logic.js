@@ -1,10 +1,6 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v9.0 - STRICT ADMIN SYNC)
-// Features: 
-// 1. Reads 'admin/balanceStats/totalReturn' as the Absolute Truth.
-// 2. Calculates 90% Target.
-// 3. Subtracts Distributed Amount accurately.
-// 4. Force Unlocks Sync Button on 20th.
+// MASTER PROFIT LOGIC (v10.0 - SIMPLE SUBTRACTION)
+// Logic: (Admin Total * 90%) - (Total Member Profit) = Wallet Amount
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -16,12 +12,12 @@ let db, auth;
 let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {}, rawPenaltyWallet = {}, rawAdmin = {};
 let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
 
-// Tracking Variables
-let adminTotalReturn = 0;       // 8681 (From DB)
-let netTargetAmount = 0;        // 7812.9 (90% of 8681)
-let actualDistributedSum = 0;   // 6786 (Sum of individual profits)
-let undistributedGap = 0;       // 1026.9 (The Difference)
-let previouslySynced = 0;       // From Wallet Metadata
+// SIMPLE MATH VARIABLES
+let adminTotalReturn = 0;       // e.g. 8681
+let target90Percent = 0;        // e.g. 7812.9
+let currentlyDistributed = 0;   // e.g. 6786 (Sum of all cards)
+let exactGap = 0;               // e.g. 1026.9
+let alreadySynced = 0;          // From DB
 
 const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
@@ -47,9 +43,7 @@ async function checkAuthAndInit() {
         });
         
         const sortSelect = document.getElementById('sort-select');
-        if(sortSelect) {
-            sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
-        }
+        if(sortSelect) sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
 
     } catch (error) {
         alert("System Error: " + error.message);
@@ -75,11 +69,11 @@ async function fetchAllData() {
         rawPenaltyWallet = walletSnap.exists() ? walletSnap.val() : {};
         rawAdmin = adminSnap.exists() ? adminSnap.val() : {};
 
-        // 1. Get Absolute Truth from Admin Node
+        // 1. SOURCE OF TRUTH (Admin Panel Data)
         adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
         
-        // 2. Get Sync History
-        previouslySynced = (rawPenaltyWallet.metadata && rawPenaltyWallet.metadata.totalUndistributedSynced) || 0;
+        // 2. Already Synced Amount
+        alreadySynced = (rawPenaltyWallet.metadata && rawPenaltyWallet.metadata.totalUndistributedSynced) || 0;
 
         prepareAndStartQueue();
 
@@ -88,16 +82,13 @@ async function fetchAllData() {
     }
 }
 
-// --- STEP 1: PREPARE DATA ---
+// --- PREPARE DATA ---
 function prepareAndStartQueue() {
     allTransactionsList = [];
     memberDataMap.clear();
     transactionsByMember = {};
-    
-    // Reset Counters
-    actualDistributedSum = 0;
+    currentlyDistributed = 0; // Reset Sum
 
-    // Map Basic Info
     for (const id in rawMembers) {
         if (rawMembers[id].status === 'Approved') {
             memberDataMap.set(id, {
@@ -109,7 +100,6 @@ function prepareAndStartQueue() {
         }
     }
 
-    // Process Transactions
     let idCounter = 0;
     for (const txId in rawTransactions) {
         const tx = rawTransactions[txId];
@@ -143,9 +133,6 @@ function prepareAndStartQueue() {
     }
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
-    // --- CRITICAL: CALCULATE GAP BASED ON ADMIN STATS ---
-    calculateStrictGap();
-
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
     document.getElementById('loader-overlay').classList.add('hidden');
     
@@ -153,51 +140,7 @@ function prepareAndStartQueue() {
     startLiveQueue(memberIdsToProcess);
 }
 
-// --- STRICT MATH LOGIC ---
-function calculateStrictGap() {
-    console.log("🔍 Starting Strict Calculation...");
-
-    // 1. Calculate Total Distributed (Summing up what members ACTUALLY received)
-    // We iterate through all profit-generating transactions
-    const profitTx = allTransactionsList.filter(r => r.returnAmount > 0);
-    
-    profitTx.forEach(tx => {
-        // Run distribution logic to see who got what
-        const distResult = calculateProfitDistribution(tx); 
-        
-        if (distResult && distResult.distribution) {
-            distResult.distribution.forEach(share => {
-                // EXCLUDE 'Self Return' and 'Guarantor' from "Community Pool" calculation?
-                // NO, "Distributed Profit" means everything that left the system to a user.
-                // Wait, your dashboard says Total Distributed Profit = 6786.
-                // Let's sum up EVERYTHING that is credited to a user.
-                
-                // Admin (10%) is NOT distributed to a user card, so it's not counted here.
-                actualDistributedSum += share.share;
-            });
-        }
-    });
-
-    // 2. The Formula
-    // Admin Total Return (e.g. 8681)
-    // 90% of that is the "Net Distributable Amount"
-    netTargetAmount = adminTotalReturn * 0.90;
-    
-    // Gap = (Target) - (Actually Distributed)
-    undistributedGap = netTargetAmount - actualDistributedSum;
-    
-    // Rounding to 2 decimal places to avoid 1026.89999999
-    undistributedGap = Number(undistributedGap.toFixed(2));
-    netTargetAmount = Number(netTargetAmount.toFixed(2));
-    actualDistributedSum = Number(actualDistributedSum.toFixed(2));
-
-    console.log(`✅ Admin Total: ${adminTotalReturn}`);
-    console.log(`✅ Net Target (90%): ${netTargetAmount}`);
-    console.log(`✅ Actually Distributed: ${actualDistributedSum}`);
-    console.log(`✅ GAP: ${undistributedGap}`);
-}
-
-// --- STEP 2: LIVE QUEUE ---
+// --- LIVE QUEUE (Calculates Member Profit) ---
 let communityStats = {
     totalMembers: 0, totalSip: 0, totalProfitDistributed: 0, totalWalletLiability: 0
 };
@@ -210,8 +153,8 @@ function startLiveQueue(memberIds) {
         if (index >= total) {
             document.getElementById('scanner-text').textContent = "Dashboard Ready ✅";
             
-            // Show Sync UI with Final Gap
-            initWalletSyncUI();
+            // --- FINAL CALCULATION HAPPENS HERE ---
+            calculateSimpleGap(); 
             
             setTimeout(() => {
                 const scanner = document.getElementById('live-scanner-status');
@@ -223,8 +166,7 @@ function startLiveQueue(memberIds) {
         const id = memberIds[index];
         const m = rawMembers[id];
 
-        // Update Scanner
-        document.getElementById('scanner-text').textContent = `Analyzing: ${m.fullName}`;
+        document.getElementById('scanner-text').textContent = `Checking: ${m.fullName}`;
         document.getElementById('scanner-count').textContent = `${index + 1}/${total}`;
         document.getElementById('scanner-bar').style.width = `${((index + 1) / total) * 100}%`;
 
@@ -236,6 +178,9 @@ function startLiveQueue(memberIds) {
                 const walletData = calculateTotalExtraBalance(id, m.fullName);
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
                 
+                // IMPORTANT: Add this member's profit to the Global Sum
+                currentlyDistributed += lifetimeProfit;
+
                 let scoreObj = { totalScore: 0 };
                 if (typeof calculatePerformanceScore === 'function') {
                     scoreObj = calculatePerformanceScore(m.fullName, new Date(), allTransactionsList, rawActiveLoans);
@@ -252,8 +197,7 @@ function startLiveQueue(memberIds) {
 
                 communityStats.totalMembers++;
                 communityStats.totalSip += totalSip;
-                // Use calculated sum for total profit display to match
-                communityStats.totalProfitDistributed = actualDistributedSum; 
+                communityStats.totalProfitDistributed += lifetimeProfit;
                 communityStats.totalWalletLiability += walletData.total;
                 
                 updateSummaryUI(communityStats);
@@ -267,77 +211,98 @@ function startLiveQueue(memberIds) {
     processNext();
 }
 
-// --- SYNC & UI LOGIC (FORCE UPDATE) ---
+// --- THE SIMPLE MATH (User's Request) ---
+function calculateSimpleGap() {
+    // 1. Target = 90% of Admin Total
+    target90Percent = adminTotalReturn * 0.90;
+    
+    // 2. Distributed = Sum of all members' profit (Calculated in Loop)
+    // currentlyDistributed variable is now populated
+    
+    // 3. Gap = Target - Distributed
+    exactGap = target90Percent - currentlyDistributed;
+    
+    // Safety Rounding
+    exactGap = Number(exactGap.toFixed(2));
+    
+    console.log("----------------------------");
+    console.log("SIMPLE MATH LOGIC:");
+    console.log(`Admin Total: ${adminTotalReturn}`);
+    console.log(`90% Target: ${target90Percent}`);
+    console.log(`Actually Distributed: ${currentlyDistributed}`);
+    console.log(`GAP (To Wallet): ${exactGap}`);
+    console.log("----------------------------");
+
+    initWalletSyncUI();
+}
+
+// --- SYNC UI ---
 function initWalletSyncUI() {
     const el = document.getElementById('undistributed-amount');
     const btn = document.getElementById('sync-wallet-btn');
     const status = document.getElementById('sync-status');
     const dateMsg = document.getElementById('date-lock-msg');
     
-    // Display the Calculated Gap
-    if (el) el.textContent = formatCurrency(undistributedGap);
+    if (el) el.textContent = formatCurrency(exactGap);
 
-    // Calculate Pending Amount
-    // Logic: If Gap > Previously Synced, then we have new money to add.
-    // However, if the Gap (1026) is totally different from stored sync (e.g. 0), we trust the calculation.
+    // Pending = (Total Gap) - (Whatever we synced before)
+    let pendingToAdd = exactGap - alreadySynced;
     
-    let pendingAmount = undistributedGap - previouslySynced;
-    
-    // Fix: If calculation shows positive gap, but metadata says we synced more (maybe from a manual edit),
-    // we should still allow correction if today is 20th.
-    if (pendingAmount < 0) pendingAmount = 0; 
-
-    // Rounding
-    pendingAmount = Math.floor(pendingAmount);
+    // Ensure no negative
+    if (pendingToAdd < 1) pendingToAdd = 0;
+    pendingToAdd = Math.floor(pendingToAdd); // Round down to be safe
 
     const today = new Date();
-    // UNCOMMENT FOR TESTING ON ANY DAY:
+    // UNCOMMENT NEXT LINE TO FORCE BUTTON FOR TESTING
     // const isDate20 = true; 
-    const isDate20 = today.getDate() === 20; 
+    const isDate20 = today.getDate() === 20;
 
-    if (pendingAmount > 5) { // Threshold 5 Rs
+    if (pendingToAdd > 5) {
+        // We have money to add!
         if (isDate20) {
-            // SHOW BUTTON
             if(btn) {
                 btn.classList.remove('hidden');
-                btn.innerHTML = `<i class="fas fa-wallet"></i> <span>Add ₹${pendingAmount} to Wallet</span>`;
-                btn.onclick = () => performWalletSync(pendingAmount);
+                btn.innerHTML = `<i class="fas fa-wallet"></i> <span>Sync ₹${pendingToAdd}</span>`;
+                btn.onclick = () => performWalletSync(pendingToAdd);
             }
             if(status) status.classList.add('hidden');
             if(dateMsg) dateMsg.classList.add('hidden');
         } else {
-            // DATE LOCK
+            // Money exists, but wrong date
             if(btn) btn.classList.add('hidden');
             if(status) status.classList.add('hidden');
             if(dateMsg) {
                 dateMsg.classList.remove('hidden');
-                dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${pendingAmount}`;
+                dateMsg.innerHTML = `<i class="fas fa-lock"></i> Sync unlocks on 20th. Pending: ₹${pendingToAdd}`;
             }
         }
     } else {
-        // ALL SYNCED
+        // Nothing to add (Gap matches Synced)
         if(btn) btn.classList.add('hidden');
-        if(status) status.classList.remove('hidden'); // Shows "All Synced"
+        if(status) {
+            status.classList.remove('hidden');
+            status.innerHTML = `<i class="fas fa-check-circle"></i> All Synced (Gap: ₹${Math.floor(exactGap)})`;
+        }
         if(dateMsg) dateMsg.classList.add('hidden');
     }
 }
 
 async function performWalletSync(amount) {
-    if(!confirm(`CONFIRM TRANSFER\n\nTransfer ₹${amount} to Penalty Wallet?\n\nCalculation:\nNet 90% Return: ₹${netTargetAmount}\nDistributed: ₹${actualDistributedSum}\nDifference: ₹${undistributedGap}`)) return;
+    if(!confirm(`Add ₹${amount} to Penalty Wallet?\n\nFormula:\n(Total Return * 90%) - Distributed = Gap`)) return;
 
     const btn = document.getElementById('sync-wallet-btn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
 
     try {
         const walletRef = ref(db, 'penaltyWallet');
         
-        // 1. Add Income Transaction
+        // 1. Transaction
         const newTxRef = push(child(walletRef, 'incomes'));
         await update(newTxRef, {
             amount: amount,
             from: "System Profit Engine",
-            reason: `Undistributed Profit (Gap Sync)`,
+            reason: "Undistributed Profit (Sync)",
             type: "income",
             timestamp: Date.now()
         });
@@ -348,28 +313,27 @@ async function performWalletSync(amount) {
             availableBalance: currentBalance + amount
         });
 
-        // 3. Update Metadata (Set current Gap as the new baseline)
-        // Next time: Gap (1026) - Synced (1026) = 0 Pending.
+        // 3. UPDATE HIGH WATER MARK
+        // We set 'synced' to the CURRENT calculated gap.
+        // So next time: Gap (1026) - Synced (1026) = 0.
         await update(child(walletRef, 'metadata'), {
-            totalUndistributedSynced: undistributedGap 
+            totalUndistributedSynced: exactGap 
         });
 
-        alert("✅ Success! Amount transferred to Bank Wallet.");
+        alert("✅ Success!");
         window.location.reload(); 
 
     } catch (error) {
-        console.error(error);
-        alert("Sync Failed: " + error.message);
+        alert("Error: " + error.message);
         btn.disabled = false;
         btn.innerHTML = 'Retry';
     }
 }
 
-// --- UTILS ---
+// --- UTILS (Calculations for Cards) ---
+// This logic creates the "currentlyDistributed" sum
 function calculateProfitDistribution(paymentRecord) { 
-    const totalInterest = paymentRecord.returnAmount; 
-    if (totalInterest <= 0) return null; 
-    
+    const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
     
     // 1. Self Return (10%)
@@ -384,7 +348,6 @@ function calculateProfitDistribution(paymentRecord) {
     // 3. Community Pool (70%)
     const communityPool = totalInterest * 0.70;
     const userLoansBefore = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
-    
     if (userLoansBefore.length === 0) return { distribution };
     
     const loanDate = userLoansBefore.pop().date; 
@@ -402,31 +365,25 @@ function calculateProfitDistribution(paymentRecord) {
             const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
             const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
             
-            // Penalty Calculation
             let multiplier = 1.0;
-            if (days > 365) multiplier = 0.75; 
-            else if (days > 180) multiplier = 0.90; 
+            if (days > 365) multiplier = 0.75; else if (days > 180) multiplier = 0.90; 
             
             share *= multiplier; 
-            
             if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
         } 
     }
     return { distribution }; 
 }
 
-function handleSort(criteria) {
-    if (!renderedMembersCache || renderedMembersCache.length === 0) return;
-    const grid = document.getElementById('members-grid');
-    grid.innerHTML = '';
-    let sortedData = [...renderedMembersCache];
-    switch (criteria) {
-        case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
-        case 'score': sortedData.sort((a, b) => b.score - a.score); break;
-        case 'balance': sortedData.sort((a, b) => b.walletBalance - a.walletBalance); break;
-        case 'name': default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
-    }
-    sortedData.forEach(member => appendMemberCard(member));
+function calculateTotalProfitForMember(memberName) { 
+    // This sums up specific member profit for their card
+    return allTransactionsList.reduce((total, tx) => { 
+        if (tx.returnAmount > 0) { 
+            const share = calculateProfitDistribution(tx)?.distribution.find(d => d.name === memberName)?.share;
+            if (share) total += share; 
+        } 
+        return total; 
+    }, 0); 
 }
 
 function calculateTotalExtraBalance(memberId, memberFullName) {
@@ -446,14 +403,26 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
     return { total: history.reduce((acc, item) => acc + item.amount, 0), history };
 }
 
-function calculateTotalProfitForMember(memberName) { 
-    return allTransactionsList.reduce((total, tx) => { 
-        if (tx.returnAmount > 0) { 
-            const share = calculateProfitDistribution(tx)?.distribution.find(d => d.name === memberName)?.share;
-            if (share) total += share; 
-        } 
-        return total; 
-    }, 0); 
+function updateSummaryUI(s) { 
+    document.getElementById('total-members').textContent = s.totalMembers; 
+    document.getElementById('total-community-sip').textContent = formatCurrency(s.totalSip); 
+    document.getElementById('total-community-profit').textContent = formatCurrency(s.totalProfitDistributed); 
+    document.getElementById('total-wallet-liability').textContent = formatCurrency(s.totalWalletLiability); 
+}
+function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
+
+function handleSort(criteria) {
+    if (!renderedMembersCache || renderedMembersCache.length === 0) return;
+    const grid = document.getElementById('members-grid');
+    grid.innerHTML = '';
+    let sortedData = [...renderedMembersCache];
+    switch (criteria) {
+        case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
+        case 'score': sortedData.sort((a, b) => b.score - a.score); break;
+        case 'balance': sortedData.sort((a, b) => b.walletBalance - a.walletBalance); break;
+        case 'name': default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
+    }
+    sortedData.forEach(member => appendMemberCard(member));
 }
 
 function injectScannerUI(totalCount) {
@@ -514,14 +483,6 @@ function appendMemberCard(m) {
     grid.appendChild(card);
 }
 
-function updateSummaryUI(s) { 
-    document.getElementById('total-members').textContent = s.totalMembers; 
-    document.getElementById('total-community-sip').textContent = formatCurrency(s.totalSip); 
-    document.getElementById('total-community-profit').textContent = formatCurrency(s.totalProfitDistributed); 
-    document.getElementById('total-wallet-liability').textContent = formatCurrency(s.totalWalletLiability); 
-}
-function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
-
 window.showLocalHistory = function(memberId) {
     const history = window[`history_${memberId}`] || [];
     const modal = document.getElementById('history-modal');
@@ -529,7 +490,6 @@ window.showLocalHistory = function(memberId) {
     const nameEl = document.getElementById('modal-member-name');
     const member = renderedMembersCache.find(m => m.id === memberId);
     nameEl.textContent = member ? member.name : 'Member';
-    
     list.innerHTML = '';
     if(history.length === 0) {
         list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No history found.</p>';
@@ -551,4 +511,5 @@ window.showLocalHistory = function(memberId) {
     }
     modal.classList.remove('hidden');
     document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
+    modal.onclick = (e) => { if(e.target === modal) modal.classList.add('hidden'); };
 }
