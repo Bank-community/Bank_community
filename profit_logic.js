@@ -1,6 +1,7 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v2.0 - FAST RENDER)
-// Fix: Shows Names immediately, calculates later
+// MASTER PROFIT LOGIC (v3.0 - ANTI-CRASH QUEUE)
+// Solution: Calculates 1 member -> Waits -> Next member
+// Prevents UI Freezing on mobile devices
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -14,6 +15,9 @@ let rawActiveLoans = {};
 let allTransactionsList = []; 
 let memberDataMap = new Map(); 
 
+// Optimization Cache
+let transactionsByMember = {}; // To speed up filtering
+
 const DEFAULT_IMG = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
 // --- INITIALIZATION ---
@@ -21,22 +25,19 @@ document.addEventListener("DOMContentLoaded", initDashboard);
 
 async function initDashboard() {
     try {
-        // 1. Fetch Config
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
         
-        // 2. Init Firebase
         const app = initializeApp(config);
         db = getDatabase(app);
 
-        // 3. Fetch Data
         await fetchAllData();
 
     } catch (error) {
         console.error("Init Error:", error);
-        showError("System Error: " + error.message);
-        document.getElementById('loader-overlay').classList.add('hidden'); // Force hide loader on error
+        document.getElementById('members-grid').innerHTML = `<p class="text-red-500 text-center col-span-3">System Error: ${error.message}</p>`;
+        document.getElementById('loader-overlay').classList.add('hidden');
     }
 }
 
@@ -54,22 +55,22 @@ async function fetchAllData() {
         rawTransactions = txSnap.exists() ? txSnap.val() : {};
         rawActiveLoans = loansSnap.exists() ? loansSnap.val() : {};
 
-        // FAST RENDER START
+        // Start Processing
         processBasicData(); 
 
     } catch (error) {
-        showError(error.message);
+        console.error(error);
         document.getElementById('loader-overlay').classList.add('hidden');
     }
 }
 
-// --- STEP 1: SHOW NAMES IMMEDIATELY (No Calculation) ---
+// --- STEP 1: PREPARE DATA & SHOW SKELETONS ---
 function processBasicData() {
-    // Flatten Transactions first (Fast)
     allTransactionsList = [];
     memberDataMap.clear();
+    transactionsByMember = {};
 
-    // Map Member Info
+    // 1. Map Basic Info
     for (const id in rawMembers) {
         if (rawMembers[id].status === 'Approved') {
             memberDataMap.set(id, {
@@ -77,10 +78,12 @@ function processBasicData() {
                 imageUrl: rawMembers[id].profilePicUrl,
                 guarantorName: rawMembers[id].guarantorName
             });
+            // Init optimization array
+            transactionsByMember[id] = [];
         }
     }
 
-    // Process Transactions Array
+    // 2. Process Transactions & Group them (Optimization)
     let idCounter = 0;
     for (const txId in rawTransactions) {
         const tx = rawTransactions[txId];
@@ -110,10 +113,15 @@ function processBasicData() {
             default: continue;
         }
         allTransactionsList.push(record);
+        
+        // Push to grouped array for speed
+        if(transactionsByMember[tx.memberId]) {
+            transactionsByMember[tx.memberId].push(record);
+        }
     }
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
-    // RENDER SKELETON CARDS (Names Only)
+    // 3. Render "Waiting" Cards
     const grid = document.getElementById('members-grid');
     grid.innerHTML = '';
     
@@ -123,72 +131,72 @@ function processBasicData() {
         const m = rawMembers[id];
         if (m.status !== 'Approved') continue;
         
-        memberIds.push(id); // Save ID for Step 2
+        memberIds.push(id); 
 
-        // Create "Loading" Card
         const card = document.createElement('div');
         card.id = `card-${id}`;
-        card.className = 'glass-card p-5 relative overflow-hidden group transition-all';
+        card.className = 'glass-card p-5 relative overflow-hidden transition-all opacity-80';
+        // Simple Skeleton Layout
         card.innerHTML = `
             <div class="flex items-center gap-4 mb-4">
                 <img src="${m.profilePicUrl || DEFAULT_IMG}" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100">
                 <div>
                     <h3 class="font-bold text-lg text-[#002366] leading-tight">${m.fullName}</h3>
                     <div class="flex items-center gap-2 text-xs font-semibold mt-1">
-                        <span class="text-gray-400"><i class="fas fa-spinner fa-spin"></i> Calculating...</span>
+                        <span class="text-orange-500 animate-pulse"><i class="fas fa-clock"></i> Waiting...</span>
                     </div>
                 </div>
-            </div>
-            <div class="space-y-2 text-sm opacity-50">
-                <div class="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-                <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
             </div>
         `;
         grid.appendChild(card);
     }
 
-    // HIDE MAIN LOADER IMMEDIATELY
     document.getElementById('loader-overlay').classList.add('hidden');
 
-    // TRIGGER STEP 2: CALCULATE INDIVIDUALLY
-    setTimeout(() => calculateAllMembers(memberIds), 100);
+    // START THE QUEUE
+    startSafeQueue(memberIds);
 }
 
-// --- STEP 2: CALCULATE ONE BY ONE (Prevents Crashing) ---
-async function calculateAllMembers(memberIds) {
-    let communityStats = {
-        totalMembers: 0,
-        totalSip: 0,
-        totalProfitDistributed: 0,
-        totalWalletLiability: 0
-    };
+// --- STEP 2: THE "SLOW & SAFE" QUEUE ---
+let communityStats = {
+    totalMembers: 0,
+    totalSip: 0,
+    totalProfitDistributed: 0,
+    totalWalletLiability: 0
+};
 
-    // Loop through each member with a small delay to keep UI responsive
-    for (const id of memberIds) {
+function startSafeQueue(memberIds) {
+    let index = 0;
+
+    function processNext() {
+        if (index >= memberIds.length) {
+            console.log("✅ All members calculated.");
+            return;
+        }
+
+        const id = memberIds[index];
+        const m = rawMembers[id];
+
         try {
-            const m = rawMembers[id];
-            
-            // Calculations (Safe Block)
-            const memberTx = allTransactionsList.filter(t => t.memberId === id);
+            // --- HEAVY MATH START ---
+            // Use pre-grouped transactions for SIP (Fast)
+            const memberTx = transactionsByMember[id] || [];
             const totalSip = memberTx.reduce((sum, t) => sum + t.sipPayment, 0);
             
-            // Try/Catch specifically for math functions in case Score Engine fails
             let walletData = { total: 0, history: [] };
             let lifetimeProfit = 0;
             let scoreObj = { totalScore: 0 };
 
-            try {
-                walletData = calculateTotalExtraBalance(id, m.fullName);
-                lifetimeProfit = calculateTotalProfitForMember(m.fullName);
-                if (typeof calculatePerformanceScore === 'function') {
-                    scoreObj = calculatePerformanceScore(m.fullName, new Date(), allTransactionsList, rawActiveLoans);
-                }
-            } catch (mathErr) {
-                console.warn(`Math error for ${m.fullName}:`, mathErr);
+            // Calculate complex stats
+            walletData = calculateTotalExtraBalance(id, m.fullName);
+            lifetimeProfit = calculateTotalProfitForMember(m.fullName);
+            
+            if (typeof calculatePerformanceScore === 'function') {
+                scoreObj = calculatePerformanceScore(m.fullName, new Date(), allTransactionsList, rawActiveLoans);
             }
+            // --- HEAVY MATH END ---
 
-            // Update UI Card
+            // Update UI
             updateMemberCard(id, m, totalSip, lifetimeProfit, walletData, scoreObj);
 
             // Update Stats
@@ -196,23 +204,30 @@ async function calculateAllMembers(memberIds) {
             communityStats.totalSip += totalSip;
             communityStats.totalProfitDistributed += lifetimeProfit;
             communityStats.totalWalletLiability += walletData.total;
-
-            // Update Header Stats live
-            updateSummaryUI(communityStats);
+            
+            // Only update top header every 3 members to save render power
+            if (index % 3 === 0 || index === memberIds.length - 1) {
+                updateSummaryUI(communityStats);
+            }
 
         } catch (err) {
-            console.error(`Skipping member ${id} due to error:`, err);
-            // Mark card as Error
+            console.error(`Error calculating ${m.fullName}:`, err);
             const card = document.getElementById(`card-${id}`);
-            if(card) card.innerHTML += `<div class="text-red-500 text-xs text-center mt-2">Data Error</div>`;
+            if(card) card.innerHTML += `<div class="text-red-500 text-xs">Calc Error</div>`;
         }
-        
-        // Small delay to let UI breathe
-        await new Promise(r => setTimeout(r, 10)); 
+
+        index++;
+
+        // 🛑 CRITICAL PAUSE: Wait 50ms before next loop
+        // This gives the phone time to breathe.
+        setTimeout(processNext, 50); 
     }
+
+    // Start the first one
+    processNext();
 }
 
-// --- RENDER UPDATE FUNCTION ---
+// --- RENDER CARD FINAL ---
 function updateMemberCard(id, m, sip, profit, walletData, scoreObj) {
     const card = document.getElementById(`card-${id}`);
     if (!card) return;
@@ -224,16 +239,18 @@ function updateMemberCard(id, m, sip, profit, walletData, scoreObj) {
     else if(scoreVal >= 50) scoreColor = 'text-yellow-500';
     else scoreColor = 'text-red-500';
 
-    // Store data in DOM for sorting later
+    // Store data for sort
     card.dataset.name = m.fullName.toLowerCase();
     card.dataset.profit = profit;
     card.dataset.score = scoreVal;
     card.dataset.balance = walletData.total;
 
-    // Add click event for history
-    // We attach data to the window object temporarily or use closure
+    // Attach history
     window[`history_${id}`] = walletData.history;
 
+    // Remove opacity
+    card.classList.remove('opacity-80');
+    
     card.innerHTML = `
         <div class="flex items-center gap-4 mb-4">
             <img src="${m.profilePicUrl || DEFAULT_IMG}" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-[#D4AF37] transition-colors">
@@ -277,7 +294,6 @@ function updateSummaryUI(stats) {
 }
 
 // --- INTERACTIVITY ---
-// Global function for history button
 window.showLocalHistory = (id) => {
     const history = window[`history_${id}`] || [];
     const memberName = document.querySelector(`#card-${id} h3`).innerText;
@@ -312,7 +328,7 @@ document.getElementById('close-modal').addEventListener('click', () => {
     document.getElementById('history-modal').classList.add('hidden');
 });
 
-// Search & Sort (Updated to work with DOM elements)
+// Search & Sort (Updated)
 document.getElementById('search-input').addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('[id^="card-"]').forEach(card => {
@@ -330,7 +346,7 @@ document.getElementById('sort-select').addEventListener('change', (e) => {
         let valA = parseFloat(a.dataset[type] || 0);
         let valB = parseFloat(b.dataset[type] || 0);
         if(type === 'name') return (a.dataset.name || '').localeCompare(b.dataset.name || '');
-        return valB - valA; // Descending for numbers
+        return valB - valA; // Descending
     });
 
     cards.forEach(card => grid.appendChild(card));
@@ -343,6 +359,7 @@ document.getElementById('sort-select').addEventListener('change', (e) => {
 
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
+    // Using filtered list inside loop is heavy, but necessary for accuracy with this logic structure
     const profitEvents = allTransactionsList.filter(r => r.returnAmount > 0);
     profitEvents.forEach(paymentRecord => {
         const result = calculateProfitDistribution(paymentRecord);
@@ -428,15 +445,4 @@ function calculateProfitDistribution(paymentRecord) {
 
 function formatCurrency(amount) {
     return `₹${amount.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
-}
-
-function showError(msg) {
-    const toast = document.getElementById('error-toast');
-    if(toast) {
-        document.getElementById('error-msg').textContent = msg;
-        toast.classList.remove('translate-y-20');
-        setTimeout(() => toast.classList.add('translate-y-20'), 5000);
-    } else {
-        alert(msg);
-    }
 }
