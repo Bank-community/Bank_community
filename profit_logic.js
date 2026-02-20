@@ -333,3 +333,59 @@ function showSystemLoader(msg) { document.querySelector('#loader-overlay h2').te
 function updateSummaryUI(s) { document.getElementById('total-members').textContent = s.totalMembers; document.getElementById('total-community-sip').textContent = formatCurrency(s.totalSip); document.getElementById('total-community-profit').textContent = formatCurrency(s.totalProfitDistributed); document.getElementById('total-wallet-liability').textContent = formatCurrency(s.totalWalletLiability); }
 function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
 function showError(m) { alert(m); document.getElementById('loader-overlay').classList.add('hidden'); }
+
+
+
+// ==========================================
+// FIX: SORTING FUNCTIONALITY
+// ==========================================
+
+// 1. Event Listener Add karein
+const sortSelect = document.getElementById('sort-select');
+if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+        handleSort(e.target.value);
+    });
+}
+
+// 2. Sorting Logic Function
+function handleSort(criteria) {
+    // Agar data abhi load nahi hua to ruk jayein
+    if (!renderedMembersCache || renderedMembersCache.length === 0) {
+        console.warn("Data not ready for sorting yet.");
+        return;
+    }
+
+    // Grid ko clear karein (Purane cards hatayein)
+    const grid = document.getElementById('members-grid');
+    grid.innerHTML = '';
+
+    // Data ko sort karein (Naye array mein)
+    let sortedData = [...renderedMembersCache];
+
+    switch (criteria) {
+        case 'profit':
+            // High Profit -> Low Profit
+            sortedData.sort((a, b) => b.profit - a.profit);
+            break;
+        case 'score':
+            // High Score -> Low Score
+            sortedData.sort((a, b) => b.score - a.score);
+            break;
+        case 'balance':
+            // High Wallet Balance -> Low Wallet Balance
+            sortedData.sort((a, b) => b.walletBalance - a.walletBalance);
+            break;
+        case 'name':
+        default:
+            // A -> Z (Name)
+            sortedData.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+    }
+
+    // 3. Wapas Cards Render karein
+    sortedData.forEach(member => {
+        appendMemberCard(member);
+    });
+}
+
