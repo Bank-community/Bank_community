@@ -1,6 +1,6 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v1.0)
-// Syncs exactly with User Panel Logic
+// MASTER PROFIT LOGIC (v2.0 - FAST RENDER)
+// Fix: Shows Names immediately, calculates later
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -11,9 +11,8 @@ let db;
 let rawMembers = {};
 let rawTransactions = {};
 let rawActiveLoans = {};
-let allTransactionsList = []; // Flattened transactions (sorted)
-let memberDataMap = new Map(); // Fast lookup
-let processedMembersList = []; // Final calculated data for display
+let allTransactionsList = []; 
+let memberDataMap = new Map(); 
 
 const DEFAULT_IMG = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
 
@@ -31,16 +30,16 @@ async function initDashboard() {
         const app = initializeApp(config);
         db = getDatabase(app);
 
-        // 3. Fetch All Data
+        // 3. Fetch Data
         await fetchAllData();
 
     } catch (error) {
         console.error("Init Error:", error);
-        showError(error.message);
+        showError("System Error: " + error.message);
+        document.getElementById('loader-overlay').classList.add('hidden'); // Force hide loader on error
     }
 }
 
-// --- DATA FETCHING ---
 async function fetchAllData() {
     try {
         const [membersSnap, txSnap, loansSnap] = await Promise.all([
@@ -55,20 +54,22 @@ async function fetchAllData() {
         rawTransactions = txSnap.exists() ? txSnap.val() : {};
         rawActiveLoans = loansSnap.exists() ? loansSnap.val() : {};
 
-        processData(); // Start Calculation
+        // FAST RENDER START
+        processBasicData(); 
 
     } catch (error) {
         showError(error.message);
+        document.getElementById('loader-overlay').classList.add('hidden');
     }
 }
 
-// --- CORE PROCESSING LOOP (The "Sync" Logic) ---
-function processData() {
-    // 1. Flatten Transactions (Same logic as view_logic.js)
+// --- STEP 1: SHOW NAMES IMMEDIATELY (No Calculation) ---
+function processBasicData() {
+    // Flatten Transactions first (Fast)
     allTransactionsList = [];
     memberDataMap.clear();
 
-    // Map Member Basic Info first
+    // Map Member Info
     for (const id in rawMembers) {
         if (rawMembers[id].status === 'Approved') {
             memberDataMap.set(id, {
@@ -110,12 +111,52 @@ function processData() {
         }
         allTransactionsList.push(record);
     }
-    // Sort by Date (Crucial for correct calculation)
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
+    // RENDER SKELETON CARDS (Names Only)
+    const grid = document.getElementById('members-grid');
+    grid.innerHTML = '';
+    
+    let memberIds = [];
 
-    // 2. MASTER LOOP: Calculate Stats for Every Member
-    processedMembersList = [];
+    for (const id in rawMembers) {
+        const m = rawMembers[id];
+        if (m.status !== 'Approved') continue;
+        
+        memberIds.push(id); // Save ID for Step 2
+
+        // Create "Loading" Card
+        const card = document.createElement('div');
+        card.id = `card-${id}`;
+        card.className = 'glass-card p-5 relative overflow-hidden group transition-all';
+        card.innerHTML = `
+            <div class="flex items-center gap-4 mb-4">
+                <img src="${m.profilePicUrl || DEFAULT_IMG}" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100">
+                <div>
+                    <h3 class="font-bold text-lg text-[#002366] leading-tight">${m.fullName}</h3>
+                    <div class="flex items-center gap-2 text-xs font-semibold mt-1">
+                        <span class="text-gray-400"><i class="fas fa-spinner fa-spin"></i> Calculating...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-2 text-sm opacity-50">
+                <div class="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+            </div>
+        `;
+        grid.appendChild(card);
+    }
+
+    // HIDE MAIN LOADER IMMEDIATELY
+    document.getElementById('loader-overlay').classList.add('hidden');
+
+    // TRIGGER STEP 2: CALCULATE INDIVIDUALLY
+    setTimeout(() => calculateAllMembers(memberIds), 100);
+}
+
+// --- STEP 2: CALCULATE ONE BY ONE (Prevents Crashing) ---
+async function calculateAllMembers(memberIds) {
     let communityStats = {
         totalMembers: 0,
         totalSip: 0,
@@ -123,54 +164,111 @@ function processData() {
         totalWalletLiability: 0
     };
 
-    for (const id in rawMembers) {
-        const m = rawMembers[id];
-        if (m.status !== 'Approved') continue;
+    // Loop through each member with a small delay to keep UI responsive
+    for (const id of memberIds) {
+        try {
+            const m = rawMembers[id];
+            
+            // Calculations (Safe Block)
+            const memberTx = allTransactionsList.filter(t => t.memberId === id);
+            const totalSip = memberTx.reduce((sum, t) => sum + t.sipPayment, 0);
+            
+            // Try/Catch specifically for math functions in case Score Engine fails
+            let walletData = { total: 0, history: [] };
+            let lifetimeProfit = 0;
+            let scoreObj = { totalScore: 0 };
 
-        // A. Calculate SIP
-        const memberTx = allTransactionsList.filter(t => t.memberId === id);
-        const totalSip = memberTx.reduce((sum, t) => sum + t.sipPayment, 0);
+            try {
+                walletData = calculateTotalExtraBalance(id, m.fullName);
+                lifetimeProfit = calculateTotalProfitForMember(m.fullName);
+                if (typeof calculatePerformanceScore === 'function') {
+                    scoreObj = calculatePerformanceScore(m.fullName, new Date(), allTransactionsList, rawActiveLoans);
+                }
+            } catch (mathErr) {
+                console.warn(`Math error for ${m.fullName}:`, mathErr);
+            }
 
-        // B. Calculate Wallet (Extra Balance) - USES COPIED LOGIC
-        const walletData = calculateTotalExtraBalance(id, m.fullName);
-        
-        // C. Calculate Lifetime Profit - USES COPIED LOGIC
-        const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
+            // Update UI Card
+            updateMemberCard(id, m, totalSip, lifetimeProfit, walletData, scoreObj);
 
-        // D. Calculate Score (Uses score_engine.js)
-        let scoreObj = { totalScore: 0 };
-        if (typeof calculatePerformanceScore === 'function') {
-            scoreObj = calculatePerformanceScore(m.fullName, new Date(), allTransactionsList, rawActiveLoans);
+            // Update Stats
+            communityStats.totalMembers++;
+            communityStats.totalSip += totalSip;
+            communityStats.totalProfitDistributed += lifetimeProfit;
+            communityStats.totalWalletLiability += walletData.total;
+
+            // Update Header Stats live
+            updateSummaryUI(communityStats);
+
+        } catch (err) {
+            console.error(`Skipping member ${id} due to error:`, err);
+            // Mark card as Error
+            const card = document.getElementById(`card-${id}`);
+            if(card) card.innerHTML += `<div class="text-red-500 text-xs text-center mt-2">Data Error</div>`;
         }
-
-        // Add to List
-        processedMembersList.push({
-            id: id,
-            name: m.fullName,
-            img: m.profilePicUrl || DEFAULT_IMG,
-            sip: totalSip,
-            profit: lifetimeProfit,
-            walletBalance: walletData.total,
-            walletHistory: walletData.history, // For Modal
-            score: scoreObj.totalScore || 0
-        });
-
-        // Update Community Stats
-        communityStats.totalMembers++;
-        communityStats.totalSip += totalSip;
-        communityStats.totalProfitDistributed += lifetimeProfit;
-        communityStats.totalWalletLiability += walletData.total;
+        
+        // Small delay to let UI breathe
+        await new Promise(r => setTimeout(r, 10)); 
     }
-
-    // 3. Render UI
-    updateSummaryUI(communityStats);
-    renderMembersGrid(processedMembersList);
-    
-    // Hide Loader
-    document.getElementById('loader-overlay').classList.add('hidden');
 }
 
-// --- RENDERING FUNCTIONS ---
+// --- RENDER UPDATE FUNCTION ---
+function updateMemberCard(id, m, sip, profit, walletData, scoreObj) {
+    const card = document.getElementById(`card-${id}`);
+    if (!card) return;
+
+    // Determine Score Color
+    let scoreColor = 'text-gray-400';
+    let scoreVal = scoreObj.totalScore || 0;
+    if(scoreVal >= 80) scoreColor = 'text-green-500';
+    else if(scoreVal >= 50) scoreColor = 'text-yellow-500';
+    else scoreColor = 'text-red-500';
+
+    // Store data in DOM for sorting later
+    card.dataset.name = m.fullName.toLowerCase();
+    card.dataset.profit = profit;
+    card.dataset.score = scoreVal;
+    card.dataset.balance = walletData.total;
+
+    // Add click event for history
+    // We attach data to the window object temporarily or use closure
+    window[`history_${id}`] = walletData.history;
+
+    card.innerHTML = `
+        <div class="flex items-center gap-4 mb-4">
+            <img src="${m.profilePicUrl || DEFAULT_IMG}" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-[#D4AF37] transition-colors">
+            <div>
+                <h3 class="font-bold text-lg text-[#002366] leading-tight">${m.fullName}</h3>
+                <div class="flex items-center gap-2 text-xs font-semibold mt-1">
+                    <span class="${scoreColor}"><i class="fas fa-tachometer-alt"></i> Score: ${scoreVal.toFixed(0)}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="space-y-2 text-sm">
+            <div class="flex justify-between border-b border-gray-100 pb-1">
+                <span class="text-gray-500">Total SIP</span>
+                <span class="font-bold text-[#002366]">${formatCurrency(sip)}</span>
+            </div>
+            <div class="flex justify-between border-b border-gray-100 pb-1">
+                <span class="text-gray-500">Lifetime Profit</span>
+                <span class="font-bold text-[#D4AF37]">+ ${formatCurrency(profit)}</span>
+            </div>
+            <div class="flex justify-between pt-1">
+                <span class="text-gray-500">Wallet Bal</span>
+                <span class="font-bold ${walletData.total > 0 ? 'text-green-600' : 'text-gray-400'}">
+                    ${formatCurrency(walletData.total)}
+                </span>
+            </div>
+        </div>
+
+        <button onclick="showLocalHistory('${id}')" class="mt-4 w-full py-2 rounded-lg bg-gray-50 text-xs font-bold text-gray-500 hover:bg-[#002366] hover:text-white transition-colors uppercase tracking-wide">
+            View History
+        </button>
+    `;
+}
+
+// --- UI UPDATERS ---
 function updateSummaryUI(stats) {
     document.getElementById('total-members').textContent = stats.totalMembers;
     document.getElementById('total-community-sip').textContent = formatCurrency(stats.totalSip);
@@ -178,89 +276,20 @@ function updateSummaryUI(stats) {
     document.getElementById('total-wallet-liability').textContent = formatCurrency(stats.totalWalletLiability);
 }
 
-function renderMembersGrid(list) {
-    const grid = document.getElementById('members-grid');
-    grid.innerHTML = '';
-
-    list.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'glass-card p-5 relative overflow-hidden group hover:shadow-xl transition-all';
-        
-        // Dynamic Border color based on Score
-        let scoreColor = 'text-gray-400';
-        if(m.score >= 80) scoreColor = 'text-green-500';
-        else if(m.score >= 50) scoreColor = 'text-yellow-500';
-        else scoreColor = 'text-red-500';
-
-        card.innerHTML = `
-            <div class="flex items-center gap-4 mb-4">
-                <img src="${m.img}" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-[#D4AF37] transition-colors">
-                <div>
-                    <h3 class="font-bold text-lg text-[#002366] leading-tight">${m.name}</h3>
-                    <div class="flex items-center gap-2 text-xs font-semibold mt-1">
-                        <span class="${scoreColor}"><i class="fas fa-tachometer-alt"></i> Score: ${m.score.toFixed(0)}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="space-y-2 text-sm">
-                <div class="flex justify-between border-b border-gray-100 pb-1">
-                    <span class="text-gray-500">Total SIP</span>
-                    <span class="font-bold text-[#002366]">${formatCurrency(m.sip)}</span>
-                </div>
-                <div class="flex justify-between border-b border-gray-100 pb-1">
-                    <span class="text-gray-500">Lifetime Profit</span>
-                    <span class="font-bold text-[#D4AF37]">+ ${formatCurrency(m.profit)}</span>
-                </div>
-                <div class="flex justify-between pt-1">
-                    <span class="text-gray-500">Wallet Bal</span>
-                    <span class="font-bold ${m.walletBalance > 0 ? 'text-green-600' : 'text-gray-400'}">
-                        ${formatCurrency(m.walletBalance)}
-                    </span>
-                </div>
-            </div>
-
-            <button onclick="openHistoryModal('${m.id}')" class="mt-4 w-full py-2 rounded-lg bg-gray-50 text-xs font-bold text-gray-500 hover:bg-[#002366] hover:text-white transition-colors uppercase tracking-wide">
-                View History
-            </button>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-// --- INTERACTIVITY (Search & Sort) ---
-document.getElementById('search-input').addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = processedMembersList.filter(m => m.name.toLowerCase().includes(term));
-    renderMembersGrid(filtered);
-});
-
-document.getElementById('sort-select').addEventListener('change', (e) => {
-    const type = e.target.value;
-    let sorted = [...processedMembersList];
+// --- INTERACTIVITY ---
+// Global function for history button
+window.showLocalHistory = (id) => {
+    const history = window[`history_${id}`] || [];
+    const memberName = document.querySelector(`#card-${id} h3`).innerText;
     
-    if (type === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
-    else if (type === 'profit') sorted.sort((a, b) => b.profit - a.profit);
-    else if (type === 'score') sorted.sort((a, b) => b.score - a.score);
-    else if (type === 'balance') sorted.sort((a, b) => b.walletBalance - a.walletBalance);
-    
-    renderMembersGrid(sorted);
-});
-
-// --- MODAL LOGIC ---
-window.openHistoryModal = (memberId) => {
-    const member = processedMembersList.find(m => m.id === memberId);
-    if (!member) return;
-
-    document.getElementById('modal-member-name').textContent = member.name;
+    document.getElementById('modal-member-name').textContent = memberName;
     const list = document.getElementById('modal-history-list');
     list.innerHTML = '';
 
-    if (member.walletHistory.length === 0) {
+    if (history.length === 0) {
         list.innerHTML = '<p class="text-center text-gray-400 text-xs italic">No wallet history found.</p>';
     } else {
-        // Reverse to show latest first
-        [...member.walletHistory].reverse().forEach(h => {
+        [...history].reverse().forEach(h => {
             const isCredit = h.amount > 0;
             const row = document.createElement('div');
             row.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100';
@@ -276,7 +305,6 @@ window.openHistoryModal = (memberId) => {
             list.appendChild(row);
         });
     }
-
     document.getElementById('history-modal').classList.remove('hidden');
 };
 
@@ -284,16 +312,37 @@ document.getElementById('close-modal').addEventListener('click', () => {
     document.getElementById('history-modal').classList.add('hidden');
 });
 
+// Search & Sort (Updated to work with DOM elements)
+document.getElementById('search-input').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('[id^="card-"]').forEach(card => {
+        const name = card.dataset.name || "";
+        card.style.display = name.includes(term) ? "block" : "none";
+    });
+});
+
+document.getElementById('sort-select').addEventListener('change', (e) => {
+    const type = e.target.value;
+    const grid = document.getElementById('members-grid');
+    const cards = Array.from(grid.children);
+
+    cards.sort((a, b) => {
+        let valA = parseFloat(a.dataset[type] || 0);
+        let valB = parseFloat(b.dataset[type] || 0);
+        if(type === 'name') return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+        return valB - valA; // Descending for numbers
+    });
+
+    cards.forEach(card => grid.appendChild(card));
+});
+
+
 // ==========================================
-// 🔻 COPIED LOGIC FROM VIEW_LOGIC.JS 🔻
-// (Exact Sync Required)
+// 🔻 COPIED MATH LOGIC (UNCHANGED) 🔻
 // ==========================================
 
-// 1. Calculate Wallet (Extra Balance)
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
-    
-    // A. Profit Share Logic
     const profitEvents = allTransactionsList.filter(r => r.returnAmount > 0);
     profitEvents.forEach(paymentRecord => {
         const result = calculateProfitDistribution(paymentRecord);
@@ -302,20 +351,16 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
             history.push({ type: memberShare.type || 'profit', from: paymentRecord.name, date: paymentRecord.date, amount: memberShare.share });
         }
     });
-
-    // B. Manual Adjustments
     const manualAdjustments = allTransactionsList.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
     manualAdjustments.forEach(tx => {
         if (tx.extraBalance > 0) history.push({ type: 'manual_credit', from: 'Admin', date: tx.date, amount: tx.extraBalance });
         if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', from: 'Admin', date: tx.date, amount: -tx.extraWithdraw });
     });
-
     history.sort((a,b) => a.date - b.date);
     const total = history.reduce((acc, item) => acc + item.amount, 0);
     return { total, history };
 }
 
-// 2. Calculate Total Lifetime Profit
 function calculateTotalProfitForMember(memberName) { 
     return allTransactionsList.reduce((totalProfit, transaction) => { 
         if (transaction.returnAmount > 0) { 
@@ -327,22 +372,17 @@ function calculateTotalProfitForMember(memberName) {
     }, 0); 
 }
 
-// 3. The Core Profit Distribution Logic (Complex)
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
-    
-    // A. Self 10%
     const selfShare = totalInterest * 0.10;
     distribution.push({ name: paymentRecord.name, share: selfShare, type: 'Self Return (10%)' });
     
-    // B. Guarantor 10%
     const payerMemberInfo = memberDataMap.get(paymentRecord.memberId);
     if (payerMemberInfo && payerMemberInfo.guarantorName && payerMemberInfo.guarantorName !== 'Xxxxx') {
             distribution.push({ name: payerMemberInfo.guarantorName, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
     }
     
-    // C. Community Pool 70%
     const communityPool = totalInterest * 0.70;
     const userLoansBeforePayment = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan' ); 
     
@@ -353,14 +393,10 @@ function calculateProfitDistribution(paymentRecord) {
     
     const snapshotScores = {}; 
     let totalScoreInSnapshot = 0; 
-    
-    // Get unique members in system at that time
     const membersInSystemAtLoanDate = [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))]; 
     
     membersInSystemAtLoanDate.forEach(name => { 
-        if (name === paymentRecord.name) return; // Exclude Payer
-        
-        // Call Score Engine
+        if (name === paymentRecord.name) return; 
         if (typeof calculatePerformanceScore === 'function') {
             const scoreObject = calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans); 
             if (scoreObject.totalScore > 0) { 
@@ -370,7 +406,6 @@ function calculateProfitDistribution(paymentRecord) {
         }
     }); 
     
-    // Constants for Inactivity (Copied from Config logic usually, hardcoded here to match old file)
     const INACTIVE_DAYS_LEVEL_1 = 180;
     const INACTIVE_MULTIPLIER_1 = 0.90;
     const INACTIVE_DAYS_LEVEL_2 = 365;
@@ -379,15 +414,11 @@ function calculateProfitDistribution(paymentRecord) {
     if (totalScoreInSnapshot > 0) {
         for (const memberName in snapshotScores) { 
             let memberShare = (snapshotScores[memberName].totalScore / totalScoreInSnapshot) * communityPool; 
-            
-            // Inactivity Penalty Check
             const lastLoanDate = allTransactionsList.filter(r => r.name === memberName && r.loan > 0 && r.date <= loanDate && r.loanType === 'Loan').pop()?.date;
             const daysSinceLastLoan = lastLoanDate ? (loanDate - lastLoanDate) / (1000 * 3600 * 24) : Infinity; 
-            
             let appliedMultiplier = 1.0; 
             if (daysSinceLastLoan > INACTIVE_DAYS_LEVEL_2) appliedMultiplier = INACTIVE_MULTIPLIER_2; 
             else if (daysSinceLastLoan > INACTIVE_DAYS_LEVEL_1) appliedMultiplier = INACTIVE_MULTIPLIER_1; 
-            
             memberShare *= appliedMultiplier; 
             if (memberShare > 0) distribution.push({ name: memberName, share: memberShare, type: 'Community Profit' }); 
         } 
@@ -395,14 +426,17 @@ function calculateProfitDistribution(paymentRecord) {
     return { distribution }; 
 }
 
-// --- UTILS ---
 function formatCurrency(amount) {
     return `₹${amount.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
 }
 
 function showError(msg) {
     const toast = document.getElementById('error-toast');
-    document.getElementById('error-msg').textContent = msg;
-    toast.classList.remove('translate-y-20');
-    setTimeout(() => toast.classList.add('translate-y-20'), 5000);
+    if(toast) {
+        document.getElementById('error-msg').textContent = msg;
+        toast.classList.remove('translate-y-20');
+        setTimeout(() => toast.classList.add('translate-y-20'), 5000);
+    } else {
+        alert(msg);
+    }
 }
