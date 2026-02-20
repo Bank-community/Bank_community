@@ -1,10 +1,10 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v12.0 - INCREMENTAL MONTHLY SYNC)
+// MASTER PROFIT LOGIC (v13.0 - CACHING + 10-TAP SECURITY)
 // Features: 
-// 1. Calculates Total Gap (Lifetime).
-// 2. Scans Wallet History to see what's already paid.
-// 3. Syncs ONLY the difference (New Month Amount).
-// 4. Locks after sync for the current month.
+// 1. 10-Tap Security Lock (Stronger)
+// 2. Local Storage Caching (Reduces DB Reads)
+// 3. Force Refresh Option
+// 4. Monthly Sync Logic Included
 // ==========================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -17,21 +17,86 @@ let rawMembers = {}, rawTransactions = {}, rawActiveLoans = {}, rawPenaltyWallet
 let allTransactionsList = [], memberDataMap = new Map(), transactionsByMember = {}, renderedMembersCache = [];
 
 // CALCULATION VARS
-let adminTotalReturn = 0;       // Source of Truth (e.g. 8681)
-let target90Percent = 0;        // 90% Target (e.g. 7812.9)
-let currentlyDistributed = 0;   // Distributed to Members (e.g. 6786)
-let totalLifetimeGap = 0;       // Total System Gap (e.g. 1026.9)
-let totalInactiveSentToWallet = 0; // Sum of all previous 'inactive income' txns
+let adminTotalReturn = 0;       
+let target90Percent = 0;        
+let currentlyDistributed = 0;   
+let totalLifetimeGap = 0;       
+let totalInactiveSentToWallet = 0;
 
 // SYNC FLAGS
-let currentMonthTag = "";       // e.g. "inactive income feb26"
+let currentMonthTag = "";       
 let isSyncedThisMonth = false;  
 
+// SECURITY & CACHE VARS
+let securityTaps = 0;
+const SECURITY_PIN = '74123690'; 
+const CACHE_KEY = 'tcf_profit_dashboard_cache_v1';
 const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
 // --- INITIALIZATION ---
-document.addEventListener("DOMContentLoaded", checkAuthAndInit);
+// Pehle Security System Load hoga
+document.addEventListener("DOMContentLoaded", setupSecuritySystem);
 
+// ==========================================
+// 1. SECURITY SYSTEM (10 TAPS)
+// ==========================================
+function setupSecuritySystem() {
+    console.log("🔒 Security Level: High (10 Taps)");
+    
+    const overlay = document.getElementById('loader-overlay');
+    const inputBox = document.getElementById('security-input-box');
+    const passInput = document.getElementById('security-pass');
+    const verifyBtn = document.getElementById('security-btn');
+    const errorMsg = document.getElementById('security-error');
+    const dummyText = document.getElementById('dummy-text');
+
+    if (overlay) {
+        overlay.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+
+            securityTaps++;
+            if(navigator.vibrate) navigator.vibrate(30);
+
+            // Trigger at 10 Taps
+            if (securityTaps >= 10) {
+                if(inputBox) {
+                    inputBox.classList.add('visible');
+                    setTimeout(() => { if(passInput) passInput.focus(); }, 100);
+                }
+                if(dummyText) {
+                    dummyText.textContent = "SECURE ACCESS REQUIRED";
+                    dummyText.style.color = "#D4AF37"; 
+                }
+            }
+        });
+    }
+
+    if (verifyBtn && passInput) {
+        const verifyAction = () => {
+            if (passInput.value === SECURITY_PIN) {
+                // SUCCESS
+                if(overlay) {
+                    overlay.style.transition = "opacity 0.5s ease";
+                    overlay.style.opacity = "0";
+                    setTimeout(() => overlay.remove(), 500); 
+                }
+                checkAuthAndInit(); // Start Data Load
+            } else {
+                // FAIL
+                errorMsg.classList.remove('hidden');
+                if(navigator.vibrate) navigator.vibrate([100, 50, 100]); 
+                passInput.value = '';
+            }
+        };
+
+        verifyBtn.addEventListener('click', verifyAction);
+        passInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') verifyAction(); });
+    }
+}
+
+// ==========================================
+// 2. MAIN APP LOGIC (CACHING ENABLED)
+// ==========================================
 async function checkAuthAndInit() {
     try {
         const response = await fetch('/api/firebase-config');
@@ -42,24 +107,56 @@ async function checkAuthAndInit() {
         auth = getAuth(app);
         db = getDatabase(app);
 
+        // Sorting & Refresh Listeners
+        const sortSelect = document.getElementById('sort-select');
+        if(sortSelect) sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
+        
+        const refreshBtn = document.getElementById('force-refresh-btn');
+        if(refreshBtn) refreshBtn.addEventListener('click', () => {
+            if(confirm("Refresh data from server?")) {
+                fetchFreshData(); // Bypass Cache
+            }
+        });
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                fetchAllData();
+                initDataLoad(); // Smart Load
             } else {
                 window.location.href = 'login.html';
             }
         });
-        
-        const sortSelect = document.getElementById('sort-select');
-        if(sortSelect) sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
 
     } catch (error) {
         alert("System Error: " + error.message);
     }
 }
 
-// --- DATA FETCHING ---
-async function fetchAllData() {
+// --- SMART DATA LOADING (CACHE FIRST) ---
+async function initDataLoad() {
+    // 1. Try Local Storage First
+    const cached = localStorage.getItem(CACHE_KEY);
+    
+    if (cached) {
+        console.log("⚡ Loading from Local Cache...");
+        const data = JSON.parse(cached);
+        
+        // Restore Variables
+        rawMembers = data.members || {};
+        rawTransactions = data.transactions || {};
+        rawActiveLoans = data.activeLoans || {};
+        rawPenaltyWallet = data.penaltyWallet || {};
+        rawAdmin = data.admin || {};
+        
+        // Process UI
+        startProcessing();
+    } else {
+        // 2. If No Cache, Fetch Fresh
+        console.log("🌐 No Cache Found. Fetching from Firebase...");
+        fetchFreshData();
+    }
+}
+
+async function fetchFreshData() {
     try {
         const [membersSnap, txSnap, loansSnap, walletSnap, adminSnap] = await Promise.all([
             get(ref(db, 'members')),
@@ -71,54 +168,65 @@ async function fetchAllData() {
 
         if (!membersSnap.exists()) throw new Error("No members found.");
 
+        // Update Variables
         rawMembers = membersSnap.val();
         rawTransactions = txSnap.exists() ? txSnap.val() : {};
         rawActiveLoans = loansSnap.exists() ? loansSnap.val() : {};
         rawPenaltyWallet = walletSnap.exists() ? walletSnap.val() : {};
         rawAdmin = adminSnap.exists() ? adminSnap.val() : {};
 
-        adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
-        
-        // CHECK HISTORY & MONTHLY STATUS
-        analyzeWalletHistory();
+        // SAVE TO CACHE
+        const cachePayload = {
+            members: rawMembers,
+            transactions: rawTransactions,
+            activeLoans: rawActiveLoans,
+            penaltyWallet: rawPenaltyWallet,
+            admin: rawAdmin,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+        console.log("💾 Data Saved to Cache");
 
-        prepareAndStartQueue();
+        startProcessing();
 
     } catch (error) {
         alert("Database Error: " + error.message);
     }
 }
 
-// --- NEW LOGIC: HISTORY SCANNER ---
+// --- PROCESSING LOGIC ---
+function startProcessing() {
+    // 1. Get Source of Truth
+    adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
+    
+    // 2. Check Sync Status
+    analyzeWalletHistory();
+
+    // 3. Prepare Queue
+    prepareAndStartQueue();
+}
+
 function analyzeWalletHistory() {
-    // 1. Define Tag for current month
     const date = new Date();
     const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
     const mName = monthNames[date.getMonth()];
     const yName = date.getFullYear().toString().slice(-2);
-    currentMonthTag = `inactive income ${mName}${yName}`; // "inactive income feb26"
+    currentMonthTag = `inactive income ${mName}${yName}`;
 
-    // 2. Reset Counters
     totalInactiveSentToWallet = 0;
     isSyncedThisMonth = false;
 
     if (rawPenaltyWallet.incomes) {
         Object.values(rawPenaltyWallet.incomes).forEach(tx => {
             const reason = (tx.reason || "").toLowerCase();
-            
-            // Check if this transaction is an "inactive income" sync
             if (reason.includes("inactive income")) {
                 totalInactiveSentToWallet += parseFloat(tx.amount || 0);
             }
-
-            // Check if specifically THIS month is done
             if (reason.includes(currentMonthTag)) {
                 isSyncedThisMonth = true;
             }
         });
     }
-    console.log("💰 Already Sent to Wallet (Lifetime):", totalInactiveSentToWallet);
-    console.log("📅 Synced This Month?", isSyncedThisMonth);
 }
 
 // --- PREPARE DATA ---
@@ -173,7 +281,10 @@ function prepareAndStartQueue() {
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
-    document.getElementById('loader-overlay').classList.add('hidden');
+    
+    // Hide overlay AFTER logic is ready (if needed visually)
+    // Note: Overlay is already hidden by password check, but this ensures safety
+    // document.getElementById('loader-overlay').classList.add('hidden'); 
     
     injectScannerUI(memberIdsToProcess.length);
     startLiveQueue(memberIdsToProcess);
@@ -191,10 +302,7 @@ function startLiveQueue(memberIds) {
     function processNext() {
         if (index >= total) {
             document.getElementById('scanner-text').textContent = "Dashboard Ready ✅";
-            
-            // FINAL MATH & UI
             calculateAndShowSyncUI();
-            
             setTimeout(() => {
                 const scanner = document.getElementById('live-scanner-status');
                 if(scanner) scanner.remove();
@@ -251,60 +359,42 @@ function startLiveQueue(memberIds) {
 
 // --- FINAL MATH LOGIC ---
 function calculateAndShowSyncUI() {
-    // 1. Calculate Target (90% of Admin Total)
     target90Percent = adminTotalReturn * 0.90;
-    
-    // 2. Calculate Total Lifetime Gap
     totalLifetimeGap = target90Percent - currentlyDistributed;
     
-    // 3. Calculate PENDING (New Month Only)
-    // Formula: (Total Lifetime Gap) - (Money Already Sent to Wallet in History)
     let pendingToAdd = totalLifetimeGap - totalInactiveSentToWallet;
-    
-    // Rounding safety
     pendingToAdd = Math.floor(pendingToAdd); 
     if (pendingToAdd < 0) pendingToAdd = 0;
 
-    // Display The Lifetime Gap (Just for info)
     const el = document.getElementById('undistributed-amount');
-    if (el) el.textContent = formatCurrency(totalLifetimeGap); // Show Total Asset Value
+    if (el) el.textContent = formatCurrency(totalLifetimeGap);
 
     const btn = document.getElementById('sync-wallet-btn');
     const status = document.getElementById('sync-status');
     const dateMsg = document.getElementById('date-lock-msg');
 
     const today = new Date();
-    // TEST MODE: Uncomment next line to test
-    // const isDate20 = true; 
+    // const isDate20 = true; // TESTING
     const isDate20 = today.getDate() === 20;
 
-    // UI RULES:
-    
     if (isSyncedThisMonth) {
-        // ALREADY DONE FOR THIS MONTH
         if(btn) btn.classList.add('hidden');
         if(status) {
             status.classList.remove('hidden');
             status.innerHTML = `<i class="fas fa-check-circle"></i> All Synced (${currentMonthTag})`;
         }
         if(dateMsg) dateMsg.classList.add('hidden');
-    
     } else {
-        // NOT SYNCED THIS MONTH YET
         if (pendingToAdd > 5) {
-            // New money is available (e.g. 1026.9 or next month's 500)
             if (isDate20) {
-                // DATE IS 20: SHOW BUTTON
                 if(btn) {
                     btn.classList.remove('hidden');
-                    // Show only the PENDING amount (Incremental)
                     btn.innerHTML = `<i class="fas fa-wallet"></i> <span>Sync ₹${pendingToAdd}</span>`;
                     btn.onclick = () => performWalletSync(pendingToAdd);
                 }
                 if(status) status.classList.add('hidden');
                 if(dateMsg) dateMsg.classList.add('hidden');
             } else {
-                // WRONG DATE: SHOW LOCK
                 if(btn) btn.classList.add('hidden');
                 if(status) status.classList.add('hidden');
                 if(dateMsg) {
@@ -313,7 +403,6 @@ function calculateAndShowSyncUI() {
                 }
             }
         } else {
-            // No new money generated since last sync
             if(btn) btn.classList.add('hidden');
             if(status) {
                 status.classList.remove('hidden');
@@ -325,7 +414,7 @@ function calculateAndShowSyncUI() {
 }
 
 async function performWalletSync(amount) {
-    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nTag: ${currentMonthTag}\n\n(This is the new income for this month)`)) return;
+    if(!confirm(`CONFIRM SYNC\n\nAdd ₹${amount} to Penalty Wallet?\nTag: ${currentMonthTag}`)) return;
 
     const btn = document.getElementById('sync-wallet-btn');
     btn.disabled = true;
@@ -333,9 +422,6 @@ async function performWalletSync(amount) {
 
     try {
         const walletRef = ref(db, 'penaltyWallet');
-        
-        // 1. Transaction (With Unique Tag)
-        // Reason format: "inactive income feb26 : 1026"
         const reasonString = `${currentMonthTag} : ${amount}`;
         
         const newTxRef = push(child(walletRef, 'incomes'));
@@ -347,11 +433,13 @@ async function performWalletSync(amount) {
             timestamp: Date.now()
         });
 
-        // 2. Update Balance
         const currentBalance = parseFloat(rawPenaltyWallet.availableBalance || 0);
         await update(walletRef, {
             availableBalance: currentBalance + amount
         });
+
+        // CLEAR CACHE ON SYNC TO FORCE REFRESH NEXT TIME
+        localStorage.removeItem(CACHE_KEY);
 
         alert("✅ Success! Income Added.");
         window.location.reload(); 
@@ -363,7 +451,7 @@ async function performWalletSync(amount) {
     }
 }
 
-// --- UTILS (No Changes) ---
+// --- UTILS ---
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
