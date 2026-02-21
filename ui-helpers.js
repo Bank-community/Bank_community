@@ -1,9 +1,9 @@
 // ui-helpers.js - PART 3 of 3 (Logic & Analytics)
-// RESPONSIBILITY: Business Logic, Data Formatting, Analytics, & Modal Population
+// FINAL FIX: Password Check now Auto-Connects to Database if missing.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-// --- 🔥 ANALYTICS SYSTEM (NEW) ---
+// --- 🔥 ANALYTICS SYSTEM ---
 export const Analytics = {
     sessionStart: Date.now(),
     activityLog: [],
@@ -12,8 +12,6 @@ export const Analytics = {
     logAction: function(actionName) {
         const time = new Date().toLocaleTimeString();
         this.activityLog.push(`[${time}] ${actionName}`);
-        // Console mein bhi dikhaye (Debugging ke liye)
-        // console.log("User Action:", actionName);
     },
 
     // 2. Session Save Karein (Firebase mein)
@@ -42,13 +40,11 @@ export function processAndShowNotifications(globalData, container) {
     const todayStr = new Date().toISOString().split('T')[0];
     const sessionKey = `royalPopups_${todayStr}`;
 
-    // Session Storage Check (Taki baar-baar popup na aaye)
     if (sessionStorage.getItem(sessionKey)) return;
 
     let delay = 500;
     const baseDelay = 4000;
 
-    // A. Transactions (Only Today's)
     const todaysTx = globalData.transactions.filter(tx => tx.date && tx.date.startsWith(todayStr));
     
     todaysTx.forEach((tx, i) => {
@@ -58,7 +54,6 @@ export function processAndShowNotifications(globalData, container) {
         }, delay + (i * baseDelay));
     });
 
-    // B. Manual Notices
     delay += todaysTx.length * baseDelay;
     Object.values(globalData.notifications.manual).forEach((notif, i) => {
         setTimeout(() => {
@@ -80,11 +75,9 @@ function showPopupNotification(container, type, data, member) {
         title = member.name;
         img = member.displayImageUrl;
         let amount = Math.abs(data.amount || 0).toLocaleString();
-        
         let msg = data.type === 'SIP' ? 'Paid Monthly SIP' : 
                   data.type === 'Loan Taken' ? 'Took a Loan' : 'Transaction';
-        
-        let colorClass = data.type === 'Loan Taken' ? 'loan' : 'sip'; // Red or Green
+        let colorClass = data.type === 'Loan Taken' ? 'loan' : 'sip';
         
         content = `<strong>${title}</strong><p>${msg}</p>
                    <span class="notification-popup-amount ${colorClass}">₹${amount}</span>`;
@@ -101,7 +94,6 @@ function showPopupNotification(container, type, data, member) {
 
     popup.onclick = () => window.location.href = 'notifications.html';
     
-    // Auto Close Logic
     const closeBtn = popup.querySelector('.notification-popup-close');
     closeBtn.onclick = (e) => { e.stopPropagation(); removePopup(popup); };
     setTimeout(() => removePopup(popup), 5000);
@@ -120,21 +112,17 @@ export function showMemberProfileModal(memberId, allMembers) {
     const member = allMembers.find(m => m.id === memberId);
     if (!member) return;
 
-    // Analytics Track
     Analytics.logAction(`Viewed Profile: ${member.name}`);
 
-    // Populate Data
     setText('profileModalName', member.name);
     setText('profileModalJoiningDate', formatDate(member.joiningDate));
     setText('profileModalBalance', formatCurrency(member.balance));
     setText('profileModalReturn', formatCurrency(member.totalReturn));
     setText('profileModalLoanCount', member.loanCount || 0);
     
-    // Image
     const imgEl = document.getElementById('profileModalImage');
     if(imgEl) imgEl.src = member.displayImageUrl;
 
-    // SIP Status HTML
     const sipContainer = document.getElementById('profileModalSipStatus');
     if (sipContainer) {
         const isPaid = member.sipStatus.paid;
@@ -143,7 +131,6 @@ export function showMemberProfileModal(memberId, allMembers) {
             : `<span class="sip-status-icon not-paid">✖</span> Not Paid`;
     }
 
-    // Class Toggles
     const balEl = document.getElementById('profileModalBalance');
     if(balEl) balEl.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`;
 
@@ -153,9 +140,7 @@ export function showMemberProfileModal(memberId, allMembers) {
         const tag = document.getElementById('profileModalPrimeTag');
         if(tag) tag.style.display = member.isPrime ? 'block' : 'none';
         
-        // Open Modal
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
+        openModalById('memberProfileModal');
     }
 }
 
@@ -165,7 +150,6 @@ export function showSipStatusModal(members) {
     if (!container) return;
     container.innerHTML = '';
     
-    // Sort: Paid first, then Name
     const sorted = [...members].sort((a, b) => (b.sipStatus.paid - a.sipStatus.paid) || a.name.localeCompare(b.name));
 
     sorted.forEach(m => {
@@ -248,25 +232,40 @@ export function showBalanceModal(stats) {
     animateValue('availableAmountDisplay', stats.availableCommunityBalance);
 }
 
+// --- 🔥 FIXED: Auto-Connect Database for Password Check ---
 export async function handlePasswordCheck(database, memberId) {
     const input = document.getElementById('passwordInput');
     if (!input || !input.value) return alert('Please enter password.');
     
-    if (!database) return alert("Database not connected.");
+    // Auto-Connect Logic: Agar database null hai, to global firebase use karo
+    let dbInstance = database;
+    if (!dbInstance) {
+        try {
+            if (typeof firebase !== 'undefined') {
+                dbInstance = firebase.database();
+            } else {
+                throw new Error("Firebase SDK missing");
+            }
+        } catch (e) {
+            console.error("Auto-connect failed:", e);
+            return alert("Database not connected. Please refresh the page.");
+        }
+    }
 
     try {
-        const snap = await database.ref(`members/${memberId}/password`).once('value');
-        if (String(input.value).trim() === String(snap.val()).trim()) {
+        const snap = await dbInstance.ref(`members/${memberId}/password`).once('value');
+        const correctPassword = snap.val();
+        
+        if (String(input.value).trim() === String(correctPassword).trim()) {
             Analytics.logAction("Password Verified for Full View");
-            // Redirect logic is in user-ui.js event listener or here
             window.location.href = `view.html?memberId=${memberId}`;
         } else {
             alert('Wrong Password!');
             input.value = '';
         }
     } catch (e) {
-        console.error(e);
-        alert('Verification failed.');
+        console.error("Password check error:", e);
+        alert('Verification failed. Check internet.');
     }
 }
 
@@ -277,7 +276,6 @@ export function promptForDeviceVerification(members) {
         const modal = document.getElementById('deviceVerificationModal');
         if(!modal) return resolve(null);
         
-        // Modal HTML Populate
         modal.querySelector('.modal-content').innerHTML = `
             <h2>Verify Identity</h2>
             <p>Select your name to continue.</p>
@@ -343,7 +341,6 @@ export function observeElements(elements) {
     elements.forEach(el => observer.observe(el));
 }
 
-// Helper: Open Modal by ID
 function openModalById(id) {
     const m = document.getElementById(id);
     if(m) {
@@ -352,13 +349,11 @@ function openModalById(id) {
     }
 }
 
-// Helper: Set Text Safely
 function setText(id, val) {
     const el = document.getElementById(id);
     if(el) el.textContent = val;
 }
 
-// Helper: Animate Numbers
 function animateValue(id, end) {
     const el = document.getElementById(id);
     if(!el) return;
