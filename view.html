@@ -7,7 +7,6 @@
   <title>Royal Member Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <!-- html2canvas for downloading card -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <script>
@@ -172,7 +171,6 @@
   </div>
   
   <div id="profile-content" class="w-full hidden">
-    <!-- ROYAL HEADER -->
     <div class="royal-header-bg text-white pt-8 pb-16 px-6 rounded-b-[3rem] shadow-2xl">
         <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center gap-6">
             <div class="relative">
@@ -192,13 +190,10 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
     <main class="max-w-6xl mx-auto p-4 -mt-12 relative z-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- LEFT COLUMN (Stats & Documents) -->
             <div class="lg:col-span-1 space-y-6">
-                <!-- Financial Health -->
                 <div class="glass-card p-6">
                     <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
                         <i class="fas fa-chart-line text-gold"></i> Financial Health
@@ -218,52 +213,52 @@
                     </div>
                 </div>
 
-                 <!-- Documents -->
-                <div class="glass-card p-6">
+                 <div class="glass-card p-6">
                      <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
                         <i class="fas fa-shield-alt text-gold"></i> Verified Documents
                     </h3>
-                     <div class="grid grid-cols-3 gap-3">
+                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                          <div class="text-center group cursor-pointer document-thumbnail">
                             <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
                                 <img id="doc-profile-pic" src="" class="w-full h-16 object-cover rounded-md opacity-80 group-hover:opacity-100">
                             </div>
-                            <p class="text-[10px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Photo</p>
+                            <p class="text-[9px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Photo</p>
                          </div>
                          <div class="text-center group cursor-pointer document-thumbnail">
                             <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
                                 <img id="doc-document" src="" class="w-full h-16 object-contain opacity-80 group-hover:opacity-100">
                             </div>
-                            <p class="text-[10px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">KYC Doc</p>
+                            <p class="text-[9px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Aadhaar Front</p>
+                         </div>
+                         <div class="text-center group cursor-pointer document-thumbnail">
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
+                                <img id="doc-document-back" src="" class="w-full h-16 object-contain opacity-80 group-hover:opacity-100">
+                            </div>
+                            <p class="text-[9px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Aadhaar Back</p>
                          </div>
                          <div class="text-center group cursor-pointer document-thumbnail">
                             <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 group-hover:border-royal-gold transition-colors">
                                 <img id="doc-signature" src="" class="w-full h-16 object-contain opacity-80 group-hover:opacity-100">
                             </div>
-                             <p class="text-[10px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Sign</p>
+                             <p class="text-[9px] mt-2 font-semibold text-gray-500 uppercase tracking-wide">Sign</p>
                          </div>
                      </div>
                 </div>
 
-                <!-- Loan History -->
                 <div class="glass-card p-6">
                     <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
                         <i class="fas fa-history text-gold"></i> Recent Activity
                     </h3>
                     <div id="loan-history-container" class="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-                        <!-- Items injected here -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN (Details & Balance) -->
             <div class="lg:col-span-2 space-y-6">
                 <div class="glass-card p-6 sm:p-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         
-                        <!-- Personal Info -->
                         <div>
-                            <!-- Header with Password Change Button -->
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
                                 <h3 class="text-lg font-bold text-royal-blue flex items-center gap-2">
                                     <i class="fas fa-user-tie text-gold"></i> Personal Info
@@ -283,6 +278,22 @@
                                         <span id="mobile-number" class="font-semibold text-gray-800"></span>
                                     </div>
                                 </div>
+                                
+                                <div class="info-item flex items-center justify-between gap-4 group relative">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-gray-400">Email Address</p>
+                                            <span id="email-address" class="font-semibold text-gray-800 break-all"></span>
+                                        </div>
+                                    </div>
+                                    <button id="edit-email-btn" class="text-xs text-royal-blue hover:text-royal-gold transition-colors p-2" title="Edit Email">
+                                        <i class="fas fa-edit text-lg"></i>
+                                    </button>
+                                </div>
+
                                 <div class="info-item flex items-center gap-4 group">
                                     <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-royal-gold group-hover:bg-royal-gold group-hover:text-white transition-colors">
                                         <i class="fas fa-birthday-cake"></i>
@@ -313,7 +324,6 @@
                             </div>
                         </div>
 
-                        <!-- Financial Summary -->
                         <div>
                             <h3 class="text-lg font-bold text-royal-blue border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
                                 <i class="fas fa-wallet text-gold"></i> Wealth Overview
@@ -333,7 +343,6 @@
                                 </div>
                             </div>
 
-                            <!-- EXTRA BALANCE BOX -->
                             <div class="p-5 bg-gradient-to-br from-royal-dark to-royal-blue rounded-xl text-center text-white shadow-lg border border-royal-gold relative overflow-hidden">
                                 <div class="absolute top-0 right-0 w-16 h-16 bg-white opacity-5 rounded-full -mr-8 -mt-8"></div>
                                 <div class="relative z-10">
@@ -356,15 +365,11 @@
     </main>
   </div>
 
-  <!-- MODALS (Redesigned) -->
-  
-  <!-- Image Viewer -->
   <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <img id="fullImageView" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl border-2 border-white">
       <button id="closeImageViewer" class="absolute top-6 right-6 text-white text-4xl hover:text-royal-gold transition-colors">&times;</button>
   </div>
 
-  <!-- Withdrawal Input Modal -->
   <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-gold transform scale-95 transition-transform duration-300">
           <h3 class="text-xl font-bold text-center mb-1 text-royal-blue">Withdraw Funds</h3>
@@ -388,30 +393,25 @@
       </div>
   </div>
   
-  <!-- History Modal (UPDATED WITH SOURCE NAME) -->
   <div id="historyModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col border-t-4 border-royal-blue">
           <h3 class="text-xl font-bold text-center mb-4 text-royal-blue">Transaction History</h3>
           <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-              <!-- JS injected -->
-          </div>
+              </div>
           <button id="close-history-modal" class="mt-6 w-full bg-royal-blue text-white font-bold py-3 rounded-xl hover:bg-royal-dark transition-colors">Close</button>
       </div>
   </div>
 
-  <!-- Score Modal -->
   <div id="scoreBreakdownModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border-t-4 border-royal-blue">
           <h3 class="text-xl font-bold text-center mb-2 text-royal-blue">Score Breakdown</h3>
           <p class="text-center text-xs text-gray-400 mb-4">How your performance is calculated</p>
           <div id="score-breakdown-content" class="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <!-- JS injected -->
-          </div>
+              </div>
           <button id="close-score-modal" class="mt-6 w-full bg-royal-blue text-white font-bold py-3 rounded-xl">Got it</button>
       </div>
   </div>
 
-  <!-- Password Change Modal (NEW) -->
   <div id="passwordModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-blue transform scale-95 transition-transform duration-300">
           <h3 class="text-xl font-bold text-center mb-1 text-royal-blue">Change Password</h3>
@@ -442,15 +442,34 @@
       </div>
   </div>
 
-  <!-- CERTIFICATE RESULT MODAL (Royal Receipt) -->
+  <div id="emailModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-blue transform scale-95 transition-transform duration-300">
+          <h3 class="text-xl font-bold text-center mb-1 text-royal-blue">Update Email</h3>
+          <p class="text-center text-xs text-gray-400 mb-6 uppercase tracking-wider">Keep your profile updated</p>
+          
+          <div class="space-y-4">
+              <div>
+                  <label class="text-xs font-bold text-gray-500 uppercase ml-1">New Email Address</label>
+                  <input type="email" id="new-email-input" class="w-full border border-gray-200 rounded-xl p-3 mt-1 focus:border-royal-gold outline-none bg-gray-50" placeholder="Enter your valid email">
+              </div>
+          </div>
+
+          <p id="email-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"><i class="fas fa-times-circle"></i> Error message</p>
+          <p id="email-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold"><i class="fas fa-check-circle"></i> Email Updated Successfully!</p>
+
+          <div class="mt-6 flex gap-3">
+              <button id="close-email-modal" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+              <button id="submit-email-change" class="flex-1 btn-royal font-bold py-3 rounded-xl shadow-lg">Update</button>
+          </div>
+      </div>
+  </div>
+
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4">
       <div class="w-full max-w-md">
         
-        <!-- The Certificate Card -->
         <div id="withdrawalCard" class="withdrawal-card shadow-2xl bg-[#fffcf5]">
             <div class="watermark">TRUST FUND</div>
             
-            <!-- Header -->
             <div class="flex justify-between items-start mb-6 relative z-10">
                 <div class="flex items-center gap-3">
                     <img id="card-profile-pic" class="w-14 h-14 rounded-full object-cover border-2 border-royal-gold shadow-sm" src="">
@@ -465,13 +484,11 @@
                 </div>
             </div>
 
-            <!-- Amount -->
             <div class="text-center my-6 py-4 border-y-2 border-double border-gray-200 relative z-10">
                  <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Amount Withdrawn</p>
                  <p id="card-amount" class="text-royal-gold font-serif font-extrabold text-5xl drop-shadow-sm"></p>
             </div>
 
-            <!-- Footer -->
             <div class="flex justify-between items-end mt-4 relative z-10">
                 <div class="text-[10px] text-gray-400 italic">
                     <p>Authorized by Trust Community Fund</p>
@@ -485,7 +502,6 @@
             </div>
         </div>
 
-        <!-- Actions -->
         <div class="mt-6 flex gap-4">
             <button id="download-card-btn" class="flex-1 btn-gold text-royal-dark font-bold py-3 rounded-xl flex items-center justify-center gap-2">
                 <i class="fas fa-download"></i> Save Receipt
@@ -498,7 +514,6 @@
       </div>
   </div>
 
-  <!-- NEW LOGIC FILE CONNECTION -->
   <script src="score_engine.js"></script>
 
 <script type="module" src="view_logic.js"></script>
@@ -506,4 +521,3 @@
 
 </body>
 </html>
-
