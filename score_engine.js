@@ -11,8 +11,8 @@ const ENGINE_CONFIG = {
     
     // Scoring Weights
     CAPITAL_TARGET: 50000,
-    WEIGHT_CAPITAL: 0.40,
-    WEIGHT_CONSISTENCY: 0.30,
+    WEIGHT_CAPITAL: 0.50,
+    WEIGHT_CONSISTENCY: 0.20,
     WEIGHT_CREDIT: 0.30,
     
     // Loan Eligibility
