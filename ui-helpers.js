@@ -1,110 +1,136 @@
-// ui-helpers.js - PART 3 of 3 (Logic & Analytics 2.0)
-// ADVANCED FEATURES: Cross-Page Tracking, Device Intelligence & Auto-Recovery.
+// ui-helpers.js - FINAL FULL VERSION (v3.0)
+// Features: Auto-Tracking, Device Intelligence, Null ID Fix & All UI Logic.
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-// --- 🌟 ADVANCED ANALYTICS ENGINE (2.0) ---
+// --- 🌟 ADVANCED ANALYTICS ENGINE (3.0) ---
 export const Analytics = {
     sessionStart: Date.now(),
     activityLog: [],
-    sessionId: null, // Unique ID for this browser tab session
-    memberId: null,  // Will be set after login
+    sessionId: null,
+    memberId: 'Unknown_Guest', // Default until identified
+    deviceMeta: null, // Battery/Network cache
 
-    // 1. Initialize (Call this on every page load)
+    // 1. Initialize (Called from user-main.js)
     init: async function(database) {
-        // A. Session ID Management (Cross-Page Tracking)
+        // A. Session ID Management
         let sid = sessionStorage.getItem('analytics_session_id');
-        if (!sid) {
-            sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        if (!sid || sid === 'null') {
+            sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
             sessionStorage.setItem('analytics_session_id', sid);
         }
         this.sessionId = sid;
-        this.memberId = localStorage.getItem('verifiedMemberId') || 'Guest';
 
-        // B. Capture Deep Device Info
-        const deviceInfo = await this.getDeviceInfo();
-        
-        // C. Log Page Entry
-        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-        this.logAction(`📢 Entered Page: ${currentPage}`, deviceInfo);
+        // B. Try to get ID from local storage immediately (Fix for 'null' folder)
+        const storedId = localStorage.getItem('verifiedMemberId');
+        if (storedId && storedId !== 'null') {
+            this.memberId = storedId;
+        }
 
-        // D. Error Tracking (Global Spy)
-        window.addEventListener('error', (e) => {
-            this.logAction(`❌ Error: ${e.message} at ${e.filename}:${e.lineno}`);
-        });
+        // C. Get Device Info immediately
+        this.deviceMeta = await this.getDeviceInfo();
 
-        // E. Auto-Save on Exit (Visibility Change)
+        // D. Start Auto-Tracking (Detects EVERY Click)
+        this.setupGlobalTracker();
+
+        // E. Save on Exit (Tab Close / Screen Off)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 this.saveSession(database);
             }
         });
-        
-        console.log("Analytics 2.0 Active 🟢");
+
+        // console.log(`Analytics Active for: ${this.memberId}`);
     },
 
-    // 2. Action Logger
-    logAction: function(actionName, metaData = null) {
+    // 2. Identify User (Call this when user logs in/selects name)
+    identifyUser: function(id) {
+        if (id && id !== 'null') {
+            this.memberId = id;
+            // console.log("User Identified:", id);
+        }
+    },
+
+    // 3. Global Click Spy (The "Jasoos")
+    setupGlobalTracker: function() {
+        document.addEventListener('click', (e) => {
+            // Find clickable element (Button, Link, Input, or Card)
+            const target = e.target.closest('button, a, .action-card, .menu-item, input, select, .modal-content');
+            
+            if (target) {
+                // Get clean text content
+                let label = target.innerText || target.getAttribute('aria-label') || target.id || target.className || 'Unknown Element';
+                label = label.replace(/\n/g, ' ').replace(/\s+/g, ' ').substring(0, 40); // Clean extra spaces
+                
+                // Avoid logging sensitive input values (password)
+                if(target.tagName === 'INPUT' && target.type === 'password') label = "Password Field";
+
+                // Avoid duplicate logs if specific logger already ran
+                const lastLog = this.activityLog[this.activityLog.length - 1];
+                if (lastLog && lastLog.includes(label)) return;
+
+                this.logAction(`Clicked: ${label}`);
+            }
+        }, true); // Capture phase to catch everything
+    },
+
+    // 4. Action Logger (With Device Info Injection)
+    logAction: function(actionName) {
         const time = new Date().toLocaleTimeString();
         let entry = `[${time}] ${actionName}`;
         
-        // Add extra details if provided (like battery/network)
-        if (metaData) {
-            entry += ` | Info: ${JSON.stringify(metaData)}`;
+        // Agar yeh pehla log hai, ya 'Info' missing hai, to Device Data chipka do
+        if (this.activityLog.length === 0 || !this.activityLog.some(l => l.includes('| Info:'))) {
+            if (this.deviceMeta) {
+                entry += ` | Info: ${JSON.stringify(this.deviceMeta)}`;
+            }
         }
         
         this.activityLog.push(entry);
-        // console.log("tracked:", entry); // Uncomment for debugging
     },
 
-    // 3. Save to Firebase (Smart Path)
+    // 5. Save to Firebase
     saveSession: function(database) {
         if (!database || this.activityLog.length === 0) return;
+        if (this.memberId === 'null' || !this.sessionId) return; // Don't save garbage
 
-        const dateKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        // Use SessionID as key so data merges across pages
+        const dateKey = new Date().toISOString().split('T')[0];
         const sessionPath = `analytics_logs/${dateKey}/${this.memberId}/${this.sessionId}`;
         
         const sessionData = {
             lastUpdate: new Date().toLocaleTimeString(),
             device: navigator.userAgent,
-            // We use 'update' instead of 'set' to append data without overwriting previous page history
-            activities: this.activityLog 
+            activities: this.activityLog
         };
 
-        // Note: Realtime DB arrays are tricky, so we overwrite the list for this specific page view session
-        // A better approach for production is pushing individual events, but this works for your viewer.
+        // Use 'update' to append data without overwriting if page reloads
         database.ref(sessionPath).update(sessionData)
             .catch(err => console.warn("Analytics Save Error:", err));
     },
 
-    // 4. Intelligence Gatherer (Battery, Network, Screen)
+    // 6. Intelligence Gatherer (Battery, Network, Screen)
     getDeviceInfo: async function() {
-        let info = {};
+        let info = { battery: 'N/A', network: 'WiFi/4G', screen: 'Mobile' };
         
         // Battery
         if (navigator.getBattery) {
             try {
                 const batt = await navigator.getBattery();
-                info.battery = `${Math.round(batt.level * 100)}%${batt.charging ? ' (Charging)' : ''}`;
+                info.battery = `${Math.round(batt.level * 100)}%${batt.charging ? ' ⚡' : ''}`;
             } catch (e) {}
         }
-
         // Network
         if (navigator.connection) {
-            info.network = `${navigator.connection.effectiveType || 'Unknown'} (${navigator.connection.saveData ? 'Data Saver' : 'Normal'})`;
+            info.network = navigator.connection.effectiveType || '4G';
         }
-
-        // Screen & Orientation
-        info.screen = `${window.screen.width}x${window.screen.height}`;
-        info.orientation = screen.orientation ? screen.orientation.type : 'unknown';
-
+        // Screen
+        info.screen = `${window.innerWidth}x${window.innerHeight} (${screen.orientation ? screen.orientation.type.split('-')[0] : 'Portrait'})`;
+        
         return info;
     }
 };
 
-// --- REST OF THE UI HELPERS (Notification & Modals) ---
-// (No changes needed below, but keeping them ensuring file is complete)
+// --- 🔔 NOTIFICATION LOGIC ---
 
 export function processAndShowNotifications(globalData, container) {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -205,13 +231,13 @@ function removePopup(el) {
     }
 }
 
-// --- Modals & Helpers ---
+// --- 🖼️ UI MODAL FUNCTIONS ---
 
 export function showMemberProfileModal(memberId, allMembers) {
     const member = allMembers.find(m => m.id === memberId);
     if (!member) return;
 
-    Analytics.logAction(`Viewed Profile: ${member.name}`);
+    Analytics.logAction(`Opened Profile: ${member.name}`);
 
     setText('profileModalName', member.name);
     setText('profileModalJoiningDate', formatDate(member.joiningDate));
@@ -303,31 +329,63 @@ export function showBalanceModal(stats) {
     animateValue('availableAmountDisplay', stats.availableCommunityBalance);
 }
 
+// --- PASSWORD CHECK & AUTO-RECONNECT ---
 export async function handlePasswordCheck(database, memberId) {
     const input = document.getElementById('passwordInput');
     if (!input || !input.value) return alert('Please enter password.');
+    
+    // Auto-Connect if DB missing
     let dbInstance = database;
     if (!dbInstance) {
-        try { if (typeof firebase !== 'undefined') dbInstance = firebase.database(); else throw new Error("Firebase SDK missing"); } catch (e) { return alert("Database not connected."); }
+        try { 
+            if (typeof firebase !== 'undefined') dbInstance = firebase.database(); 
+            else throw new Error("Firebase SDK missing"); 
+        } catch (e) { 
+            console.error(e);
+            return alert("Database not connected. Please refresh page."); 
+        }
     }
+
     try {
         const snap = await dbInstance.ref(`members/${memberId}/password`).once('value');
         if (String(input.value).trim() === String(snap.val()).trim()) {
             Analytics.logAction("Password Verified for Full View");
             window.location.href = `view.html?memberId=${memberId}`;
-        } else { alert('Wrong Password!'); input.value = ''; }
-    } catch (e) { alert('Verification failed.'); }
+        } else { 
+            alert('Wrong Password!'); 
+            input.value = ''; 
+        }
+    } catch (e) { 
+        console.error(e);
+        alert('Verification failed.'); 
+    }
 }
 
+// --- DEVICE VERIFICATION (UPDATED FOR ANALYTICS) ---
 export function promptForDeviceVerification(members) {
     return new Promise(resolve => {
         const modal = document.getElementById('deviceVerificationModal');
         if(!modal) return resolve(null);
-        modal.querySelector('.modal-content').innerHTML = `<h2>Verify Identity</h2><p>Select your name to continue.</p><select id="memberVerifySelect" style="width:100%; padding:10px; margin:10px 0;"><option value="">-- Select Name --</option>${members.sort((a,b)=>a.name.localeCompare(b.name)).map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select><button id="verifyBtn" class="civil-button" style="width:100%">Confirm</button>`;
+        
+        modal.querySelector('.modal-content').innerHTML = `
+            <h2>Verify Identity</h2>
+            <p>Select your name to continue.</p>
+            <select id="memberVerifySelect" style="width:100%; padding:10px; margin:10px 0;">
+                <option value="">-- Select Name --</option>
+                ${members.sort((a,b)=>a.name.localeCompare(b.name)).map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}
+            </select>
+            <button id="verifyBtn" class="civil-button" style="width:100%">Confirm</button>
+        `;
+
         modal.classList.add('show');
+        
         document.getElementById('verifyBtn').onclick = () => {
             const val = document.getElementById('memberVerifySelect').value;
-            if(val) { modal.classList.remove('show'); resolve(val); }
+            if(val) { 
+                modal.classList.remove('show'); 
+                Analytics.identifyUser(val); // 🔥 Update Analytics Identity
+                resolve(val); 
+            }
         };
     });
 }
@@ -335,7 +393,12 @@ export function promptForDeviceVerification(members) {
 export function showFullImage(src, alt) {
     const img = document.getElementById('fullImageSrc');
     const modal = document.getElementById('imageModal');
-    if (img && modal) { img.src = src; img.alt = alt; modal.classList.add('show'); Analytics.logAction("Zoomed Image"); }
+    if (img && modal) { 
+        img.src = src; 
+        img.alt = alt; 
+        modal.classList.add('show'); 
+        Analytics.logAction("Zoomed Image"); 
+    }
 }
 
 export function showEmiModal(emi, name, price, modalElement) {
@@ -366,6 +429,7 @@ export function observeElements(elements) {
     elements.forEach(el => observer.observe(el));
 }
 
+// --- UTILITIES ---
 function openModalById(id) { const m = document.getElementById(id); if(m) { m.classList.add('show'); document.body.style.overflow = 'hidden'; } }
 function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
 function animateValue(id, end) { const el = document.getElementById(id); if(!el) return; const start = 0, duration = 1000; let startTime = null; const step = (ts) => { if(!startTime) startTime = ts; const progress = Math.min((ts - startTime)/duration, 1); el.textContent = formatCurrency(Math.floor(progress * (end - start) + start)); if(progress < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
