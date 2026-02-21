@@ -1,9 +1,16 @@
-// FINAL STRICT UPDATE V5:
-// 1. Penalty Wallet Logic Updated.
-// 2. All Members: Image Zoom logic retained.
-// 3. ROYAL NOTIFICATION UPDATE: Strict Today's Date Filter & Premium HTML.
-// 4. SMART MODAL SWAP: Fixes "Full View" redirect crash issue.
-// 5. PASSWORD FIX: Auto-Reconnect Database & Trim Logic added.
+// user-ui.js - PART 1 (Main Controller)
+// FINAL STRICT UPDATE V6: SPLIT VERSION
+// 1. Controller Logic: Handles State, Modals, and Events.
+// 2. Imports: Renders UI components from ui-components.js.
+
+import { 
+    renderProducts, 
+    displayCustomCards, 
+    displayCommunityLetters, 
+    buildInfoSlider, 
+    startHeaderDisplayRotator, 
+    showPopupNotification 
+} from './ui-components.js';
 
 // --- Global Variables & Element Cache ---
 let allMembersData = [];
@@ -88,18 +95,45 @@ export function renderPage(data) {
     const approvedMembers = allMembersData.filter(m => m.status === 'Approved');
     displayMembers(approvedMembers, data.adminSettings || {});
 
-    displayCustomCards((data.adminSettings && data.adminSettings.custom_cards) || {});
-    displayCommunityLetters((data.adminSettings && data.adminSettings.community_letters) || {});
+    // Calls to External Components (ui-components.js)
+    displayCustomCards(
+        (data.adminSettings && data.adminSettings.custom_cards) || {}, 
+        elements.customCardsContainer,
+        getElement('custom-cards-indicator')
+    );
+    
+    displayCommunityLetters(
+        (data.adminSettings && data.adminSettings.community_letters) || {},
+        elements.communityLetterSlides,
+        getElement('slideIndicator'),
+        getElement('prevSlideBtn'),
+        getElement('nextSlideBtn'),
+        showFullImage // Callback
+    );
+
     updateInfoCards(approvedMembers.length, communityStats.totalLoanDisbursed || 0);
-    startHeaderDisplayRotator(approvedMembers, communityStats);
-    buildInfoSlider();
+    
+    startHeaderDisplayRotator(
+        elements.headerDisplay,
+        approvedMembers, 
+        communityStats, 
+        BANK_LOGO_URL
+    );
+    
+    buildInfoSlider(elements.infoSlider, allMembersData);
     
     // Trigger Royal Notifications
     processAndShowNotifications();
     
-    renderProducts();
+    // Pass showEmiModal as callback so the component can open the modal
+    renderProducts(
+        allProducts, 
+        elements.productsContainer, 
+        showEmiModal, 
+        WHATSAPP_NUMBER
+    );
 
-    feather.replace();
+    if(typeof feather !== 'undefined') feather.replace();
     
     const newAnimatedElements = document.querySelectorAll('.animate-on-scroll:not(.is-visible)');
     observeElements(newAnimatedElements);
@@ -190,7 +224,6 @@ function displayMembers(members, adminSettings) {
     members.forEach((member, index) => {
         if (index < 3) {
             const card = document.createElement('div');
-            // CHANGE: Added specific classes 'gold-card', 'silver-card', 'bronze-card'
             const rankClasses = ['gold-card', 'silver-card', 'bronze-card'];
             const rankClass = rankClasses[index] || '';
             card.className = `framed-card-wrapper ${rankClass} animate-on-scroll`; 
@@ -248,134 +281,6 @@ function displayMembers(members, adminSettings) {
             elements.memberContainer.appendChild(card);
         }
     });
-}
-
-function renderProducts() {
-    const container = elements.productsContainer;
-    if (!container) return;
-    const productEntries = Object.entries(allProducts);
-    if (productEntries.length === 0) {
-        const productSection = container.closest('.products-section');
-        if (productSection) productSection.style.display = 'none';
-        return;
-    }
-    container.innerHTML = '';
-    productEntries.forEach(([id, product]) => {
-        const card = document.createElement('div');
-        card.className = 'product-card animate-on-scroll';
-        const price = parseFloat(product.price) || 0;
-        const mrp = parseFloat(product.mrp) || 0;
-
-        let emiText = '';
-        if (product.emi && Object.keys(product.emi).length > 0) {
-            const firstEmiOption = Object.entries(product.emi).sort((a,b) => parseInt(a[0]) - parseInt(b[0]))[0];
-            const months = parseInt(firstEmiOption[0]);
-            const interestRate = parseFloat(firstEmiOption[1]);
-            const totalAmount = price * (1 + interestRate / 100);
-            const monthlyEmi = Math.ceil(totalAmount / months);
-            emiText = `\n\n*EMI Details:* Starts from ₹${monthlyEmi.toLocaleString('en-IN')}/month at ${interestRate}% interest for ${months} months.`;
-        }
-
-        const productLink = product.exploreLink || 'Not available';
-        const finalMessage = `Hello, I want to know more about *${product.name}*.\n\n*Price:* ₹${price.toLocaleString('en-IN')}\n*Product Link:* ${productLink}${emiText}`;
-        const whatsappMessage = encodeURIComponent(finalMessage);
-        const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
-        
-        card.innerHTML = `
-            <div class="product-image-wrapper">
-                <img src="${product.imageUrl}" alt="${product.name}" class="product-image" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-            </div>
-            <div class="product-info">
-                <p class="product-name">${product.name}</p>
-                <div class="product-price-container">
-                    <span class="product-price">₹${price.toLocaleString('en-IN')}</span>
-                    ${mrp > price ? `<span class="product-mrp">₹${mrp.toLocaleString('en-IN')}</span>` : ''}
-                </div>
-                ${product.emi && Object.keys(product.emi).length > 0 ? `<a class="product-emi-link" data-product-id="${id}">View EMI Details</a>` : ''}
-            </div>
-            <div class="product-actions">
-                <a href="${whatsappLink}" target="_blank" class="product-btn whatsapp">
-                    <img src="https://www.svgrepo.com/show/452133/whatsapp.svg" alt="WhatsApp">
-                </a>
-                <a href="${product.exploreLink || '#'}" target="_blank" class="product-btn explore">Explore</a>
-            </div>`;
-
-        const emiLink = card.querySelector('.product-emi-link');
-        if (emiLink) {
-            emiLink.addEventListener('click', () => {
-                const clickedProduct = allProducts[emiLink.dataset.productId];
-                showEmiModal(clickedProduct.emi, clickedProduct.name, parseFloat(clickedProduct.price));
-            });
-        }
-        container.appendChild(card);
-    });
-}
-
-function showEmiModal(emiOptions, productName, productPrice) {
-    const modal = elements.emiModal;
-    if (!modal) return;
-    const modalTitle = getElement('emiModalTitle');
-    const list = getElement('emiDetailsList');
-    modalTitle.textContent = `EMI Details for ${productName}`;
-    list.innerHTML = '';
-    const validEmi = Object.entries(emiOptions).filter(([, rate]) => rate && parseFloat(rate) >= 0);
-    if (validEmi.length > 0) {
-        validEmi.forEach(([duration, rate]) => {
-            const li = document.createElement('li');
-            const interestRate = parseFloat(rate);
-            const months = parseInt(duration);
-            const totalAmount = productPrice * (1 + interestRate / 100);
-            const monthlyEmi = Math.ceil(totalAmount / months);
-            li.innerHTML = `
-                <span class="duration">${duration} Months</span> 
-                <span class="rate">${rate}% Interest (${monthlyEmi.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 })}/mo)</span>`;
-            list.appendChild(li);
-        });
-    } else {
-        list.innerHTML = '<li>No EMI options available for this product.</li>';
-    }
-    openModal(modal);
-}
-
-function displayCustomCards(cards) {
-    const section = getElement('customCardsSection');
-    if (!elements.customCardsContainer || !section) return;
-    elements.customCardsContainer.innerHTML = '';
-    const cardArray = Object.values(cards);
-    if (cardArray.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
-    section.style.display = 'block';
-    cardArray.forEach(cardData => {
-        const cardElement = document.createElement('div');
-        cardElement.className = 'custom-card animate-on-scroll';
-        cardElement.innerHTML = `
-            <div class="custom-card-img-wrapper">
-                <img src="${cardData.imageUrl || DEFAULT_IMAGE}" alt="${cardData.title || ''}" class="custom-card-img" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                <a href="${cardData.buttonLink || '#'}" class="custom-card-btn" style="background-color: ${cardData.buttonColor || 'var(--primary-color)'}" target="_blank" rel="noopener noreferrer">${cardData.buttonText || 'Learn More'}</a>
-            </div>
-            <div class="custom-card-content">
-                <h3 class="custom-card-title">${cardData.title || ''}</h3>
-                <p class="custom-card-desc">${cardData.description || ''}</p>
-            </div>`;
-        elements.customCardsContainer.appendChild(cardElement);
-    });
-    initializeCustomCardSlider(cardArray);
-}
-
-function displayCommunityLetters(letters) {
-    if (!elements.communityLetterSlides) return;
-    elements.communityLetterSlides.innerHTML = '';
-    const letterArray = Object.values(letters);
-    if (letterArray.length === 0) {
-        elements.communityLetterSlides.innerHTML = `<div class="slide"><p class="p-8 text-center text-gray-500">No letters available.</p></div>`;
-    } else {
-        letterArray.forEach(letter => {
-            elements.communityLetterSlides.innerHTML += `<div class="slide"><img src="${letter.imageUrl}" alt="${letter.altText || 'Letter'}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';"></div>`;
-        });
-    }
-    initializeLetterSlider();
 }
 
 function updateInfoCards(memberCount, totalLoan) {
@@ -566,6 +471,33 @@ function showPenaltyWalletModal() {
     openModal(elements.penaltyWalletModal);
 }
 
+// EMI Modal Logic (Exported so ui-components can use it via callback)
+function showEmiModal(emiOptions, productName, productPrice) {
+    const modal = elements.emiModal;
+    if (!modal) return;
+    const modalTitle = getElement('emiModalTitle');
+    const list = getElement('emiDetailsList');
+    modalTitle.textContent = `EMI Details for ${productName}`;
+    list.innerHTML = '';
+    const validEmi = Object.entries(emiOptions).filter(([, rate]) => rate && parseFloat(rate) >= 0);
+    if (validEmi.length > 0) {
+        validEmi.forEach(([duration, rate]) => {
+            const li = document.createElement('li');
+            const interestRate = parseFloat(rate);
+            const months = parseInt(duration);
+            const totalAmount = productPrice * (1 + interestRate / 100);
+            const monthlyEmi = Math.ceil(totalAmount / months);
+            li.innerHTML = `
+                <span class="duration">${duration} Months</span> 
+                <span class="rate">${rate}% Interest (${monthlyEmi.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 })}/mo)</span>`;
+            list.appendChild(li);
+        });
+    } else {
+        list.innerHTML = '<li>No EMI options available for this product.</li>';
+    }
+    openModal(modal);
+}
+
 function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
         // Close Modal Logic (Updated for better target detection)
@@ -579,8 +511,6 @@ function setupEventListeners(database) {
         
         // --- FIXED: SMART SWAP FOR FULL VIEW ---
         if (e.target.closest('#fullViewBtn')) {
-            // OLD: closeModal(elements.memberProfileModal); openModal(elements.passwordPromptModal);
-            // NEW: Use smart swap to prevent history back collision
             swapModals(elements.memberProfileModal, elements.passwordPromptModal);
         }
         
@@ -652,162 +582,6 @@ function attachDynamicButtonListeners() {
     };
 }
 
-function initializeLetterSlider() {
-    const slidesContainer = elements.communityLetterSlides;
-    if (!slidesContainer || slidesContainer.children.length === 0) return;
-    slidesContainer.querySelectorAll('.slide img').forEach(img => {
-        img.onclick = () => showFullImage(img.src, img.alt);
-    });
-    let currentSlideIndex = 0;
-    const slides = slidesContainer.children;
-    const totalSlides = slides.length;
-    const indicator = getElement('slideIndicator');
-    if (!indicator) return;
-    indicator.innerHTML = '';
-    for (let i = 0; i < totalSlides; i++) {
-        const dot = document.createElement('span');
-        dot.className = 'indicator-dot';
-        dot.onclick = () => showSlide(i);
-        indicator.appendChild(dot);
-    }
-    const showSlide = (index) => {
-        currentSlideIndex = (index + totalSlides) % totalSlides;
-        slidesContainer.style.transform = `translateX(${-currentSlideIndex * 100}%)`;
-        indicator.childNodes.forEach((dot, idx) => dot.classList.toggle('active', idx === currentSlideIndex));
-    };
-    const prevBtn = getElement('prevSlideBtn');
-    const nextBtn = getElement('nextSlideBtn');
-    if (prevBtn) prevBtn.onclick = () => showSlide(currentSlideIndex - 1);
-    if (nextBtn) nextBtn.onclick = () => showSlide(currentSlideIndex + 1);
-    if (totalSlides > 0) showSlide(0);
-}
-
-function initializeCustomCardSlider(cards) {
-    const container = elements.customCardsContainer;
-    const indicator = getElement('custom-cards-indicator');
-    if (!container || !indicator || cards.length <= 1) {
-        if (indicator) indicator.style.display = 'none';
-        return;
-    }
-    indicator.style.display = 'block';
-    indicator.innerHTML = '';
-    cards.forEach((card, index) => {
-        const dot = document.createElement('span');
-        dot.className = 'indicator-dot';
-        dot.style.backgroundImage = `url(${card.imageUrl})`;
-        dot.onclick = () => container.children[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-        indicator.appendChild(dot);
-    });
-    const updateActiveDot = () => {
-        if (container.children.length === 0) return;
-        const scrollLeft = container.scrollLeft;
-        let activeIndex = Math.round(scrollLeft / container.children[0].offsetWidth);
-        indicator.childNodes.forEach((dot, idx) => dot.classList.toggle('active', idx === activeIndex));
-    };
-    container.addEventListener('scroll', updateActiveDot, { passive: true });
-    updateActiveDot();
-}
-
-function startHeaderDisplayRotator(members, stats) {
-    if (!elements.headerDisplay) return;
-    const adContainer = elements.headerDisplay.querySelector('.ad-content');
-    if (!adContainer) return;
-    const ads = [];
-    const topThree = members.slice(0, 3);
-    if (topThree.length >= 3) {
-        ads.push(() => {
-            let topThreeHtml = topThree.map(member => `
-                <div class="ad-top-three-member">
-                    <img src="${member.displayImageUrl}" class="ad-top-three-img" alt="${member.name}">
-                    <p class="ad-top-three-name">${member.name}</p>
-                    <p class="ad-top-three-amount">${(member.balance || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</p>
-                </div>`).join('');
-            return `<div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${topThreeHtml}</div>`;
-        });
-    }
-    if (stats) {
-        ads.push(() => `
-            <div class="ad-bank-stats-container">
-                <img src="${BANK_LOGO_URL}" alt="Bank Logo" class="ad-bank-logo">
-                <ul class="ad-bank-stats">
-                    <li>Established: <strong>23 June 2024</strong></li>
-                    <li>Total Members: <strong>${members.length}</strong></li>
-                    <li>Loan Disbursed: <strong>${(stats.totalLoanDisbursed || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</strong></li>
-                </ul>
-            </div>`);
-    }
-    if (ads.length === 0) return;
-    let currentAdIndex = 0;
-    const showNextAd = () => {
-        adContainer.innerHTML = ads[currentAdIndex]();
-        currentAdIndex = (currentAdIndex + 1) % ads.length;
-    };
-    showNextAd();
-    setInterval(showNextAd, 6000);
-}
-
-function buildInfoSlider() {
-    if (!elements.infoSlider) return;
-    elements.infoSlider.innerHTML = '';
-    
-    let infoCards = [
-        { 
-            icon: 'dollar-sign', 
-            title: 'Fund Deposit', 
-            text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.',
-            imageUrl: 'https://i.ibb.co/LzBMSjTy/20251005-091714.png'
-        },
-        { 
-            icon: 'gift', 
-            title: 'Loan Provision', 
-            text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.',
-            imageUrl: 'https://i.ibb.co/WNkzG5rm/20251005-100155.png'
-        },
-        { 
-            icon: 'calendar', 
-            title: 'Loan Duration', 
-            text: 'Loan keval <strong>1 mahine</strong> ke liye hota hai (nyunatam byaj par).',
-            imageUrl: 'https://i.ibb.co/bjkNcWrv/20251005-100324.png'
-        },
-        { 
-            icon: 'percent', 
-            title: 'Interest Rate', 
-            text: 'Avadhi aur rashi ke anusaar byaj darein badal sakti hain.',
-            imageUrl: 'https://i.ibb.co/3ypdpzWR/20251005-095800.png'
-        }
-    ];
-
-    const primeMembers = allMembersData.filter(member => member.isPrime);
-    
-    if (primeMembers.length > 0) {
-        primeMembers.forEach(pm => {
-            infoCards.push({
-                icon: 'award',
-                title: 'Prime Member',
-                htmlContent: `
-                    <div class="prime-member-card">
-                        <img src="${pm.displayImageUrl}" alt="${pm.name}" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
-                        <span>${pm.name}</span>
-                    </div>`
-            });
-        });
-    }
-    
-    infoCards.forEach(card => {
-        const imageHTML = card.imageUrl ? `<img src="${card.imageUrl}" class="info-card-image" alt="${card.title}" loading="lazy" onerror="this.style.display='none';">` : '';
-        let content = card.text ? `<p>${card.text}</p>` : card.htmlContent;
-        
-        elements.infoSlider.innerHTML += `
-            <div class="info-card-slide animate-on-scroll">
-                <h3><i data-feather="${card.icon}"></i> ${card.title}</h3>
-                ${content}
-                ${imageHTML} 
-            </div>`;
-    });
-    
-    feather.replace();
-}
-
 // === UPDATED NOTIFICATION LOGIC (STRICT TODAY + ROYAL POPUP) ===
 function processAndShowNotifications() {
     const todayDateString = getTodayDateStringLocal();
@@ -824,27 +598,30 @@ function processAndShowNotifications() {
     // 1. Transaction Notifications (STRICT DATE CHECK)
     const todaysTransactions = allTransactions.filter(tx => {
         if (!tx.date) return false;
-        // Parse date reliably
         const txDate = new Date(tx.date);
         const y = txDate.getFullYear();
         const m = (txDate.getMonth() + 1).toString().padStart(2, '0');
         const d = txDate.getDate().toString().padStart(2, '0');
         const txDateString = `${y}-${m}-${d}`;
-        
         return txDateString === todayDateString;
     });
 
     if (todaysTransactions.length > 0) {
         todaysTransactions.forEach((tx, index) => {
-            setTimeout(() => showPopupNotification('transaction', tx), delay + index * baseDelay);
+            setTimeout(() => {
+                // Find Member Info for Notification
+                const member = allMembersData.find(m => m.id === tx.memberId);
+                showPopupNotification(getElement('notification-popup-container'), 'transaction', tx, member);
+            }, delay + index * baseDelay);
         });
         delay += todaysTransactions.length * baseDelay;
     }
 
-    // 2. Manual Notices (Show only if active/recent - currently showing all active)
-    // We assume if manual notification exists, it's meant to be seen.
+    // 2. Manual Notices
     Object.values(allManualNotifications).forEach((notif, index) => {
-        setTimeout(() => showPopupNotification('manual', notif), delay + index * baseDelay);
+        setTimeout(() => {
+             showPopupNotification(getElement('notification-popup-container'), 'manual', notif, null);
+        }, delay + index * baseDelay);
     });
 
     // Mark as shown for this session
@@ -859,100 +636,6 @@ function processAndShowNotifications() {
     if (dot && (userReminders.length > 0 || Object.keys(allManualNotifications).length > 0)) {
         dot.style.display = 'block';
     }
-}
-
-// === NEW PREMIUM TOAST RENDERER ===
-function showPopupNotification(type, data) {
-    const container = getElement('notification-popup-container');
-    if (!container) return;
-    
-    const popup = document.createElement('div');
-    popup.className = 'notification-popup'; // Matches new CSS
-    
-    popup.onclick = () => { window.location.href = 'notifications.html'; };
-
-    let contentHTML = '';
-    let imgUrl = DEFAULT_IMAGE;
-    let title = 'Notification';
-
-    if(type === 'transaction') {
-        const member = allMembersData.find(m => m.id === data.memberId);
-        if (!member) return;
-        
-        title = member.name;
-        imgUrl = member.displayImageUrl;
-
-        let message = '', amount = '', typeClass = '';
-        
-        switch(data.type) {
-            case 'SIP': 
-                message = `Paid Monthly SIP`; 
-                amount = `+ ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'sip'; 
-                break;
-            case 'Loan Taken': 
-                message = `Took a Loan`; 
-                amount = `- ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'loan'; 
-                break;
-            case 'Loan Payment': 
-                message = `Loan Repayment`; 
-                // Fix: Show Total Paid (Principal + Interest)
-                const totalPaid = (parseFloat(data.principalPaid)||0) + (parseFloat(data.interestPaid)||0);
-                amount = `+ ₹${totalPaid.toLocaleString()}`; 
-                typeClass = 'payment'; 
-                break;
-            case 'Extra Payment': 
-                message = `Extra Deposit`; 
-                amount = `+ ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'sip'; 
-                break;
-            case 'Extra Withdraw': 
-                message = `Withdrawal`; 
-                amount = `- ₹${(data.amount || 0).toLocaleString()}`; 
-                typeClass = 'loan'; 
-                break;
-            default: return;
-        }
-
-        contentHTML = `
-            <strong>${title}</strong>
-            <p>${message}</p>
-            <span class="notification-popup-amount ${typeClass}">${amount}</span>`;
-            
-    } else if (type === 'manual') {
-         imgUrl = data.imageUrl || DEFAULT_IMAGE;
-         title = data.title || 'Notice';
-         contentHTML = `
-            <strong>${title}</strong>
-            <p style="font-size: 0.85em; opacity: 0.9;">Click to view details</p>`;
-    }
-
-    popup.innerHTML = `
-        <img src="${imgUrl}" alt="${title}" class="notification-popup-img" onerror="this.src='${DEFAULT_IMAGE}'">
-        <div class="notification-popup-content">
-            ${contentHTML}
-        </div>
-        <button class="notification-popup-close">&times;</button>
-    `;
-
-    // Close Button Logic
-    const closeBtn = popup.querySelector('.notification-popup-close');
-    closeBtn.onclick = (e) => {
-        e.stopPropagation(); 
-        popup.classList.add('closing');
-        popup.addEventListener('animationend', () => popup.remove(), { once: true });
-    };
-
-    // Auto Remove after 5 seconds
-    setTimeout(() => {
-        if(popup.parentNode) {
-            popup.classList.add('closing');
-            popup.addEventListener('animationend', () => popup.remove(), { once: true });
-        }
-    }, 5000);
-
-    container.appendChild(popup);
 }
 
 function setupPWA() {
@@ -1080,4 +763,3 @@ function observeElements(elements) {
 }
 
 function formatDate(dateString) { return dateString ? new Date(new Date(dateString).getTime()).toLocaleDateString('en-GB') : 'N/A'; }
-
