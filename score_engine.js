@@ -11,9 +11,9 @@ const ENGINE_CONFIG = {
     
     // Scoring Weights
     CAPITAL_TARGET: 50000,
-    WEIGHT_CAPITAL: 0.50,
+    WEIGHT_CAPITAL: 0.45,
     WEIGHT_CONSISTENCY: 0.20,
-    WEIGHT_CREDIT: 0.30,
+    WEIGHT_CREDIT: 0.35,
     
     // Loan Eligibility
     SIP_SLAB: 25000,
@@ -301,7 +301,7 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate) {
 }
 
 // ==========================================
-// 6. OLD LOGIC (PRE FEB 15, 2026)
+// 6. OLD LOGIC (PRE FEB 15, 2026) - UPDATED
 // ==========================================
 function calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate) {
     let points = 0;
@@ -330,6 +330,7 @@ function calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate) {
         const daysOpen = (untilDate - loanStartDate) / (1000 * 3600 * 24);
         if (daysOpen > 365 && loanDetails.status === 'Active') points -= 50;
     } 
+    // --- UPDATED 10 DAYS CREDIT LOGIC START ---
     else if (loanDetails && loanDetails.loanType === '10 Days Credit') {
         if (loanDetails.status === 'Paid') {
             // Find Repayment Date
@@ -341,12 +342,26 @@ function calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate) {
             }
             
             const daysTaken = repaidDate ? (repaidDate - loanDate) / (1000 * 3600 * 24) : 999;
-            if (daysTaken <= 25) points += 15; // 10 days + 15 grace
-            else points -= 20;
+            
+            // New Rules:
+            if (daysTaken <= 10) {
+                points += 1;  // Paid within 10 days
+            } else if (daysTaken <= 30) {
+                points += 5;  // Paid within 30 days (converted to short term)
+            } else {
+                points -= 20; // Late Payment (> 30 days)
+            }
         } else {
-            points -= 30; // Not Paid
+            // Not Paid Yet (Active Loan)
+            const daysOpen = (untilDate - loanDate) / (1000 * 3600 * 24);
+            
+            if (daysOpen > 30) {
+                points -= 20; // Overdue (> 30 days unpaid)
+            }
+            // Note: If <= 30 days active, no points deducted yet (Neutral)
         }
     } 
+    // --- UPDATED 10 DAYS CREDIT LOGIC END ---
     else {
         // Standard Old Loan
         const repaymentTx = memberData.filter(r => r.date > loanDate && (r.payment > 0 || r.sipPayment > 0));
@@ -368,6 +383,7 @@ function calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate) {
     }
     return points;
 }
+
 
 // ==========================================
 // 7. LOAN ELIGIBILITY FUNCTION
