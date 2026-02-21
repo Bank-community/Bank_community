@@ -1,5 +1,5 @@
 // ui-helpers.js - PART 3 of 3 (Logic & Analytics)
-// FINAL FIX: Password Check now Auto-Connects to Database if missing.
+// FIX v2: Corrected Notification Amounts for Loan Payments (Principal + Interest)
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
@@ -8,17 +8,15 @@ export const Analytics = {
     sessionStart: Date.now(),
     activityLog: [],
 
-    // 1. Action Track Karein
     logAction: function(actionName) {
         const time = new Date().toLocaleTimeString();
         this.activityLog.push(`[${time}] ${actionName}`);
     },
 
-    // 2. Session Save Karein (Firebase mein)
     saveSession: function(database, memberId) {
         if (!database || !memberId || this.activityLog.length === 0) return;
 
-        const dateKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const dateKey = new Date().toISOString().split('T')[0];
         const sessionKey = `session_${this.sessionStart}`;
         
         const sessionData = {
@@ -29,13 +27,12 @@ export const Analytics = {
             activities: this.activityLog
         };
 
-        // Background Save
         database.ref(`analytics_logs/${dateKey}/${memberId}/${sessionKey}`).set(sessionData)
             .catch(err => console.warn("Analytics Error:", err));
     }
 };
 
-// --- 1. Notification Logic ---
+// --- 1. Notification Logic (UPDATED FIX) ---
 export function processAndShowNotifications(globalData, container) {
     const todayStr = new Date().toISOString().split('T')[0];
     const sessionKey = `royalPopups_${todayStr}`;
@@ -45,7 +42,12 @@ export function processAndShowNotifications(globalData, container) {
     let delay = 500;
     const baseDelay = 4000;
 
-    const todaysTx = globalData.transactions.filter(tx => tx.date && tx.date.startsWith(todayStr));
+    // Filter Today's Transactions
+    const todaysTx = globalData.transactions.filter(tx => {
+        if (!tx.date) return false;
+        // Ensure date matches today locally
+        return tx.date.startsWith(todayStr); 
+    });
     
     todaysTx.forEach((tx, i) => {
         setTimeout(() => {
@@ -74,14 +76,44 @@ function showPopupNotification(container, type, data, member) {
     if (type === 'transaction' && member) {
         title = member.name;
         img = member.displayImageUrl;
-        let amount = Math.abs(data.amount || 0).toLocaleString();
-        let msg = data.type === 'SIP' ? 'Paid Monthly SIP' : 
-                  data.type === 'Loan Taken' ? 'Took a Loan' : 'Transaction';
-        let colorClass = data.type === 'Loan Taken' ? 'loan' : 'sip';
+        
+        let amountVal = 0;
+        let msg = 'Transaction';
+        let colorClass = 'sip'; // Default Green
+
+        // --- 🛠️ FIX: Handle Specific Transaction Types ---
+        if (data.type === 'Loan Payment') {
+            // Loan Payment = Principal + Interest
+            amountVal = (parseFloat(data.principalPaid) || 0) + (parseFloat(data.interestPaid) || 0);
+            msg = 'Loan Repayment';
+            colorClass = 'payment'; // Green
+        } else if (data.type === 'Loan Taken') {
+            amountVal = parseFloat(data.amount) || 0;
+            msg = 'Took a Loan';
+            colorClass = 'loan'; // Red
+        } else if (data.type === 'SIP') {
+            amountVal = parseFloat(data.amount) || 0;
+            msg = 'Paid Monthly SIP';
+            colorClass = 'sip'; // Green
+        } else if (data.type === 'Extra Payment') {
+            amountVal = parseFloat(data.amount) || 0;
+            msg = 'Extra Deposit';
+            colorClass = 'sip';
+        } else if (data.type === 'Extra Withdraw') {
+            amountVal = parseFloat(data.amount) || 0;
+            msg = 'Withdrawal';
+            colorClass = 'loan';
+        } else {
+            // Fallback
+            amountVal = parseFloat(data.amount) || 0;
+        }
+
+        let displayAmount = Math.abs(amountVal).toLocaleString('en-IN');
         
         content = `<strong>${title}</strong><p>${msg}</p>
-                   <span class="notification-popup-amount ${colorClass}">₹${amount}</span>`;
+                   <span class="notification-popup-amount ${colorClass}">₹${displayAmount}</span>`;
     } else {
+        // Manual Notification
         img = data.imageUrl || DEFAULT_IMAGE;
         title = data.title || 'Notice';
         content = `<strong>${title}</strong><p>Click to view details</p>`;
@@ -96,14 +128,18 @@ function showPopupNotification(container, type, data, member) {
     
     const closeBtn = popup.querySelector('.notification-popup-close');
     closeBtn.onclick = (e) => { e.stopPropagation(); removePopup(popup); };
+    
+    // Auto Remove after 5 seconds
     setTimeout(() => removePopup(popup), 5000);
 
     container.appendChild(popup);
 }
 
 function removePopup(el) {
-    el.classList.add('closing');
-    el.addEventListener('animationend', () => el.remove());
+    if(el && el.parentNode) {
+        el.classList.add('closing');
+        el.addEventListener('animationend', () => el.remove());
+    }
 }
 
 // --- 2. Modal Data Population ---
@@ -232,12 +268,11 @@ export function showBalanceModal(stats) {
     animateValue('availableAmountDisplay', stats.availableCommunityBalance);
 }
 
-// --- 🔥 FIXED: Auto-Connect Database for Password Check ---
+// --- Auto-Connect Database for Password Check ---
 export async function handlePasswordCheck(database, memberId) {
     const input = document.getElementById('passwordInput');
     if (!input || !input.value) return alert('Please enter password.');
     
-    // Auto-Connect Logic: Agar database null hai, to global firebase use karo
     let dbInstance = database;
     if (!dbInstance) {
         try {
