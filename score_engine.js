@@ -11,9 +11,9 @@ const ENGINE_CONFIG = {
     
     // Scoring Weights
     CAPITAL_TARGET: 50000,
-    WEIGHT_CAPITAL: 0.45,
-    WEIGHT_CONSISTENCY: 0.20,
-    WEIGHT_CREDIT: 0.35,
+    WEIGHT_CAPITAL: 0.40,
+    WEIGHT_CONSISTENCY: 0.30,
+    WEIGHT_CREDIT: 0.30,
     
     // Loan Eligibility
     SIP_SLAB: 25000,
@@ -104,33 +104,44 @@ function calculateCapitalScore(memberName, untilDate, allData) {
 }
 
 // ==========================================
-// 3. CONSISTENCY SCORE LOGIC
+// 3. CONSISTENCY SCORE LOGIC (NEW: Ratio + Tenure)
 // ==========================================
 function calculateConsistencyScore(memberData, untilDate) {
     const allSips = memberData.filter(r => r.sipPayment > 0);
     
-    // Need at least 2 SIPs to judge (since we skip the first)
-    if (allSips.length <= 1) return 0;
+    // SIP ही नहीं है तो स्कोर 0
+    if (allSips.length === 0) return 0;
     
-    const validSips = allSips.slice(1); // Skip 1st
+    // --- STEP 1: ACTIVE MONTHS (Tenure Denominator) ---
+    // पहला SIP कब दिया था?
+    const firstSipDate = new Date(allSips[0].date);
     
-    // 18 Months Window
-    const reviewStartDate = new Date(untilDate);
-    reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
-    
-    const recentSips = validSips.filter(r => r.date >= reviewStartDate);
-    
-    if (recentSips.length === 0) return 0;
+    // आज तक कितने महीने हुए?
+    let activeMonths = monthDiff(firstSipDate, untilDate);
+    // अगर उसी महीने जॉइन किया है तो कम से कम 1 महीना मानो
+    if (activeMonths < 1) activeMonths = 1;
 
-    const points = recentSips.reduce((acc, r) => {
-        // RULE: On Time = 1st to 10th
-        const day = r.date.getDate();
-        return acc + (day <= 10 ? 10 : 5);
-    }, 0);
+    // --- STEP 2: PAYMENT RATIO (70% Weight) ---
+    // कितने महीने समय पर (1-10 तारीख) payment किया?
+    const onTimeSips = allSips.filter(r => r.date.getDate() <= 10).length;
+    
+    // Ratio = OnTime / ActiveMonths
+    // (Example: 6/6 = 1, 10/12 = 0.83)
+    let paymentRatio = onTimeSips / activeMonths;
+    if (paymentRatio > 1) paymentRatio = 1; // 100% से ज्यादा नहीं हो सकता
 
-    const maxPoints = recentSips.length * 10;
-    return (points / maxPoints) * 100;
+    // --- STEP 3: TENURE FACTOR (30% Weight) ---
+    // 18 महीने का बेंचमार्क
+    let tenureFactor = activeMonths / 18;
+    if (tenureFactor > 1) tenureFactor = 1; // 18 महीने के बाद फुल मार्क्स
+
+    // --- STEP 4: FINAL CALCULATION ---
+    // Formula: (0.7 * Ratio) + (0.3 * Tenure)
+    const score = (70 * paymentRatio) + (30 * tenureFactor);
+
+    return Math.min(100, Math.max(0, score));
 }
+
 
 // ==========================================
 // 4. CREDIT BEHAVIOR SCORE (CORE LOGIC)
