@@ -195,6 +195,8 @@ function populateProfileData() {
     document.getElementById('profile-name').textContent = data.fullName || 'N/A';
     document.getElementById('membership-id').textContent = `ID: ${data.membershipId || 'N/A'}`;
     document.getElementById('mobile-number').textContent = data.mobileNumber || 'N/A';
+    // UPDATED: Fill Email Address
+    document.getElementById('email-address').textContent = data.email || 'Not Provided';
     document.getElementById('dob').textContent = formatDate(data.dob);
     document.getElementById('aadhaar').textContent = data.aadhaar || 'N/A';
     document.getElementById('address').textContent = data.address || 'N/A';
@@ -206,15 +208,13 @@ function populateProfileData() {
     
     document.getElementById('withdraw-btn').disabled = balanceResult.total < 10;
     
+    // UPDATED: Fill Documents including Aadhaar Back
     document.getElementById('doc-profile-pic').src = data.profilePicUrl || DEFAULT_PROFILE_PIC;
-    document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC;
+    document.getElementById('doc-document').src = data.documentUrl || DEFAULT_PROFILE_PIC; // Front
+    document.getElementById('doc-document-back').src = data.documentBackUrl || DEFAULT_PROFILE_PIC; // Back
     document.getElementById('doc-signature').src = data.signatureUrl || DEFAULT_PROFILE_PIC;
     
     // --- SCORE & ELIGIBILITY ---
-    // Note: calculatePerformanceScore and getLoanEligibility logic
-    // will now be loaded from the NEW external file (score_engine.js).
-    // Ensure that file is included in your HTML before view_logic.js.
-    
     if (typeof calculatePerformanceScore === 'function') {
         scoreResultCache = calculatePerformanceScore(data.fullName, new Date(), allData, activeLoansData);
         
@@ -343,6 +343,7 @@ function setupEventListeners() {
     document.getElementById('share-card-btn').addEventListener('click', shareCard);
 
     setupPasswordListeners();
+    setupEmailListeners(); // NEW: Setup Email Edit Listeners
 }
 
 function setupPasswordListeners() {
@@ -412,6 +413,72 @@ function setupPasswordListeners() {
             }, 1500);
         } catch (error) {
             console.error("Password update failed:", error);
+            errorEl.innerHTML = `<i class="fas fa-times-circle"></i> Update failed: ${error.message}`;
+            errorEl.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Update';
+        }
+    });
+}
+
+// --- NEW FUNCTION: Setup Email Edit Listeners ---
+function setupEmailListeners() {
+    const emailModal = document.getElementById('emailModal');
+    const openBtn = document.getElementById('edit-email-btn');
+    const closeBtn = document.getElementById('close-email-modal');
+    const submitBtn = document.getElementById('submit-email-change');
+    
+    openBtn.addEventListener('click', () => {
+        document.getElementById('new-email-input').value = currentMemberData.email || '';
+        document.getElementById('email-error').classList.add('hidden');
+        document.getElementById('email-success').classList.add('hidden');
+        emailModal.classList.remove('hidden');
+        emailModal.classList.add('flex');
+    });
+
+    closeBtn.addEventListener('click', () => {
+        emailModal.classList.add('hidden');
+        emailModal.classList.remove('flex');
+    });
+
+    submitBtn.addEventListener('click', async () => {
+        const newEmail = document.getElementById('new-email-input').value.trim();
+        const errorEl = document.getElementById('email-error');
+        const successEl = document.getElementById('email-success');
+
+        errorEl.classList.add('hidden');
+        successEl.classList.add('hidden');
+
+        // Simple Email Validation Regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!newEmail || !emailRegex.test(newEmail)) {
+            errorEl.innerHTML = '<i class="fas fa-times-circle"></i> Please enter a valid email address.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            
+            // Firebase Update Call
+            const memberRef = ref(db, 'members/' + currentMemberData.membershipId);
+            await update(memberRef, { email: newEmail });
+            
+            // Update Local Data & UI immediately
+            currentMemberData.email = newEmail;
+            document.getElementById('email-address').textContent = newEmail;
+            
+            successEl.classList.remove('hidden');
+            setTimeout(() => {
+                emailModal.classList.add('hidden');
+                emailModal.classList.remove('flex');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update';
+            }, 1500);
+            
+        } catch (error) {
+            console.error("Email update failed:", error);
             errorEl.innerHTML = `<i class="fas fa-times-circle"></i> Update failed: ${error.message}`;
             errorEl.classList.remove('hidden');
             submitBtn.disabled = false;
