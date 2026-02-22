@@ -1,4 +1,4 @@
-// view_logic.js - FAIL-SAFE VERSION (Connects Working Logic to New UI)
+// view_logic.js - FAIL-SAFE VERSION (100% Synced with Master Profit Logic & Score Engine)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -98,7 +98,7 @@ async function fetchFirebaseData() {
     }
 }
 
-// --- 3. LOGIC PROCESSING (Kept intact from working code) ---
+// --- 3. LOGIC PROCESSING ---
 function processData(memberId, members, transactions, activeLoans) {
     try {
         if(!members[memberId]) return;
@@ -140,7 +140,7 @@ function processData(memberId, members, transactions, activeLoans) {
         }
         globalState.allData.sort((a, b) => a.date - b.date || a.id - b.id);
 
-        // 3. Calculate Wallet (Complex Logic)
+        // 3. Calculate Wallet (Synced with Master Profit Logic)
         const walletData = calculateTotalExtraBalance(memberId, globalState.member.fullName);
         globalState.balanceHistory = walletData.history;
         globalState.member.extraBalance = walletData.total;
@@ -163,7 +163,7 @@ function processData(memberId, members, transactions, activeLoans) {
     }
 }
 
-// --- 4. SAFE UI UPDATES (The Fail-Safe System) ---
+// --- 4. SAFE UI UPDATES ---
 function updateAllUI() {
     // Hide Loader first
     const loader = document.getElementById('loader-container');
@@ -182,7 +182,7 @@ function safeRender(fn, name) {
     catch(e) { console.error(`Failed to render ${name}:`, e); }
 }
 
-// --- RENDER FUNCTIONS (Mapped to New IDs) ---
+// --- RENDER FUNCTIONS ---
 function renderHeader() {
     const m = globalState.member;
     setText('header-name', m.fullName);
@@ -195,10 +195,8 @@ function renderProfileTab() {
     setText('profile-mobile', m.mobileNumber);
     setText('profile-email', m.email || 'No Email');
     setText('profile-address', m.address);
-    // NEW Guarantor Logic
     setText('profile-guarantor', m.guarantorName || 'N/A');
 
-    // Images
     setImg('doc-thumb-pic', m.profilePicUrl);
     setImg('doc-thumb-front', m.documentUrl);
     setImg('doc-thumb-back', m.documentBackUrl);
@@ -212,13 +210,11 @@ function renderAnalyticsTab() {
     setText('analytics-score', s.totalScore.toFixed(0));
     setText('analytics-status', s.totalScore > 50 ? 'Good' : 'Low');
 
-    // Safe Eligibility Check
     if (typeof getLoanEligibility === 'function') {
         const elig = getLoanEligibility(globalState.member.fullName, globalState.member.totalSip, globalState.allData);
         setText('analytics-limit', elig.eligible ? `₹${elig.maxAmount.toLocaleString()}` : 'No');
     }
 
-    // Score Breakdown
     const list = document.getElementById('score-breakdown-list');
     if(list) {
         list.innerHTML = `
@@ -234,7 +230,6 @@ function renderHistoryList(filterType) {
     if(!container) return;
     container.innerHTML = '';
 
-    // Logic for Filtering
     let data = globalState.balanceHistory.slice().reverse(); 
 
     if (filterType === 'loan' || filterType === 'all') {
@@ -282,12 +277,15 @@ function renderWalletTab() {
     setText('wallet-guarantor', m.guarantorName || 'N/A');
 }
 
-// --- CALCULATION HELPERS (Needed for Wallet) ---
+// ==========================================
+// 5. MASTER WALLET & PROFIT MATH (100% SYNCED)
+// ==========================================
+
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
     const profitEvents = globalState.allData.filter(r => r.returnAmount > 0);
 
-    // Profit Logic
+    // EXACT PROFIT MATCHING
     profitEvents.forEach(paymentRecord => {
         const result = calculateProfitDistribution(paymentRecord);
         const share = result?.distribution.find(d => d.name === memberFullName);
@@ -296,7 +294,7 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
         }
     });
 
-    // Manual Transactions
+    // MANUAL TRANSACTIONS
     const manualAdjustments = globalState.allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
     manualAdjustments.forEach(tx => {
         if (tx.extraBalance > 0) history.push({ type: 'manual_credit', date: tx.date, amount: tx.extraBalance });
@@ -311,37 +309,56 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; 
     if (totalInterest <= 0) return null; 
+    
     const distribution = [];
 
+    // 1. Self Return (10%)
     distribution.push({ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
 
-    const payerInfo = globalState.memberMap.get(paymentRecord.memberId);
-    if (payerInfo && payerInfo.guarantor && payerInfo.guarantor !== 'Xxxxx') {
-        distribution.push({ name: payerInfo.guarantor, share: totalInterest * 0.10, type: 'Guarantor (10%)' });
+    // 2. Guarantor Commission (10%)
+    const payerMemberInfo = globalState.memberMap.get(paymentRecord.memberId);
+    if (payerMemberInfo && payerMemberInfo.guarantor && payerMemberInfo.guarantor !== 'Xxxxx') {
+        distribution.push({ name: payerMemberInfo.guarantor, share: totalInterest * 0.10, type: 'Guarantor Commission (10%)' });
     }
 
-    const communityPool = totalInterest * (distribution.length > 1 ? 0.70 : 0.80); 
+    // 3. Community Pool (Strict 70% matching master logic)
+    const communityPool = totalInterest * 0.70; 
 
-    // Simplified distribution for UI speed (Assumes equal share if score fails)
-    let totalSystemScore = 0;
-    const eligibleMembers = [];
+    // Find the precise loan date to calculate historical snapshot scores
+    const userLoansBefore = globalState.allData.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
+    
+    if (userLoansBefore.length === 0) return { distribution };
+    
+    const loanDate = userLoansBefore.pop().date; 
+    const snapshotScores = {}; 
+    let totalScore = 0; 
 
-    for (let [id, m] of globalState.memberMap) {
-        if (m.name === paymentRecord.name) continue; 
-        if (typeof calculatePerformanceScore === 'function') {
-            const scoreObj = calculatePerformanceScore(m.name, paymentRecord.date, globalState.allData, globalState.activeLoans);
-            if(scoreObj.totalScore > 0) {
-                eligibleMembers.push({ name: m.name, score: scoreObj.totalScore });
-                totalSystemScore += scoreObj.totalScore;
-            }
-        }
-    }
+    // Calculate Snapshot Scores based on loan date using Score Engine
+    [...new Set(globalState.allData.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
+        if (name === paymentRecord.name) return; // Skip the payer
+        const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, globalState.allData, globalState.activeLoans) : { totalScore: 0 };
+        if (scoreObj.totalScore > 0) { 
+            snapshotScores[name] = scoreObj; 
+            totalScore += scoreObj.totalScore; 
+        } 
+    }); 
 
-    if(totalSystemScore > 0) {
-        eligibleMembers.forEach(m => {
-            const share = (m.score / totalSystemScore) * communityPool;
-            distribution.push({ name: m.name, share: share, type: 'Community Profit' });
-        });
+    // Distribute with exact Rules & Multipliers
+    if (totalScore > 0) {
+        for (const name in snapshotScores) { 
+            let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
+            
+            // Time Duration Multiplier Rule
+            const lastLoan = globalState.allData.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
+            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
+            
+            let multiplier = 1.0;
+            if (days > 365) multiplier = 0.75; 
+            else if (days > 180) multiplier = 0.90; 
+            
+            share *= multiplier; 
+            if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
+        } 
     }
 
     return { distribution }; 
