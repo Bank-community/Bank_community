@@ -168,17 +168,26 @@ function renderHeader() {
 function renderProfileTab() {
     const m = globalState.member;
     setText('profile-id', m.membershipId);
-    setText('profile-join-date', `Joined: ${formatDate(m.joiningDate)}`);
+    setText('profile-join-date', `Member since ${new Date(m.joiningDate).getFullYear()}`); // Updated format
     setText('profile-mobile', m.mobileNumber);
     setText('profile-email', m.email || 'No Email Linked');
     setText('profile-address', m.address);
-    setText('profile-aadhaar', m.aadhaar || 'N/A'); // FIXED: Aadhaar Added
+    setText('profile-aadhaar', m.aadhaar || 'N/A');
+    
+    // NEW: Guarantor in Personal Details
+    setText('profile-guarantor', m.guarantorName || 'N/A');
 
+    // Header Updates
+    setText('header-name', m.fullName);
+    setImg('header-profile-pic', m.profilePicUrl);
+
+    // Docs
     setImg('doc-thumb-pic', m.profilePicUrl);
     setImg('doc-thumb-front', m.documentUrl);
     setImg('doc-thumb-back', m.documentBackUrl);
     setImg('doc-thumb-sign', m.signatureUrl);
 }
+
 
 function renderAnalyticsTab() {
     const s = globalState.score;
