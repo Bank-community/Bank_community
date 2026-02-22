@@ -13,12 +13,7 @@
 
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          colors: { royal: { dark: '#001540', blue: '#002366', gold: '#D4AF37' } },
-          fontFamily: { sans: ['Poppins', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
-        }
-      }
+      theme: { extend: { colors: { royal: { dark: '#001540', blue: '#002366', gold: '#D4AF37' } } } }
     }
   </script>
 </head>
@@ -31,268 +26,23 @@
 
   <div id="error-message" class="hidden fixed top-10 left-1/2 transform -translate-x-1/2 bg-red-100 text-red-700 px-6 py-3 rounded-full shadow-xl z-50 text-xs font-bold border border-red-200"></div>
 
-  <main class="w-full">
-
-    <section id="tab-profile" class="tab-content active">
-        <div class="w-full bg-[#001540] text-white pt-8 pb-20 rounded-b-[2.5rem] shadow-2xl relative overflow-hidden z-10">
-            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            <div class="flex flex-col items-center justify-center relative z-20 w-full px-4">
-                <div class="relative mb-3">
-                    <div class="p-1 rounded-full border-2 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.4)] bg-[#002366]">
-                        <img id="header-profile-pic" src="https://placehold.co/150" class="w-24 h-24 rounded-full object-cover border-4 border-white/10" crossorigin="anonymous">
-                    </div>
-                    <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-[#001540] text-[10px] font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg flex items-center gap-1 min-w-max">
-                        <i class="fas fa-check-circle"></i> VERIFIED
-                    </div>
-                </div>
-                <h1 id="header-name" class="text-xl font-bold tracking-wide mt-2 text-center">Loading...</h1>
-                <p id="header-id" class="text-[10px] text-blue-200 uppercase tracking-widest opacity-70 mt-1">ID: --</p>
-            </div>
-        </div>
-
-        <div class="relative z-20 px-4 -mt-12 w-full">
-            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
-                <div class="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <h3 class="font-bold text-[#001540] text-sm"><i class="fas fa-user-edit mr-2 text-[#D4AF37]"></i> Personal Details</h3>
-                    <button id="change-password-btn" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">Change PIN</button>
-                </div>
-                <div class="divide-y divide-gray-50 text-sm">
-                    <div class="p-3 flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-phone-alt"></i></div>
-                        <div><p class="text-[9px] text-gray-400 font-bold uppercase">Mobile</p><p id="profile-mobile" class="font-bold text-gray-800">--</p></div>
-                    </div>
-                    <div class="p-3 flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-envelope"></i></div>
-                        <div class="flex-1 overflow-hidden">
-                            <p class="text-[9px] text-gray-400 font-bold uppercase">Email</p>
-                            <p id="profile-email" class="font-bold text-gray-800 truncate">--</p>
-                        </div>
-                        <button id="edit-email-btn" class="text-[#D4AF37] p-2"><i class="fas fa-pen"></i></button>
-                    </div>
-                    <div class="p-3 flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-map-marker-alt"></i></div>
-                        <div><p class="text-[9px] text-gray-400 font-bold uppercase">Address</p><p id="profile-address" class="font-bold text-gray-800 text-xs leading-tight">--</p></div>
-                    </div>
-                    <div class="p-3 flex items-center gap-3 bg-[#FFFCF5]">
-                        <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-[#D4AF37]"><i class="fas fa-user-shield"></i></div>
-                        <div><p class="text-[9px] text-[#B8860B] font-bold uppercase">Guarantor</p><p id="profile-guarantor" class="font-bold text-[#001540]">--</p></div>
-                    </div>
-                </div>
-            </div>
-
-            <h3 class="font-bold text-gray-400 text-[10px] uppercase tracking-widest mb-3 ml-2">KYC Documents</h3>
-            <div class="grid grid-cols-4 gap-2 mb-20">
-                 <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-pic" class="w-full h-16 object-cover rounded-lg bg-gray-100" src="" crossorigin="anonymous">
-                 </div>
-                 <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-front" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
-                 </div>
-                 <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-back" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
-                 </div>
-                 <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-sign" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
-                 </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="tab-analytics" class="tab-content animate-fade p-4">
-        <h2 class="text-xl font-bold text-[#001540] mb-4">Performance</h2>
-        <div class="bg-gradient-to-br from-[#001540] to-[#002366] rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10"></div>
-            <div class="flex justify-between items-start relative z-10">
-                <div>
-                    <p class="text-[10px] text-blue-200 uppercase font-bold">Trust Score</p>
-                    <h3 id="analytics-score" class="text-4xl font-bold mt-1 text-[#D4AF37]">--</h3>
-                </div>
-                <button id="score-info-btn" class="bg-white/10 p-2 rounded-lg"><i class="fas fa-info-circle"></i></button>
-            </div>
-            <div class="mt-4 pt-3 border-t border-white/10 flex justify-between">
-                 <div><p class="text-[9px] text-blue-200 font-bold uppercase">Loan Limit</p><p id="analytics-limit" class="font-bold text-lg">--</p></div>
-                 <div class="text-right"><p class="text-[9px] text-blue-200 font-bold uppercase">Status</p><p id="analytics-status" class="font-bold text-[#25D366]">Checking...</p></div>
-            </div>
-        </div>
-        <div id="score-breakdown-list" class="space-y-3 mt-4 pb-20"></div>
-    </section>
-
-    <section id="tab-payment" class="tab-content animate-fade flex flex-col items-center justify-center pt-20 text-center min-h-[60vh]">
-        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 text-3xl mb-4"><i class="fas fa-qrcode"></i></div>
-        <h3 class="font-bold text-gray-600">Scanner Coming Soon</h3>
-        <p class="text-xs text-gray-400 mt-2 px-10">We are integrating UPI payments directly here.</p>
-    </section>
-
-    <section id="tab-history" class="tab-content animate-fade p-4">
-        <h2 class="text-xl font-bold text-[#001540] mb-4">Activity Log</h2>
-        <div class="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 gap-1 mb-4">
-            <button onclick="filterHistory('all')" class="filter-btn active flex-1 py-2 text-xs font-bold rounded-lg bg-[#001540] text-white">All</button>
-            <button onclick="filterHistory('loan')" class="filter-btn flex-1 py-2 text-xs font-bold rounded-lg text-gray-500">Loans</button>
-            <button onclick="filterHistory('transaction')" class="filter-btn flex-1 py-2 text-xs font-bold rounded-lg text-gray-500">Txns</button>
-        </div>
-        <div id="history-container" class="space-y-2 pb-24"></div>
-    </section>
-
-    <section id="tab-wallet" class="tab-content animate-fade p-4">
-        <h2 class="text-xl font-bold text-[#001540] mb-4">My Wealth</h2>
-        <div class="bg-[#FFFCF5] rounded-2xl p-5 shadow-lg border border-[#D4AF37] relative overflow-hidden mb-4">
-            <div class="absolute -right-6 -top-6 text-9xl text-[#D4AF37] opacity-10 rotate-12"><i class="fas fa-wallet"></i></div>
-            <p class="text-[10px] text-[#B8860B] font-bold tracking-widest uppercase mb-1">Withdrawable Balance</p>
-            <h1 id="wallet-balance" class="text-4xl font-serif font-bold text-[#D4AF37] mb-4">₹0.00</h1>
-            <div class="flex gap-3 relative z-10">
-                <button id="withdraw-btn" class="flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3 rounded-xl shadow-md text-sm active:scale-95 transition-transform">Withdraw Funds</button>
-                <button id="view-history-btn" class="w-12 bg-white border border-[#D4AF37] text-[#D4AF37] rounded-xl flex items-center justify-center hover:bg-yellow-50"><i class="fas fa-history"></i></button>
-            </div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 text-center">
-                <p class="text-[9px] text-gray-400 font-bold uppercase">Total Profit</p>
-                <p id="wallet-profit" class="text-lg font-bold text-gray-800">₹0</p>
-            </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 text-center">
-                <p class="text-[9px] text-gray-400 font-bold uppercase">Invested</p>
-                <p id="wallet-invested" class="text-lg font-bold text-gray-800">₹0</p>
-            </div>
-        </div>
-        
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between pb-24">
-             <div>
-                 <p class="text-[9px] text-gray-400 uppercase font-bold">Guarantor</p>
-                 <p id="wallet-guarantor" class="text-sm font-bold text-[#001540]">--</p>
-             </div>
-             <i class="fas fa-user-shield text-gray-300 text-xl"></i>
-        </div>
-    </section>
-
-  </main>
+  <main id="app-content" class="w-full">
+      </main>
 
   <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] rounded-t-2xl">
       <div class="flex justify-around items-center h-16">
-          <button onclick="switchTab('profile')" class="nav-btn nav-active flex flex-col items-center justify-center w-full text-gray-400" data-target="tab-profile"><i class="fas fa-user text-lg mb-1"></i><span class="text-[9px] font-bold">Profile</span></button>
-          <button onclick="switchTab('analytics')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="tab-analytics"><i class="fas fa-chart-pie text-lg mb-1"></i><span class="text-[9px] font-bold">Score</span></button>
-          <button onclick="switchTab('payment')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="tab-payment">
+          <button onclick="window.loadTab('profile')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="profile"><i class="fas fa-user text-lg mb-1"></i><span class="text-[9px] font-bold">Profile</span></button>
+          <button onclick="window.loadTab('score')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="score"><i class="fas fa-chart-pie text-lg mb-1"></i><span class="text-[9px] font-bold">Score</span></button>
+          <button onclick="window.loadTab('payment')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="payment">
               <div class="w-10 h-10 bg-[#002366] text-white rounded-full flex items-center justify-center shadow-lg -mt-6 border-4 border-white"><i class="fas fa-qrcode text-lg"></i></div>
               <span class="text-[9px] font-bold mt-1">Pay</span>
           </button>
-          <button onclick="switchTab('history')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="tab-history"><i class="fas fa-history text-lg mb-1"></i><span class="text-[9px] font-bold">History</span></button>
-          <button onclick="switchTab('wallet')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="tab-wallet"><i class="fas fa-wallet text-lg mb-1"></i><span class="text-[9px] font-bold">Wallet</span></button>
+          <button onclick="window.loadTab('history')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="history"><i class="fas fa-history text-lg mb-1"></i><span class="text-[9px] font-bold">History</span></button>
+          <button onclick="window.loadTab('wallet')" class="nav-btn flex flex-col items-center justify-center w-full text-gray-400" data-target="wallet"><i class="fas fa-wallet text-lg mb-1"></i><span class="text-[9px] font-bold">Wallet</span></button>
       </div>
   </nav>
 
-  <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-      <img id="fullImageView" src="" class="max-w-[95vw] max-h-[80vh] object-contain rounded-lg shadow-2xl border-2 border-white">
-      <button id="closeImageViewer" class="absolute top-6 right-6 text-white text-4xl hover:text-royal-gold">&times;</button>
-  </div>
-
-  <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-gold">
-          <div class="text-center mb-6"><h3 class="text-lg font-bold text-royal-blue">Withdraw Funds</h3></div>
-          <div class="bg-gray-50 p-4 rounded-2xl mb-4 text-center border border-gray-100">
-              <p class="text-xs text-gray-500 mb-1">Available Balance</p>
-              <p id="modal-available-balance" class="text-2xl font-bold text-royal-blue">₹0</p>
-          </div>
-          <input type="number" id="withdrawal-amount" class="w-full bg-gray-50 border-0 rounded-xl p-4 mt-1 text-2xl font-bold text-center text-royal-blue" placeholder="₹0">
-          <p id="withdrawal-error" class="text-red-500 text-xs mt-2 text-center hidden">Invalid Amount</p>
-          <div class="mt-6 flex gap-3">
-              <button id="close-withdrawal-modal" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3.5 rounded-xl text-sm">Cancel</button>
-              <button id="submit-withdrawal" class="flex-1 bg-[#002366] text-white font-bold py-3.5 rounded-xl text-sm">Confirm</button>
-          </div>
-      </div>
-  </div>
-
-  <div id="passwordModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-          <h3 class="text-lg font-bold text-center mb-4 text-royal-blue">Update Security PIN</h3>
-          <div class="space-y-3">
-              <input type="password" id="current-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center" placeholder="Current PIN">
-              <input type="password" id="new-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center" placeholder="New PIN">
-              <input type="password" id="confirm-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center" placeholder="Confirm PIN">
-          </div>
-          <p id="password-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"></p>
-          <p id="password-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold">Success!</p>
-          <div class="mt-6 flex gap-3">
-              <button id="close-password-modal" class="flex-1 bg-gray-100 font-bold py-3 rounded-xl text-sm">Close</button>
-              <button id="submit-password-change" class="flex-1 bg-[#002366] text-white font-bold py-3 rounded-xl text-sm">Update</button>
-          </div>
-      </div>
-  </div>
-
-  <div id="emailModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-          <h3 class="text-lg font-bold text-center mb-4 text-royal-blue">Update Email</h3>
-          <input type="email" id="new-email-input" class="w-full bg-gray-50 border-0 rounded-xl p-3" placeholder="Enter new email">
-          <p id="email-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"></p>
-          <p id="email-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold">Updated!</p>
-          <div class="mt-6 flex gap-3">
-              <button id="close-email-modal" class="flex-1 bg-gray-100 font-bold py-3 rounded-xl text-sm">Close</button>
-              <button id="submit-email-change" class="flex-1 bg-[#002366] text-white font-bold py-3 rounded-xl text-sm">Save</button>
-          </div>
-      </div>
-  </div>
-  
-  <div id="scoreBreakdownModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-         <h3 class="text-lg font-bold text-center mb-4">Score Breakdown</h3>
-         <div id="score-breakdown-content"></div>
-         <button id="close-score-modal" class="mt-4 w-full bg-gray-100 py-3 rounded-xl font-bold">Close</button>
-      </div>
-  </div>
-  
-  <div id="historyModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-end sm:items-center justify-center sm:p-4">
-      <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg h-[85vh] flex flex-col">
-          <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-              <h3 class="font-bold text-royal-blue ml-2">Full Transaction History</h3>
-              <button id="close-history-modal" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
-          </div>
-          <div id="history-list" class="flex-1 overflow-y-auto p-4 space-y-2">
-              </div>
-      </div>
-  </div>
-  
-  <div id="cardResultModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/90">
-      <div class="w-full max-w-sm">
-          
-          <div id="withdrawalCard" class="certificate-container">
-              <div class="cert-content">
-                  <i class="fas fa-crown cert-logo-watermark"></i>
-                  
-                  <div class="cert-header">Official Withdrawal Receipt</div>
-                  
-                  <img id="card-profile-pic" src="" class="cert-profile-img" crossorigin="anonymous">
-                  
-                  <h2 id="card-name" class="text-xl font-bold text-royal-blue uppercase mb-1">--</h2>
-                  <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verified Member</p>
-                  
-                  <div class="cert-amount-box">
-                      <p class="text-[10px] text-gray-300 uppercase tracking-widest mb-1">Amount Withdrawn</p>
-                      <div id="card-amount" class="cert-amount-val">₹0</div>
-                  </div>
-                  
-                  <div class="cert-details">
-                      <div class="text-left">
-                          <p><strong>Tx ID:</strong> <span id="rand-tx-id">...</span></p>
-                          <p><strong>Date:</strong> <span id="card-date">--</span></p>
-                      </div>
-                      <div class="text-right">
-                          <img id="card-signature" src="" class="h-8 object-contain opacity-80" crossorigin="anonymous">
-                          <p class="text-[8px] uppercase mt-1 font-bold">Authorized Signature</p>
-                      </div>
-                  </div>
-                  
-                  <div class="cert-stamp">PAID</div>
-              </div>
-          </div>
-          
-          <div class="mt-6 flex gap-3">
-            <button id="download-card-btn" class="flex-1 btn-gold text-white py-3 rounded-xl font-bold shadow-lg">Save Receipt</button>
-            <button id="share-card-btn" class="flex-1 bg-white text-[#D4AF37] border border-[#D4AF37] py-3 rounded-xl font-bold hidden">Share</button>
-          </div>
-          <button id="close-card-modal" class="mt-4 w-full text-white opacity-80">Close</button>
-      </div>
-  </div>
-
   <script src="score_engine.js"></script>
-  <script type="module" src="view_logic.js"></script>
+  <script type="module" src="view_core.js"></script>
 </body>
 </html>

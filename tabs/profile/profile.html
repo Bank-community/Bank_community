@@ -1,0 +1,99 @@
+<div class="animate-fade pb-6">
+    <div class="w-full bg-[#001540] text-white pt-8 pb-20 rounded-b-[2.5rem] shadow-2xl relative overflow-hidden z-10">
+        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <div class="flex flex-col items-center justify-center relative z-20 w-full px-4">
+            <div class="relative mb-3">
+                <div class="p-1 rounded-full border-2 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.4)] bg-[#002366]">
+                    <img id="header-profile-pic" src="https://placehold.co/150" class="w-24 h-24 rounded-full object-cover border-4 border-white/10" crossorigin="anonymous">
+                </div>
+                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-[#001540] text-[10px] font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg flex items-center gap-1 min-w-max">
+                    <i class="fas fa-check-circle"></i> VERIFIED
+                </div>
+            </div>
+            <h1 id="header-name" class="text-xl font-bold tracking-wide mt-2 text-center">Loading...</h1>
+            <p id="header-id" class="text-[10px] text-blue-200 uppercase tracking-widest opacity-70 mt-1">ID: --</p>
+        </div>
+    </div>
+
+    <div class="relative z-20 px-4 -mt-12 w-full">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <h3 class="font-bold text-[#001540] text-sm"><i class="fas fa-user-edit mr-2 text-[#D4AF37]"></i> Personal Details</h3>
+                <button id="change-password-btn" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">Change PIN</button>
+            </div>
+            <div class="divide-y divide-gray-50 text-sm">
+                <div class="p-3 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-phone-alt"></i></div>
+                    <div><p class="text-[9px] text-gray-400 font-bold uppercase">Mobile</p><p id="profile-mobile" class="font-bold text-gray-800">--</p></div>
+                </div>
+                <div class="p-3 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-envelope"></i></div>
+                    <div class="flex-1 overflow-hidden">
+                        <p class="text-[9px] text-gray-400 font-bold uppercase">Email</p>
+                        <p id="profile-email" class="font-bold text-gray-800 truncate">--</p>
+                    </div>
+                    <button id="edit-email-btn" class="text-[#D4AF37] p-2"><i class="fas fa-pen"></i></button>
+                </div>
+                <div class="p-3 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-map-marker-alt"></i></div>
+                    <div><p class="text-[9px] text-gray-400 font-bold uppercase">Address</p><p id="profile-address" class="font-bold text-gray-800 text-xs leading-tight">--</p></div>
+                </div>
+                <div class="p-3 flex items-center gap-3 bg-[#FFFCF5]">
+                    <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-[#D4AF37]"><i class="fas fa-user-shield"></i></div>
+                    <div><p class="text-[9px] text-[#B8860B] font-bold uppercase">Guarantor</p><p id="profile-guarantor" class="font-bold text-[#001540]">--</p></div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="font-bold text-gray-400 text-[10px] uppercase tracking-widest mb-3 ml-2">KYC Documents</h3>
+        <div class="grid grid-cols-4 gap-2 mb-4">
+             <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
+                <img id="doc-thumb-pic" class="w-full h-16 object-cover rounded-lg bg-gray-100" src="" crossorigin="anonymous">
+             </div>
+             <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
+                <img id="doc-thumb-front" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
+             </div>
+             <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
+                <img id="doc-thumb-back" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
+             </div>
+             <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
+                <img id="doc-thumb-sign" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
+             </div>
+        </div>
+    </div>
+
+    <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+        <img id="fullImageView" src="" class="max-w-[95vw] max-h-[80vh] object-contain rounded-lg shadow-2xl border-2 border-white">
+        <button id="closeImageViewer" class="absolute top-6 right-6 text-white text-4xl hover:text-[#D4AF37]">&times;</button>
+    </div>
+
+    <div id="passwordModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-bold text-center mb-4 text-[#002366]">Update Security PIN</h3>
+            <div class="space-y-3">
+                <input type="password" id="current-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center" placeholder="Current PIN">
+                <input type="password" id="new-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center" placeholder="New PIN">
+                <input type="password" id="confirm-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center" placeholder="Confirm PIN">
+            </div>
+            <p id="password-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"></p>
+            <p id="password-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold">Success!</p>
+            <div class="mt-6 flex gap-3">
+                <button id="close-password-modal" class="flex-1 bg-gray-100 font-bold py-3 rounded-xl text-sm">Close</button>
+                <button id="submit-password-change" class="flex-1 bg-[#002366] text-white font-bold py-3 rounded-xl text-sm">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="emailModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-bold text-center mb-4 text-[#002366]">Update Email</h3>
+            <input type="email" id="new-email-input" class="w-full bg-gray-50 border-0 rounded-xl p-3" placeholder="Enter new email">
+            <p id="email-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"></p>
+            <p id="email-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold">Updated!</p>
+            <div class="mt-6 flex gap-3">
+                <button id="close-email-modal" class="flex-1 bg-gray-100 font-bold py-3 rounded-xl text-sm">Close</button>
+                <button id="submit-email-change" class="flex-1 bg-[#002366] text-white font-bold py-3 rounded-xl text-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
