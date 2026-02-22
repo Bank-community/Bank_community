@@ -159,27 +159,26 @@ function updateUI() {
 }
 
 // --- RENDER FUNCTIONS ---
+// view_logic.js - FIXED IDs
+
 function renderHeader() {
     const m = globalState.member;
+    // Updated IDs to match HTML
     setText('header-name', m.fullName);
     setImg('header-profile-pic', m.profilePicUrl);
+    setText('profile-id-badge', `ID: ${m.membershipId}`);
+    setText('join-date-badge', `Member since ${new Date(m.joiningDate).getFullYear()}`);
 }
 
 function renderProfileTab() {
     const m = globalState.member;
-    setText('profile-id', m.membershipId);
-    setText('profile-join-date', `Member since ${new Date(m.joiningDate).getFullYear()}`); // Updated format
+    
+    // Personal Details
     setText('profile-mobile', m.mobileNumber);
     setText('profile-email', m.email || 'No Email Linked');
     setText('profile-address', m.address);
     setText('profile-aadhaar', m.aadhaar || 'N/A');
-    
-    // NEW: Guarantor in Personal Details
     setText('profile-guarantor', m.guarantorName || 'N/A');
-
-    // Header Updates
-    setText('header-name', m.fullName);
-    setImg('header-profile-pic', m.profilePicUrl);
 
     // Docs
     setImg('doc-thumb-pic', m.profilePicUrl);
@@ -187,6 +186,9 @@ function renderProfileTab() {
     setImg('doc-thumb-back', m.documentBackUrl);
     setImg('doc-thumb-sign', m.signatureUrl);
 }
+
+// REST OF THE FILE REMAINS SAME...
+
 
 
 function renderAnalyticsTab() {
