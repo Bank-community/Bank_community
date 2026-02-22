@@ -1,7 +1,61 @@
-<div class="animate-fade flex flex-col items-center justify-center pt-20 text-center min-h-[60vh] pb-24">
-    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 text-3xl mb-4 shadow-inner">
-        <i class="fas fa-qrcode"></i>
+<div class="animate-fade pb-24 bg-[#f8faff] min-h-screen">
+    
+    <div class="px-4 pt-6 pb-2">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="flex-1 bg-white rounded-full flex items-center px-4 py-3 shadow-sm border border-gray-100">
+                <i class="fas fa-search text-gray-400 mr-3 text-lg"></i>
+                <input type="text" id="pay-search-input" placeholder="Pay anyone on Sip" class="bg-transparent border-none outline-none w-full text-gray-700 font-medium placeholder-gray-400">
+            </div>
+            <div class="w-11 h-11 rounded-full bg-yellow-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
+                <img id="pay-self-profile" src="https://placehold.co/100" class="w-full h-full object-cover" crossorigin="anonymous">
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-8 mb-5">
+            <button id="scan-qr-btn" class="flex flex-col items-center group">
+                <div class="w-14 h-14 bg-blue-100/50 rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-gray-700 text-center leading-tight">Scan any<br>QR code</span>
+            </button>
+            <button id="pay-anyone-btn" class="flex flex-col items-center group">
+                <div class="w-14 h-14 bg-blue-100/50 rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform">
+                    <i class="fas fa-money-bill-transfer"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-gray-700 text-center leading-tight">Pay<br>anyone</span>
+            </button>
+        </div>
+
+        <div class="flex justify-center mb-6">
+            <button id="copy-sip-id-btn" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full px-5 py-1.5 shadow-sm active:bg-gray-50 transition-colors">
+                <span class="text-xs font-medium text-gray-800 tracking-wide">SIP ID: <span id="my-sip-id" class="font-bold">BCL-XXXXXX</span></span>
+            </button>
+        </div>
     </div>
-    <h3 class="font-bold text-[#001540] text-lg">Scanner Coming Soon</h3>
-    <p class="text-xs text-gray-500 mt-2 px-10">We are integrating UPI payments directly here for instant SIP and Loan repayments.</p>
+
+    <div class="px-4">
+        <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-4 ml-1">TCF Members</h3>
+        <div id="members-grid" class="grid grid-cols-4 gap-y-6 gap-x-2">
+            <div class="col-span-4 text-center py-10"><div class="loader mx-auto border-blue-600"></div></div>
+        </div>
+    </div>
+
+    <div id="scannerModal" class="fixed inset-0 z-[4000] bg-black hidden flex-col">
+        <div class="flex justify-between items-center p-4 bg-black/50 absolute top-0 w-full z-10">
+            <h3 class="text-white font-bold">Scan QR Code</h3>
+            <button id="close-scanner-btn" class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-xl backdrop-blur-sm"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex-1 flex flex-col justify-center items-center relative">
+            <div id="reader" class="w-full max-w-sm overflow-hidden bg-black"></div>
+            <div class="absolute inset-0 border-[40px] border-black/60 pointer-events-none"></div>
+            <div class="absolute w-64 h-64 border-2 border-[#D4AF37] rounded-2xl pointer-events-none">
+                <div class="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-[#D4AF37] rounded-tl-xl"></div>
+                <div class="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-[#D4AF37] rounded-tr-xl"></div>
+                <div class="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-[#D4AF37] rounded-bl-xl"></div>
+                <div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-[#D4AF37] rounded-br-xl"></div>
+            </div>
+            <p class="absolute bottom-20 text-white/80 text-sm font-medium">Align QR code within the frame to scan</p>
+        </div>
+    </div>
+
 </div>
