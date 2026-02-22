@@ -1,36 +1,62 @@
 <div class="animate-fade p-4 pb-24">
     <h2 class="text-xl font-bold text-[#001540] mb-4">Performance</h2>
-
+    
     <div class="bg-gradient-to-br from-[#001540] to-[#002366] rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
         <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10"></div>
         <div class="flex justify-between items-start relative z-10">
             <div>
-                <p class="text-[10px] text-blue-200 uppercase font-bold">Trust Score</p>
-                <h3 id="analytics-score" class="text-4xl font-bold mt-1 text-[#D4AF37]">--</h3>
+                <p class="text-[10px] text-blue-200 uppercase font-bold tracking-widest">Trust Score</p>
+                <h3 id="analytics-score" class="text-5xl font-bold mt-1 text-[#D4AF37] drop-shadow-md">--</h3>
             </div>
-            <button id="score-info-btn" class="bg-white/10 p-2 rounded-lg hover:bg-white/20 transition-colors">
-                <i class="fas fa-info-circle"></i>
-            </button>
+            <div class="text-right">
+                <p class="text-[9px] text-blue-200 font-bold uppercase tracking-widest">Status</p>
+                <p id="analytics-status" class="font-bold text-[#25D366] text-lg">Checking...</p>
+            </div>
         </div>
-        <div class="mt-4 pt-3 border-t border-white/10 flex justify-between">
-             <div>
-                 <p class="text-[9px] text-blue-200 font-bold uppercase">Loan Limit</p>
-                 <p id="analytics-limit" class="font-bold text-lg">--</p>
-             </div>
-             <div class="text-right">
-                 <p class="text-[9px] text-blue-200 font-bold uppercase">Status</p>
-                 <p id="analytics-status" class="font-bold text-[#25D366]">Checking...</p>
-             </div>
+        <div class="mt-5 pt-3 border-t border-white/10">
+             <p class="text-[9px] text-blue-200 font-bold uppercase tracking-widest">Current Loan Limit</p>
+             <p id="analytics-limit" class="font-bold text-xl mt-0.5">--</p>
         </div>
     </div>
 
-    <div id="score-breakdown-list" class="space-y-3 mt-4"></div>
+    <div class="mt-6 mb-2 flex justify-between items-end px-1">
+        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Score Breakdown</span>
+        <span class="text-[9px] text-gray-400 font-medium">Click card to expand</span>
+    </div>
+    
+    <div id="score-breakdown-list" class="space-y-3"></div>
 
-    <div id="scoreBreakdownModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="mt-4 p-4 bg-white rounded-xl flex justify-between items-center shadow-sm border border-gray-200">
+        <span class="font-bold uppercase tracking-widest text-xs text-[#001540]">Final Total Score</span>
+        <span id="final-total-display" class="font-black text-2xl text-[#D4AF37]">--</span>
+    </div>
+
+    <button id="improve-score-btn" class="mt-6 w-full bg-blue-50 text-[#002366] border border-blue-100 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+        <i class="fas fa-lightbulb text-[#D4AF37]"></i> अपना स्कोर कैसे बढ़ाएं?
+    </button>
+
+    <div id="improveScoreModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm border-t-4 border-[#D4AF37]">
-           <h3 class="text-lg font-bold text-center mb-4 text-[#001540]">Score Breakdown</h3>
-           <div id="score-breakdown-content"></div>
-           <button id="close-score-modal" class="mt-5 w-full bg-gray-100 py-3 rounded-xl font-bold text-[#001540] hover:bg-gray-200 transition-colors">Close</button>
+           <h3 class="text-lg font-bold text-center mb-4 text-[#001540]"><i class="fas fa-chart-line text-[#D4AF37] mr-1"></i> स्कोर कैसे बढ़ाएं?</h3>
+           
+           <div class="space-y-4 text-sm text-gray-600">
+               <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                   <p class="font-bold text-[#002366] text-xs uppercase mb-1"><i class="fas fa-coins text-[#D4AF37]"></i> 1. कैपिटल (Capital)</p>
+                   <p class="text-xs leading-relaxed">अपना कुल SIP जमा बढ़ाकर ₹50,000 के टारगेट तक ले जाएं। जितना ज्यादा जमा, उतना ज्यादा स्कोर।</p>
+               </div>
+               
+               <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                   <p class="font-bold text-[#002366] text-xs uppercase mb-1"><i class="fas fa-sync text-[#D4AF37]"></i> 2. कंसिस्टेंसी (Consistency)</p>
+                   <p class="text-xs leading-relaxed">अपनी SIP हमेशा महीने की <span class="font-bold text-green-600">1 से 10 तारीख</span> के बीच जमा करें और लंबे समय तक जुड़े रहें।</p>
+               </div>
+               
+               <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                   <p class="font-bold text-[#002366] text-xs uppercase mb-1"><i class="fas fa-hand-holding-usd text-[#D4AF37]"></i> 3. क्रेडिट व्यवहार (Credit)</p>
+                   <p class="text-xs leading-relaxed">लोन लेने पर EMI समय पर चुकाएं। 90 दिन (Short Term) से ज्यादा लेट करने पर भारी पेनल्टी लगती है।</p>
+               </div>
+           </div>
+
+           <button id="close-improve-modal" class="mt-5 w-full bg-[#001540] text-white py-3 rounded-xl font-bold hover:bg-[#002366] transition-colors shadow-md">समझ गया</button>
         </div>
     </div>
 </div>
