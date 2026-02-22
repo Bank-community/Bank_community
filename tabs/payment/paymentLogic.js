@@ -1,6 +1,5 @@
 // tabs/payment/paymentLogic.js
 
-// 🚀 NEW: Import 'allTransactions' directly from payment.js
 import { currentApp, allMembers, allTransactions } from './payment.js';
 import { executeP2PTransaction, savePinToDb } from './paymentDb.js';
 import { renderChatHistory } from './paymentUI.js';
@@ -8,6 +7,11 @@ import { renderChatHistory } from './paymentUI.js';
 export let selectedReceiver = null;
 export let finalAllowedLimit = 0;
 let isChangingPin = false; 
+
+// 🚨 NEW SECURITY: KYC Check Function for Sender
+function hasFullKyc(member) {
+    return member && member.profilePicUrl && member.documentUrl && member.signatureUrl;
+}
 
 export function openChatScreen(receiverId) {
     selectedReceiver = allMembers.find(m => m.membershipId === receiverId);
@@ -23,11 +27,10 @@ export function openChatScreen(receiverId) {
     document.getElementById('chat-big-avatar').src = picSrc;
     document.getElementById('amount-screen-name').textContent = selectedReceiver.fullName;
 
-    // 2. Render Past Chat History instantly using pre-fetched data
+    // 2. Render Past Chat History instantly
     renderChatHistory(currentApp.state.member.membershipId, receiverId, allTransactions);
 
-    // 🚀 3. THE MAGIC (Pre-Calculation): 
-    // Profile khulte hi limits pehle se calculate karke rakh lo taaki 'Pay' button par load na pade
+    // 3. Pre-Calculate Limits
     calculateLimits();
 
     // 4. Show Chat Interface
@@ -37,7 +40,13 @@ export function openChatScreen(receiverId) {
 }
 
 export function openAmountScreen() {
-    // Limits ab pehle se calculate ho chuki hain, yahan sirf UI reset karna hai
+    // 🔒 SECURITY CHECK: Check Sender's Full KYC before opening payment screen
+    const sender = currentApp.state.member;
+    if (!hasFullKyc(sender)) {
+        alert("🚨 KYC Pending: You cannot transfer funds. Please complete your Profile KYC (Photo, Aadhaar & Signature) first.");
+        return; // Stop execution here, don't open the screen
+    }
+
     const amountInput = document.getElementById('pay-amount-input');
     amountInput.value = '';
     document.getElementById('pay-note-input').value = '';
@@ -69,7 +78,6 @@ export function calculateLimits() {
     let senderSentThisMonth = 0; 
     let receiverReceivedThisMonth = 0;
 
-    // 🚀 CRASH FIX: Using pre-fetched allTransactions array (No .forEach errors)
     allTransactions.forEach(tx => {
         if (tx && tx.date && tx.date.startsWith(currentMonth)) {
             if (tx.type === 'P2P Sent' && tx.memberId === sender.membershipId) senderSentThisMonth += (tx.amount || 0);
@@ -77,7 +85,6 @@ export function calculateLimits() {
         }
     });
 
-    // 🚀 NEGATIVE BALANCE LOGIC
     const senderTotalSip = parseFloat(sender.accountBalance || 0);
     const receiverTotalSip = parseFloat(receiver.accountBalance || 0);
 
@@ -94,7 +101,6 @@ export function calculateLimits() {
 
     finalAllowedLimit = Math.min(senderMaxLimit, receiverMaxLimit);
 
-    // Update UI Limits in Background
     const senderLimitEl = document.getElementById('limit-sender');
     const receiverLimitEl = document.getElementById('limit-receiver');
     const warningEl = document.getElementById('limit-warning');

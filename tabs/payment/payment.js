@@ -4,20 +4,27 @@ import { ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-dat
 
 export let currentApp = null;
 export let allMembers = [];
-export let allTransactions = []; // 🚀 NEW: Live transactions store karne ke liye
+export let allTransactions = []; 
+
+// 🚨 NEW: Full KYC Check Function (Receiver ke liye)
+// Ye check karega ki member ke paas Photo, Aadhaar aur Signature hai ya nahi
+function hasFullKyc(member) {
+    return member.profilePicUrl && member.documentUrl && member.signatureUrl; 
+}
 
 export async function init(app) {
     currentApp = app;
     const state = app.state;
     const myMemberId = state.member.membershipId;
 
-    // 1. Fetch Live Members (No members found error fix)
+    // 1. Fetch Live Members (With Full KYC Filter)
     try {
         const membersSnap = await get(ref(app.db, 'members'));
         if (membersSnap.exists()) {
             const rawMembersObj = membersSnap.val();
+            // 🔒 SECURITY UPDATE: Sirf wahi member list mein aayenge jinka KYC pura hai
             allMembers = Object.values(rawMembersObj).filter(m => 
-                m && m.status === 'Approved' && m.membershipId !== myMemberId
+                m && m.status === 'Approved' && m.membershipId !== myMemberId && hasFullKyc(m)
             );
         } else {
             allMembers = [];
@@ -26,11 +33,11 @@ export async function init(app) {
         console.error("Members fetch failed:", error);
         const fallbackObj = state.allMembers || state.membersData || {};
         allMembers = Object.values(fallbackObj).filter(m => 
-            m && m.status === 'Approved' && m.membershipId !== myMemberId
+            m && m.status === 'Approved' && m.membershipId !== myMemberId && hasFullKyc(m)
         );
     }
 
-    // 2. 🚀 NEW: Fetch Live Transactions (Taki calculation mein crash na ho)
+    // 2. Fetch Live Transactions 
     try {
         const txSnap = await get(ref(app.db, 'transactions'));
         if (txSnap.exists()) {
