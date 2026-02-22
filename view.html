@@ -40,395 +40,228 @@
       body { background-color: #f8f9fa; overscroll-behavior-y: none; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-800 select-none">
+
+<body class="bg-gray-50 min-h-screen text-gray-800 select-none overflow-x-hidden">
 
   <div id="loader-container" class="loader-container fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
       <div class="loader"></div>
-      <span class="mt-4 text-royal-blue font-bold text-sm tracking-widest">LOADING APP...</span>
+      <span class="mt-4 text-royal-blue font-bold text-sm tracking-widest">LOADING PROFILE...</span>
   </div>
 
   <div id="error-message" class="hidden fixed top-10 left-1/2 transform -translate-x-1/2 bg-red-100 text-red-700 px-6 py-3 rounded-full shadow-xl z-50 text-sm font-bold border border-red-200">
       <p><i class="fas fa-wifi mr-2"></i> Connection Error</p>
   </div>
 
-  <header class="fixed top-0 w-full z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300" id="app-header">
-      <div class="flex items-center justify-between px-4 py-3">
-          <div class="flex items-center gap-3">
-              <div class="relative">
-                  <img id="header-profile-pic" src="https://placehold.co/100" class="w-10 h-10 rounded-full object-cover border-2 border-royal-gold">
-                  <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+  <header class="w-full bg-[#001540] text-white pt-10 pb-28 rounded-b-[3rem] shadow-2xl relative overflow-hidden z-10">
+      <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+      
+      <div class="flex flex-col items-center justify-center relative z-20 w-full px-2">
+          <div class="relative mb-4">
+              <div class="p-1.5 rounded-full border-2 border-[#D4AF37] shadow-[0_0_25px_rgba(212,175,55,0.5)] bg-[#002366]">
+                  <img id="header-profile-pic" src="https://placehold.co/150" class="w-32 h-32 rounded-full object-cover border-4 border-white/10" onerror="this.src='https://placehold.co/150'">
               </div>
-              <div class="leading-tight">
-                  <h1 id="header-name" class="font-bold text-royal-blue text-sm truncate w-32">Loading...</h1>
-                  <span class="text-[10px] bg-royal-gold/10 text-royal-dark px-1.5 py-0.5 rounded border border-royal-gold/20 font-medium">Verified Member</span>
+              <div class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-[#001540] text-[10px] font-bold px-4 py-1.5 rounded-full border-2 border-white shadow-lg flex items-center gap-1 min-w-max">
+                  <i class="fas fa-check-circle"></i> VERIFIED
               </div>
           </div>
-          <button class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:text-royal-blue transition-colors">
-              <i class="fas fa-bell"></i>
-          </button>
+
+          <h1 id="header-name" class="text-3xl font-bold tracking-wide mt-3 text-center drop-shadow-md">Loading...</h1>
+          
+          <div class="mt-3 bg-white/10 px-6 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-inner">
+              <p id="profile-id-badge" class="text-xs font-mono tracking-widest text-blue-100">ID: ...</p>
+          </div>
+          <p id="join-date-badge" class="text-[10px] text-blue-200 mt-2 uppercase tracking-widest opacity-80">Member since --</p>
       </div>
   </header>
 
-  <main class="pt-20 px-4 min-h-screen">
+  <main class="relative z-20 px-3 -mt-20 pb-24 w-full max-w-none">
 
-    <section id="tab-profile" class="tab-content active pb-20">
-    
-    <div class="relative bg-[#001540] text-white pt-24 pb-12 rounded-b-[3rem] shadow-2xl -mt-20 mb-6">
-        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+    <section id="tab-profile" class="tab-content active space-y-4">
         
-        <div class="relative z-10 flex flex-col items-center">
-            <div class="relative mb-3">
-                <div class="p-1 rounded-full border-2 border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                    <img id="header-profile-pic" src="https://placehold.co/100" class="w-24 h-24 rounded-full object-cover border-4 border-[#001540]">
-                </div>
-                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-[#001540] text-[10px] font-bold px-3 py-1 rounded-full border-2 border-white flex items-center gap-1 shadow-md">
-                    <i class="fas fa-check-circle"></i> VERIFIED
-                </div>
-            </div>
-
-            <h1 id="header-name" class="text-2xl font-bold tracking-wide mt-2">Loading...</h1>
-            <div class="mt-2 bg-white/10 px-4 py-1 rounded-full border border-white/20 backdrop-blur-sm">
-                <p id="profile-id" class="text-xs font-mono tracking-widest text-blue-100">ID: ...</p>
-            </div>
-            <p id="profile-join-date" class="text-[10px] text-gray-400 mt-2 uppercase tracking-widest opacity-70">Member since --</p>
-        </div>
-    </div>
-
-    <div class="px-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
             <div class="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                <h3 class="font-bold text-[#001540] text-sm"><i class="fas fa-user-edit mr-2 text-[#D4AF37]"></i> Personal Details</h3>
+                <h3 class="font-bold text-[#001540] text-sm flex items-center gap-2">
+                    <i class="fas fa-user-edit text-[#D4AF37]"></i> Personal Details
+                </h3>
                 <button id="change-password-btn" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold shadow-sm">Change PIN</button>
             </div>
+            
             <div class="divide-y divide-gray-50 text-sm">
-                <div class="p-4 flex items-center gap-4">
-                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-phone-alt"></i></div>
-                    <div><p class="text-xs text-gray-400">Mobile Number</p><p id="profile-mobile" class="font-bold text-gray-700">--</p></div>
+                <div class="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-lg shadow-sm"><i class="fas fa-phone-alt"></i></div>
+                    <div class="flex-1">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Mobile Number</p>
+                        <p id="profile-mobile" class="font-bold text-gray-800 text-base">--</p>
+                    </div>
                 </div>
                 
-                <div class="p-4 flex items-center justify-between group">
+                <div class="p-4 flex items-center justify-between group hover:bg-gray-50 transition-colors">
                     <div class="flex items-center gap-4">
-                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-envelope"></i></div>
-                        <div><p class="text-xs text-gray-400">Email Address</p><p id="profile-email" class="font-bold text-gray-700 truncate w-40">--</p></div>
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-lg shadow-sm"><i class="fas fa-envelope"></i></div>
+                        <div class="flex-1">
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Email Address</p>
+                            <p id="profile-email" class="font-bold text-gray-800 break-all pr-2">--</p>
+                        </div>
                     </div>
-                    <button id="edit-email-btn" class="text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pen"></i></button>
+                    <button id="edit-email-btn" class="text-[#D4AF37] opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity p-2"><i class="fas fa-pen"></i></button>
                 </div>
 
-                <div class="p-4 flex items-center gap-4">
-                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-fingerprint"></i></div>
-                    <div><p class="text-xs text-gray-400">Aadhaar Number</p><p id="profile-aadhaar" class="font-bold text-gray-700">--</p></div>
+                <div class="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-lg shadow-sm"><i class="fas fa-fingerprint"></i></div>
+                    <div class="flex-1">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Aadhaar Number</p>
+                        <p id="profile-aadhaar" class="font-bold text-gray-800 text-base tracking-wide">--</p>
+                    </div>
                 </div>
 
-                <div class="p-4 flex items-center gap-4">
-                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-map-marker-alt"></i></div>
-                    <div><p class="text-xs text-gray-400">Address</p><p id="profile-address" class="font-bold text-gray-700 text-xs leading-relaxed">--</p></div>
+                <div class="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-lg shadow-sm"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="flex-1">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Address</p>
+                        <p id="profile-address" class="font-bold text-gray-800 text-xs leading-relaxed">--</p>
+                    </div>
                 </div>
 
-                <div class="p-4 flex items-center gap-4 bg-yellow-50/30">
-                    <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-[#D4AF37]"><i class="fas fa-user-shield"></i></div>
-                    <div><p class="text-xs text-gray-400">Guarantor</p><p id="profile-guarantor" class="font-bold text-[#001540]">--</p></div>
+                <div class="p-4 flex items-center gap-4 bg-[#FFFCF5]">
+                    <div class="w-10 h-10 rounded-full bg-[#fff9e6] border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] text-lg shadow-sm"><i class="fas fa-user-shield"></i></div>
+                    <div class="flex-1">
+                        <p class="text-[10px] text-[#B8860B] uppercase font-bold tracking-wider">Guarantor</p>
+                        <p id="profile-guarantor" class="font-bold text-[#001540] text-base">--</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <h3 class="font-bold text-gray-400 text-[10px] uppercase tracking-widest mt-6 mb-3 ml-1">KYC Documents</h3>
-        <div class="grid grid-cols-4 gap-3 mb-6">
-             <div class="aspect-square bg-white rounded-xl border border-gray-200 p-1 shadow-sm document-thumbnail">
-                 <img id="doc-thumb-pic" class="w-full h-full object-cover rounded-lg" src="">
-                 <p class="text-[8px] text-center mt-1 text-gray-400 font-bold">PHOTO</p>
+        <h3 class="font-bold text-gray-400 text-[10px] uppercase tracking-widest mt-6 mb-3 ml-2">KYC Documents</h3>
+        <div class="grid grid-cols-4 gap-2 mb-6">
+             <div class="bg-white rounded-xl border border-gray-200 p-1.5 shadow-sm document-thumbnail cursor-pointer hover:border-[#D4AF37] transition-colors">
+                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <img id="doc-thumb-pic" class="w-full h-full object-cover" src="">
+                 </div>
+                 <p class="text-[9px] text-center mt-1.5 text-gray-500 font-bold">PHOTO</p>
              </div>
-             <div class="aspect-square bg-white rounded-xl border border-gray-200 p-1 shadow-sm document-thumbnail">
-                 <img id="doc-thumb-front" class="w-full h-full object-contain rounded-lg" src="">
-                 <p class="text-[8px] text-center mt-1 text-gray-400 font-bold">FRONT</p>
+             <div class="bg-white rounded-xl border border-gray-200 p-1.5 shadow-sm document-thumbnail cursor-pointer hover:border-[#D4AF37] transition-colors">
+                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <img id="doc-thumb-front" class="w-full h-full object-contain" src="">
+                 </div>
+                 <p class="text-[9px] text-center mt-1.5 text-gray-500 font-bold">FRONT</p>
              </div>
-             <div class="aspect-square bg-white rounded-xl border border-gray-200 p-1 shadow-sm document-thumbnail">
-                 <img id="doc-thumb-back" class="w-full h-full object-contain rounded-lg" src="">
-                 <p class="text-[8px] text-center mt-1 text-gray-400 font-bold">BACK</p>
+             <div class="bg-white rounded-xl border border-gray-200 p-1.5 shadow-sm document-thumbnail cursor-pointer hover:border-[#D4AF37] transition-colors">
+                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <img id="doc-thumb-back" class="w-full h-full object-contain" src="">
+                 </div>
+                 <p class="text-[9px] text-center mt-1.5 text-gray-500 font-bold">BACK</p>
              </div>
-             <div class="aspect-square bg-white rounded-xl border border-gray-200 p-1 shadow-sm document-thumbnail">
-                 <img id="doc-thumb-sign" class="w-full h-full object-contain rounded-lg" src="">
-                 <p class="text-[8px] text-center mt-1 text-gray-400 font-bold">SIGN</p>
+             <div class="bg-white rounded-xl border border-gray-200 p-1.5 shadow-sm document-thumbnail cursor-pointer hover:border-[#D4AF37] transition-colors">
+                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <img id="doc-thumb-sign" class="w-full h-full object-contain" src="">
+                 </div>
+                 <p class="text-[9px] text-center mt-1.5 text-gray-500 font-bold">SIGN</p>
              </div>
         </div>
-    </div>
-</section>
-
-
+    </section>
 
     <section id="tab-analytics" class="tab-content space-y-5">
-        <h2 class="text-xl font-bold text-royal-blue">Performance</h2>
-        
-        <div class="bg-gradient-to-br from-royal-dark to-royal-blue rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10"></div>
+        <h2 class="text-xl font-bold text-[#001540] px-1">Performance</h2>
+        <div class="bg-gradient-to-br from-[#001540] to-[#002366] rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full -mr-10 -mt-10"></div>
             <div class="flex justify-between items-start relative z-10">
                 <div>
-                    <p class="text-xs text-blue-200 uppercase tracking-widest">Trust Score</p>
-                    <h3 id="analytics-score" class="text-4xl font-bold mt-1 text-royal-gold">--</h3>
+                    <p class="text-xs text-blue-200 uppercase tracking-widest font-bold">Trust Score</p>
+                    <h3 id="analytics-score" class="text-5xl font-bold mt-2 text-[#D4AF37]">--</h3>
                 </div>
-                <button id="score-info-btn" class="bg-white/10 p-2 rounded-lg hover:bg-white/20"><i class="fas fa-info-circle"></i></button>
+                <button id="score-info-btn" class="bg-white/10 p-2.5 rounded-xl hover:bg-white/20 backdrop-blur-md"><i class="fas fa-info-circle text-lg"></i></button>
             </div>
-            
-            <div class="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+            <div class="mt-8 pt-4 border-t border-white/10 flex justify-between items-center">
                  <div>
-                     <p class="text-[10px] text-blue-200">Loan Limit</p>
-                     <p id="analytics-limit" class="font-bold text-lg">Checking...</p>
+                     <p class="text-[10px] text-blue-200 uppercase font-bold">Loan Limit</p>
+                     <p id="analytics-limit" class="font-bold text-xl mt-0.5">Checking...</p>
                  </div>
                  <div class="h-8 w-[1px] bg-white/20"></div>
                  <div class="text-right">
-                     <p class="text-[10px] text-blue-200">Eligibility</p>
-                     <p id="analytics-status" class="font-bold text-green-400 text-sm">Active</p>
+                     <p class="text-[10px] text-blue-200 uppercase font-bold">Eligibility</p>
+                     <p id="analytics-status" class="font-bold text-[#25D366] text-sm mt-0.5">Active</p>
                  </div>
             </div>
         </div>
-
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 class="font-bold text-sm mb-4">Score Factors</h3>
-            <div id="score-breakdown-list" class="space-y-4">
-                <div class="animate-pulse flex space-x-4">
-                    <div class="flex-1 space-y-2 py-1">
-                        <div class="h-2 bg-gray-200 rounded"></div>
-                        <div class="h-2 bg-gray-200 rounded w-5/6"></div>
-                    </div>
-                </div>
+            <h3 class="font-bold text-sm mb-4 text-[#001540]">Score Factors</h3>
+            <div id="score-breakdown-list" class="space-y-4"></div>
+        </div>
+    </section>
+
+    <section id="tab-history" class="tab-content space-y-4">
+        <h2 class="text-xl font-bold text-[#001540] px-1">Activity Log</h2>
+        <div class="flex bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 gap-1">
+            <button onclick="filterHistory('all')" class="filter-btn active flex-1 py-2.5 text-xs font-bold rounded-lg transition-all">All</button>
+            <button onclick="filterHistory('loan')" class="filter-btn flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all">Loans</button>
+            <button onclick="filterHistory('transaction')" class="filter-btn flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-500 transition-all">Txns</button>
+        </div>
+        <div id="history-container" class="space-y-3 pb-20 min-h-[300px]">
+             <p class="text-center text-gray-400 text-xs py-10">Loading history...</p>
+        </div>
+    </section>
+
+    <section id="tab-wallet" class="tab-content space-y-5 pt-2">
+        <h2 class="text-xl font-bold text-[#001540] px-1">My Wealth</h2>
+        <div class="withdrawal-card bg-[#FFFCF5] rounded-3xl p-6 shadow-lg border border-[#D4AF37] relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 text-[10rem] text-[#D4AF37] opacity-10 rotate-12"><i class="fas fa-wallet"></i></div>
+            <p class="text-xs text-[#B8860B] font-bold tracking-widest uppercase mb-1">Withdrawable Balance</p>
+            <h1 id="wallet-balance" class="text-5xl font-serif font-bold text-[#D4AF37] drop-shadow-sm mb-6">₹0.00</h1>
+            <div class="flex gap-3 relative z-10">
+                <button id="withdraw-btn" class="flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3.5 px-4 rounded-xl shadow-md text-sm active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <i class="fas fa-paper-plane"></i> Withdraw
+                </button>
+                <button id="view-history-btn" class="bg-white border-2 border-[#D4AF37] text-[#B8860B] w-12 rounded-xl flex items-center justify-center hover:bg-[#fff9e6] active:scale-95 shadow-sm">
+                    <i class="fas fa-history"></i>
+                </button>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-lg mb-2 mx-auto"><i class="fas fa-chart-line"></i></div>
+                <p class="text-[10px] text-gray-400 uppercase font-bold">Total Profit</p>
+                <p id="wallet-profit" class="text-lg font-bold text-gray-800">₹0</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-2 mx-auto"><i class="fas fa-piggy-bank"></i></div>
+                <p class="text-[10px] text-gray-400 uppercase font-bold">Total Invested</p>
+                <p id="wallet-invested" class="text-lg font-bold text-gray-800">₹0</p>
             </div>
         </div>
     </section>
 
-    <section id="tab-payment" class="tab-content flex flex-col items-center justify-center h-[60vh] text-center">
-        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 text-3xl mb-4">
-            <i class="fas fa-rocket"></i>
-        </div>
-        <h3 class="text-lg font-bold text-gray-600">Coming Soon</h3>
-        <p class="text-sm text-gray-400 px-10 mt-2">We are working on something amazing for payments.</p>
-    </section>
-
-    <section id="tab-history" class="tab-content space-y-4">
-    <h2 class="text-xl font-bold text-royal-blue">Activity Log</h2>
-    
-    <div class="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
-        <button onclick="filterHistory('all')" class="filter-btn active flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition-all">All</button>
-        <button onclick="filterHistory('loan')" class="filter-btn flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition-all">Loans</button>
-        <button onclick="filterHistory('transaction')" class="filter-btn flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition-all">Txns</button>
-    </div>
-
-    <div id="history-container" class="space-y-3 pb-20 min-h-[300px]">
-        <p class="text-center text-gray-400 text-xs py-10">Loading history...</p>
-    </div>
-</section>
-
-    <section id="tab-wallet" class="tab-content space-y-5 px-4 pt-4">
-    <h2 class="text-xl font-bold text-[#001540]">My Wealth</h2>
-    
-    <div class="withdrawal-card bg-[#FFFCF5] rounded-2xl p-6 shadow-lg border border-[#D4AF37] relative overflow-hidden">
-        <div class="absolute -right-6 -top-6 text-9xl text-[#D4AF37] opacity-10 rotate-12"><i class="fas fa-wallet"></i></div>
-        
-        <p class="text-xs text-[#B8860B] font-bold tracking-widest uppercase mb-1">Withdrawable Balance</p>
-        <h1 id="wallet-balance" class="text-4xl font-serif font-bold text-[#D4AF37] drop-shadow-sm mb-6">₹0.00</h1>
-        
-        <div class="flex gap-3 relative z-10">
-            <button id="withdraw-btn" class="flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3 px-4 rounded-xl shadow-md text-sm active:scale-95 transition-transform flex items-center justify-center gap-2">
-                <i class="fas fa-paper-plane"></i> Withdraw
-            </button>
-            <button id="view-history-btn" class="bg-white border-2 border-[#D4AF37] text-[#B8860B] w-12 rounded-xl flex items-center justify-center hover:bg-[#fff9e6] active:scale-95">
-                <i class="fas fa-history"></i>
-            </button>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center">
-            <div class="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-sm mb-2"><i class="fas fa-chart-line"></i></div>
-            <p class="text-[10px] text-gray-400 uppercase font-bold">Total Profit</p>
-            <p id="wallet-profit" class="text-lg font-bold text-gray-800">₹0</p>
-        </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center">
-            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm mb-2"><i class="fas fa-piggy-bank"></i></div>
-            <p class="text-[10px] text-gray-400 uppercase font-bold">Total Invested</p>
-            <p id="wallet-invested" class="text-lg font-bold text-gray-800">₹0</p>
-        </div>
-    </div>
-    
-    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-        <p class="text-[10px] text-gray-400">Guarantor Protection Active</p>
-        <p id="wallet-guarantor" class="font-bold text-sm text-[#001540]">--</p>
-    </div>
-</section>
-
   </main>
 
-  <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
-      <div class="flex justify-around items-center h-16">
+  <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] rounded-t-2xl">
+      <div class="flex justify-around items-center h-16 px-2">
           <button onclick="switchTab('profile')" class="nav-btn nav-active flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="tab-profile">
-              <i class="fas fa-user text-lg mb-1"></i>
-              <span class="text-[10px] font-medium">Profile</span>
+              <i class="fas fa-user text-xl mb-1"></i>
+              <span class="text-[10px] font-bold">Profile</span>
           </button>
-          
           <button onclick="switchTab('analytics')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="tab-analytics">
-              <i class="fas fa-chart-pie text-lg mb-1"></i>
-              <span class="text-[10px] font-medium">Score</span>
+              <i class="fas fa-chart-pie text-xl mb-1"></i>
+              <span class="text-[10px] font-bold">Score</span>
           </button>
-          
           <button onclick="switchTab('payment')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="tab-payment">
-              <div class="w-10 h-10 bg-royal-blue text-white rounded-full flex items-center justify-center shadow-lg -mt-6 border-4 border-white">
-                  <i class="fas fa-qrcode text-lg"></i>
+              <div class="w-12 h-12 bg-[#002366] text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-900/30 -mt-8 border-4 border-white transform transition-transform active:scale-95">
+                  <i class="fas fa-qrcode text-xl"></i>
               </div>
-              <span class="text-[10px] font-medium mt-1">Pay</span>
+              <span class="text-[10px] font-bold mt-1">Pay</span>
           </button>
-          
           <button onclick="switchTab('history')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="tab-history">
-              <i class="fas fa-history text-lg mb-1"></i>
-              <span class="text-[10px] font-medium">History</span>
+              <i class="fas fa-history text-xl mb-1"></i>
+              <span class="text-[10px] font-bold">History</span>
           </button>
-          
           <button onclick="switchTab('wallet')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="tab-wallet">
-              <i class="fas fa-wallet text-lg mb-1"></i>
-              <span class="text-[10px] font-medium">Wallet</span>
+              <i class="fas fa-wallet text-xl mb-1"></i>
+              <span class="text-[10px] font-bold">Wallet</span>
           </button>
       </div>
   </nav>
 
-  <div id="imageViewerModal" class="modal-overlay fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-      <img id="fullImageView" src="" class="max-w-[95vw] max-h-[80vh] object-contain rounded-lg shadow-2xl border-2 border-white">
-      <button id="closeImageViewer" class="absolute top-6 right-6 text-white text-4xl hover:text-royal-gold">&times;</button>
-  </div>
-
-  <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-royal-gold animate-slide-up">
-          <div class="text-center mb-6">
-               <div class="w-12 h-12 bg-yellow-50 text-[#D4AF37] rounded-full flex items-center justify-center mx-auto mb-3 text-xl"><i class="fas fa-university"></i></div>
-               <h3 class="text-lg font-bold text-royal-blue">Withdraw Funds</h3>
-          </div>
-          
-          <div class="bg-gray-50 p-4 rounded-2xl mb-4 text-center border border-gray-100">
-              <p class="text-xs text-gray-500 mb-1">Available Balance</p>
-              <p id="modal-available-balance" class="text-2xl font-bold text-royal-blue">₹0</p>
-          </div>
-
-          <div>
-              <label class="text-xs font-bold text-gray-500 uppercase ml-2">Amount</label>
-              <input type="number" id="withdrawal-amount" class="w-full bg-gray-50 border-0 rounded-xl p-4 mt-1 text-2xl font-bold text-center focus:ring-2 focus:ring-royal-gold text-royal-blue placeholder-gray-300" placeholder="₹0">
-              <p id="withdrawal-error" class="text-red-500 text-xs mt-2 text-center hidden"><i class="fas fa-exclamation-circle"></i> Invalid Amount</p>
-          </div>
-
-          <div class="mt-6 flex gap-3">
-              <button id="close-withdrawal-modal" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3.5 rounded-xl text-sm">Cancel</button>
-              <button id="submit-withdrawal" class="flex-1 bg-royal-blue text-white font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-blue-900/20">Confirm</button>
-          </div>
-      </div>
-  </div>
-
-  <div id="passwordModal" class="modal-overlay fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-          <h3 class="text-lg font-bold text-center mb-4 text-royal-blue">Update Security PIN</h3>
-          <div class="space-y-3">
-              <input type="password" id="current-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center tracking-widest" placeholder="Current PIN" inputmode="numeric">
-              <input type="password" id="new-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center tracking-widest" placeholder="New PIN (Numbers)" inputmode="numeric">
-              <input type="password" id="confirm-password" class="w-full bg-gray-50 border-0 rounded-xl p-3 text-center tracking-widest" placeholder="Confirm New PIN" inputmode="numeric">
-          </div>
-          <p id="password-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"></p>
-          <p id="password-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold">Success!</p>
-          <div class="mt-6 flex gap-3">
-              <button id="close-password-modal" class="flex-1 bg-gray-100 font-bold py-3 rounded-xl text-sm">Close</button>
-              <button id="submit-password-change" class="flex-1 bg-royal-blue text-white font-bold py-3 rounded-xl text-sm">Update</button>
-          </div>
-      </div>
-  </div>
-
-  <div id="emailModal" class="modal-overlay fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-          <h3 class="text-lg font-bold text-center mb-4 text-royal-blue">Update Email</h3>
-          <input type="email" id="new-email-input" class="w-full bg-gray-50 border-0 rounded-xl p-3" placeholder="Enter new email">
-          <p id="email-error" class="text-red-500 text-xs mt-3 text-center hidden font-bold"></p>
-          <p id="email-success" class="text-green-600 text-xs mt-3 text-center hidden font-bold">Updated!</p>
-          <div class="mt-6 flex gap-3">
-              <button id="close-email-modal" class="flex-1 bg-gray-100 font-bold py-3 rounded-xl text-sm">Close</button>
-              <button id="submit-email-change" class="flex-1 bg-royal-blue text-white font-bold py-3 rounded-xl text-sm">Save</button>
-          </div>
-      </div>
-  </div>
-
-  <div id="scoreBreakdownModal" class="modal-overlay fixed inset-0 z-[100] hidden items-end sm:items-center justify-center sm:p-4">
-      <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 w-full max-w-md h-[70vh] sm:h-auto overflow-hidden flex flex-col">
-          <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4 sm:hidden"></div>
-          <h3 class="text-lg font-bold text-center mb-1 text-royal-blue">Score Analysis</h3>
-          <p class="text-center text-xs text-gray-400 mb-4">Detailed breakdown of your performance</p>
-          <div id="score-breakdown-content" class="flex-1 overflow-y-auto space-y-3 p-1">
-              </div>
-          <button id="close-score-modal" class="mt-4 w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl">Close</button>
-      </div>
-  </div>
-
-  <div id="historyModal" class="modal-overlay fixed inset-0 z-[100] hidden items-end sm:items-center justify-center sm:p-4">
-      <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg h-[85vh] flex flex-col">
-          <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-              <h3 class="font-bold text-royal-blue ml-2">Full Transaction History</h3>
-              <button id="close-history-modal" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
-          </div>
-          <div id="history-list" class="flex-1 overflow-y-auto p-4 space-y-2">
-              </div>
-      </div>
-  </div>
-
-  <div id="cardResultModal" class="modal-overlay fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/90">
-      <div class="w-full max-w-sm">
-          <div id="withdrawalCard" class="bg-[#FFFCF5] p-5 relative overflow-hidden border-4 border-double border-[#D4AF37]">
-               <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-                   <i class="fas fa-crown text-9xl"></i>
-               </div>
-               <div class="relative z-10">
-                   <div class="flex items-center gap-3 mb-6">
-                       <img id="card-profile-pic" class="w-12 h-12 rounded-full border border-[#D4AF37]" src="">
-                       <div>
-                           <h2 id="card-name" class="font-serif font-bold text-royal-blue uppercase text-sm">--</h2>
-                           <p class="text-[8px] text-gray-500 uppercase tracking-widest font-bold">Verified Withdrawal</p>
-                       </div>
-                   </div>
-                   <div class="text-center py-4 border-y border-dashed border-[#D4AF37]/30 my-4">
-                       <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Amount</p>
-                       <p id="card-amount" class="text-4xl font-serif font-bold text-[#D4AF37]">₹0</p>
-                   </div>
-                   <div class="flex justify-between items-end mt-2">
-                       <div class="text-[8px] text-gray-400">
-                           <p>Tx ID: <span id="rand-tx-id">...</span></p>
-                           <p id="card-date">--</p>
-                       </div>
-                       <div class="text-center">
-                           <img id="card-signature" class="h-8 object-contain opacity-80" src="">
-                           <div class="h-px w-16 bg-gray-300 mt-1"></div>
-                           <p class="text-[6px] uppercase text-gray-400 mt-0.5">Authorized Signature</p>
-                       </div>
-                   </div>
-               </div>
-          </div>
-          
-          <div class="mt-5 flex gap-3">
-              <button id="download-card-btn" class="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl font-bold text-sm shadow-lg">Save Receipt</button>
-              <button id="share-card-btn" class="flex-1 bg-white text-[#D4AF37] border border-[#D4AF37] py-3 rounded-xl font-bold text-sm hidden">Share</button>
-          </div>
-          <button id="close-card-modal" class="mt-4 w-full text-white text-sm opacity-70">Close</button>
-      </div>
-  </div>
-
   <script src="score_engine.js"></script>
-  
-  <script>
-      function switchTab(tabName) {
-          // 1. Hide all tabs
-          document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-          // 2. Remove active state from nav buttons
-          document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('nav-active'));
-          
-          // 3. Show target tab
-          document.getElementById('tab-' + tabName).classList.add('active');
-          // 4. Highlight button
-          const btn = document.querySelector(`.nav-btn[data-target="tab-${tabName}"]`);
-          if(btn) btn.classList.add('nav-active');
-          
-          // 5. Scroll top
-          window.scrollTo(0,0);
-      }
-  </script>
-  
   <script type="module" src="view_logic.js"></script>
 </body>
+
 </html>
