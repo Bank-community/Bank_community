@@ -21,17 +21,38 @@ export function init(app) {
     if (shareBtn && navigator.share) shareBtn.classList.remove('hidden');
 }
 
+// tabs/wallet/wallet.js के अंदर इस फंक्शन को बदलें:
+
 function renderWalletTab(state) {
     const m = state.member;
     const balance = m.extraBalance || 0;
-
+    
     setText('wallet-balance', `₹${balance.toLocaleString('en-IN', {minimumFractionDigits: 2})}`);
     setText('chart-current-balance', `₹${balance.toLocaleString('en-IN')}`);
     setText('modal-available-balance', `₹${balance.toLocaleString('en-IN')}`);
     setText('wallet-profit', `₹${(m.lifetimeProfit || 0).toLocaleString('en-IN')}`);
     setText('wallet-invested', `₹${(m.totalSip || 0).toLocaleString('en-IN')}`);
     setText('wallet-guarantor', m.guarantorName || 'N/A');
+
+    // --- NEW LOGIC: Block Withdrawal if KYC is Incomplete ---
+    const isKycComplete = m.profilePicUrl && m.documentUrl && m.documentBackUrl && m.signatureUrl;
+    const withdrawBtn = document.getElementById('withdraw-btn');
+
+    if (withdrawBtn) {
+        if (!isKycComplete) {
+            // Disabled State (Grey, Locked, Unclickable)
+            withdrawBtn.disabled = true;
+            withdrawBtn.className = 'flex-1 bg-gray-400 text-white font-bold py-3 rounded-xl shadow-sm text-sm cursor-not-allowed opacity-80';
+            withdrawBtn.innerHTML = '<i class="fas fa-lock mr-1"></i> KYC Pending';
+        } else {
+            // Active State (Gold, Clickable)
+            withdrawBtn.disabled = false;
+            withdrawBtn.className = 'flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3 rounded-xl shadow-md text-sm active:scale-95 transition-transform';
+            withdrawBtn.innerHTML = '<i class="fas fa-arrow-down mr-1"></i> Withdraw Funds';
+        }
+    }
 }
+
 
 // --- GRAPH LOGIC (Running Balance) ---
 function processChartData(history) {
