@@ -9,18 +9,24 @@ export function init(app) {
     const state = app.state;
     const myMemberId = state.member.membershipId;
 
-    // 🚀 FIX: "No Members Found" Error
-    // यह कोड डेटाबेस के किसी भी ऑब्जेक्ट से मेंबर्स को सही तरीके से निकाल लेगा
-    const rawMembers = state.membersData || state.members || state.allMembers || {};
+    // 🚀 CRITICAL FIX: Robust Data Fetching
+    // डेटाबेस का स्ट्रक्चर कभी-कभी बदल सकता है, इसलिए हम हर संभव जगह चेक करेंगे
+    let rawMembersObj = state.allMembers || state.membersData || (state.dbData ? state.dbData.members : {}) || {};
 
-    // Convert object to array and filter out the current user and unapproved members
-    allMembers = Object.values(rawMembers).filter(m => 
+    if (Object.keys(rawMembersObj).length === 0) {
+        console.warn("Payment Tab: Member data not found in commonly known state locations.");
+    }
+
+    // खुद को हटाकर और सिर्फ Approved मेंबर्स को फिल्टर करें
+    allMembers = Object.values(rawMembersObj).filter(m => 
         m && m.status === 'Approved' && m.membershipId !== myMemberId
     );
 
-    // 1. Initialize UI (Design & Grid)
+    console.log("Payment Tab Initialized with Members:", allMembers.length);
+
+    // 1. Initialize UI (पूरा मेंबर ऑब्जेक्ट पास करें ताकि फोटो भी दिखे)
     initUI(state.member, allMembers);
 
-    // 2. Setup Button Clicks
+    // 2. Setup Listeners
     setupUIListeners();
 }
