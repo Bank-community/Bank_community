@@ -58,4 +58,79 @@
         </div>
     </div>
 
+    <div id="payment-screen" class="fixed inset-0 z-[5000] bg-[#f8faff] hidden flex-col transition-transform transform translate-y-full duration-300">
+        <div class="bg-white px-4 py-4 flex items-center gap-4 shadow-sm relative z-10">
+            <button id="close-payment-btn" class="text-gray-600 text-xl"><i class="fas fa-arrow-left"></i></button>
+            <div class="flex items-center gap-3">
+                <img id="pay-receiver-pic" src="https://placehold.co/100" class="w-10 h-10 rounded-full object-cover border border-gray-200" crossorigin="anonymous">
+                <div>
+                    <h2 id="pay-receiver-name" class="font-bold text-[#001540] text-sm truncate w-48">Name</h2>
+                    <p id="pay-receiver-id" class="text-[10px] text-gray-400">ID: --</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 p-6 flex flex-col items-center justify-center relative">
+            
+            <div class="w-full bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 shadow-sm">
+                <h4 class="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-200 pb-2">Monthly Limits (25% Rule)</h4>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-gray-600 font-medium">Your Sending Limit:</span>
+                    <span id="limit-sender" class="text-xs font-bold text-[#001540]">₹0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-600 font-medium">Receiver's Limit:</span>
+                    <span id="limit-receiver" class="text-xs font-bold text-[#001540]">₹0</span>
+                </div>
+                <p id="limit-warning" class="text-[10px] text-red-500 font-bold mt-3 hidden text-center bg-red-50 p-1.5 rounded-lg"><i class="fas fa-exclamation-circle"></i> Amount exceeds limit</p>
+            </div>
+
+            <div class="w-full text-center">
+                <span class="text-4xl font-bold text-gray-400 mr-1">₹</span>
+                <input type="number" id="pay-amount-input" placeholder="0" class="w-2/3 bg-transparent text-5xl font-extrabold text-[#001540] text-center border-none outline-none focus:ring-0 p-0" autocomplete="off">
+            </div>
+            <p class="text-xs text-gray-400 mt-2 font-medium">Minimum transfer ₹500</p>
+
+            <div class="w-full max-w-xs mt-8">
+                <div class="bg-white border border-gray-200 rounded-xl flex items-center px-4 py-3 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                    <i class="fas fa-pen text-gray-400 mr-3 text-sm"></i>
+                    <input type="text" id="pay-note-input" placeholder="Add a note (Optional)" class="bg-transparent border-none outline-none w-full text-sm text-gray-700">
+                </div>
+            </div>
+
+            <div class="absolute bottom-6 w-full px-6">
+                <button id="proceed-pay-btn" disabled class="w-full bg-[#001540] text-white font-bold text-lg py-4 rounded-xl shadow-lg opacity-50 cursor-not-allowed transition-all">
+                    Proceed to Pay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pinSetupModal" class="fixed inset-0 z-[6000] bg-black/80 hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"><i class="fas fa-shield-alt"></i></div>
+            <h3 class="text-xl font-bold text-[#001540] mb-2">Set SIP PIN</h3>
+            <p class="text-xs text-gray-500 mb-6 font-medium">Create a 4-digit secure PIN for P2P transfers.</p>
+            
+            <input type="password" id="new-sip-pin" maxlength="4" placeholder="••••" class="w-32 text-center text-3xl tracking-[0.5em] font-bold border-b-2 border-gray-300 focus:border-blue-600 outline-none pb-2 mb-4 mx-auto block bg-transparent">
+            <p id="pin-setup-error" class="text-red-500 text-xs font-bold mb-4 hidden">Enter 4 digits</p>
+            
+            <button id="save-pin-btn" class="w-full bg-[#001540] text-white font-bold py-3.5 rounded-xl">Set PIN</button>
+            <button id="close-pin-setup" class="mt-4 text-sm text-gray-500 font-bold w-full">Cancel</button>
+        </div>
+    </div>
+
+    <div id="pinEntryModal" class="fixed inset-0 z-[6000] bg-black/80 hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-bold text-[#001540] mb-1">Enter SIP PIN</h3>
+            <p class="text-xs text-gray-500 mb-6">to securely transfer <span id="confirm-amount-text" class="font-bold text-gray-800">₹0</span></p>
+            
+            <input type="password" id="enter-sip-pin" maxlength="4" placeholder="••••" class="w-32 text-center text-3xl tracking-[0.5em] font-bold border-b-2 border-[#D4AF37] focus:border-[#001540] outline-none pb-2 mb-4 mx-auto block bg-transparent">
+            <p id="pin-entry-error" class="text-red-500 text-xs font-bold mb-4 hidden">Incorrect PIN</p>
+            
+            <button id="verify-pin-btn" class="w-full bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3.5 rounded-xl shadow-md">Verify & Pay</button>
+            <button id="close-pin-entry" class="mt-4 text-sm text-gray-500 font-bold w-full">Cancel</button>
+        </div>
+    </div>
+
 </div>
