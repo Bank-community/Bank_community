@@ -3,30 +3,29 @@
 export function init(app) {
     const state = app.state;
 
-    // 1. Calculate & Render Top Card (Passbook Balances)
+    // 1. Calculate & Render Top Card
     renderTopCard(state);
 
     // 2. Initial Render (Show All Transactions)
     renderHistoryList('all', state);
 
-    // 3. Setup Smart Filter Buttons
+    // 3. Setup Smart Filter Buttons (BUG FIXED)
     const filterContainer = document.getElementById('history-filters');
     if(filterContainer) {
-        // Remove old listener to avoid duplicate clicks
         if (filterContainer._clickListener) filterContainer.removeEventListener('click', filterContainer._clickListener);
 
         filterContainer._clickListener = (e) => {
-            if(e.target.classList.contains('filter-btn')) {
-                // Reset all buttons
+            const btn = e.target.closest('.filter-btn');
+            if(btn) {
+                // Reset all buttons to default (Transparent bg, Gray text)
                 document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('bg-[#001540]', 'text-white');
-                    b.classList.add('text-gray-500');
+                    b.classList.remove('bg-royal-dark', 'text-white', 'shadow-md');
+                    b.classList.add('bg-transparent', 'text-gray-400');
                 });
 
-                // Active clicked button
-                const btn = e.target;
-                btn.classList.add('bg-[#001540]', 'text-white');
-                btn.classList.remove('text-gray-500');
+                // Active clicked button (Royal Dark bg, White text)
+                btn.classList.remove('bg-transparent', 'text-gray-400');
+                btn.classList.add('bg-royal-dark', 'text-white', 'shadow-md');
 
                 // Render List based on filter
                 const filterType = btn.getAttribute('data-filter');
@@ -37,15 +36,12 @@ export function init(app) {
     }
 }
 
-// --- CALCULATE & RENDER PASSBOOK BALANCES ---
 function renderTopCard(state) {
     const memberId = state.member.membershipId;
     const memberTxs = state.allData.filter(t => t.memberId === memberId);
 
-    // Calculate Total SIP
     const totalSip = memberTxs.reduce((sum, tx) => sum + (tx.sipPayment || 0), 0);
 
-    // Calculate Active Loan Due (From activeLoans Node)
     let activeLoanDue = 0;
     if (state.activeLoans) {
         Object.values(state.activeLoans).forEach(loan => {
@@ -55,7 +51,6 @@ function renderTopCard(state) {
         });
     }
 
-    // Net Available Balance Logic
     const netBalance = totalSip - activeLoanDue;
 
     document.getElementById('history-net-balance').textContent = `₹${netBalance.toLocaleString('en-IN')}`;
@@ -63,7 +58,6 @@ function renderTopCard(state) {
     document.getElementById('history-loan-due').textContent = `₹${activeLoanDue.toLocaleString('en-IN')}`;
 }
 
-// --- RENDER TRANSACTION LIST ---
 function renderHistoryList(filterType, state) {
     const container = document.getElementById('history-container');
     if(!container) return;
@@ -71,89 +65,79 @@ function renderHistoryList(filterType, state) {
 
     const memberId = state.member.membershipId;
 
-    // Filter to ONLY include SIP, Loans, and Payments (Hides Profit/Admin Bonus completely)
     const relevantTxs = state.allData.filter(tx => 
         tx.memberId === memberId && 
         (tx.sipPayment > 0 || tx.loan > 0 || tx.payment > 0)
     );
 
-    // Apply User Selected Filter (All, Loans, Payments, SIP)
     let filteredData = relevantTxs;
-    if (filterType === 'loan') {
-        filteredData = relevantTxs.filter(tx => tx.loan > 0);
-    } else if (filterType === 'payment') {
-        filteredData = relevantTxs.filter(tx => tx.payment > 0);
-    } else if (filterType === 'sip') {
-        filteredData = relevantTxs.filter(tx => tx.sipPayment > 0);
-    }
+    if (filterType === 'loan') filteredData = relevantTxs.filter(tx => tx.loan > 0);
+    else if (filterType === 'payment') filteredData = relevantTxs.filter(tx => tx.payment > 0);
+    else if (filterType === 'sip') filteredData = relevantTxs.filter(tx => tx.sipPayment > 0);
 
-    // Sort Newest First (Descending Date)
     filteredData.sort((a, b) => b.date - a.date);
 
-    // Empty State Check
     if(filteredData.length === 0) {
         container.innerHTML = `
             <div class="text-center py-12 text-gray-400">
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-file-invoice text-2xl opacity-50"></i>
+                <div class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-file-invoice text-xl opacity-50"></i>
                 </div>
                 <p class="text-sm font-bold">No records found</p>
-                <p class="text-[10px] mt-1">Try changing the filter</p>
             </div>`; 
         return;
     }
 
-    // Render Cards
     let html = '';
     filteredData.forEach(tx => {
-        let isCredit = false;
         let icon = '';
         let title = '';
         let subText = '';
         let amount = 0;
         let amountClass = '';
         let iconBgClass = '';
+        let displayPrefix = '';
 
-        // Dynamic Mapping based on Transaction Type
+        // Matching Exact Design from Screenshot
         if (tx.loan > 0) {
-            isCredit = false;
             icon = 'fa-hand-holding-usd';
-            title = 'Loan Taken';
-            subText = 'Fund Disbursed';
+            title = 'LOAN';
+            subText = tx.date.toLocaleDateString('en-GB'); 
             amount = tx.loan;
-            amountClass = 'text-red-600';
-            iconBgClass = 'bg-red-50 text-red-500';
+            amountClass = 'text-[#e53935]'; // Red
+            iconBgClass = 'bg-red-50 text-[#e53935]';
+            displayPrefix = ''; // No minus sign
         } else if (tx.payment > 0) {
-            isCredit = true;
             icon = 'fa-check-circle';
-            title = 'Loan Repayment';
-            subText = `Principal + Interest`;
+            title = 'LOAN REPAYMENT';
+            subText = `Principal + Interest • ${tx.date.toLocaleDateString('en-GB')}`;
             amount = tx.payment;
-            amountClass = 'text-green-600';
-            iconBgClass = 'bg-green-50 text-green-600';
+            amountClass = 'text-[#4caf50]'; // Green
+            iconBgClass = 'bg-green-50 text-[#4caf50]';
+            displayPrefix = '+';
         } else if (tx.sipPayment > 0) {
-            isCredit = true;
             icon = 'fa-coins';
-            title = 'SIP Deposit';
-            subText = 'Monthly Fund Contribution';
+            title = 'SIP DEPOSIT';
+            subText = `Monthly Fund Contribution • ${tx.date.toLocaleDateString('en-GB')}`;
             amount = tx.sipPayment;
-            amountClass = 'text-green-600';
-            iconBgClass = 'bg-green-50 text-green-600';
+            amountClass = 'text-[#4caf50]'; // Green
+            iconBgClass = 'bg-green-50 text-[#4caf50]';
+            displayPrefix = '+';
         }
 
         html += `
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between hover:border-[#D4AF37] hover:shadow-md transition-all">
+        <div class="bg-white p-4 rounded-[1rem] border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full ${iconBgClass} flex items-center justify-center text-lg border border-white shadow-inner">
+                <div class="w-11 h-11 rounded-full ${iconBgClass} flex items-center justify-center text-lg">
                     <i class="fas ${icon}"></i>
                 </div>
                 <div>
-                    <p class="font-bold text-sm text-[#001540] uppercase tracking-wide leading-tight">${title}</p>
-                    <p class="text-[10px] text-gray-400 font-medium mt-0.5">${subText} • ${tx.date.toLocaleDateString('en-GB')}</p>
+                    <p class="font-extrabold text-[13px] text-royal-dark uppercase tracking-wide leading-tight">${title}</p>
+                    <p class="text-[10px] text-gray-400 font-medium mt-0.5">${subText}</p>
                 </div>
             </div>
             <div class="text-right">
-                <p class="font-mono font-bold text-lg ${amountClass}">${isCredit ? '+' : '-'}₹${amount.toLocaleString('en-IN')}</p>
+                <p class="font-bold text-[15px] ${amountClass}">${displayPrefix}₹${amount.toLocaleString('en-IN')}</p>
             </div>
         </div>`;
     });
