@@ -1,17 +1,13 @@
 // tabs/payment/paymentLogic.js
 
-import { currentApp, allMembers, allTransactions } from './payment.js';
+// 🚀 FIX: Import hasFullKyc directly from payment.js
+import { currentApp, allMembers, allTransactions, hasFullKyc } from './payment.js';
 import { executeP2PTransaction, savePinToDb } from './paymentDb.js';
 import { renderChatHistory } from './paymentUI.js';
 
 export let selectedReceiver = null;
 export let finalAllowedLimit = 0;
 let isChangingPin = false; 
-
-// 🚨 NEW SECURITY: KYC Check Function for Sender
-function hasFullKyc(member) {
-    return member && member.profilePicUrl && member.documentUrl && member.signatureUrl;
-}
 
 export function openChatScreen(receiverId) {
     selectedReceiver = allMembers.find(m => m.membershipId === receiverId);
@@ -33,18 +29,47 @@ export function openChatScreen(receiverId) {
     // 3. Pre-Calculate Limits
     calculateLimits();
 
-    // 4. Show Chat Interface
+    // 🚀 4. SENDER KYC UI BLOCK: Disable buttons if KYC is incomplete
+    const sender = currentApp.state.member;
+    const payBtn = document.getElementById('initiate-pay-btn');
+    const msgBox = document.getElementById('chat-message-box');
+
+    if (!hasFullKyc(sender)) {
+        // Disable Pay Button visually
+        if(payBtn) {
+            payBtn.textContent = "KYC Pending";
+            payBtn.className = "bg-gray-400 text-white font-bold px-4 py-3 rounded-full shadow-sm cursor-not-allowed opacity-80";
+        }
+        // Disable Message Box visually
+        if(msgBox) {
+            msgBox.innerHTML = `<span class="text-sm text-red-500 w-full font-bold"><i class="fas fa-lock"></i> Complete KYC to Pay</span>`;
+            msgBox.className = "flex-1 bg-red-50 rounded-full flex items-center px-4 py-3 cursor-not-allowed border border-red-100";
+        }
+    } else {
+        // Enable Pay Button
+        if(payBtn) {
+            payBtn.textContent = "Pay";
+            payBtn.className = "bg-blue-600 text-white font-bold px-6 py-3 rounded-full shadow-md hover:bg-blue-700 transition-colors active:scale-95 cursor-pointer";
+        }
+        // Enable Message Box
+        if(msgBox) {
+            msgBox.innerHTML = `<span class="text-sm text-gray-500 w-full">Message or pay...</span><i class="fas fa-paper-plane text-gray-400 ml-2"></i>`;
+            msgBox.className = "flex-1 bg-gray-100 rounded-full flex items-center px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors";
+        }
+    }
+
+    // 5. Show Chat Interface
     const screen = document.getElementById('chat-interface');
     screen.classList.replace('hidden', 'flex');
     setTimeout(() => screen.classList.replace('translate-x-full', 'translate-x-0'), 10);
 }
 
 export function openAmountScreen() {
-    // 🔒 SECURITY CHECK: Check Sender's Full KYC before opening payment screen
+    // 🔒 DOUBLE SECURITY CHECK: Agar kisi ne zabardasti click kiya tab bhi block karo
     const sender = currentApp.state.member;
     if (!hasFullKyc(sender)) {
-        alert("🚨 KYC Pending: You cannot transfer funds. Please complete your Profile KYC (Photo, Aadhaar & Signature) first.");
-        return; // Stop execution here, don't open the screen
+        alert("🚨 KYC Incomplete: You cannot send money. Please go to your Profile and upload all 4 documents (Photo, Aadhaar Front, Aadhaar Back, Signature).");
+        return; 
     }
 
     const amountInput = document.getElementById('pay-amount-input');
@@ -55,7 +80,6 @@ export function openAmountScreen() {
     btn.disabled = true; 
     btn.classList.replace('opacity-100', 'opacity-50');
 
-    // Agar limit 0 ya negative hai to amount input box ko block kar do
     if(finalAllowedLimit <= 0) {
         amountInput.disabled = true;
         amountInput.placeholder = "Not Allowed";

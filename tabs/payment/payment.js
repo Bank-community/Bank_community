@@ -6,10 +6,14 @@ export let currentApp = null;
 export let allMembers = [];
 export let allTransactions = []; 
 
-// 🚨 NEW: Full KYC Check Function (Receiver ke liye)
-// Ye check karega ki member ke paas Photo, Aadhaar aur Signature hai ya nahi
-function hasFullKyc(member) {
-    return member.profilePicUrl && member.documentUrl && member.signatureUrl; 
+// 🚨 FIX: 100% Correct Full KYC Check (According to profile.js)
+// Checking Profile Pic, Aadhaar Front, Aadhaar Back, AND Signature
+export function hasFullKyc(member) {
+    return member && 
+           member.profilePicUrl && 
+           member.documentUrl && 
+           member.documentBackUrl && 
+           member.signatureUrl;
 }
 
 export async function init(app) {
@@ -17,12 +21,11 @@ export async function init(app) {
     const state = app.state;
     const myMemberId = state.member.membershipId;
 
-    // 1. Fetch Live Members (With Full KYC Filter)
+    // 1. Fetch Live Members (With Strict KYC Filter)
     try {
         const membersSnap = await get(ref(app.db, 'members'));
         if (membersSnap.exists()) {
             const rawMembersObj = membersSnap.val();
-            // 🔒 SECURITY UPDATE: Sirf wahi member list mein aayenge jinka KYC pura hai
             allMembers = Object.values(rawMembersObj).filter(m => 
                 m && m.status === 'Approved' && m.membershipId !== myMemberId && hasFullKyc(m)
             );
