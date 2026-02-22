@@ -6,13 +6,12 @@ import { renderChatHistory } from './paymentUI.js';
 
 export let selectedReceiver = null;
 export let finalAllowedLimit = 0;
-let isChangingPin = false; // Flag to check if user is changing PIN or setting for first time
+let isChangingPin = false; 
 
 export function openChatScreen(receiverId) {
     selectedReceiver = allMembers.find(m => m.membershipId === receiverId);
     if (!selectedReceiver) return alert("Member not found!");
 
-    // 1. Populate Chat UI
     document.getElementById('chat-name').textContent = selectedReceiver.fullName;
     document.getElementById('chat-id').textContent = `ID: ${selectedReceiver.membershipId}`;
     document.getElementById('chat-big-name').textContent = selectedReceiver.fullName;
@@ -22,25 +21,34 @@ export function openChatScreen(receiverId) {
     document.getElementById('chat-big-avatar').src = picSrc;
     document.getElementById('amount-screen-name').textContent = selectedReceiver.fullName;
 
-    // 2. Render Past Chat History
-    const allTx = currentApp.state.allData || [];
-    renderChatHistory(currentApp.state.member.membershipId, receiverId, allTx);
+    const allTxObj = currentApp.state.allData || {};
+    const allTxArray = Array.isArray(allTxObj) ? allTxObj : Object.values(allTxObj);
+    renderChatHistory(currentApp.state.member.membershipId, receiverId, allTxArray);
 
-    // 3. Show Chat Interface
     const screen = document.getElementById('chat-interface');
     screen.classList.replace('hidden', 'flex');
     setTimeout(() => screen.classList.replace('translate-x-full', 'translate-x-0'), 10);
 }
 
 export function openAmountScreen() {
-    calculateLimits(); // Recalculate fresh limits
+    calculateLimits(); // Fresh limits calculate karega
 
-    document.getElementById('pay-amount-input').value = '';
+    const amountInput = document.getElementById('pay-amount-input');
+    amountInput.value = '';
     document.getElementById('pay-note-input').value = '';
-    document.getElementById('limit-warning').classList.add('hidden');
 
     const btn = document.getElementById('proceed-pay-btn');
-    btn.disabled = true; btn.classList.replace('opacity-100', 'opacity-50');
+    btn.disabled = true; 
+    btn.classList.replace('opacity-100', 'opacity-50');
+
+    // Agar limit 0 hai to input block kar do
+    if(finalAllowedLimit <= 0) {
+        amountInput.disabled = true;
+        amountInput.placeholder = "Not Allowed";
+    } else {
+        amountInput.disabled = false;
+        amountInput.placeholder = "0";
+    }
 
     const amountScreen = document.getElementById('amount-screen');
     amountScreen.classList.replace('hidden', 'flex');
@@ -53,27 +61,61 @@ export function calculateLimits() {
     const receiver = selectedReceiver;
 
     const currentMonth = new Date().toISOString().substring(0, 7);
-    let senderSentThisMonth = 0; let receiverReceivedThisMonth = 0;
+    let senderSentThisMonth = 0; 
+    let receiverReceivedThisMonth = 0;
 
-    if (currentApp.state.allData) {
-        currentApp.state.allData.forEach(tx => {
-            if (tx.date && tx.date.startsWith(currentMonth)) {
-                if (tx.type === 'P2P Sent' && tx.memberId === sender.membershipId) senderSentThisMonth += (tx.amount || 0);
-                if (tx.type === 'P2P Received' && tx.memberId === receiver.membershipId) receiverReceivedThisMonth += (tx.amount || 0);
-            }
-        });
-    }
+    // 🚀 CRASH FIX: Object.values() ka use karke array mein badla
+    const allTxObj = currentApp.state.allData || {};
+    const txArray = Array.isArray(allTxObj) ? allTxObj : Object.values(allTxObj);
 
+    txArray.forEach(tx => {
+        if (tx && tx.date && tx.date.startsWith(currentMonth)) {
+            if (tx.type === 'P2P Sent' && tx.memberId === sender.membershipId) senderSentThisMonth += (tx.amount || 0);
+            if (tx.type === 'P2P Received' && tx.memberId === receiver.membershipId) receiverReceivedThisMonth += (tx.amount || 0);
+        }
+    });
+
+    // 🚀 NEGATIVE BALANCE LOGIC
     const senderTotalSip = parseFloat(sender.accountBalance || 0);
     const receiverTotalSip = parseFloat(receiver.accountBalance || 0);
 
-    const senderMaxLimit = Math.max(0, (senderTotalSip * 0.25) - senderSentThisMonth);
-    const receiverMaxLimit = Math.max(0, (receiverTotalSip * 0.25) - receiverReceivedThisMonth);
+    let senderMaxLimit = 0;
+    let receiverMaxLimit = 0;
+
+    if (senderTotalSip > 0) {
+        senderMaxLimit = Math.max(0, (senderTotalSip * 0.25) - senderSentThisMonth);
+    }
+
+    if (receiverTotalSip > 0) {
+        receiverMaxLimit = Math.max(0, (receiverTotalSip * 0.25) - receiverReceivedThisMonth);
+    }
 
     finalAllowedLimit = Math.min(senderMaxLimit, receiverMaxLimit);
 
-    document.getElementById('limit-sender').textContent = `₹${Math.floor(senderMaxLimit).toLocaleString('en-IN')}`;
-    document.getElementById('limit-receiver').textContent = `₹${Math.floor(receiverMaxLimit).toLocaleString('en-IN')}`;
+    // Update UI based on Negative Balance
+    const senderLimitEl = document.getElementById('limit-sender');
+    const receiverLimitEl = document.getElementById('limit-receiver');
+    const warningEl = document.getElementById('limit-warning');
+
+    if (senderTotalSip <= 0) {
+        senderLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
+    } else {
+        senderLimitEl.textContent = `₹${Math.floor(senderMaxLimit).toLocaleString('en-IN')}`;
+    }
+
+    if (receiverTotalSip <= 0) {
+        receiverLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
+    } else {
+        receiverLimitEl.textContent = `₹${Math.floor(receiverMaxLimit).toLocaleString('en-IN')}`;
+    }
+
+    // Show warning if limit is 0 or less
+    if (finalAllowedLimit <= 0) {
+        warningEl.innerHTML = `<i class="fas fa-ban"></i> Transfer Not Allowed`;
+        warningEl.classList.remove('hidden');
+    } else {
+        warningEl.classList.add('hidden');
+    }
 }
 
 export function validateAmount(val) {
@@ -81,19 +123,32 @@ export function validateAmount(val) {
     const warning = document.getElementById('limit-warning');
     const amount = parseFloat(val) || 0;
 
+    if (finalAllowedLimit <= 0) {
+        btn.disabled = true; btn.classList.replace('opacity-100', 'opacity-50');
+        return;
+    }
+
     if (amount > finalAllowedLimit) {
-        warning.classList.remove('hidden'); btn.disabled = true; btn.classList.replace('opacity-100', 'opacity-50');
+        warning.innerHTML = `<i class="fas fa-exclamation-circle"></i> Exceeds 25% Limit`;
+        warning.classList.remove('hidden'); 
+        btn.disabled = true; 
+        btn.classList.replace('opacity-100', 'opacity-50');
     } else if (amount >= 500) {
-        warning.classList.add('hidden'); btn.disabled = false; btn.classList.replace('opacity-50', 'opacity-100');
+        warning.classList.add('hidden'); 
+        btn.disabled = false; 
+        btn.classList.replace('opacity-50', 'opacity-100');
     } else {
-        warning.classList.add('hidden'); btn.disabled = true; btn.classList.replace('opacity-100', 'opacity-50');
+        warning.innerHTML = `<i class="fas fa-info-circle"></i> Minimum transfer ₹500`;
+        warning.classList.remove('hidden'); 
+        btn.disabled = true; 
+        btn.classList.replace('opacity-100', 'opacity-50');
     }
 }
 
 export function initiatePayment(amount) {
     const sender = currentApp.state.member;
     if (!sender.sipPin) {
-        isChangingPin = false; // Fresh setup mode
+        isChangingPin = false; 
         setupPinModalUI("Set SIP PIN", "Create a 4-digit secure PIN", false);
         document.getElementById('pinSetupModal').classList.replace('hidden', 'flex');
     } else {
@@ -104,7 +159,6 @@ export function initiatePayment(amount) {
     }
 }
 
-// === PIN CHANGE LOGIC ===
 export function handlePinChangeMode() {
     isChangingPin = true;
     const sender = currentApp.state.member;
@@ -156,13 +210,12 @@ export async function processPinSetup() {
 
     try {
         await savePinToDb(currentApp.db, currentApp.state.member.membershipId, newPin);
-        currentApp.state.member.sipPin = newPin; // Save locally
+        currentApp.state.member.sipPin = newPin; 
         document.getElementById('pinSetupModal').classList.replace('flex', 'hidden');
 
         if(isChangingPin) {
             alert("✅ PIN Changed Successfully!");
         } else {
-            // Fresh setup -> Go straight to payment
             initiatePayment(parseFloat(document.getElementById('pay-amount-input').value));
         }
     } catch (err) {
@@ -172,7 +225,6 @@ export async function processPinSetup() {
     }
 }
 
-// === EXECUTE PAYMENT ===
 export async function verifyAndPay(enteredPin) {
     const errorEl = document.getElementById('pin-entry-error');
     if (enteredPin !== currentApp.state.member.sipPin) {
@@ -188,19 +240,15 @@ export async function verifyAndPay(enteredPin) {
     try {
         await executeP2PTransaction(currentApp.db, currentApp.state.member, selectedReceiver, amount, note);
 
-        // 1. Success Updates & Hide Modals
         document.getElementById('pinEntryModal').classList.replace('flex', 'hidden');
         document.getElementById('amount-screen').classList.replace('translate-y-0', 'translate-y-full');
         setTimeout(() => document.getElementById('amount-screen').classList.replace('flex', 'hidden'), 300);
 
-        // 2. Refresh local balance
         currentApp.state.member.accountBalance -= amount; 
 
-        // 3. Add fake bubble immediately to UI for instant gratification
         const container = document.getElementById('chat-bubbles');
         const time = new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
 
-        // Remove "No previous transactions" text if it exists
         if(container.innerHTML.includes('No previous transactions')) {
             container.innerHTML = '';
         }
@@ -215,7 +263,6 @@ export async function verifyAndPay(enteredPin) {
             </div>
         </div>`;
 
-        // 4. Scroll to bottom
         const historyCont = document.getElementById('chat-history-container');
         historyCont.scrollTop = historyCont.scrollHeight;
 
