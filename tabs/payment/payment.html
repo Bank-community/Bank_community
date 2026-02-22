@@ -1,35 +1,33 @@
 <div class="animate-fade pb-24 bg-[#f8faff] min-h-screen">
     
     <div class="px-4 pt-6 pb-2">
-        <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center gap-3 mb-6 relative">
             <div class="flex-1 bg-white rounded-full flex items-center px-4 py-3 shadow-sm border border-gray-100 focus-within:border-blue-300 transition-colors">
                 <i class="fas fa-search text-gray-400 mr-3 text-lg"></i>
                 <input type="text" id="pay-search-input" placeholder="Search by Name or SIP ID" class="bg-transparent border-none outline-none w-full text-gray-700 font-medium placeholder-gray-400">
             </div>
-            <div class="w-11 h-11 rounded-full bg-yellow-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                <img id="pay-self-profile" src="https://placehold.co/100" class="w-full h-full object-cover" crossorigin="anonymous">
+            
+            <div class="relative">
+                <div id="pay-profile-menu-btn" class="w-11 h-11 rounded-full bg-indigo-50 border-2 border-indigo-200 shadow-sm overflow-hidden flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow">
+                    <img id="pay-self-profile" src="https://placehold.co/100" class="w-full h-full object-cover" crossorigin="anonymous">
+                </div>
+                <div id="pay-settings-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-[100] py-2 animate-fade">
+                    <button id="open-change-pin-btn" class="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-3"><i class="fas fa-key text-indigo-500"></i> Change SIP PIN</button>
+                </div>
             </div>
         </div>
 
         <div class="flex justify-center gap-5 mb-6 px-2">
             <button id="pay-anyone-btn" class="flex flex-col items-center group w-20">
-                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform shadow-sm border border-gray-100">
-                    <i class="fas fa-money-bill-transfer"></i>
-                </div>
+                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-50"><i class="fas fa-money-bill-transfer"></i></div>
                 <span class="text-[10px] font-bold text-gray-700 text-center leading-tight">Pay<br>anyone</span>
             </button>
-
             <button id="scan-qr-btn" class="flex flex-col items-center group w-20">
-                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform shadow-sm border border-gray-100">
-                    <i class="fas fa-expand"></i>
-                </div>
+                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-50"><i class="fas fa-expand"></i></div>
                 <span class="text-[10px] font-bold text-gray-700 text-center leading-tight">Scan<br>QR</span>
             </button>
-
             <button id="show-my-qr-btn" class="flex flex-col items-center group w-20">
-                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#D4AF37] text-2xl mb-2 group-active:scale-95 transition-transform shadow-sm border border-gray-100">
-                     <i class="fas fa-qrcode"></i>
-                </div>
+                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#D4AF37] text-2xl mb-2 group-active:scale-95 transition-transform shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-50"><i class="fas fa-qrcode"></i></div>
                 <span class="text-[10px] font-bold text-gray-700 text-center leading-tight">Show<br>My QR</span>
             </button>
         </div>
@@ -42,95 +40,101 @@
         </div>
     </div>
 
-    <div class="px-4">
-        <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4 ml-2">Active Members</h3>
-        <div id="members-grid" class="grid grid-cols-4 gap-y-6 gap-x-2 min-h-[200px]">
+    <div class="px-4 bg-white rounded-t-3xl pt-6 pb-20 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] min-h-[50vh]">
+        <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Active Members</h3>
+        <div id="members-grid" class="grid grid-cols-4 gap-y-6 gap-x-2">
             <div class="col-span-4 text-center py-10"><div class="loader mx-auto border-blue-600"></div><p class="mt-2 text-xs text-gray-400 font-bold">Fetching Live Data...</p></div>
         </div>
     </div>
 
-    <div id="scannerModal" class="fixed inset-0 z-[4000] bg-black hidden flex-col">
-        <div class="flex justify-between items-center p-4 bg-black/50 absolute top-0 w-full z-10">
-            <h3 class="text-white font-bold">Scan QR Code</h3>
-            <button id="close-scanner-btn" class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-xl backdrop-blur-sm"><i class="fas fa-times"></i></button>
+    <div id="chat-interface" class="fixed inset-0 z-[5000] bg-[#f0f2f5] hidden flex-col transition-transform transform translate-x-full duration-300">
+        <div class="bg-white px-4 py-3 flex items-center justify-between shadow-sm relative z-10">
+            <div class="flex items-center gap-3">
+                <button id="close-chat-btn" class="text-gray-600 text-xl p-2"><i class="fas fa-arrow-left"></i></button>
+                <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
+                    <img id="chat-avatar" src="" class="w-full h-full object-cover" crossorigin="anonymous">
+                </div>
+                <div>
+                    <h2 id="chat-name" class="font-bold text-[#001540] text-[15px] leading-tight truncate w-40">Loading...</h2>
+                    <p id="chat-id" class="text-[10px] text-gray-500 font-medium">ID: --</p>
+                </div>
+            </div>
+            <button class="text-gray-400 text-xl p-2"><i class="fas fa-ellipsis-v"></i></button>
         </div>
-        <div class="flex-1 flex flex-col justify-center items-center relative">
-            <div id="reader" class="w-full max-w-sm overflow-hidden bg-black"></div>
-            <div class="absolute inset-0 border-[40px] border-black/60 pointer-events-none"></div>
-            <div class="absolute w-64 h-64 border-2 border-[#D4AF37] rounded-2xl pointer-events-none">
-               <div class="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-[#D4AF37] rounded-tl-xl"></div>
-               <div class="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-[#D4AF37] rounded-tr-xl"></div>
-               <div class="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-[#D4AF37] rounded-bl-xl"></div>
-               <div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-[#D4AF37] rounded-br-xl"></div>
+
+        <div id="chat-history-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            <div class="text-center mt-6 mb-8">
+                <div class="w-20 h-20 rounded-full bg-gray-200 mx-auto mb-3 overflow-hidden border-4 border-white shadow-sm">
+                    <img id="chat-big-avatar" src="" class="w-full h-full object-cover" crossorigin="anonymous">
+                </div>
+                <h3 id="chat-big-name" class="text-lg font-bold text-gray-800">--</h3>
+                <p class="text-xs text-green-600 font-bold mt-1"><i class="fas fa-shield-alt"></i> Verified TCF Member</p>
+                <p class="text-[10px] text-gray-400 mt-2">Transfers are secure and encrypted.</p>
             </div>
             
-            <div class="absolute bottom-16 flex flex-col items-center">
-                <p class="text-white/80 text-sm font-medium bg-black/50 px-4 py-2 rounded-full mb-4">Align QR code within frame</p>
-                <p class="text-white/50 text-xs font-bold uppercase tracking-widest mb-3">- OR -</p>
-                <label for="qr-upload-input" class="bg-white/20 hover:bg-white/30 text-white px-6 py-2.5 rounded-full backdrop-blur-sm border border-white/30 cursor-pointer flex items-center gap-2 transition active:scale-95">
-                    <i class="fas fa-image"></i> Upload from Gallery
-                </label>
-                <input type="file" id="qr-upload-input" accept="image/*" class="hidden">
+            <div id="chat-bubbles" class="flex flex-col gap-3"></div>
+        </div>
+
+        <div class="bg-white p-3 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] flex items-center gap-3">
+            <button id="initiate-pay-btn" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-full shadow-md hover:bg-blue-700 transition-colors active:scale-95">Pay</button>
+            <div class="flex-1 bg-gray-100 rounded-full flex items-center px-4 py-3">
+                <input type="text" placeholder="Message..." class="bg-transparent border-none outline-none w-full text-sm text-gray-700" readonly>
+                <i class="fas fa-paper-plane text-gray-400 ml-2"></i>
             </div>
         </div>
     </div>
 
-    <div id="payment-screen" class="fixed inset-0 z-[5000] bg-[#f8faff] hidden flex-col transition-transform transform translate-y-full duration-300">
-         <div class="bg-white px-4 py-4 flex items-center gap-4 shadow-sm relative z-10">
-            <button id="close-payment-btn" class="text-gray-600 text-xl"><i class="fas fa-arrow-left"></i></button>
-            <div class="flex items-center gap-3">
-                <img id="pay-receiver-pic" src="" class="w-10 h-10 rounded-full object-cover border border-gray-200" crossorigin="anonymous">
-                <div>
-                    <h2 id="pay-receiver-name" class="font-bold text-[#001540] text-sm truncate w-48">Loading...</h2>
-                    <p id="pay-receiver-id" class="text-[10px] text-gray-400">ID: --</p>
-                </div>
-            </div>
+    <div id="amount-screen" class="fixed inset-x-0 bottom-0 z-[5010] bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] hidden flex-col transition-transform transform translate-y-full duration-300 h-[75vh]">
+        <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-4"></div>
+        <div class="px-6 flex justify-between items-center mb-6">
+            <p class="text-gray-500 font-medium">Paying <span id="amount-screen-name" class="font-bold text-gray-800">--</span></p>
+            <button id="close-amount-screen" class="text-gray-400 text-xl"><i class="fas fa-times"></i></button>
         </div>
-        <div class="flex-1 p-6 flex flex-col items-center justify-center relative">
-            <div class="w-full bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 shadow-sm">
-                <h4 class="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-3 border-b border-blue-200 pb-2">Monthly Limits (25% Rule)</h4>
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs text-gray-600 font-medium">Your Sending Limit:</span>
-                    <span id="limit-sender" class="text-xs font-bold text-[#001540]">₹0</span>
+        
+        <div class="flex-1 flex flex-col items-center justify-start px-6">
+            <div class="w-full bg-blue-50/50 border border-blue-100 rounded-xl p-3 mb-6">
+                <div class="flex justify-between items-center text-[10px]">
+                    <span class="text-gray-500">Your Limit: <b id="limit-sender" class="text-[#001540]">₹0</b></span>
+                    <span class="text-gray-500">Receiver's Limit: <b id="limit-receiver" class="text-[#001540]">₹0</b></span>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xs text-gray-600 font-medium">Receiver's Limit:</span>
-                    <span id="limit-receiver" class="text-xs font-bold text-[#001540]">₹0</span>
-                </div>
-                <p id="limit-warning" class="text-[10px] text-red-500 font-bold mt-3 hidden text-center bg-red-50 p-1.5 rounded-lg"><i class="fas fa-exclamation-circle"></i> Amount exceeds limit</p>
             </div>
-            <div class="w-full text-center">
+
+            <div class="w-full text-center flex justify-center items-center">
                 <span class="text-4xl font-bold text-gray-400 mr-1">₹</span>
-                <input type="number" id="pay-amount-input" placeholder="0" class="w-2/3 bg-transparent text-5xl font-extrabold text-[#001540] text-center border-none outline-none focus:ring-0 p-0" autocomplete="off">
+                <input type="number" id="pay-amount-input" placeholder="0" class="w-1/2 bg-transparent text-5xl font-extrabold text-[#001540] text-center border-none outline-none p-0" autocomplete="off">
             </div>
-            <p class="text-xs text-gray-400 mt-2 font-medium">Minimum transfer ₹500</p>
-            <div class="w-full max-w-xs mt-8">
-                <div class="bg-white border border-gray-200 rounded-xl flex items-center px-4 py-3 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                    <i class="fas fa-pen text-gray-400 mr-3 text-sm"></i>
-                    <input type="text" id="pay-note-input" placeholder="Add a note (Optional)" class="w-full bg-transparent border-none outline-none text-sm text-gray-700">
+            <p id="limit-warning" class="text-xs text-red-500 font-bold mt-2 hidden"><i class="fas fa-exclamation-circle"></i> Exceeds 25% Limit</p>
+            <p class="text-[10px] text-gray-400 mt-2 font-medium">Minimum transfer ₹500</p>
+
+            <div class="w-full max-w-xs mt-6">
+                <div class="bg-gray-50 rounded-xl flex items-center px-4 py-3 border border-gray-200">
+                    <input type="text" id="pay-note-input" placeholder="Add a note (Optional)" class="bg-transparent border-none outline-none w-full text-sm text-gray-700">
                 </div>
             </div>
-            <div class="absolute bottom-6 w-full px-6">
-                <button id="proceed-pay-btn" disabled class="w-full bg-[#001540] text-white font-bold text-lg py-4 rounded-xl shadow-lg opacity-50 cursor-not-allowed transition-all">Proceed to Pay</button>
-            </div>
+
+            <button id="proceed-pay-btn" disabled class="w-full bg-[#001540] text-white font-bold text-lg py-4 rounded-2xl shadow-lg opacity-50 mt-auto mb-6 transition-all">Proceed to Pay</button>
         </div>
     </div>
 
     <div id="pinSetupModal" class="fixed inset-0 z-[6000] bg-black/80 hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm text-center">
-            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"><i class="fas fa-shield-alt"></i></div>
-            <h3 class="text-xl font-bold text-[#001540] mb-2">Set SIP PIN</h3>
-            <p class="text-xs text-gray-500 mb-6 font-medium">Create a 4-digit secure PIN for P2P transfers.</p>
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl">
+            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border-4 border-white shadow-sm"><i class="fas fa-shield-alt"></i></div>
+            <h3 class="text-xl font-bold text-[#001540] mb-2" id="pin-setup-title">Set SIP PIN</h3>
+            <p class="text-xs text-gray-500 mb-6 font-medium" id="pin-setup-desc">Create a 4-digit secure PIN for transfers.</p>
+            
+            <input type="password" id="old-sip-pin" maxlength="4" placeholder="Old PIN" class="hidden w-32 text-center text-2xl tracking-[0.3em] font-bold border-b-2 border-gray-300 focus:border-blue-600 outline-none pb-2 mb-4 mx-auto bg-transparent">
+            
             <input type="password" id="new-sip-pin" maxlength="4" placeholder="••••" class="w-32 text-center text-3xl tracking-[0.5em] font-bold border-b-2 border-gray-300 focus:border-blue-600 outline-none pb-2 mb-4 mx-auto block bg-transparent">
             <p id="pin-setup-error" class="text-red-500 text-xs font-bold mb-4 hidden">Enter 4 digits</p>
-            <button id="save-pin-btn" class="w-full bg-[#001540] text-white font-bold py-3.5 rounded-xl">Set PIN</button>
+            <button id="save-pin-btn" class="w-full bg-[#001540] text-white font-bold py-3.5 rounded-xl shadow-md">Set PIN</button>
             <button id="close-pin-setup" class="mt-4 text-sm text-gray-500 font-bold w-full">Cancel</button>
         </div>
     </div>
+
     <div id="pinEntryModal" class="fixed inset-0 z-[6000] bg-black/80 hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm text-center">
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl">
             <h3 class="text-lg font-bold text-[#001540] mb-1">Enter SIP PIN</h3>
-            <p class="text-xs text-gray-500 mb-6">to securely transfer <span id="confirm-amount-text" class="font-bold text-gray-800">₹0</span></p>
+            <p class="text-xs text-gray-500 mb-6">to securely transfer <span id="confirm-amount-text" class="font-bold text-gray-800 text-base">₹0</span></p>
             <input type="password" id="enter-sip-pin" maxlength="4" placeholder="••••" class="w-32 text-center text-3xl tracking-[0.5em] font-bold border-b-2 border-[#D4AF37] focus:border-[#001540] outline-none pb-2 mb-4 mx-auto block bg-transparent">
             <p id="pin-entry-error" class="text-red-500 text-xs font-bold mb-4 hidden">Incorrect PIN</p>
             <button id="verify-pin-btn" class="w-full bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3.5 rounded-xl shadow-md">Verify & Pay</button>
@@ -138,22 +142,4 @@
         </div>
     </div>
 
-    <div id="myQrModal" class="fixed inset-0 z-[6000] bg-black/80 hidden flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade">
-        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#D4AF37] to-[#B8860B]"></div>
-            <h3 class="text-xl font-bold text-[#001540] mb-1 mt-4">My SIP QR Code</h3>
-            <p class="text-xs text-gray-500 mb-6">Scan to pay directly to my SIP ID</p>
-            <div class="bg-white p-4 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.08)] border border-gray-100 mx-auto mb-6 w-fit relative">
-                <img id="my-generated-qr" src="" class="w-56 h-56 object-contain" alt="QR Code Loading..." crossorigin="anonymous">
-                <div class="absolute inset-0 border-4 border-[#D4AF37]/20 rounded-2xl pointer-events-none"></div>
-            </div>
-            <div class="bg-blue-50 py-2.5 px-6 rounded-full inline-block mb-8">
-                <p class="text-xs font-bold text-[#001540] tracking-wide">ID: <span id="qr-modal-sip-id" class="text-blue-700">Loading...</span></p>
-            </div>
-            <div class="flex gap-3">
-                <button id="download-qr-btn" class="flex-1 bg-[#001540] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform"><i class="fas fa-download"></i> Download QR</button>
-                <button id="close-qr-modal" class="w-14 bg-gray-100 text-gray-600 font-bold rounded-xl flex items-center justify-center active:scale-95 transition-transform"><i class="fas fa-times text-xl"></i></button>
-            </div>
-        </div>
     </div>
-</div>
