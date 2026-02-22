@@ -1,5 +1,4 @@
 // tabs/payment/paymentUI.js
-
 import { allMembers, currentApp } from './payment.js';
 import { openPaymentScreen, validateAmount, initiatePayment, processPinSetup, verifyAndPay } from './paymentLogic.js';
 
@@ -7,28 +6,23 @@ let showingAll = false;
 let html5QrcodeScanner = null;
 
 export function initUI(myMemberInfo, membersList) {
-    // 1. Set Self Profile Pic & SIP ID (Main Screen)
     const profileImg = document.getElementById('pay-self-profile');
     if(profileImg) profileImg.src = myMemberInfo.profilePicUrl || 'https://placehold.co/100';
 
     const sipIdEl = document.getElementById('my-sip-id');
     if(sipIdEl) sipIdEl.textContent = myMemberInfo.membershipId;
 
-    // ✅ NEW: Set Data for "Show My QR" Modal
     const qrIdEl = document.getElementById('qr-modal-sip-id');
     if(qrIdEl) qrIdEl.textContent = myMemberInfo.membershipId;
 
     const qrImg = document.getElementById('my-generated-qr');
     if(qrImg && myMemberInfo.membershipId) {
-        // Using a reliable public API to generate QR code instantly
         qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myMemberInfo.membershipId}&bgcolor=fff&color=001540&margin=10`;
     }
 
-    // 2. Render Grid
     renderMembersGrid(membersList);
 }
 
-// ... (renderMembersGrid फंक्शन पहले जैसा ही रहेगा, उसे बदलने की ज़रूरत नहीं है) ...
 export function renderMembersGrid(membersList, searchQuery = "") {
     const grid = document.getElementById('members-grid');
     if(!grid) return;
@@ -74,9 +68,7 @@ export function renderMembersGrid(membersList, searchQuery = "") {
     if (needsMoreBtn) {
         html += `
         <div class="flex flex-col items-center cursor-pointer group" id="view-more-btn">
-            <div class="w-14 h-14 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center mb-1 group-active:scale-95 transition-transform">
-                <i class="fas fa-chevron-down text-gray-400 text-xl"></i>
-            </div>
+            <div class="w-14 h-14 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center mb-1 group-active:scale-95 transition-transform"><i class="fas fa-chevron-down text-gray-400 text-xl"></i></div>
             <span class="text-[10px] font-medium text-gray-700 text-center">More</span>
         </div>`;
     }
@@ -93,7 +85,6 @@ export function renderMembersGrid(membersList, searchQuery = "") {
     grid.innerHTML = html;
 }
 
-
 export function setupUIListeners() {
     const container = document.getElementById('app-content');
     if(container._payListener) container.removeEventListener('click', container._payListener);
@@ -101,7 +92,6 @@ export function setupUIListeners() {
     container._payListener = (e) => {
         const target = e.target;
 
-        // Copy SIP ID
         if (target.closest('#copy-sip-id-btn')) {
             navigator.clipboard.writeText(document.getElementById('my-sip-id').textContent);
             const btn = target.closest('#copy-sip-id-btn');
@@ -109,27 +99,16 @@ export function setupUIListeners() {
             setTimeout(() => btn.innerHTML = `<span class="text-xs font-medium text-gray-800 tracking-wide">My SIP ID: <span id="my-sip-id" class="font-bold text-[#001540]">${document.getElementById('my-sip-id').textContent}</span></span><i class="far fa-copy text-gray-400 text-xs ml-1"></i>`, 2000);
         }
 
-        // View More & Search Focus
         if (target.closest('#view-more-btn')) {
             showingAll = true;
             renderMembersGrid(allMembers, document.getElementById('pay-search-input').value);
         }
         if (target.closest('#pay-anyone-btn')) document.getElementById('pay-search-input').focus();
 
-        // ✅ NEW: Show My QR Modal
-        if (target.closest('#show-my-qr-btn')) {
-            document.getElementById('myQrModal').classList.replace('hidden', 'flex');
-        }
-        // ✅ NEW: Close My QR Modal
-        if (target.closest('#close-qr-modal')) {
-            document.getElementById('myQrModal').classList.replace('flex', 'hidden');
-        }
-        // ✅ NEW: Download QR Logic
-        if (target.closest('#download-qr-btn')) {
-            downloadMyQr();
-        }
+        if (target.closest('#show-my-qr-btn')) document.getElementById('myQrModal').classList.replace('hidden', 'flex');
+        if (target.closest('#close-qr-modal')) document.getElementById('myQrModal').classList.replace('flex', 'hidden');
+        if (target.closest('#download-qr-btn')) downloadMyQr();
 
-        // ... (बाकी सारे पुराने लिस्टनर्स: Payment Screen, PIN, Scanner आदि वैसे ही रहेंगे) ...
         const memberBtn = target.closest('.member-btn');
         if (memberBtn) openPaymentScreen(memberBtn.getAttribute('data-id'));
         if (target.closest('#close-payment-btn')) {
@@ -141,33 +120,43 @@ export function setupUIListeners() {
         if (target.closest('#close-pin-entry')) document.getElementById('pinEntryModal').classList.replace('flex', 'hidden');
         if (target.closest('#save-pin-btn')) processPinSetup(document.getElementById('new-sip-pin').value);
         if (target.closest('#verify-pin-btn')) verifyAndPay(document.getElementById('enter-sip-pin').value);
+
         if (target.closest('#scan-qr-btn')) startScanner();
         if (target.closest('#close-scanner-btn')) stopScanner();
     };
     container.addEventListener('click', container._payListener);
 
-    // ... (Input listeners remain same) ...
+    // Live Amount Validation
     const amountInput = document.getElementById('pay-amount-input');
     if(amountInput) amountInput.addEventListener('input', (e) => validateAmount(e.target.value));
+
+    // Live Search Input Validation
     const searchInput = document.getElementById('pay-search-input');
     if(searchInput) searchInput.addEventListener('input', (e) => renderMembersGrid(allMembers, e.target.value));
+
+    // ✅ NEW: QR Image Upload Listener
+    const qrInput = document.getElementById('qr-upload-input');
+    if(qrInput) {
+        qrInput.addEventListener('change', (e) => {
+            if(e.target.files && e.target.files.length > 0) {
+                handleQrFileUpload(e.target.files[0]);
+            }
+        });
+    }
 }
 
-// ✅ NEW Helper Function for Downloading QR
 async function downloadMyQr() {
     const img = document.getElementById('my-generated-qr');
     const sipId = document.getElementById('qr-modal-sip-id').textContent;
-
-    // Create a temporary link to trigger download
     const link = document.createElement('a');
-    link.href = img.src;
-    link.download = `My-SIP-QR-${sipId}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    link.href = img.src; link.download = `My-SIP-QR-${sipId}.png`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
-// ... (Scanner functions: startScanner, stopScanner, onScanSuccess - पहले जैसे ही रहेंगे) ...
+// ==========================================
+// 📷 QR SCANNER & UPLOAD LOGIC
+// ==========================================
+
 function startScanner() {
     const modal = document.getElementById('scannerModal');
     if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
@@ -175,20 +164,50 @@ function startScanner() {
         if (typeof Html5Qrcode !== 'undefined') { html5QrcodeScanner = new Html5Qrcode("reader"); } 
         else { alert("Scanner library loading..."); stopScanner(); return; }
     }
+
     html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess)
-    .catch(err => { alert("Camera permission needed."); stopScanner(); });
+    .catch(err => { console.warn("Camera init failed, might be desktop or permission denied."); });
 }
+
 function stopScanner() {
     const modal = document.getElementById('scannerModal');
     if(modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-    if (html5QrcodeScanner) html5QrcodeScanner.stop().catch(e => console.error(e));
+    if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+        html5QrcodeScanner.stop().catch(e => console.error(e));
+    }
+    document.getElementById('qr-upload-input').value = ""; // Reset file input
 }
+
+function handleQrFileUpload(file) {
+    if (!html5QrcodeScanner) {
+        if (typeof Html5Qrcode !== 'undefined') html5QrcodeScanner = new Html5Qrcode("reader");
+        else return alert("Library not loaded yet.");
+    }
+
+    // Stop camera if running, then scan image
+    if(html5QrcodeScanner.isScanning) {
+        html5QrcodeScanner.stop().then(() => scanFileNow(file)).catch(e => console.error(e));
+    } else {
+        scanFileNow(file);
+    }
+}
+
+function scanFileNow(file) {
+    html5QrcodeScanner.scanFile(file, true)
+    .then(decodedText => {
+        onScanSuccess(decodedText);
+    })
+    .catch(err => {
+        alert("❌ Could not read QR code from this image. Please ensure it's a clear TCF QR.");
+    });
+}
+
 function onScanSuccess(decodedText) {
     stopScanner();
     const scannedId = decodedText.trim();
     if(scannedId && scannedId.includes("BCL-")) {
         const foundMember = allMembers.find(m => m.membershipId === scannedId);
         if(foundMember) openPaymentScreen(foundMember.membershipId);
-        else alert("❌ Member not found.");
-    } else { alert("⚠️ Invalid QR Code."); }
+        else alert(`❌ Member ID [${scannedId}] not found in your active list.`);
+    } else { alert("⚠️ Invalid QR Code. Please scan a valid TCF SIP QR."); }
 }

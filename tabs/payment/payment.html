@@ -21,14 +21,14 @@
 
             <button id="scan-qr-btn" class="flex flex-col items-center group w-20">
                 <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 text-2xl mb-2 group-active:scale-95 transition-transform shadow-sm border border-gray-100">
-                    <i class="fas fa-qrcode"></i>
+                    <i class="fas fa-expand"></i>
                 </div>
                 <span class="text-[10px] font-bold text-gray-700 text-center leading-tight">Scan<br>QR</span>
             </button>
 
             <button id="show-my-qr-btn" class="flex flex-col items-center group w-20">
                 <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#D4AF37] text-2xl mb-2 group-active:scale-95 transition-transform shadow-sm border border-gray-100">
-                     <i class="fas fa-eye"></i>
+                     <i class="fas fa-qrcode"></i>
                 </div>
                 <span class="text-[10px] font-bold text-gray-700 text-center leading-tight">Show<br>My QR</span>
             </button>
@@ -43,9 +43,9 @@
     </div>
 
     <div class="px-4">
-        <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4 ml-2">Recent Members</h3>
+        <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4 ml-2">Active Members</h3>
         <div id="members-grid" class="grid grid-cols-4 gap-y-6 gap-x-2 min-h-[200px]">
-            <div class="col-span-4 text-center py-10"><div class="loader mx-auto border-blue-600"></div></div>
+            <div class="col-span-4 text-center py-10"><div class="loader mx-auto border-blue-600"></div><p class="mt-2 text-xs text-gray-400 font-bold">Fetching Live Data...</p></div>
         </div>
     </div>
 
@@ -63,12 +63,20 @@
                <div class="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-[#D4AF37] rounded-bl-xl"></div>
                <div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-[#D4AF37] rounded-br-xl"></div>
             </div>
-            <p class="absolute bottom-24 text-white/80 text-sm font-medium bg-black/50 px-4 py-2 rounded-full">Align QR code within frame</p>
+            
+            <div class="absolute bottom-16 flex flex-col items-center">
+                <p class="text-white/80 text-sm font-medium bg-black/50 px-4 py-2 rounded-full mb-4">Align QR code within frame</p>
+                <p class="text-white/50 text-xs font-bold uppercase tracking-widest mb-3">- OR -</p>
+                <label for="qr-upload-input" class="bg-white/20 hover:bg-white/30 text-white px-6 py-2.5 rounded-full backdrop-blur-sm border border-white/30 cursor-pointer flex items-center gap-2 transition active:scale-95">
+                    <i class="fas fa-image"></i> Upload from Gallery
+                </label>
+                <input type="file" id="qr-upload-input" accept="image/*" class="hidden">
+            </div>
         </div>
     </div>
 
     <div id="payment-screen" class="fixed inset-0 z-[5000] bg-[#f8faff] hidden flex-col transition-transform transform translate-y-full duration-300">
-        <div class="bg-white px-4 py-4 flex items-center gap-4 shadow-sm relative z-10">
+         <div class="bg-white px-4 py-4 flex items-center gap-4 shadow-sm relative z-10">
             <button id="close-payment-btn" class="text-gray-600 text-xl"><i class="fas fa-arrow-left"></i></button>
             <div class="flex items-center gap-3">
                 <img id="pay-receiver-pic" src="" class="w-10 h-10 rounded-full object-cover border border-gray-200" crossorigin="anonymous">
@@ -135,25 +143,17 @@
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#D4AF37] to-[#B8860B]"></div>
             <h3 class="text-xl font-bold text-[#001540] mb-1 mt-4">My SIP QR Code</h3>
             <p class="text-xs text-gray-500 mb-6">Scan to pay directly to my SIP ID</p>
-
             <div class="bg-white p-4 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.08)] border border-gray-100 mx-auto mb-6 w-fit relative">
                 <img id="my-generated-qr" src="" class="w-56 h-56 object-contain" alt="QR Code Loading..." crossorigin="anonymous">
                 <div class="absolute inset-0 border-4 border-[#D4AF37]/20 rounded-2xl pointer-events-none"></div>
             </div>
-            
             <div class="bg-blue-50 py-2.5 px-6 rounded-full inline-block mb-8">
                 <p class="text-xs font-bold text-[#001540] tracking-wide">ID: <span id="qr-modal-sip-id" class="text-blue-700">Loading...</span></p>
             </div>
-
             <div class="flex gap-3">
-                <button id="download-qr-btn" class="flex-1 bg-[#001540] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform">
-                    <i class="fas fa-download"></i> Download QR
-                </button>
-                <button id="close-qr-modal" class="w-14 bg-gray-100 text-gray-600 font-bold rounded-xl flex items-center justify-center active:scale-95 transition-transform">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <button id="download-qr-btn" class="flex-1 bg-[#001540] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform"><i class="fas fa-download"></i> Download QR</button>
+                <button id="close-qr-modal" class="w-14 bg-gray-100 text-gray-600 font-bold rounded-xl flex items-center justify-center active:scale-95 transition-transform"><i class="fas fa-times text-xl"></i></button>
             </div>
         </div>
     </div>
-
 </div>

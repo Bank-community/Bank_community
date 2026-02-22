@@ -1,30 +1,36 @@
 // tabs/payment/payment.js
 import { initUI, setupUIListeners } from './paymentUI.js';
+import { ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
 export let currentApp = null;
 export let allMembers = [];
 
-export function init(app) {
+export async function init(app) {
     currentApp = app;
     const state = app.state;
     const myMemberId = state.member.membershipId;
 
-    // 🚀 CRITICAL FIX: Robust Data Fetching
-    // डेटाबेस का स्ट्रक्चर कभी-कभी बदल सकता है, इसलिए हम हर संभव जगह चेक करेंगे
-    let rawMembersObj = state.allMembers || state.membersData || (state.dbData ? state.dbData.members : {}) || {};
-
-    if (Object.keys(rawMembersObj).length === 0) {
-        console.warn("Payment Tab: Member data not found in commonly known state locations.");
+    // 🚀 MASTER FIX: Fetch live data directly from Firebase to avoid "No Members Found" bug
+    try {
+        const membersSnap = await get(ref(app.db, 'members'));
+        if (membersSnap.exists()) {
+            const rawMembersObj = membersSnap.val();
+            // Filter all approved members except self
+            allMembers = Object.values(rawMembersObj).filter(m => 
+                m && m.status === 'Approved' && m.membershipId !== myMemberId
+            );
+        } else {
+            allMembers = [];
+        }
+    } catch (error) {
+        console.error("Direct fetch failed, falling back to state:", error);
+        const fallbackObj = state.allMembers || state.membersData || {};
+        allMembers = Object.values(fallbackObj).filter(m => 
+            m && m.status === 'Approved' && m.membershipId !== myMemberId
+        );
     }
 
-    // खुद को हटाकर और सिर्फ Approved मेंबर्स को फिल्टर करें
-    allMembers = Object.values(rawMembersObj).filter(m => 
-        m && m.status === 'Approved' && m.membershipId !== myMemberId
-    );
-
-    console.log("Payment Tab Initialized with Members:", allMembers.length);
-
-    // 1. Initialize UI (पूरा मेंबर ऑब्जेक्ट पास करें ताकि फोटो भी दिखे)
+    // 1. Initialize UI with the fully loaded live member list
     initUI(state.member, allMembers);
 
     // 2. Setup Listeners
