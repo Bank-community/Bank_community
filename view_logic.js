@@ -1,4 +1,4 @@
-// view_logic.js - FIXED LOGIC (Restored Calculations)
+// view_logic.js - FINAL COMPLETE VERSION (Fixed IDs & Logic)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -6,7 +6,6 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0
 import { initModals } from './view_modals.js'; 
 
 const DEFAULT_PIC = 'https://placehold.co/200x200/E0E7FF/4F46E5?text=User';
-const CONFIG = { INACTIVE_DAYS_LEVEL_1: 180, INACTIVE_PROFIT_MULTIPLIER_LEVEL_1: 0.90, INACTIVE_DAYS_LEVEL_2: 365, INACTIVE_PROFIT_MULTIPLIER_LEVEL_2: 0.75 };
 
 let db, auth;
 let globalState = {
@@ -14,16 +13,18 @@ let globalState = {
     balanceHistory: [], score: null
 };
 
+// --- 1. INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", async () => {
+    // Setup Tabs
     setupTabNavigation();
     
     // History Filter Logic
     window.filterHistory = (type) => {
         document.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.remove('bg-royal-blue', 'text-white', 'shadow-sm');
+            b.classList.remove('bg-[#002366]', 'text-white', 'shadow-sm');
             b.classList.add('text-gray-500');
             if(b.textContent.toLowerCase().includes(type === 'transaction' ? 'txn' : type)) {
-                b.classList.add('bg-royal-blue', 'text-white', 'shadow-sm');
+                b.classList.add('bg-[#002366]', 'text-white', 'shadow-sm');
                 b.classList.remove('text-gray-500');
             }
         });
@@ -43,16 +44,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (user) fetchFirebaseData();
             else signInAnonymously(auth).catch(e => console.error(e));
         });
-        
-        window.addEventListener('scroll', () => {
-            const header = document.getElementById('app-header');
-            if(window.scrollY > 10) header.classList.add('scrolled', 'shadow-sm');
-            else header.classList.remove('scrolled', 'shadow-sm');
-        });
 
     } catch (e) { showError("App Init Failed: " + e.message); }
 });
 
+// --- 2. TAB NAVIGATION ---
 function setupTabNavigation() {
     window.switchTab = (tabName) => {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -68,11 +64,12 @@ function setupTabNavigation() {
     };
 }
 
+// --- 3. DATA FETCHING ---
 async function fetchFirebaseData() {
     const id = new URLSearchParams(window.location.search).get('memberId');
     if (!id) { showError("No Membership ID Found"); return; }
 
-    initModals(db, () => ({ currentMemberData: globalState.member, balanceHistory: globalState.balanceHistory }));
+    initModals(db, () => ({ currentMemberData: globalState.member, balanceHistory: globalState.balanceHistory, scoreResultCache: globalState.score }));
 
     try {
         const [mSnap, tSnap, lSnap] = await Promise.all([
@@ -92,8 +89,10 @@ async function fetchFirebaseData() {
     } catch (e) { showError(e.message); }
 }
 
-// --- CORE LOGIC (Restored from Original) ---
+// --- 4. DATA PROCESSING (Logic) ---
 function processData(memberId, members, transactions, activeLoans) {
+    if(!members[memberId]) { showError("Member ID invalid"); return; }
+    
     globalState.member = members[memberId];
     globalState.member.membershipId = memberId;
     globalState.activeLoans = activeLoans;
@@ -107,7 +106,7 @@ function processData(memberId, members, transactions, activeLoans) {
         }
     }
 
-    // Process Transactions (Normalize Types)
+    // Process Transactions
     let idCounter = 0;
     for (const txId in transactions) {
         const tx = transactions[txId];
@@ -131,17 +130,16 @@ function processData(memberId, members, transactions, activeLoans) {
     }
     globalState.allData.sort((a, b) => a.date - b.date || a.id - b.id);
 
-    // 1. Calculate Wallet (Complex Profit Logic)
+    // Calculate Wallet & Profit
     const walletData = calculateTotalExtraBalance(memberId, globalState.member.fullName);
     globalState.balanceHistory = walletData.history;
     globalState.member.extraBalance = walletData.total;
 
-    // 2. Calculate Total SIP & Profit
     const memberTxs = globalState.allData.filter(t => t.memberId === memberId);
     globalState.member.totalSip = memberTxs.reduce((s, t) => s + t.sipPayment, 0);
     globalState.member.lifetimeProfit = calculateTotalProfitForMember(globalState.member.fullName);
 
-    // 3. Score Calculation
+    // Score Calculation
     if (typeof calculatePerformanceScore === 'function') {
         globalState.score = calculatePerformanceScore(globalState.member.fullName, new Date(), globalState.allData, globalState.activeLoans);
     }
@@ -149,21 +147,20 @@ function processData(memberId, members, transactions, activeLoans) {
     updateUI();
 }
 
+// --- 5. UPDATE UI (Render All Tabs) ---
 function updateUI() {
     renderHeader();
     renderProfileTab();
     renderAnalyticsTab();
-    renderHistoryList('all'); // Default Filter
+    renderHistoryList('all'); 
     renderWalletTab();
-    document.getElementById('loader-container').style.display = 'none';
+    
+    const loader = document.getElementById('loader-container');
+    if(loader) loader.style.display = 'none';
 }
-
-// --- RENDER FUNCTIONS ---
-// view_logic.js - FIXED IDs
 
 function renderHeader() {
     const m = globalState.member;
-    // Updated IDs to match HTML
     setText('header-name', m.fullName);
     setImg('header-profile-pic', m.profilePicUrl);
     setText('profile-id-badge', `ID: ${m.membershipId}`);
@@ -172,32 +169,25 @@ function renderHeader() {
 
 function renderProfileTab() {
     const m = globalState.member;
-    
-    // Personal Details
     setText('profile-mobile', m.mobileNumber);
     setText('profile-email', m.email || 'No Email Linked');
     setText('profile-address', m.address);
     setText('profile-aadhaar', m.aadhaar || 'N/A');
     setText('profile-guarantor', m.guarantorName || 'N/A');
 
-    // Docs
     setImg('doc-thumb-pic', m.profilePicUrl);
     setImg('doc-thumb-front', m.documentUrl);
     setImg('doc-thumb-back', m.documentBackUrl);
     setImg('doc-thumb-sign', m.signatureUrl);
 }
 
-// REST OF THE FILE REMAINS SAME...
-
-
-
 function renderAnalyticsTab() {
     const s = globalState.score;
     if (!s) return;
+    
     setText('analytics-score', s.totalScore.toFixed(0));
     setText('analytics-status', s.totalScore > 50 ? 'Active' : 'Low Score');
     
-    // Eligibility Check using Engine Logic
     if (typeof getLoanEligibility === 'function') {
         const elig = getLoanEligibility(globalState.member.fullName, globalState.member.totalSip, globalState.allData);
         setText('analytics-limit', elig.eligible ? `₹${elig.maxAmount.toLocaleString()}` : 'Not Eligible');
@@ -218,16 +208,13 @@ function renderHistoryList(filterType) {
     if(!container) return;
     container.innerHTML = '';
 
-    // Filter Logic
-    let data = globalState.balanceHistory.slice().reverse(); // Use Processed History first (Wallet)
+    let data = globalState.balanceHistory.slice().reverse(); 
     
-    // If filter is 'loan' or 'all', also mix in Loans
     if (filterType === 'loan' || filterType === 'all') {
         const loans = globalState.allData.filter(t => t.memberId === globalState.member.membershipId && t.loan > 0).map(l => ({
             type: 'loan', date: l.date, amount: l.loan, desc: 'Loan Taken'
         }));
-        // Merge if 'all', or replace if 'loan'
-        if(filterType === 'loan') data = loans;
+        if(filterType === 'loan') data = loans.reverse();
         else data = [...data, ...loans].sort((a,b) => b.date - a.date);
     }
     
@@ -245,10 +232,10 @@ function renderHistoryList(filterType) {
         const bg = isPlus ? 'bg-green-50' : 'bg-red-50';
         const icon = item.type === 'profit' ? 'fa-chart-line' : (item.type === 'loan' ? 'fa-hand-holding-usd' : 'fa-exchange-alt');
         
-        // Formatting Titles
         let title = item.type.toUpperCase();
         if(item.type === 'manual_credit') title = "ADMIN CREDIT";
         if(item.type === 'profit') title = "PROFIT SHARE";
+        if(item.type === 'Community Profit') title = "COMMUNITY PROFIT";
 
         container.innerHTML += `
         <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
@@ -277,25 +264,22 @@ function renderWalletTab() {
     setText('wallet-guarantor', m.guarantorName || 'N/A');
 }
 
-// --- CALCULATION LOGIC (Restored) ---
+// --- CALCULATION LOGIC ---
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const history = [];
-    // 1. Profit Shares
     const profitEvents = globalState.allData.filter(r => r.returnAmount > 0);
     profitEvents.forEach(paymentRecord => {
         const result = calculateProfitDistribution(paymentRecord);
         const share = result?.distribution.find(d => d.name === memberFullName);
         if(share && share.share > 0) {
-            history.push({ type: 'profit', date: paymentRecord.date, amount: share.share, desc: share.type });
+            history.push({ type: share.type || 'profit', date: paymentRecord.date, amount: share.share, desc: share.type });
         }
     });
-    // 2. Manual Transactions
     const manualAdjustments = globalState.allData.filter(tx => tx.memberId === memberId && (tx.extraBalance > 0 || tx.extraWithdraw > 0));
     manualAdjustments.forEach(tx => {
         if (tx.extraBalance > 0) history.push({ type: 'manual_credit', date: tx.date, amount: tx.extraBalance });
         if (tx.extraWithdraw > 0) history.push({ type: 'withdrawal', date: tx.date, amount: -tx.extraWithdraw });
     });
-    
     history.sort((a,b) => a.date - b.date);
     const total = history.reduce((acc, item) => acc + item.amount, 0);
     return { total, history };
@@ -306,26 +290,20 @@ function calculateProfitDistribution(paymentRecord) {
     if (totalInterest <= 0) return null; 
     const distribution = [];
     
-    // Self Share (10%)
     distribution.push({ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
     
-    // Guarantor Share (10%)
     const payerInfo = globalState.memberMap.get(paymentRecord.memberId);
     if (payerInfo && payerInfo.guarantor && payerInfo.guarantor !== 'Xxxxx') {
         distribution.push({ name: payerInfo.guarantor, share: totalInterest * 0.10, type: 'Guarantor (10%)' });
     }
 
-    // Community Pool (80% or 70%)
-    const communityPool = totalInterest * (distribution.length > 1 ? 0.70 : 0.80); // Adjust based on guarantor presence
-    
-    // Distribution Logic based on Score Snapshot
-    const loanDate = paymentRecord.date; // Approximation
-    const eligibleMembers = [];
+    const communityPool = totalInterest * (distribution.length > 1 ? 0.70 : 0.80); 
+    const loanDate = paymentRecord.date;
     let totalSystemScore = 0;
+    const eligibleMembers = [];
 
-    // Snapshot of members at that time
     for (let [id, m] of globalState.memberMap) {
-        if (m.name === paymentRecord.name) continue; // Payer doesn't get community share
+        if (m.name === paymentRecord.name) continue; 
         if (typeof calculatePerformanceScore === 'function') {
             const scoreObj = calculatePerformanceScore(m.name, loanDate, globalState.allData, globalState.activeLoans);
             if(scoreObj.totalScore > 0) {
