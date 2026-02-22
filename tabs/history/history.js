@@ -9,7 +9,7 @@ export function init(app) {
     // 2. Initial Render (Show All Transactions)
     renderHistoryList('all', state);
 
-    // 3. Setup Smart Filter Buttons (BUG FIXED)
+    // 3. Setup Smart Filter Buttons (100% Color Bug Fixed)
     const filterContainer = document.getElementById('history-filters');
     if(filterContainer) {
         if (filterContainer._clickListener) filterContainer.removeEventListener('click', filterContainer._clickListener);
@@ -19,13 +19,13 @@ export function init(app) {
             if(btn) {
                 // Reset all buttons to default (Transparent bg, Gray text)
                 document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('bg-royal-dark', 'text-white', 'shadow-md');
+                    b.classList.remove('bg-[#001540]', 'text-white', 'shadow-md');
                     b.classList.add('bg-transparent', 'text-gray-400');
                 });
 
-                // Active clicked button (Royal Dark bg, White text)
+                // Active clicked button (Dark Blue bg, White text)
                 btn.classList.remove('bg-transparent', 'text-gray-400');
-                btn.classList.add('bg-royal-dark', 'text-white', 'shadow-md');
+                btn.classList.add('bg-[#001540]', 'text-white', 'shadow-md');
 
                 // Render List based on filter
                 const filterType = btn.getAttribute('data-filter');
@@ -98,21 +98,20 @@ function renderHistoryList(filterType, state) {
         let iconBgClass = '';
         let displayPrefix = '';
 
-        // Matching Exact Design from Screenshot
         if (tx.loan > 0) {
             icon = 'fa-hand-holding-usd';
             title = 'LOAN';
             subText = tx.date.toLocaleDateString('en-GB'); 
             amount = tx.loan;
-            amountClass = 'text-[#e53935]'; // Red
+            amountClass = 'text-[#e53935]'; 
             iconBgClass = 'bg-red-50 text-[#e53935]';
-            displayPrefix = ''; // No minus sign
+            displayPrefix = ''; 
         } else if (tx.payment > 0) {
             icon = 'fa-check-circle';
             title = 'LOAN REPAYMENT';
             subText = `Principal + Interest • ${tx.date.toLocaleDateString('en-GB')}`;
             amount = tx.payment;
-            amountClass = 'text-[#4caf50]'; // Green
+            amountClass = 'text-[#4caf50]'; 
             iconBgClass = 'bg-green-50 text-[#4caf50]';
             displayPrefix = '+';
         } else if (tx.sipPayment > 0) {
@@ -120,7 +119,7 @@ function renderHistoryList(filterType, state) {
             title = 'SIP DEPOSIT';
             subText = `Monthly Fund Contribution • ${tx.date.toLocaleDateString('en-GB')}`;
             amount = tx.sipPayment;
-            amountClass = 'text-[#4caf50]'; // Green
+            amountClass = 'text-[#4caf50]'; 
             iconBgClass = 'bg-green-50 text-[#4caf50]';
             displayPrefix = '+';
         }
@@ -132,7 +131,7 @@ function renderHistoryList(filterType, state) {
                     <i class="fas ${icon}"></i>
                 </div>
                 <div>
-                    <p class="font-extrabold text-[13px] text-royal-dark uppercase tracking-wide leading-tight">${title}</p>
+                    <p class="font-extrabold text-[13px] text-[#001540] uppercase tracking-wide leading-tight">${title}</p>
                     <p class="text-[10px] text-gray-400 font-medium mt-0.5">${subText}</p>
                 </div>
             </div>
