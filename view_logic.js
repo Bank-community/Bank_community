@@ -1,4 +1,4 @@
-// view_logic.js - FINAL COMPLETE VERSION (Fixed IDs & Logic)
+// view_logic.js - FINAL COMPLETE VERSION (Fixed Tab System & IDs)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -15,27 +15,39 @@ let globalState = {
 
 // --- 1. INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", async () => {
-    // Setup Tabs
-    setupTabNavigation();
-    
-    // History Filter Logic
+    // A. Setup Tabs
+    window.switchTab = (tabName) => {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('nav-active'));
+
+        const target = document.getElementById('tab-' + tabName);
+        if(target) target.classList.add('active');
+
+        const btn = document.querySelector(`.nav-btn[data-target="tab-${tabName}"]`);
+        if(btn) btn.classList.add('nav-active');
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // B. Setup History Filter
     window.filterHistory = (type) => {
         document.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.remove('bg-[#002366]', 'text-white', 'shadow-sm');
+            b.classList.remove('bg-[#001540]', 'text-white');
             b.classList.add('text-gray-500');
             if(b.textContent.toLowerCase().includes(type === 'transaction' ? 'txn' : type)) {
-                b.classList.add('bg-[#002366]', 'text-white', 'shadow-sm');
+                b.classList.add('bg-[#001540]', 'text-white');
                 b.classList.remove('text-gray-500');
             }
         });
         renderHistoryList(type);
     };
 
+    // C. Initialize Firebase
     try {
         const res = await fetch('/api/firebase-config');
         if (!res.ok) throw new Error('Config load failed');
         const config = await res.json();
-        
+
         const app = initializeApp(config);
         auth = getAuth(app);
         db = getDatabase(app);
@@ -48,23 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (e) { showError("App Init Failed: " + e.message); }
 });
 
-// --- 2. TAB NAVIGATION ---
-function setupTabNavigation() {
-    window.switchTab = (tabName) => {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('nav-active'));
-        
-        const target = document.getElementById('tab-' + tabName);
-        if(target) target.classList.add('active');
-        
-        const btn = document.querySelector(`.nav-btn[data-target="tab-${tabName}"]`);
-        if(btn) btn.classList.add('nav-active');
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-}
-
-// --- 3. DATA FETCHING ---
+// --- 2. DATA FETCHING ---
 async function fetchFirebaseData() {
     const id = new URLSearchParams(window.location.search).get('memberId');
     if (!id) { showError("No Membership ID Found"); return; }
@@ -89,24 +85,22 @@ async function fetchFirebaseData() {
     } catch (e) { showError(e.message); }
 }
 
-// --- 4. DATA PROCESSING (Logic) ---
+// --- 3. DATA PROCESSING ---
 function processData(memberId, members, transactions, activeLoans) {
     if(!members[memberId]) { showError("Member ID invalid"); return; }
-    
+
     globalState.member = members[memberId];
     globalState.member.membershipId = memberId;
     globalState.activeLoans = activeLoans;
     globalState.allData = [];
     globalState.memberMap.clear();
 
-    // Map Member Names
     for (const id in members) {
         if (members[id].status === 'Approved') {
             globalState.memberMap.set(id, { name: members[id].fullName, guarantor: members[id].guarantorName });
         }
     }
 
-    // Process Transactions
     let idCounter = 0;
     for (const txId in transactions) {
         const tx = transactions[txId];
@@ -130,7 +124,6 @@ function processData(memberId, members, transactions, activeLoans) {
     }
     globalState.allData.sort((a, b) => a.date - b.date || a.id - b.id);
 
-    // Calculate Wallet & Profit
     const walletData = calculateTotalExtraBalance(memberId, globalState.member.fullName);
     globalState.balanceHistory = walletData.history;
     globalState.member.extraBalance = walletData.total;
@@ -139,7 +132,6 @@ function processData(memberId, members, transactions, activeLoans) {
     globalState.member.totalSip = memberTxs.reduce((s, t) => s + t.sipPayment, 0);
     globalState.member.lifetimeProfit = calculateTotalProfitForMember(globalState.member.fullName);
 
-    // Score Calculation
     if (typeof calculatePerformanceScore === 'function') {
         globalState.score = calculatePerformanceScore(globalState.member.fullName, new Date(), globalState.allData, globalState.activeLoans);
     }
@@ -147,16 +139,20 @@ function processData(memberId, members, transactions, activeLoans) {
     updateUI();
 }
 
-// --- 5. UPDATE UI (Render All Tabs) ---
+// --- 4. RENDER UI ---
 function updateUI() {
     renderHeader();
     renderProfileTab();
     renderAnalyticsTab();
     renderHistoryList('all'); 
     renderWalletTab();
-    
+
+    // HIDE LOADER
     const loader = document.getElementById('loader-container');
-    if(loader) loader.style.display = 'none';
+    if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.display = 'none', 500);
+    }
 }
 
 function renderHeader() {
@@ -184,10 +180,10 @@ function renderProfileTab() {
 function renderAnalyticsTab() {
     const s = globalState.score;
     if (!s) return;
-    
+
     setText('analytics-score', s.totalScore.toFixed(0));
     setText('analytics-status', s.totalScore > 50 ? 'Active' : 'Low Score');
-    
+
     if (typeof getLoanEligibility === 'function') {
         const elig = getLoanEligibility(globalState.member.fullName, globalState.member.totalSip, globalState.allData);
         setText('analytics-limit', elig.eligible ? `₹${elig.maxAmount.toLocaleString()}` : 'Not Eligible');
@@ -209,7 +205,7 @@ function renderHistoryList(filterType) {
     container.innerHTML = '';
 
     let data = globalState.balanceHistory.slice().reverse(); 
-    
+
     if (filterType === 'loan' || filterType === 'all') {
         const loans = globalState.allData.filter(t => t.memberId === globalState.member.membershipId && t.loan > 0).map(l => ({
             type: 'loan', date: l.date, amount: l.loan, desc: 'Loan Taken'
@@ -217,7 +213,7 @@ function renderHistoryList(filterType) {
         if(filterType === 'loan') data = loans.reverse();
         else data = [...data, ...loans].sort((a,b) => b.date - a.date);
     }
-    
+
     if (filterType === 'transaction') {
          data = globalState.balanceHistory.filter(h => h.type !== 'loan');
     }
@@ -231,7 +227,7 @@ function renderHistoryList(filterType) {
         const color = isPlus ? 'text-green-600' : 'text-red-600';
         const bg = isPlus ? 'bg-green-50' : 'bg-red-50';
         const icon = item.type === 'profit' ? 'fa-chart-line' : (item.type === 'loan' ? 'fa-hand-holding-usd' : 'fa-exchange-alt');
-        
+
         let title = item.type.toUpperCase();
         if(item.type === 'manual_credit') title = "ADMIN CREDIT";
         if(item.type === 'profit') title = "PROFIT SHARE";
@@ -261,7 +257,6 @@ function renderWalletTab() {
     setText('modal-available-balance', `₹${(m.extraBalance || 0).toLocaleString('en-IN')}`);
     setText('wallet-profit', `₹${(m.lifetimeProfit || 0).toLocaleString('en-IN')}`);
     setText('wallet-invested', `₹${(m.totalSip || 0).toLocaleString('en-IN')}`);
-    setText('wallet-guarantor', m.guarantorName || 'N/A');
 }
 
 // --- CALCULATION LOGIC ---
@@ -289,9 +284,9 @@ function calculateProfitDistribution(paymentRecord) {
     const totalInterest = paymentRecord.returnAmount; 
     if (totalInterest <= 0) return null; 
     const distribution = [];
-    
+
     distribution.push({ name: paymentRecord.name, share: totalInterest * 0.10, type: 'Self Return (10%)' });
-    
+
     const payerInfo = globalState.memberMap.get(paymentRecord.memberId);
     if (payerInfo && payerInfo.guarantor && payerInfo.guarantor !== 'Xxxxx') {
         distribution.push({ name: payerInfo.guarantor, share: totalInterest * 0.10, type: 'Guarantor (10%)' });
@@ -334,7 +329,6 @@ function calculateTotalProfitForMember(memberName) {
     }, 0); 
 }
 
-// --- UTILS ---
 function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
 function setImg(id, url) { const el = document.getElementById(id); if(el) el.src = url || DEFAULT_PIC; }
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-GB') : '-'; }
