@@ -1,0 +1,96 @@
+<div class="animate-fade p-4 pb-24">
+    <h2 class="text-xl font-bold text-[#001540] mb-4">My Wealth</h2>
+
+    <div class="bg-[#FFFCF5] rounded-2xl p-5 shadow-lg border border-[#D4AF37] relative overflow-hidden mb-4">
+        <div class="absolute -right-6 -top-6 text-9xl text-[#D4AF37] opacity-10 rotate-12"><i class="fas fa-wallet"></i></div>
+        <p class="text-[10px] text-[#B8860B] font-bold tracking-widest uppercase mb-1">Withdrawable Balance</p>
+        <h1 id="wallet-balance" class="text-4xl font-serif font-bold text-[#D4AF37] mb-4">₹0.00</h1>
+        <div class="flex gap-3 relative z-10">
+            <button id="withdraw-btn" class="flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-white font-bold py-3 rounded-xl shadow-md text-sm active:scale-95 transition-transform">Withdraw Funds</button>
+            <button id="view-history-btn" class="w-12 bg-white border border-[#D4AF37] text-[#D4AF37] rounded-xl flex items-center justify-center hover:bg-yellow-50"><i class="fas fa-history"></i></button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 text-center">
+            <p class="text-[9px] text-gray-400 font-bold uppercase">Total Profit</p>
+            <p id="wallet-profit" class="text-lg font-bold text-gray-800">₹0</p>
+        </div>
+        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 text-center">
+            <p class="text-[9px] text-gray-400 font-bold uppercase">Invested</p>
+            <p id="wallet-invested" class="text-lg font-bold text-gray-800">₹0</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+         <div>
+             <p class="text-[9px] text-gray-400 uppercase font-bold">Guarantor</p>
+             <p id="wallet-guarantor" class="text-sm font-bold text-[#001540]">--</p>
+         </div>
+         <i class="fas fa-user-shield text-gray-300 text-xl"></i>
+    </div>
+
+    <div id="withdrawalModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm border-t-4 border-[#D4AF37]">
+            <div class="text-center mb-6"><h3 class="text-lg font-bold text-[#002366]">Withdraw Funds</h3></div>
+            <div class="bg-gray-50 p-4 rounded-2xl mb-4 text-center border border-gray-100">
+                <p class="text-xs text-gray-500 mb-1">Available Balance</p>
+                <p id="modal-available-balance" class="text-2xl font-bold text-[#002366]">₹0</p>
+            </div>
+            <input type="number" id="withdrawal-amount" class="w-full bg-gray-50 border-0 rounded-xl p-4 mt-1 text-2xl font-bold text-center text-[#002366]" placeholder="₹0">
+            <p id="withdrawal-error" class="text-red-500 text-xs mt-2 text-center hidden font-bold">Invalid Amount</p>
+            <div class="mt-6 flex gap-3">
+                <button id="close-withdrawal-modal" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3.5 rounded-xl text-sm">Cancel</button>
+                <button id="submit-withdrawal" class="flex-1 bg-[#002366] text-white font-bold py-3.5 rounded-xl text-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-end sm:items-center justify-center sm:p-4 bg-black/80">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg h-[85vh] flex flex-col">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="font-bold text-[#002366] ml-2">Full Transaction History</h3>
+                <button id="close-history-modal" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="history-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+                </div>
+        </div>
+    </div>
+
+    <div id="cardResultModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/90">
+        <div class="w-full max-w-sm">
+            <div id="withdrawalCard" class="certificate-container">
+                <div class="cert-content">
+                    <i class="fas fa-crown cert-logo-watermark"></i>
+                    <div class="cert-header">Official Withdrawal Receipt</div>
+                    <img id="card-profile-pic" src="" class="cert-profile-img" crossorigin="anonymous">
+                    <h2 id="card-name" class="text-xl font-bold text-[#002366] uppercase mb-1">--</h2>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verified Member</p>
+
+                    <div class="cert-amount-box">
+                        <p class="text-[10px] text-gray-300 uppercase tracking-widest mb-1">Amount Withdrawn</p>
+                        <div id="card-amount" class="cert-amount-val">₹0</div>
+                    </div>
+
+                    <div class="cert-details">
+                        <div class="text-left">
+                            <p><strong>Tx ID:</strong> <span id="rand-tx-id">...</span></p>
+                            <p><strong>Date:</strong> <span id="card-date">--</span></p>
+                        </div>
+                        <div class="text-right">
+                            <img id="card-signature" src="" class="h-8 object-contain opacity-80" crossorigin="anonymous">
+                            <p class="text-[8px] uppercase mt-1 font-bold">Authorized Signature</p>
+                        </div>
+                    </div>
+                    <div class="cert-stamp">PAID</div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+              <button id="download-card-btn" class="flex-1 btn-gold text-white py-3 rounded-xl font-bold shadow-lg">Save Receipt</button>
+              <button id="share-card-btn" class="flex-1 bg-white text-[#D4AF37] border border-[#D4AF37] py-3 rounded-xl font-bold hidden">Share</button>
+            </div>
+            <button id="close-card-modal" class="mt-4 w-full text-white font-bold opacity-80 py-2">Close</button>
+        </div>
+    </div>
+</div>
