@@ -25,10 +25,28 @@ function renderProfile(m) {
     setText('profile-address', m.address);
     setText('profile-guarantor', m.guarantorName || 'N/A');
 
+    // Document Images
     setImg('doc-thumb-pic', m.profilePicUrl);
     setImg('doc-thumb-front', m.documentUrl);
     setImg('doc-thumb-back', m.documentBackUrl);
     setImg('doc-thumb-sign', m.signatureUrl);
+
+    // --- NEW LOGIC: KYC VERIFICATION CHECK ---
+    const verifyTag = document.getElementById('profile-verification-status');
+    if (verifyTag) {
+        // Check if ALL 4 documents exist
+        const isKycComplete = m.profilePicUrl && m.documentUrl && m.documentBackUrl && m.signatureUrl;
+
+        if (isKycComplete) {
+            // Gold and Blue VERIFIED Tag
+            verifyTag.innerHTML = '<i class="fas fa-check-circle"></i> VERIFIED';
+            verifyTag.className = 'absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-[#001540] text-[10px] font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg flex items-center gap-1 min-w-max';
+        } else {
+            // Red UNVERIFIED Tag
+            verifyTag.innerHTML = '<i class="fas fa-exclamation-triangle"></i> UNVERIFIED';
+            verifyTag.className = 'absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg flex items-center gap-1 min-w-max';
+        }
+    }
 }
 
 function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
@@ -40,18 +58,19 @@ function hideModal(id) { const el = document.getElementById(id); if(el) { el.cla
 function showError(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
 
 function setupListeners(db, currentMember) {
-    // We use a container to delegate events specifically for this tab
     const container = document.getElementById('app-content');
 
-    // Clear old listeners by cloning (if needed, but init runs once per tab load)
-    container.onclick = async (e) => {
+    // Clear old listener to prevent duplicates
+    if (container._profileListener) container.removeEventListener('click', container._profileListener);
+
+    container._profileListener = async (e) => {
         const target = e.target;
 
         // 1. Image Viewer Zoom
         const trigger = target.closest('.document-trigger');
         if (trigger) {
             const img = trigger.querySelector('img');
-            if (img && img.src) {
+            if (img && img.src && !img.src.includes('placehold.co')) {
                 document.getElementById('fullImageView').src = img.src;
                 showModal('imageViewerModal');
             }
@@ -90,9 +109,10 @@ function setupListeners(db, currentMember) {
         if (target.closest('#close-password-modal')) hideModal('passwordModal');
         if (target.closest('#close-email-modal')) hideModal('emailModal');
 
-        // Close on background click
         if (target.classList.contains('modal-overlay')) hideModal(target.id);
     };
+
+    container.addEventListener('click', container._profileListener);
 }
 
 async function handlePasswordSubmit(db, currentMember) {
@@ -115,7 +135,7 @@ async function handlePasswordSubmit(db, currentMember) {
         btn.disabled = true; btn.textContent = 'Updating...';
         await update(ref(db, 'members/' + currentMember.membershipId), { password: newPass });
 
-        currentMember.password = newPass; // Update local state
+        currentMember.password = newPass; 
         successEl.classList.remove('hidden');
 
         setTimeout(() => { 
@@ -143,7 +163,7 @@ async function handleEmailSubmit(db, currentMember) {
         btn.disabled = true; btn.textContent = 'Saving...';
         await update(ref(db, 'members/' + currentMember.membershipId), { email: newEmail });
 
-        currentMember.email = newEmail; // Update local state
+        currentMember.email = newEmail; 
         document.getElementById('profile-email').textContent = newEmail;
 
         successEl.classList.remove('hidden');
