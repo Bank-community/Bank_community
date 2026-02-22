@@ -1,6 +1,7 @@
 // tabs/payment/paymentLogic.js
 
-import { currentApp, allMembers } from './payment.js';
+// 🚀 NEW: Import 'allTransactions' directly from payment.js
+import { currentApp, allMembers, allTransactions } from './payment.js';
 import { executeP2PTransaction, savePinToDb } from './paymentDb.js';
 import { renderChatHistory } from './paymentUI.js';
 
@@ -12,6 +13,7 @@ export function openChatScreen(receiverId) {
     selectedReceiver = allMembers.find(m => m.membershipId === receiverId);
     if (!selectedReceiver) return alert("Member not found!");
 
+    // 1. Populate Chat UI
     document.getElementById('chat-name').textContent = selectedReceiver.fullName;
     document.getElementById('chat-id').textContent = `ID: ${selectedReceiver.membershipId}`;
     document.getElementById('chat-big-name').textContent = selectedReceiver.fullName;
@@ -21,18 +23,21 @@ export function openChatScreen(receiverId) {
     document.getElementById('chat-big-avatar').src = picSrc;
     document.getElementById('amount-screen-name').textContent = selectedReceiver.fullName;
 
-    const allTxObj = currentApp.state.allData || {};
-    const allTxArray = Array.isArray(allTxObj) ? allTxObj : Object.values(allTxObj);
-    renderChatHistory(currentApp.state.member.membershipId, receiverId, allTxArray);
+    // 2. Render Past Chat History instantly using pre-fetched data
+    renderChatHistory(currentApp.state.member.membershipId, receiverId, allTransactions);
 
+    // 🚀 3. THE MAGIC (Pre-Calculation): 
+    // Profile khulte hi limits pehle se calculate karke rakh lo taaki 'Pay' button par load na pade
+    calculateLimits();
+
+    // 4. Show Chat Interface
     const screen = document.getElementById('chat-interface');
     screen.classList.replace('hidden', 'flex');
     setTimeout(() => screen.classList.replace('translate-x-full', 'translate-x-0'), 10);
 }
 
 export function openAmountScreen() {
-    calculateLimits(); // Fresh limits calculate karega
-
+    // Limits ab pehle se calculate ho chuki hain, yahan sirf UI reset karna hai
     const amountInput = document.getElementById('pay-amount-input');
     amountInput.value = '';
     document.getElementById('pay-note-input').value = '';
@@ -41,7 +46,7 @@ export function openAmountScreen() {
     btn.disabled = true; 
     btn.classList.replace('opacity-100', 'opacity-50');
 
-    // Agar limit 0 hai to input block kar do
+    // Agar limit 0 ya negative hai to amount input box ko block kar do
     if(finalAllowedLimit <= 0) {
         amountInput.disabled = true;
         amountInput.placeholder = "Not Allowed";
@@ -64,11 +69,8 @@ export function calculateLimits() {
     let senderSentThisMonth = 0; 
     let receiverReceivedThisMonth = 0;
 
-    // 🚀 CRASH FIX: Object.values() ka use karke array mein badla
-    const allTxObj = currentApp.state.allData || {};
-    const txArray = Array.isArray(allTxObj) ? allTxObj : Object.values(allTxObj);
-
-    txArray.forEach(tx => {
+    // 🚀 CRASH FIX: Using pre-fetched allTransactions array (No .forEach errors)
+    allTransactions.forEach(tx => {
         if (tx && tx.date && tx.date.startsWith(currentMonth)) {
             if (tx.type === 'P2P Sent' && tx.memberId === sender.membershipId) senderSentThisMonth += (tx.amount || 0);
             if (tx.type === 'P2P Received' && tx.memberId === receiver.membershipId) receiverReceivedThisMonth += (tx.amount || 0);
@@ -92,29 +94,32 @@ export function calculateLimits() {
 
     finalAllowedLimit = Math.min(senderMaxLimit, receiverMaxLimit);
 
-    // Update UI based on Negative Balance
+    // Update UI Limits in Background
     const senderLimitEl = document.getElementById('limit-sender');
     const receiverLimitEl = document.getElementById('limit-receiver');
     const warningEl = document.getElementById('limit-warning');
 
-    if (senderTotalSip <= 0) {
-        senderLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
-    } else {
-        senderLimitEl.textContent = `₹${Math.floor(senderMaxLimit).toLocaleString('en-IN')}`;
+    if(senderLimitEl && receiverLimitEl) {
+        if (senderTotalSip <= 0) {
+            senderLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
+        } else {
+            senderLimitEl.textContent = `₹${Math.floor(senderMaxLimit).toLocaleString('en-IN')}`;
+        }
+
+        if (receiverTotalSip <= 0) {
+            receiverLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
+        } else {
+            receiverLimitEl.textContent = `₹${Math.floor(receiverMaxLimit).toLocaleString('en-IN')}`;
+        }
     }
 
-    if (receiverTotalSip <= 0) {
-        receiverLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
-    } else {
-        receiverLimitEl.textContent = `₹${Math.floor(receiverMaxLimit).toLocaleString('en-IN')}`;
-    }
-
-    // Show warning if limit is 0 or less
-    if (finalAllowedLimit <= 0) {
-        warningEl.innerHTML = `<i class="fas fa-ban"></i> Transfer Not Allowed`;
-        warningEl.classList.remove('hidden');
-    } else {
-        warningEl.classList.add('hidden');
+    if(warningEl) {
+        if (finalAllowedLimit <= 0) {
+            warningEl.innerHTML = `<i class="fas fa-ban"></i> Transfer Not Allowed`;
+            warningEl.classList.remove('hidden');
+        } else {
+            warningEl.classList.add('hidden');
+        }
     }
 }
 
