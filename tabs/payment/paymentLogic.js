@@ -1,11 +1,12 @@
 // tabs/payment/paymentLogic.js
+
 import { currentApp, allMembers } from './payment.js';
 import { executeP2PTransaction, savePinToDb } from './paymentDb.js';
 import { renderChatHistory } from './paymentUI.js';
 
 export let selectedReceiver = null;
 export let finalAllowedLimit = 0;
-let isChangingPin = false; // Flag to check mode
+let isChangingPin = false; // Flag to check if user is changing PIN or setting for first time
 
 export function openChatScreen(receiverId) {
     selectedReceiver = allMembers.find(m => m.membershipId === receiverId);
@@ -187,16 +188,23 @@ export async function verifyAndPay(enteredPin) {
     try {
         await executeP2PTransaction(currentApp.db, currentApp.state.member, selectedReceiver, amount, note);
 
-        // Success Updates
+        // 1. Success Updates & Hide Modals
         document.getElementById('pinEntryModal').classList.replace('flex', 'hidden');
         document.getElementById('amount-screen').classList.replace('translate-y-0', 'translate-y-full');
         setTimeout(() => document.getElementById('amount-screen').classList.replace('flex', 'hidden'), 300);
 
+        // 2. Refresh local balance
         currentApp.state.member.accountBalance -= amount; 
 
-        // Add fake bubble immediately to UI for instant gratification
+        // 3. Add fake bubble immediately to UI for instant gratification
         const container = document.getElementById('chat-bubbles');
         const time = new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
+
+        // Remove "No previous transactions" text if it exists
+        if(container.innerHTML.includes('No previous transactions')) {
+            container.innerHTML = '';
+        }
+
         container.innerHTML += `
         <div class="flex justify-end mb-2 animate-fade">
             <div class="bg-white border border-gray-200 rounded-2xl rounded-tr-sm p-3 max-w-[75%] shadow-sm">
@@ -206,6 +214,8 @@ export async function verifyAndPay(enteredPin) {
                 <div class="flex items-center justify-end gap-1"><i class="fas fa-check-circle text-green-500 text-[10px]"></i><span class="text-[9px] text-gray-400">${time}</span></div>
             </div>
         </div>`;
+
+        // 4. Scroll to bottom
         const historyCont = document.getElementById('chat-history-container');
         historyCont.scrollTop = historyCont.scrollHeight;
 

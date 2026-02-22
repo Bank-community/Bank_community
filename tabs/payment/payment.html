@@ -71,14 +71,13 @@
                 <p class="text-xs text-green-600 font-bold mt-1"><i class="fas fa-shield-alt"></i> Verified TCF Member</p>
                 <p class="text-[10px] text-gray-400 mt-2">Transfers are secure and encrypted.</p>
             </div>
-            
             <div id="chat-bubbles" class="flex flex-col gap-3"></div>
         </div>
 
         <div class="bg-white p-3 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] flex items-center gap-3">
             <button id="initiate-pay-btn" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-full shadow-md hover:bg-blue-700 transition-colors active:scale-95">Pay</button>
-            <div class="flex-1 bg-gray-100 rounded-full flex items-center px-4 py-3">
-                <input type="text" placeholder="Message..." class="bg-transparent border-none outline-none w-full text-sm text-gray-700" readonly>
+            <div id="chat-message-box" class="flex-1 bg-gray-100 rounded-full flex items-center px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors">
+                <span class="text-sm text-gray-500 w-full">Message or pay...</span>
                 <i class="fas fa-paper-plane text-gray-400 ml-2"></i>
             </div>
         </div>
@@ -121,9 +120,7 @@
             <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border-4 border-white shadow-sm"><i class="fas fa-shield-alt"></i></div>
             <h3 class="text-xl font-bold text-[#001540] mb-2" id="pin-setup-title">Set SIP PIN</h3>
             <p class="text-xs text-gray-500 mb-6 font-medium" id="pin-setup-desc">Create a 4-digit secure PIN for transfers.</p>
-            
             <input type="password" id="old-sip-pin" maxlength="4" placeholder="Old PIN" class="hidden w-32 text-center text-2xl tracking-[0.3em] font-bold border-b-2 border-gray-300 focus:border-blue-600 outline-none pb-2 mb-4 mx-auto bg-transparent">
-            
             <input type="password" id="new-sip-pin" maxlength="4" placeholder="••••" class="w-32 text-center text-3xl tracking-[0.5em] font-bold border-b-2 border-gray-300 focus:border-blue-600 outline-none pb-2 mb-4 mx-auto block bg-transparent">
             <p id="pin-setup-error" class="text-red-500 text-xs font-bold mb-4 hidden">Enter 4 digits</p>
             <button id="save-pin-btn" class="w-full bg-[#001540] text-white font-bold py-3.5 rounded-xl shadow-md">Set PIN</button>
@@ -142,4 +139,47 @@
         </div>
     </div>
 
+    <div id="scannerModal" class="fixed inset-0 z-[4000] bg-black hidden flex-col">
+        <div class="flex justify-between items-center p-4 bg-black/50 absolute top-0 w-full z-10">
+            <h3 class="text-white font-bold">Scan QR Code</h3>
+            <button id="close-scanner-btn" class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-xl backdrop-blur-sm"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex-1 flex flex-col justify-center items-center relative">
+            <div id="reader" class="w-full max-w-sm overflow-hidden bg-black"></div>
+            <div class="absolute inset-0 border-[40px] border-black/60 pointer-events-none"></div>
+            <div class="absolute w-64 h-64 border-2 border-[#D4AF37] rounded-2xl pointer-events-none">
+               <div class="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-[#D4AF37] rounded-tl-xl"></div>
+               <div class="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-[#D4AF37] rounded-tr-xl"></div>
+               <div class="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-[#D4AF37] rounded-bl-xl"></div>
+               <div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-[#D4AF37] rounded-br-xl"></div>
+            </div>
+            <div class="absolute bottom-16 flex flex-col items-center z-20">
+                <p class="text-white/80 text-sm font-medium bg-black/50 px-4 py-2 rounded-full mb-4">Align QR code within frame</p>
+                <p class="text-white/50 text-xs font-bold uppercase tracking-widest mb-3">- OR -</p>
+                <label for="qr-upload-input" class="bg-white/20 hover:bg-white/30 text-white px-6 py-2.5 rounded-full backdrop-blur-sm border border-white/30 cursor-pointer flex items-center gap-2 transition active:scale-95">
+                    <i class="fas fa-image"></i> Upload from Gallery
+                </label>
+                <input type="file" id="qr-upload-input" accept="image/*" class="hidden">
+            </div>
+        </div>
     </div>
+
+    <div id="myQrModal" class="fixed inset-0 z-[6000] bg-black/80 hidden flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade">
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#D4AF37] to-[#B8860B]"></div>
+            <h3 class="text-xl font-bold text-[#001540] mb-1 mt-4">My SIP QR Code</h3>
+            <p class="text-xs text-gray-500 mb-6">Scan to pay directly to my SIP ID</p>
+            <div class="bg-white p-4 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.08)] border border-gray-100 mx-auto mb-6 w-fit relative">
+                <img id="my-generated-qr" src="" class="w-56 h-56 object-contain" alt="QR Code Loading..." crossorigin="anonymous">
+                <div class="absolute inset-0 border-4 border-[#D4AF37]/20 rounded-2xl pointer-events-none"></div>
+            </div>
+            <div class="bg-blue-50 py-2.5 px-6 rounded-full inline-block mb-8">
+                <p class="text-xs font-bold text-[#001540] tracking-wide">ID: <span id="qr-modal-sip-id" class="text-blue-700">Loading...</span></p>
+            </div>
+            <div class="flex gap-3">
+                <button id="download-qr-btn" class="flex-1 bg-[#001540] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform"><i class="fas fa-download"></i> Download QR</button>
+                <button id="close-qr-modal" class="w-14 bg-gray-100 text-gray-600 font-bold rounded-xl flex items-center justify-center active:scale-95 transition-transform"><i class="fas fa-times text-xl"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
