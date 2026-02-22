@@ -1,30 +1,188 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+/* view-style.css - Royal Theme v3.0 (Enhanced Wallet & Card) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
 
 :root {
-  --primary: #001540;
-  --gold: #D4AF37;
-  --bg: #f8f9fa;
+  --primary-color: #002366; /* Royal Blue */
+  --accent-gold: #D4AF37;   /* Gold */
+  --bg-color: #f8f9fa;
+  --text-dark: #1a1a1a;
+  --bottom-nav-height: 65px;
 }
 
-body { font-family: 'Poppins', sans-serif; background-color: var(--bg); overscroll-behavior-y: none; }
+/* --- 1. GLOBAL & RESET --- */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+}
 
-/* Custom Scrollbar Hide */
 ::-webkit-scrollbar { width: 0px; background: transparent; }
 
-/* TAB ANIMATION */
-.animate-fade { animation: fadeIn 0.4s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* --- 2. BOTTOM NAVIGATION BAR --- */
+nav {
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
 
-/* NAVIGATION */
-.tab-content { display: none; }
+.nav-btn { transition: all 0.2s ease; position: relative; }
+.nav-btn:active { transform: scale(0.95); }
+.nav-active { color: var(--primary-color) !important; }
+.nav-active i {
+  color: var(--accent-gold);
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+  filter: drop-shadow(0 2px 4px rgba(212, 175, 55, 0.3));
+}
+.nav-active span { font-weight: 700; color: var(--primary-color); }
+
+/* Center Floating Button (Payment) */
+.nav-btn .bg-royal-blue {
+    box-shadow: 0 4px 10px rgba(0, 35, 102, 0.3);
+    transition: transform 0.2s;
+}
+.nav-btn:active .bg-royal-blue {
+    transform: scale(0.9);
+    box-shadow: 0 2px 5px rgba(0, 35, 102, 0.2);
+}
+
+/* --- 3. TAB ANIMATIONS --- */
+.tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
 .tab-content.active { display: block; }
-.nav-active { color: var(--primary) !important; }
-.nav-active i { color: var(--gold); transform: translateY(-3px); transition: transform 0.2s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* UTILS */
-.document-thumbnail { transition: transform 0.2s; cursor: pointer; }
-.document-thumbnail:active { transform: scale(0.95); }
+/* --- 4. WALLET & CARD COMPONENTS --- */
+.withdrawal-card {
+  background-image: radial-gradient(circle at top right, rgba(212, 175, 55, 0.1), transparent 40%);
+}
 
-/* MODALS */
-.modal-overlay { z-index: 9999; display: none; }
-.modal-overlay.flex { display: flex; animation: fadeIn 0.2s; }
+.document-thumbnail { transition: transform 0.2s, border-color 0.2s; }
+.document-thumbnail:active { transform: scale(0.95); border-color: var(--accent-gold); }
+
+/* --- 5. NEW ROYAL CERTIFICATE DESIGN (Enhanced) --- */
+.certificate-container {
+    background: #fff;
+    padding: 20px;
+    border: 4px double #D4AF37; /* Double Gold Border */
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 2px #002366; /* Inner Blue Line */
+    text-align: center;
+}
+
+/* Watermark Pattern */
+.certificate-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: radial-gradient(#D4AF37 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.cert-logo-watermark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 180px;
+    color: #D4AF37;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.cert-content { position: relative; z-index: 10; }
+
+.cert-header {
+    font-family: 'Playfair Display', serif;
+    color: var(--primary-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid var(--accent-gold);
+    display: inline-block;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+.cert-profile-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-gold);
+    object-fit: cover;
+    margin: 0 auto 10px auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    display: block; /* Fix for missing image */
+    background-color: #eee;
+}
+
+.cert-amount-box {
+    background: linear-gradient(135deg, #002366, #001540);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 12px;
+    margin: 15px 0;
+    border: 1px solid var(--accent-gold);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.cert-amount-val {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    font-family: 'Playfair Display', serif;
+}
+
+.cert-details {
+    font-size: 0.75rem;
+    color: #555;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.cert-stamp {
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--success-color); /* Green Stamp */
+    color: var(--success-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    transform: rotate(-15deg);
+    opacity: 0.8;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.9);
+}
+
+/* --- 6. MODALS --- */
+.modal-overlay { z-index: 3000; transition: opacity 0.3s ease; }
+.animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* --- 7. UTILITIES --- */
+.text-royal-blue { color: var(--primary-color); }
+.bg-royal-blue { background-color: var(--primary-color); }
+.text-royal-gold { color: var(--accent-gold); }
+.btn-gold { 
+    background: linear-gradient(135deg, #D4AF37, #B8860B);
+    color: white;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+    transition: transform 0.2s;
+}
+.btn-gold:active { transform: scale(0.95); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom) !important; }

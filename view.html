@@ -16,7 +16,7 @@
       theme: {
         extend: {
           colors: { royal: { dark: '#001540', blue: '#002366', gold: '#D4AF37' } },
-          fontFamily: { sans: ['Poppins', 'sans-serif'] }
+          fontFamily: { sans: ['Poppins', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
         }
       }
     }
@@ -34,13 +34,12 @@
   <main class="w-full">
 
     <section id="tab-profile" class="tab-content active">
-        
         <div class="w-full bg-[#001540] text-white pt-8 pb-20 rounded-b-[2.5rem] shadow-2xl relative overflow-hidden z-10">
             <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
             <div class="flex flex-col items-center justify-center relative z-20 w-full px-4">
                 <div class="relative mb-3">
                     <div class="p-1 rounded-full border-2 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.4)] bg-[#002366]">
-                        <img id="header-profile-pic" src="https://placehold.co/150" class="w-24 h-24 rounded-full object-cover border-4 border-white/10" onerror="this.src='https://placehold.co/150'">
+                        <img id="header-profile-pic" src="https://placehold.co/150" class="w-24 h-24 rounded-full object-cover border-4 border-white/10" crossorigin="anonymous">
                     </div>
                     <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-[#001540] text-[10px] font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg flex items-center gap-1 min-w-max">
                         <i class="fas fa-check-circle"></i> VERIFIED
@@ -84,16 +83,16 @@
             <h3 class="font-bold text-gray-400 text-[10px] uppercase tracking-widest mb-3 ml-2">KYC Documents</h3>
             <div class="grid grid-cols-4 gap-2 mb-20">
                  <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-pic" class="w-full h-16 object-cover rounded-lg bg-gray-100" src="">
+                    <img id="doc-thumb-pic" class="w-full h-16 object-cover rounded-lg bg-gray-100" src="" crossorigin="anonymous">
                  </div>
                  <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-front" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="">
+                    <img id="doc-thumb-front" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
                  </div>
                  <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-back" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="">
+                    <img id="doc-thumb-back" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
                  </div>
                  <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-[#D4AF37] transition-colors document-trigger">
-                    <img id="doc-thumb-sign" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="">
+                    <img id="doc-thumb-sign" class="w-full h-16 object-contain rounded-lg bg-gray-100" src="" crossorigin="anonymous">
                  </div>
             </div>
         </div>
@@ -240,23 +239,56 @@
       </div>
   </div>
   
+  <div id="historyModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-end sm:items-center justify-center sm:p-4">
+      <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg h-[85vh] flex flex-col">
+          <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+              <h3 class="font-bold text-royal-blue ml-2">Full Transaction History</h3>
+              <button id="close-history-modal" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
+          </div>
+          <div id="history-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+              </div>
+      </div>
+  </div>
+  
   <div id="cardResultModal" class="modal-overlay fixed inset-0 z-[3000] hidden items-center justify-center p-4 bg-black/90">
       <div class="w-full max-w-sm">
-          <div id="withdrawalCard" class="bg-[#FFFCF5] p-5 relative overflow-hidden border-4 border-double border-[#D4AF37]">
-               <div class="relative z-10 text-center">
-                   <h2 id="card-name" class="font-serif font-bold text-royal-blue uppercase">--</h2>
-                   <p id="card-amount" class="text-4xl font-serif font-bold text-[#D4AF37] my-4">₹0</p>
-                   <p class="text-xs">Tx ID: <span id="rand-tx-id"></span></p>
-                   <p id="card-date" class="text-xs">--</p>
-                   <img id="card-signature" class="h-8 mx-auto mt-2" src="">
-                   <img id="card-profile-pic" class="hidden">
-               </div>
+          
+          <div id="withdrawalCard" class="certificate-container">
+              <div class="cert-content">
+                  <i class="fas fa-crown cert-logo-watermark"></i>
+                  
+                  <div class="cert-header">Official Withdrawal Receipt</div>
+                  
+                  <img id="card-profile-pic" src="" class="cert-profile-img" crossorigin="anonymous">
+                  
+                  <h2 id="card-name" class="text-xl font-bold text-royal-blue uppercase mb-1">--</h2>
+                  <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verified Member</p>
+                  
+                  <div class="cert-amount-box">
+                      <p class="text-[10px] text-gray-300 uppercase tracking-widest mb-1">Amount Withdrawn</p>
+                      <div id="card-amount" class="cert-amount-val">₹0</div>
+                  </div>
+                  
+                  <div class="cert-details">
+                      <div class="text-left">
+                          <p><strong>Tx ID:</strong> <span id="rand-tx-id">...</span></p>
+                          <p><strong>Date:</strong> <span id="card-date">--</span></p>
+                      </div>
+                      <div class="text-right">
+                          <img id="card-signature" src="" class="h-8 object-contain opacity-80" crossorigin="anonymous">
+                          <p class="text-[8px] uppercase mt-1 font-bold">Authorized Signature</p>
+                      </div>
+                  </div>
+                  
+                  <div class="cert-stamp">PAID</div>
+              </div>
           </div>
-          <div class="mt-4 flex gap-2">
-            <button id="download-card-btn" class="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl font-bold">Save</button>
-            <button id="share-card-btn" class="flex-1 bg-white text-[#D4AF37] py-3 rounded-xl font-bold hidden">Share</button>
+          
+          <div class="mt-6 flex gap-3">
+            <button id="download-card-btn" class="flex-1 btn-gold text-white py-3 rounded-xl font-bold shadow-lg">Save Receipt</button>
+            <button id="share-card-btn" class="flex-1 bg-white text-[#D4AF37] border border-[#D4AF37] py-3 rounded-xl font-bold hidden">Share</button>
           </div>
-          <button id="close-card-modal" class="mt-2 w-full text-white">Close</button>
+          <button id="close-card-modal" class="mt-4 w-full text-white opacity-80">Close</button>
       </div>
   </div>
 
