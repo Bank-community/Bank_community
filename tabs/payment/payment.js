@@ -11,7 +11,7 @@ export let allTransactions = [];
 export function hasFullKyc(member) {
     return member && 
            member.profilePicUrl && 
-           member.documentUrl && 
+           member.documentFrontUrl && 
            member.documentBackUrl && 
            member.signatureUrl;
 }
