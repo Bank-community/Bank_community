@@ -1,19 +1,65 @@
 // tabs/payment/paymentLogic.js
 
-// 🚀 FIX: Import hasFullKyc directly from payment.js
 import { currentApp, allMembers, allTransactions, hasFullKyc } from './payment.js';
 import { executeP2PTransaction, savePinToDb } from './paymentDb.js';
-import { renderChatHistory } from './paymentUI.js';
+// 🚀 NEW: Import renderFullHistory from paymentUI
+import { renderChatHistory, renderFullHistory } from './paymentUI.js';
 
 export let selectedReceiver = null;
 export let finalAllowedLimit = 0;
 let isChangingPin = false; 
 
+// 📜 NEW: HISTORY SCREEN LOGIC
+export function openHistoryScreen() {
+    const myId = currentApp.state.member.membershipId;
+    let totalSent = 0;
+    let totalReceived = 0;
+    const myHistory = [];
+    const uniqueTxs = new Set(); // To prevent any duplicate records
+
+    // 1. Filter Only My Transactions & Calculate Totals
+    allTransactions.forEach(tx => {
+        if (!tx || !tx.date) return;
+
+        const isSent = tx.type === 'P2P Sent' && tx.memberId === myId;
+        const isReceived = tx.type === 'P2P Received' && tx.memberId === myId;
+
+        if (isSent || isReceived) {
+            const key = tx.transactionId || `${tx.type}_${tx.amount}_${tx.date}`;
+            if(uniqueTxs.has(key)) return;
+            uniqueTxs.add(key);
+
+            if (isSent) totalSent += (tx.amount || 0);
+            if (isReceived) totalReceived += (tx.amount || 0);
+
+            myHistory.push(tx);
+        }
+    });
+
+    // 2. Sort by Date (Newest First)
+    myHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // 3. Update Summary UI (Top Box)
+    const sentEl = document.getElementById('history-total-sent');
+    const recEl = document.getElementById('history-total-received');
+    if (sentEl) sentEl.textContent = `₹${totalSent.toLocaleString('en-IN')}`;
+    if (recEl) recEl.textContent = `₹${totalReceived.toLocaleString('en-IN')}`;
+
+    // 4. Render the List in UI
+    renderFullHistory(myHistory, myId);
+
+    // 5. Show History Interface Smoothly
+    const screen = document.getElementById('history-interface');
+    if (screen) {
+        screen.classList.replace('hidden', 'flex');
+        setTimeout(() => screen.classList.replace('translate-x-full', 'translate-x-0'), 10);
+    }
+}
+
 export function openChatScreen(receiverId) {
     selectedReceiver = allMembers.find(m => m.membershipId === receiverId);
     if (!selectedReceiver) return alert("Member not found!");
 
-    // 1. Populate Chat UI
     document.getElementById('chat-name').textContent = selectedReceiver.fullName;
     document.getElementById('chat-id').textContent = `ID: ${selectedReceiver.membershipId}`;
     document.getElementById('chat-big-name').textContent = selectedReceiver.fullName;
@@ -23,52 +69,43 @@ export function openChatScreen(receiverId) {
     document.getElementById('chat-big-avatar').src = picSrc;
     document.getElementById('amount-screen-name').textContent = selectedReceiver.fullName;
 
-    // 2. Render Past Chat History instantly
     renderChatHistory(currentApp.state.member.membershipId, receiverId, allTransactions);
 
-    // 3. Pre-Calculate Limits
     calculateLimits();
 
-    // 🚀 4. SENDER KYC UI BLOCK: Disable buttons if KYC is incomplete
     const sender = currentApp.state.member;
     const payBtn = document.getElementById('initiate-pay-btn');
     const msgBox = document.getElementById('chat-message-box');
 
     if (!hasFullKyc(sender)) {
-        // Disable Pay Button visually
         if(payBtn) {
             payBtn.textContent = "KYC Pending";
             payBtn.className = "bg-gray-400 text-white font-bold px-4 py-3 rounded-full shadow-sm cursor-not-allowed opacity-80";
         }
-        // Disable Message Box visually
         if(msgBox) {
             msgBox.innerHTML = `<span class="text-sm text-red-500 w-full font-bold"><i class="fas fa-lock"></i> Complete KYC to Pay</span>`;
             msgBox.className = "flex-1 bg-red-50 rounded-full flex items-center px-4 py-3 cursor-not-allowed border border-red-100";
         }
     } else {
-        // Enable Pay Button
         if(payBtn) {
             payBtn.textContent = "Pay";
             payBtn.className = "bg-blue-600 text-white font-bold px-6 py-3 rounded-full shadow-md hover:bg-blue-700 transition-colors active:scale-95 cursor-pointer";
         }
-        // Enable Message Box
         if(msgBox) {
             msgBox.innerHTML = `<span class="text-sm text-gray-500 w-full">Message or pay...</span><i class="fas fa-paper-plane text-gray-400 ml-2"></i>`;
             msgBox.className = "flex-1 bg-gray-100 rounded-full flex items-center px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors";
         }
     }
 
-    // 5. Show Chat Interface
     const screen = document.getElementById('chat-interface');
     screen.classList.replace('hidden', 'flex');
     setTimeout(() => screen.classList.replace('translate-x-full', 'translate-x-0'), 10);
 }
 
 export function openAmountScreen() {
-    // 🔒 DOUBLE SECURITY CHECK: Agar kisi ne zabardasti click kiya tab bhi block karo
     const sender = currentApp.state.member;
     if (!hasFullKyc(sender)) {
-        alert("🚨 KYC Incomplete: You cannot send money. Please go to your Profile and upload all 4 documents (Photo, Aadhaar Front, Aadhaar Back, Signature).");
+        alert("🚨 KYC Incomplete: You cannot send money. Please go to your Profile and upload all 4 documents.");
         return; 
     }
 
@@ -280,6 +317,19 @@ export async function verifyAndPay(enteredPin) {
         setTimeout(() => document.getElementById('amount-screen').classList.replace('flex', 'hidden'), 300);
 
         currentApp.state.member.accountBalance -= amount; 
+
+        // 🚀 Fix: Also add the new transaction to local allTransactions so history updates instantly!
+        const newTxId = 'temp_' + Date.now();
+        allTransactions.push({
+            transactionId: newTxId,
+            memberId: currentApp.state.member.membershipId,
+            date: new Date().toISOString(),
+            type: 'P2P Sent',
+            amount: amount,
+            p2pNote: note,
+            receiverId: selectedReceiver.membershipId,
+            receiverName: selectedReceiver.fullName
+        });
 
         const container = document.getElementById('chat-bubbles');
         const time = new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
