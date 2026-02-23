@@ -56,6 +56,15 @@ export const elements = {
     headerDisplay: getElement('headerDisplay'),
     infoSlider: getElement('infoSlider'),
     products: getElement('productsContainer'),
+
+    // --- Naye TCF Card ke Elements ---
+    tcfAvailableFunds: getElement('tcfAvailableFunds'),
+    tcfTotalSip: getElement('tcfTotalSip'),
+    tcfActiveLoans: getElement('tcfActiveLoans'),
+    tcfReturns: getElement('tcfReturns'),
+    tcfBalanceToggleBtn: getElement('tcfBalanceToggleBtn'),
+    tcfEyeIcon: getElement('tcfEyeIcon'),
+
     // Modals
     balanceModal: getElement('balanceModal'),
     penaltyModal: getElement('penaltyWalletModal'),
@@ -70,18 +79,23 @@ export const elements = {
     popupContainer: getElement('notification-popup-container')
 };
 
+// --- Helper: Format Number with Commas ---
+function formatNumberWithCommas(amount) {
+    return (amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
 // --- Initialization ---
 export function initUI(database) {
     setupEventListeners(database);
     setupPWA();
-    
+
     // Initial Animation Check
     setTimeout(() => {
         document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
     }, 500);
 
     if (elements.year) elements.year.textContent = new Date().getFullYear();
-    
+
     // Back Button Handling
     window.onpopstate = function(event) {
         if (currentOpenModal) {
@@ -105,7 +119,22 @@ export function renderPage(data) {
 
     const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
 
-    // 1. Render Header Buttons
+    // 0. Update TCF Premium Card (Real-Time Data Injection)
+    if (elements.tcfAvailableFunds) {
+        // Sirf data value store karenge taki hide/show ho sake
+        elements.tcfAvailableFunds.dataset.value = formatNumberWithCommas(globalData.stats.availableCommunityBalance);
+
+        // Agar pehle se unmasked (eye-open) hai toh instantly show kardo
+        if (!elements.tcfAvailableFunds.classList.contains('masked')) {
+            elements.tcfAvailableFunds.textContent = elements.tcfAvailableFunds.dataset.value;
+        }
+
+        if (elements.tcfTotalSip) elements.tcfTotalSip.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalSipAmount);
+        if (elements.tcfActiveLoans) elements.tcfActiveLoans.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalCurrentLoanAmount);
+        if (elements.tcfReturns) elements.tcfReturns.textContent = '₹' + formatNumberWithCommas(globalData.stats.netReturnAmount);
+    }
+
+    // 1. Render Header Buttons (Hidden div mein chalega ab)
     displayHeaderButtons(data.headerButtons || {}, elements.headerActions, elements.staticButtons);
 
     // 2. Render Members (Top 3 + Others)
@@ -117,7 +146,7 @@ export function renderPage(data) {
     // 3. Render Custom Cards & Sliders
     displayCustomCards(data.adminSettings?.custom_cards || {}, elements.customCards);
     displayCommunityLetters(data.adminSettings?.community_letters || {}, elements.letters, showFullImage);
-    
+
     // 4. Update Stats & Info
     updateInfoCards(approvedMembers.length, globalData.stats.totalLoanDisbursed);
     startHeaderDisplayRotator(elements.headerDisplay, approvedMembers, globalData.stats);
@@ -176,24 +205,60 @@ function setupEventListeners(database) {
             const name = document.getElementById('profileModalName');
             if (img && name) showFullImage(img.src, name.textContent);
         }
-        
+
         // Feature: Submit Password
         if (target.closest('#submitPasswordBtn')) {
             handlePasswordCheck(database, currentMemberForFullView);
         }
-        
-        // Dynamic Buttons (ID based)
+
+        // --- 🔘 NAYE TCF CARD & BUTTONS LOGIC ---
+
+        // 1. Eye Icon Toggle Logic (Hide/Show Balance)
+        if (target.closest('#tcfBalanceToggleBtn')) {
+            const amountEl = elements.tcfAvailableFunds;
+            const iconEl = elements.tcfEyeIcon;
+
+            if (amountEl.classList.contains('masked')) {
+                // Show Real Balance
+                amountEl.classList.remove('masked');
+                amountEl.textContent = amountEl.dataset.value || '0';
+                iconEl.setAttribute('data-feather', 'eye');
+                balanceClickSound.play().catch(console.warn);
+            } else {
+                // Hide Balance
+                amountEl.classList.add('masked');
+                amountEl.textContent = '••••••';
+                iconEl.setAttribute('data-feather', 'eye-off');
+            }
+            if(typeof feather !== 'undefined') feather.replace();
+        }
+
+        // 2. Naye 4 Bottom Buttons Route Mapping
+        if (target.closest('#btnQr')) {
+            window.location.href = 'qr.html';
+        }
+        if (target.closest('#btnSip')) {
+            showSipStatusModal(globalData.members);
+        }
+        if (target.closest('#btnLoan')) {
+            window.location.href = 'loan_form.html';
+        }
+        if (target.closest('#btnHistory')) {
+            window.location.href = 'notifications.html'; 
+        }
+
+        // --- OLD BUTTONS LOGIC ---
         if (target.closest('#sipStatusBtn')) showSipStatusModal(globalData.members);
-        
+
         if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
             showBalanceModal(globalData.stats);
         }
-        
+
         if (target.closest('#viewPenaltyWalletBtn')) {
             showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
         }
-        
+
         if (target.closest('#notificationBtn')) {
             window.location.href = 'notifications.html';
         }

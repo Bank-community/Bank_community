@@ -13,6 +13,9 @@
     <link rel="shortcut icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" type="image/x-icon">
     <link rel="apple-touch-icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" sizes="180x180">
     
+   <link rel="stylesheet" href="user-style-base.css">
+<link rel="stylesheet" href="user-style-components.css">
+    
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -21,7 +24,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
 
-    <link rel="stylesheet" href="user-style.css">
+    
 </head>
 <body>
 
@@ -44,64 +47,122 @@
      
     <main class="content-wrapper">
         <section class="bank-members animate-on-scroll"> 
-            <div class="header-container"> 
-                <h2 class="bank-headline">COMMUNITY MEMBERS</h2> 
-                <div class="header-buttons-wrapper" id="staticHeaderButtons">
+            
+            <div class="tcf-premium-card-wrapper">
+                <div class="tcf-card">
+                    <div class="tcf-card-top">
+                        <img src="https://cdn-icons-png.flaticon.com/512/6404/6404100.png" class="tcf-chip" alt="Chip" onerror="this.style.display='none'">
+                        <div class="tcf-card-brand">
+                            <span class="tcf-brand-title">TCF CARD</span>
+                            <span class="tcf-brand-subtitle">Trust Community Fund</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tcf-card-middle">
+                        <div class="tcf-funds-section">
+                            <p class="tcf-funds-label">AVAILABLE FUNDS</p>
+                            <div class="tcf-funds-value-wrapper" id="tcfBalanceToggleBtn">
+                                <span class="tcf-currency">₹</span>
+                                <span class="tcf-amount masked" id="tcfAvailableFunds">••••••</span>
+                                <i data-feather="eye-off" class="tcf-eye-icon" id="tcfEyeIcon"></i>
+                            </div>
+                        </div>
+                        <div class="tcf-stats-section">
+                            <div class="tcf-stat">
+                                <span>TOTAL SIP</span>
+                                <strong id="tcfTotalSip">₹0</strong>
+                            </div>
+                            <div class="tcf-stat">
+                                <span>ACTIVE LOANS</span>
+                                <strong id="tcfActiveLoans" class="text-red">₹0</strong>
+                            </div>
+                            <div class="tcf-stat">
+                                <span>RETURNS</span>
+                                <strong id="tcfReturns" class="text-green">₹0</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tcf-card-bottom">
+                        <span class="tcf-card-number">9304 **** **** 7903</span>
+                        <div class="tcf-mastercard-logo">
+                            <div class="circle circle-red"></div>
+                            <div class="circle circle-yellow"></div>
+                        </div>
+                    </div>
                 </div>
-            </div> 
+            </div>
+
+            <div class="tcf-action-buttons">
+                <div class="tcf-action-btn" id="btnQr">
+                    <div class="tcf-action-icon-wrap"><i data-feather="grid" class="tcf-action-icon text-blue"></i></div>
+                    <span>QR</span>
+                </div>
+                <div class="tcf-action-btn" id="btnSip">
+                    <div class="tcf-action-icon-wrap"><i data-feather="dollar-sign" class="tcf-action-icon text-green"></i></div>
+                    <span>SIP</span>
+                </div>
+                <div class="tcf-action-btn" id="btnLoan">
+                    <div class="tcf-action-icon-wrap"><i data-feather="file-text" class="tcf-action-icon text-orange"></i></div>
+                    <span>Loan</span>
+                </div>
+                <div class="tcf-action-btn" id="btnHistory">
+                    <div class="tcf-action-icon-wrap"><i data-feather="clock" class="tcf-action-icon text-gray"></i></div>
+                    <span>History</span>
+                </div>
+            </div>
+
+            <div id="staticHeaderButtons" style="display: none;"></div>
+            
             <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> 
         </section> 
 
-       <section class="action-cards-section animate-on-scroll"> 
-    <h2>Quick Actions</h2> 
-    <div class="quick-actions-grid"> 
-        
-        <a href="profit_dashboard.html" class="compact-card animate-on-scroll">
-            <i data-feather="bar-chart-2" class="compact-icon"></i>
-            <span>Profit<br>Dashboard</span>
-        </a>
+        <section class="action-cards-section animate-on-scroll"> 
+            <h2>Quick Actions</h2> 
+            <div class="quick-actions-grid"> 
+                
+                <a href="profit_dashboard.html" class="compact-card animate-on-scroll">
+                    <i data-feather="bar-chart-2" class="compact-icon"></i>
+                    <span>Profit<br>Dashboard</span>
+                </a>
 
-        <div class="compact-card animate-on-scroll" id="totalMembersCard">
-            <i data-feather="users" class="compact-icon"></i>
-            <span>All<br>Members</span>
-        </div> 
-        
-        <a href="loan_form.html" class="compact-card animate-on-scroll">
-            <i data-feather="file-text" class="compact-icon"></i>
-            <span>Loan<br>Form</span>
-        </a> 
+                <div class="compact-card animate-on-scroll" id="totalMembersCard">
+                    <i data-feather="users" class="compact-icon"></i>
+                    <span>All<br>Members</span>
+                </div> 
+                
+                <a href="loan_form.html" class="compact-card animate-on-scroll">
+                    <i data-feather="file-text" class="compact-icon"></i>
+                    <span>Loan<br>Form</span>
+                </a> 
 
-        <a href="loan_dashbord.html" class="compact-card animate-on-scroll">
-            <i data-feather="list" class="compact-icon"></i>
-            <span>Transactions</span>
-        </a> 
-        
-        <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ?mode=hqrt3" target="_blank" class="compact-card animate-on-scroll">
-            <i data-feather="message-circle" class="compact-icon"></i>
-            <span>WhatsApp<br>Support</span>
-        </a> 
-        
-        <div class="compact-card animate-on-scroll" id="viewPenaltyWalletBtn">
-            <i data-feather="credit-card" class="compact-icon"></i>
-            <span>Wallet</span>
-        </div>
+                <a href="loan_dashbord.html" class="compact-card animate-on-scroll">
+                    <i data-feather="list" class="compact-icon"></i>
+                    <span>Transactions</span>
+                </a> 
+                
+                <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ?mode=hqrt3" target="_blank" class="compact-card animate-on-scroll">
+                    <i data-feather="message-circle" class="compact-icon"></i>
+                    <span>WhatsApp<br>Support</span>
+                </a> 
+                
+                <div class="compact-card animate-on-scroll" id="viewPenaltyWalletBtn">
+                    <i data-feather="credit-card" class="compact-icon"></i>
+                    <span>Wallet</span>
+                </div>
 
-        <a href="https://chatgpt.com/g/g-p-693ea59f7ee881918218c0fa5516fd29-tcf-assistant/project" class="compact-card animate-on-scroll">
-            <i data-feather="cpu" class="compact-icon"></i>
-            <span>AI Chat</span>
-        </a>
+                <a href="https://chatgpt.com/g/g-p-693ea59f7ee881918218c0fa5516fd29-tcf-assistant/project" class="compact-card animate-on-scroll">
+                    <i data-feather="cpu" class="compact-icon"></i>
+                    <span>AI Chat</span>
+                </a>
 
-        <a href="rules.html" class="compact-card animate-on-scroll">
-            <i data-feather="award" class="compact-icon"></i>
-            <span>Rules<br>Certificate</span>
-        </a>
+                <a href="rules.html" class="compact-card animate-on-scroll">
+                    <i data-feather="award" class="compact-icon"></i>
+                    <span>Rules<br>Certificate</span>
+                </a>
 
-    </div> 
-</section>
-
-
-
-
+            </div> 
+        </section>
         
         <section class="products-section animate-on-scroll">
             <h2>Products on EMI</h2>
