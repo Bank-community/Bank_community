@@ -348,6 +348,7 @@
             document.getElementById('generateBtn').innerHTML = `GENERATE WITHDRAWAL <i class="fas fa-file-export ml-2"></i>`;
             checkDate();
         }
+        // Mode change hone par phir se validate karo
         if (currentMember) handleMemberChange();
     }
 
@@ -359,8 +360,10 @@
         const balance = parseFloat(currentMember.accountBalance) || 0;
         document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
         
+        // 1. Pehle KYC Validate karo (Ye Button Disable karega agar document missing hai)
         validateKYC(currentMember);
         
+        // 2. Limit Calculate karo
         const mode = document.getElementById('appMode').value;
         let limit = 0;
         if (mode === 'loan') {
@@ -375,27 +378,60 @@
         document.getElementById('displayEligibleLimit').innerText = currentMaxLimit.toLocaleString('en-IN');
         document.getElementById('walletInfo').classList.remove('hidden');
         
+        // 3. Amount Field check karo (Ye bhi button ko control karta hai)
         validateAmount();
     }
 
+    // 🔥 STRICT KYC VERIFICATION LOGIC (UPDATED)
     function validateKYC(member) {
         const missing = [];
-        if(!member.profilePicUrl) missing.push("Photo");
-        if(!member.documentFrontUrl && !member.documentUrl) missing.push("Aadhaar Front");
-        if(!member.email || !member.email.includes('@')) missing.push("Email");
+
+        // Check 1: Profile Photo
+        if(!member.profilePicUrl || member.profilePicUrl.length < 5) {
+            missing.push("Photo");
+        }
+
+        // Check 2: Front Document (Aadhaar Front)
+        const front = member.documentFrontUrl || member.documentUrl;
+        if(!front || front.length < 5) {
+            missing.push("ID Proof (Front)");
+        }
+
+        // Check 3: Back Document (Aadhaar Back) - 🔥 FIXED HERE
+        if(!member.documentBackUrl || member.documentBackUrl.length < 5) {
+            missing.push("Address Proof (Back)");
+        }
+
+        // Check 4: Signature - 🔥 FIXED HERE
+        if(!member.signatureUrl || member.signatureUrl.length < 5) {
+            missing.push("Signature");
+        }
+
+        // Check 5: Email
+        if(!member.email || !member.email.includes('@')) {
+            missing.push("Email");
+        }
 
         const container = document.getElementById('kycStatusContainer');
         const btn = document.getElementById('generateBtn');
+        
+        // Purane classes hatao
         container.classList.remove('hidden', 'bg-red-50', 'bg-green-50', 'border-red-200', 'border-green-200', 'text-red-700', 'text-green-700');
 
         if (missing.length === 0) {
+            // ALL OK
             container.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
             container.innerHTML = `<i class="fas fa-check-circle"></i> KYC Verified (All Docs OK)`;
-            btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.disabled = false; 
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
+            // MISSING DOCUMENTS
             container.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
-            container.innerHTML = `<i class="fas fa-times-circle"></i> Missing: ${missing.join(', ')}`;
-            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
+            container.innerHTML = `<div class="font-bold flex items-center"><i class="fas fa-times-circle mr-2"></i> Verification Failed</div><div class="text-[10px] mt-1 ml-5">Missing: ${missing.join(', ')}</div>`;
+            
+            // Force Disable Button
+            btn.disabled = true; 
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
     }
 
@@ -405,19 +441,28 @@
         const mode = document.getElementById('appMode').value;
         const btn = document.getElementById('generateBtn');
         
-        // Check KYC first (Don't enable if KYC failed)
-        const kycOk = !document.getElementById('kycStatusContainer').innerHTML.includes('Missing');
+        // Sabse pehle check karo ki KYC fail to nahi hai?
+        // Agar KYC fail hai, to amount sahi hone par bhi button enable nahi hona chahiye.
+        const kycFailed = document.getElementById('kycStatusContainer').innerHTML.includes('Missing');
+        if (kycFailed) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            return; // Yahin ruk jao
+        }
 
         if (amt > 0) {
             msg.classList.remove('hidden');
             if (amt > currentMaxLimit) {
                 msg.innerText = `Exceeds Limit (Max: ${currentMaxLimit})`;
                 msg.className = "text-xs mt-1 font-semibold text-red-600";
-                if(kycOk) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+                btn.disabled = true; 
+                btn.classList.add('opacity-50', 'cursor-not-allowed'); 
             } else {
                 msg.innerText = "Amount is within limit.";
                 msg.className = "text-xs mt-1 font-semibold text-green-600";
-                if(kycOk) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                // Button enable karo kyunki KYC pass hai aur Amount bhi limit me hai
+                btn.disabled = false; 
+                btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
             }
             if(mode === 'loan') populateDuration(amt);
         } else {
@@ -478,12 +523,10 @@
         document.getElementById('displayMobile').innerText = currentMember.mobileNumber || 'N/A';
         document.getElementById('displayAmount').innerText = amt.toFixed(2);
         
-        // --- ⚡ PROXY IMAGE LOADER (The Fix for Back Image) ---
+        // Proxy Image Function
         const setProxyImg = (id, url) => {
             const el = document.getElementById(id);
             if(url && url.length > 5) {
-                // Encode Component to handle special chars in URL
-                // Removing https:// is standard for weserv
                 const cleanUrl = url.replace(/^https?:\/\//, '');
                 el.src = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&output=webp`;
                 el.classList.remove('hidden');
@@ -496,12 +539,11 @@
         setProxyImg('apiApplicantPhoto', currentMember.profilePicUrl);
         setProxyImg('displaySignature', currentMember.signatureUrl);
         
-        // --- DOCS LOGIC UPDATE ---
+        // Handle Docs
         const file = document.getElementById('imageUpload').files[0];
         const docSection = document.getElementById('docSection');
         
         if (file) {
-            // Manual Upload Priority
             const reader = new FileReader();
             reader.onload = e => {
                 document.getElementById('docFrontImg').src = e.target.result;
@@ -510,19 +552,18 @@
             };
             reader.readAsDataURL(file);
         } else {
-            // Automatic from DB
             const frontUrl = currentMember.documentFrontUrl || currentMember.documentUrl;
             const backUrl = currentMember.documentBackUrl;
 
-            if (frontUrl || backUrl) {
+            // Show Docs only if Front exist
+            if (frontUrl) {
                 docSection.classList.remove('hidden');
                 setProxyImg('docFrontImg', frontUrl);
                 
-                // Strict check for Back URL
-                if (backUrl && backUrl.length > 5 && backUrl !== 'undefined') {
+                // Back URL check for display
+                if (backUrl && backUrl.length > 5) {
                     setProxyImg('docBackImg', backUrl);
                 } else {
-                    // Hide Back Image if missing
                     document.getElementById('docBackImg').classList.add('hidden');
                 }
             } else {
@@ -543,7 +584,6 @@
                 document.getElementById('guarantorRow').style.display = 'flex';
             }
 
-            // Calculation
             const [months, rate] = dur.split('-');
             const mRate = parseFloat(rate);
             const mCount = parseInt(months);
@@ -582,7 +622,6 @@
         document.getElementById('input-page').classList.remove('hidden');
     }
 
-    // --- 4. SAFE DOWNLOAD LOGIC ---
     async function downloadSlip() {
         const btn = document.getElementById('downloadBtn');
         const cap = document.getElementById('capture');
@@ -592,29 +631,21 @@
         btn.disabled = true;
 
         try {
-            // 1. Reset Scale
             const oldTrans = scaler.style.transform;
             scaler.style.transform = 'none';
             window.scrollTo(0,0);
             
-            // 2. Wait for images (With Safety Timeout to prevent Freezing)
+            // Image Loader with Timeout (Anti-Freeze)
             const imgs = Array.from(cap.getElementsByTagName('img'));
-            
-            // Promise that resolves when all images load OR error out
-            const imagePromises = imgs.map(img => {
+            const promises = imgs.map(img => {
                 if(img.complete) return Promise.resolve();
-                if(!img.src) return Promise.resolve(); // Skip empty sources
-                return new Promise(r => { 
-                    img.onload = r; 
-                    img.onerror = () => { console.warn('Image failed:', img.id); r(); }; 
-                });
+                if(!img.src || img.classList.contains('hidden')) return Promise.resolve();
+                return new Promise(r => { img.onload=r; img.onerror=r; });
             });
+            
+            const timeout = new Promise(r => setTimeout(r, 3000)); // 3s Max Wait
+            await Promise.race([Promise.all(promises), timeout]);
 
-            // Force proceed after 3 seconds even if images are stuck
-            const timeoutPromise = new Promise(r => setTimeout(r, 3000));
-            await Promise.race([Promise.all(imagePromises), timeoutPromise]);
-
-            // 3. Capture
             const canvas = await html2canvas(cap, {
                 scale: 2,
                 useCORS: true, 
@@ -623,7 +654,6 @@
                 logging: false
             });
 
-            // 4. Restore & Download
             scaler.style.transform = oldTrans;
 
             const link = document.createElement('a');
@@ -636,7 +666,6 @@
 
         } catch (e) {
             alert("Download Error: " + e.message);
-            // Restore button state on error
             scaler.style.transform = `scale(${ (window.innerWidth - 20) / 794 })`;
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-download mr-2"></i> Download Slip';
@@ -655,6 +684,7 @@
     initApp();
 
 </script>
+
 
 </body>
 </html>
