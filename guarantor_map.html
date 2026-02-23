@@ -61,7 +61,7 @@
 
         .popup-header {
             background: linear-gradient(135deg, #002366, #001540);
-            padding: 20px; text-align: center; position: relative;
+            padding: 25px 20px 20px; text-align: center; position: relative;
         }
         .popup-close {
             position: absolute; top: 10px; right: 10px;
@@ -70,19 +70,21 @@
             display: flex; align-items: center; justify-content: center;
         }
         .popup-img {
-            width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+            width: 85px; height: 85px; border-radius: 50%; object-fit: cover;
             border: 3px solid #D4AF37; margin: 0 auto;
             cursor: zoom-in; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             background: #fff;
         }
-        .popup-name { color: white; font-weight: bold; font-size: 1.1em; margin-top: 10px; }
-        .popup-id { color: #D4AF37; font-size: 0.8em; letter-spacing: 1px; }
+        .popup-name { color: white; font-weight: bold; font-size: 1.2em; margin-top: 10px; }
+        .popup-id { color: #D4AF37; font-size: 0.75em; letter-spacing: 1px; text-transform: uppercase; }
 
-        .popup-body { padding: 20px; }
-        .popup-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9em; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        .popup-row:last-child { border: none; margin: 0; }
-        .popup-label { color: #666; font-weight: 600; }
-        .popup-val { font-weight: 700; color: #333; }
+        .popup-body { padding: 20px; background: white; }
+        .popup-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.95em; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
+        .popup-row:last-child { border: none; margin: 0; padding-bottom: 0; }
+        .popup-label { color: #64748b; font-weight: 600; font-size: 0.9em; }
+        .popup-val { font-weight: 700; color: #334155; }
+        
+        .val-gold { color: #b45309; }
         .val-green { color: #10b981; }
         .val-red { color: #ef4444; }
 
@@ -131,6 +133,10 @@
             <div id="pop-id" class="popup-id">ID: --</div>
         </div>
         <div class="popup-body">
+            <div class="popup-row">
+                <span class="popup-label">Guarantor</span>
+                <span id="pop-guarantor" class="popup-val" style="color: #002366;">--</span>
+            </div>
             <div class="popup-row">
                 <span class="popup-label">Joining Date</span>
                 <span id="pop-join" class="popup-val">--</span>
@@ -202,7 +208,6 @@
         // --- 1. PROCESS LOANS ---
         function processLoans(loansObj) {
             if (!loansObj) return;
-            // Check loan_dashboard.js logic: status === 'Active'
             Object.values(loansObj).forEach(loan => {
                 if (loan.status && loan.status.trim() === 'Active') {
                     if (!activeLoansMap[loan.memberId]) {
@@ -263,7 +268,7 @@
                     borderWidth = 5;
                 } else if (isRisky) {
                     borderColor = "#ef4444"; // Red (Risk)
-                    borderWidth = 3; // "Sabse chhota" but visible
+                    borderWidth = 3; 
                 }
 
                 nodes.push({
@@ -278,7 +283,7 @@
                         background: "#ffffff"
                     },
                     font: { size: 12, color: isRisky ? "#ef4444" : "#333", face: "Segoe UI" },
-                    shadow: isRisky // Shadow for risky items to pop slightly
+                    shadow: isRisky
                 });
 
                 // Edges
@@ -334,7 +339,7 @@
                 nodes: {
                     borderWidthSelected: 4,
                     shapeProperties: {
-                        useBorderWithImage: true // Ensures border hugs the image
+                        useBorderWithImage: true 
                     }
                 },
                 edges: {
@@ -382,6 +387,9 @@
             document.getElementById('pop-name').innerText = m.fullName;
             document.getElementById('pop-id').innerText = `ID: ${m.membershipId}`;
             
+            // NEW: Guarantor
+            document.getElementById('pop-guarantor').innerText = m.guarantorName || 'None';
+
             document.getElementById('pop-join').innerText = m.joiningDate || 'N/A';
             document.getElementById('pop-bal').innerText = `₹${(m.accountBalance || 0).toLocaleString()}`;
             
