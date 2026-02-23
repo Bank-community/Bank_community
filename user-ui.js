@@ -211,19 +211,47 @@ function setupEventListeners(database) {
             handlePasswordCheck(database, currentMemberForFullView);
         }
 
+
+
+
+
         // --- 🔘 NAYE TCF CARD & BUTTONS LOGIC ---
 
-        // 1. Eye Icon Toggle Logic (Hide/Show Balance)
+                // 1. Eye Icon Toggle Logic (Hide/Show Balance)
         if (target.closest('#tcfBalanceToggleBtn')) {
             const amountEl = elements.tcfAvailableFunds;
             const iconEl = elements.tcfEyeIcon;
-
+            
             if (amountEl.classList.contains('masked')) {
-                // Show Real Balance
+                // Show Real Balance with 2s Animation
                 amountEl.classList.remove('masked');
-                amountEl.textContent = amountEl.dataset.value || '0';
                 iconEl.setAttribute('data-feather', 'eye');
                 balanceClickSound.play().catch(console.warn);
+
+                // 🔥 2-Second Counting Animation Logic
+                const targetValueStr = amountEl.dataset.value || '0';
+                // Commas hata kar asli number nikal rahe hain
+                const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
+                const duration = 2000; // 2000ms = 2 seconds
+                let startTimestamp = null;
+
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    
+                    // Number badhne ka effect
+                    const currentVal = Math.floor(progress * endValue);
+                    amountEl.textContent = formatNumberWithCommas(currentVal);
+                    
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    } else {
+                        // Animation khatam hone par exact final value set karna
+                        amountEl.textContent = targetValueStr; 
+                    }
+                };
+                window.requestAnimationFrame(step);
+
             } else {
                 // Hide Balance
                 amountEl.classList.add('masked');
@@ -232,6 +260,11 @@ function setupEventListeners(database) {
             }
             if(typeof feather !== 'undefined') feather.replace();
         }
+
+
+
+
+
 
         // 2. Naye 4 Bottom Buttons Route Mapping
         if (target.closest('#btnQr')) {
