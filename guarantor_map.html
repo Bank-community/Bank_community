@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guarantor Network Map</title>
+    
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --primary: #002366;
+            --gold: #D4AF37;
+        }
+        
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        
+        #guarantor-network {
+            width: 100vw;
+            height: 100vh;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Tooltip Customization */
+        div.vis-tooltip {
+            background-color: #001540 !important;
+            color: #fff !important;
+            border-radius: 8px !important;
+            border: 1px solid #D4AF37 !important;
+            padding: 10px !important;
+            font-size: 12px !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+        }
+
+        /* Loading Overlay */
+        #map-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
+        <button onclick="fitGraph()" class="bg-white p-3 rounded-full shadow-lg text-[#002366] hover:bg-blue-50 transition border border-gray-200" title="Fit Graph">
+            <i data-feather="maximize"></i>
+        </button>
+        <button onclick="fetchData()" class="bg-white p-3 rounded-full shadow-lg text-[#D4AF37] hover:bg-yellow-50 transition border border-gray-200" title="Refresh">
+            <i data-feather="refresh-cw"></i>
+        </button>
+        <button onclick="history.back()" class="bg-white p-3 rounded-full shadow-lg text-red-500 hover:bg-red-50 transition border border-gray-200" title="Back">
+            <i data-feather="arrow-left"></i>
+        </button>
+    </div>
+
+    <div class="absolute top-4 left-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-blue-100 min-w-[180px]">
+        <h3 class="text-xs font-bold text-[#002366] uppercase tracking-widest mb-3 border-b pb-2">Network Stats</h3>
+        <div class="text-[11px] space-y-2">
+            <div class="flex justify-between"><span>Total Members:</span> <span id="stat-total" class="font-bold">0</span></div>
+            <div class="flex justify-between"><span>Orphans:</span> <span id="stat-orphans" class="text-red-500 font-bold">0</span></div>
+        </div>
+        <div class="mt-3 pt-2 border-t border-gray-100 grid grid-cols-2 gap-2 text-[10px]">
+            <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#D4AF37]"></span> Root</div>
+            <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#002366]"></span> Core</div>
+            <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#E0F2FE]"></span> Member</div>
+        </div>
+    </div>
+
+    <div id="guarantor-network"></div>
+
+    <div id="map-loader">
+        <div class="w-12 h-12 border-4 border-gray-200 border-t-[#002366] rounded-full animate-spin"></div>
+        <p class="mt-4 text-xs font-bold text-gray-500 tracking-widest animate-pulse">BUILDING NETWORK...</p>
+    </div>
+
+    <script>
+        const CORE_GUARANTORS = ["Amit Kumar", "Mithilesh Sahni", "Prince Rama"];
+        const ROOT_ID = "TCF_ROOT";
+        let networkInstance = null;
+        let allNodes = [];
+        let allEdges = [];
+
+        // --- INIT ---
+        window.onload = async () => {
+            feather.replace();
+            try {
+                // Initialize Firebase
+                const res = await fetch('/api/firebase-config');
+                const config = await res.json();
+                if(!firebase.apps.length) firebase.initializeApp(config);
+                
+                fetchData();
+            } catch(e) { 
+                console.error(e);
+                alert("Init Failed");
+            }
+        };
+
+        async function fetchData() {
+            document.getElementById('map-loader').style.display = 'flex';
+            try {
+                const db = firebase.database();
+                const snapshot = await db.ref('members').once('value');
+                if (!snapshot.exists()) throw new Error("No members found");
+
+                const graphData = buildGraphData(snapshot.val());
+                updateStats(graphData);
+                renderNetwork(graphData);
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Data Error: " + error.message);
+            } finally {
+                document.getElementById('map-loader').style.display = 'none';
+            }
+        }
+
+        // --- GRAPH LOGIC ---
+        function buildGraphData(membersObj) {
+            const nodes = [];
+            const edges = [];
+            const memberMap = new Map(); // Name -> ID
+            const orphanNodes = [];
+
+            // 1. Root Node
+            nodes.push({ 
+                id: ROOT_ID, 
+                label: "TCF\nTrust Community", 
+                color: { background: "#D4AF37", border: "#B8860B" }, 
+                shape: "box", 
+                font: { color: "white", size: 18, face: "Segoe UI", bold: true },
+                level: 0,
+                margin: 10
+            });
+
+            // 2. Prepare Map & Nodes
+            Object.entries(membersObj).forEach(([id, m]) => {
+                if (m.status === 'Approved') {
+                    const nameKey = m.fullName.trim().toLowerCase();
+                    memberMap.set(nameKey, id);
+                    
+                    let color = "#E0F2FE"; // Default Member
+                    let size = 20;
+                    let fontColor = "#333";
+                    let isCore = false;
+
+                    // Core Check
+                    if (CORE_GUARANTORS.some(n => n.toLowerCase() === nameKey)) {
+                        color = "#002366"; // Core
+                        fontColor = "white";
+                        size = 30;
+                        isCore = true;
+                    }
+
+                    nodes.push({
+                        id: id,
+                        label: m.fullName.split(" ")[0], // First Name
+                        title: `<b>${m.fullName}</b><br>ID: ${m.membershipId}<br>Loc: ${m.address || 'N/A'}`,
+                        color: { background: color, border: "#002366" },
+                        shape: "dot",
+                        size: size,
+                        font: { color: fontColor, size: 14, strokeWidth: 0, face: "Segoe UI" }
+                    });
+                }
+            });
+
+            // 3. Create Edges
+            Object.entries(membersObj).forEach(([childId, m]) => {
+                if (m.status !== 'Approved') return;
+
+                let parentId = null;
+                const nameKey = m.fullName.trim().toLowerCase();
+
+                // Logic:
+                // 1. Core Guarantors -> Connect to ROOT
+                // 2. Others -> Connect to their Guarantor
+                
+                if (CORE_GUARANTORS.some(n => n.toLowerCase() === nameKey)) {
+                    parentId = ROOT_ID;
+                } else if (m.guarantorName) {
+                    const gName = m.guarantorName.trim().toLowerCase();
+                    if (memberMap.has(gName)) {
+                        parentId = memberMap.get(gName);
+                    } else {
+                        // Guarantor Name exists but not found in DB -> Orphan
+                        orphanNodes.push(childId);
+                    }
+                } else {
+                    // No Guarantor Name -> Root (or Orphan logic if strict)
+                    parentId = ROOT_ID; 
+                }
+
+                if (parentId) {
+                    edges.push({ from: parentId, to: childId });
+                }
+            });
+
+            // 4. Handle Orphans (Connect to Root with alert style)
+            orphanNodes.forEach(id => {
+                edges.push({ 
+                    from: ROOT_ID, 
+                    to: id, 
+                    dashes: true, 
+                    color: { color: "#ef4444" },
+                    title: "Missing Guarantor Link"
+                });
+            });
+
+            return { nodes, edges, orphans: orphanNodes.length };
+        }
+
+        function renderNetwork(data) {
+            const container = document.getElementById('guarantor-network');
+            
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: "UD", // Up-Down
+                        sortMethod: "directed",
+                        nodeSpacing: 180,
+                        levelSeparation: 150,
+                        shakeTowards: 'roots' // Pulls nodes tight
+                    }
+                },
+                nodes: {
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    width: 2,
+                    color: { color: "#94a3b8", highlight: "#D4AF37" },
+                    smooth: { 
+                        type: "cubicBezier", 
+                        forceDirection: "vertical", 
+                        roundness: 0.5 
+                    },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+                },
+                physics: {
+                    enabled: false // Static is better for hierarchy
+                },
+                interaction: {
+                    dragNodes: true,
+                    hover: true,
+                    tooltipDelay: 200,
+                    zoomView: true
+                }
+            };
+
+            networkInstance = new vis.Network(container, data, options);
+            
+            // Fit on load
+            setTimeout(() => { networkInstance.fit({ animation: true }); }, 500);
+        }
+
+        function updateStats(data) {
+            document.getElementById('stat-total').innerText = data.nodes.length - 1; // Exclude Root
+            document.getElementById('stat-orphans').innerText = data.orphans;
+        }
+
+        function fitGraph() {
+            if(networkInstance) networkInstance.fit({ animation: true });
+        }
+    </script>
+</body>
+</html>
