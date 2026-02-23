@@ -1,5 +1,6 @@
 /* ==========================================================================
    PART 1: BASE STYLES, VARIABLES, HEADER, FOOTER & MODALS
+   (BUG FIXES APPLIED: HEADER OVERLAP SPACE & AD-DISPLAY HEIGHT)
    ========================================================================== */
 
 :root {
@@ -69,17 +70,20 @@ section {
     border: 1px solid rgba(0,0,0,0.05); 
 }
 
-/* --- HEADER --- */
+/* --- HEADER (OVERLAP FIXES APPLIED) --- */
 header { 
     background: linear-gradient(160deg, #002366 0%, #001233 100%); 
     color: white; 
-    padding: 25px 0 35px 0; 
+    padding: 25px 0 70px 0; /* 🔥 INCREASED PADDING BOTTOM: Card ko overlap hone ki jagah dene ke liye */
     text-align: center; 
     border-bottom: 4px solid var(--accent-gold); 
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
+    position: relative;
+    z-index: 1; /* Taki card iske upar smoothly overlap kar sake */
 }
+
 header h1 { 
     font-size: 1.8em; 
     margin: 15px 0 5px 0; 
@@ -101,32 +105,76 @@ header h4 {
     text-transform: uppercase; 
 }
 
-/* Header Display (Ads & Ticker) */
+/* --- HEADER DISPLAY (AD SQUISH FIX) --- */
 .header-display { 
-    width: 100%; max-width: 500px; height: 180px; 
-    margin: 0 auto 20px auto; padding: 8px; box-sizing: border-box; 
+    width: 95%; /* Better mobile fitting */
+    max-width: 500px; 
+    min-height: 180px; /* 🔥 FIXED: Ab height auto adjust hogi text dabega nahi */
+    height: auto;
+    margin: 0 auto 20px auto; 
+    padding: 8px; 
+    box-sizing: border-box; 
     border-radius: 20px; 
     background: linear-gradient(145deg, #D4AF37, #B8860B); 
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); 
-    display: flex; flex-direction: column; 
-}
-.ad-content { 
-    background-color: #0b1021; border-radius: 14px; width: 100%; height: 100%; 
-    position: relative; overflow: hidden; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8); 
-    display: flex; flex-direction: column; align-items: center; justify-content: center; 
-    padding: 10px; box-sizing: border-box; animation: fadeIn 0.8s ease-in-out; flex-grow: 1; 
-}
-.ticker-wrap { 
-    width: 100%; overflow: hidden; background-color: #000; 
-    padding: 5px 0; border-top: 1px solid var(--accent-gold); margin-top: auto; 
-}
-.ticker { 
-    display: inline-block; white-space: nowrap; padding-left: 100%; 
-    animation: ticker-scroll 20s linear infinite; color: var(--accent-gold); 
-    font-family: 'Courier New', Courier, monospace; font-size: 0.9em; font-weight: bold; 
+    display: flex; 
+    flex-direction: column; 
 }
 
-/* --- BUTTONS (Base) --- */
+.ad-content { 
+    background-color: #0b1021; 
+    border-radius: 12px 12px 0 0; /* Ticker wrap ke sath perfect shape */
+    width: 100%; 
+    min-height: 140px; 
+    position: relative; 
+    overflow: hidden; 
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8); 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 15px 10px; /* Thoda extra breathing space */
+    box-sizing: border-box; 
+    animation: fadeIn 0.8s ease-in-out; 
+    flex-grow: 1; 
+}
+
+.ticker-wrap { 
+    width: 100%; 
+    overflow: hidden; 
+    background-color: #000; 
+    padding: 6px 0; /* Ticker line height increase */
+    border-top: 2px solid var(--accent-gold); 
+    margin-top: auto; 
+    border-radius: 0 0 12px 12px;
+}
+
+.ticker { 
+    display: inline-block; 
+    white-space: nowrap; 
+    padding-left: 100%; 
+    animation: ticker-scroll 20s linear infinite; 
+    color: var(--accent-gold); 
+    font-family: 'Courier New', Courier, monospace; 
+    font-size: 0.9em; 
+    font-weight: bold; 
+    line-height: 1.4;
+}
+
+/* --- AD CONTENT INNER STYLES --- */
+.ad-headline { font-size: 1em; font-weight: 600; color: var(--accent-gold); margin-bottom: 5px; z-index: 2; position: relative; text-transform: uppercase; letter-spacing: 1px; }
+.ad-top-three-container, .ad-bank-stats-container { z-index: 2; position: relative; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; width: 100%; }
+.ad-top-three-container { justify-content: space-around; align-items: flex-start; }
+.ad-top-three-member { text-align: center; flex: 1; }
+.ad-top-three-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin: 0 auto 5px; border: 2px solid var(--accent-gold); }
+.ad-top-three-name { font-size: 0.85em; font-weight: 600; line-height: 1.2; color: #fff; margin: 0 0 4px 0; }
+.ad-top-three-amount { font-size: 0.8em; color: var(--accent-gold); margin: 0; }
+.ad-bank-logo { width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--accent-gold); }
+.ad-bank-stats { list-style: none; padding: 0; margin: 0; text-align: left; }
+.ad-bank-stats li { font-size: 1em; font-weight: 500; margin-bottom: 5px; color: #d1d5db;}
+.ad-bank-stats li strong { color: var(--accent-gold); }
+
+/* --- BUTTONS & MODALS --- */
 .header-actions { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; padding: 0 15px; margin-top: 15px; box-sizing: border-box; }
 .dynamic-buttons-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; padding: 0 10px; }
 
@@ -139,7 +187,6 @@ header h4 {
 }
 .civil-button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
 
-/* --- MODALS (Popups) --- */
 .modal { 
     display: none; position: fixed; z-index: 1001; left: 0; top: 0; 
     width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); 
@@ -168,7 +215,6 @@ header h4 {
 .close:active { transform: scale(0.9); }
 .close:hover { background-color: #c82333; }
 
-/* Luxury Modal (Balance & Penalty) */
 .luxury-modal {
     background: linear-gradient(145deg, #ffffff, #f0f4ff); 
     border: 2px solid var(--accent-gold); box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
@@ -194,7 +240,6 @@ footer a { color: var(--accent-gold) !important; font-weight: bold; text-decorat
 /* --- ANIMATIONS --- */
 @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 .animate-on-scroll { opacity: 1; transform: translateY(0); transition: opacity var(--animation-duration) ease-out, transform var(--animation-duration) ease-out; }
 .animate-on-scroll.hidden-initially { opacity: 0; transform: translateY(40px); }
 .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
