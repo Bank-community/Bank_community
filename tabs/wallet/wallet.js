@@ -35,7 +35,8 @@ function renderWalletTab(state) {
     setText('wallet-guarantor', m.guarantorName || 'N/A');
 
     // --- NEW LOGIC: Block Withdrawal if KYC is Incomplete ---
-    const isKycComplete = m.profilePicUrl && m.documentUrl && m.documentBackUrl && m.signatureUrl;
+    const isKycComplete = m.profilePicUrl && m.documentFrontUrl && m.documentBackUrl && m.signatureUrl;
+
     const withdrawBtn = document.getElementById('withdraw-btn');
 
     if (withdrawBtn) {
