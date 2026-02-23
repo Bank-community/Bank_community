@@ -99,7 +99,7 @@
             </div>
 
             <div>
-                <label class="text-sm font-semibold text-gray-700">Member Name</label>
+                <label class="text-sm font-semibold text-gray-700">Select Member</label>
                 <select id="nameSelect" class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
                     <option value="" disabled selected>Loading members...</option>
                 </select>
@@ -108,7 +108,7 @@
 
                 <div id="walletInfo" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
                     <div class="flex justify-between items-center text-xs">
-                        <span class="text-gray-500">Current SIP Balance</span>
+                        <span class="text-gray-500">SIP Balance</span>
                         <span class="font-bold text-blue-700 text-sm">₹<span id="displayWalletBalance">0</span></span>
                     </div>
                     <div class="flex justify-between items-center text-xs pt-2 border-t border-blue-100">
@@ -125,7 +125,7 @@
             </div>
 
             <div id="durationWrapper">
-                <label class="text-sm font-semibold text-gray-700">Duration & Interest</label>
+                <label class="text-sm font-semibold text-gray-700">Tenure & Interest</label>
                 <select id="durationRateSelect" class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
                    <option value="" disabled selected>Enter amount first...</option>
                 </select>
@@ -137,7 +137,7 @@
             </div>
 
             <div>
-                <label class="text-sm font-semibold text-gray-700">Verify Identity Document</label>
+                <label class="text-sm font-semibold text-gray-700">Verification Doc (Optional)</label>
                 <input type="file" id="imageUpload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-teal-50 file:text-teal-700 border rounded-lg mt-1">
             </div>
 
@@ -209,9 +209,9 @@
                       </div>
 
                       <div id="loanCalculations">
-                          <div class="info-row"><div class="info-icon"><i class="fas fa-percent"></i></div><div class="info-label">Interest:</div><div class="info-val text-sm" id="displayRate"></div></div>
+                          <div class="info-row"><div class="info-icon"><i class="fas fa-percent"></i></div><div class="info-label">Interest:</div><div class="info-val text-sm font-bold" id="displayRate"></div></div>
                           <div class="info-row"><div class="info-icon"><i class="fas fa-chart-pie"></i></div><div class="info-label">EMI:</div><div class="info-val text-lg text-brand-gold">₹<span id="displayEMI"></span></div></div>
-                          <div class="info-row" style="border:none;"><div class="info-icon"><i class="fas fa-calendar-alt"></i></div><div class="info-label">End Date:</div><div class="info-val" id="repaymentDate"></div></div>
+                          <div class="info-row" style="border:none;"><div class="info-icon"><i class="fas fa-calendar-alt"></i></div><div class="info-label">End Date:</div><div class="info-val text-brand-dark" id="repaymentDate"></div></div>
                           <div style="border-top: 2px dashed #cbd5e1; margin-top: 10px; padding-top: 10px; display: flex; align-items: center;">
                               <div class="info-icon"><i class="fas fa-file-invoice-dollar"></i></div>
                               <div class="info-label text-brand-teal">Total Payable:</div>
@@ -317,7 +317,6 @@
                     select.appendChild(opt);
                 });
             
-            // Re-enable listeners
             select.addEventListener('change', handleMemberChange);
         });
     }
@@ -360,10 +359,8 @@
         const balance = parseFloat(currentMember.accountBalance) || 0;
         document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
         
-        // KYC Check
         validateKYC(currentMember);
         
-        // Limit Calc
         const mode = document.getElementById('appMode').value;
         let limit = 0;
         if (mode === 'loan') {
@@ -407,8 +404,6 @@
         const msg = document.getElementById('limit-msg');
         const mode = document.getElementById('appMode').value;
         const btn = document.getElementById('generateBtn');
-
-        // Note: Button might be disabled by KYC already
         const kycOk = !document.getElementById('kycStatusContainer').innerHTML.includes('Missing');
 
         if (amt > 0) {
@@ -430,24 +425,29 @@
     
     document.getElementById('amount').addEventListener('input', validateAmount);
 
+    // --- FIX 1: UPDATED DURATION LOGIC ---
     function populateDuration(amt) {
         const sel = document.getElementById('durationRateSelect');
         sel.innerHTML = '';
         let opts = [];
+        
         if (amt < 25000) {
-            opts = [
-                {val: '1-1.0', txt: '1 Month (1% Total)'},
-                {val: '2-1.5', txt: '2 Months (3% Total)'},
-                {val: '3-1.666666667', txt: '3 Months (5% Total)'},
-                {val: '6-1.0', txt: '6 Months (1% Monthly)'},
-                {val: '12-1.0', txt: '12 Months (1% Monthly)'}
-            ];
+            // Small Loans
+            opts.push({val: '1-1.0', txt: '1 Month (1% Total)'});
+            opts.push({val: '2-1.5', txt: '2 Months (3% Total)'}); // 1.5 * 2 = 3%
+            opts.push({val: '3-1.666666667', txt: '3 Months (5% Total)'}); // ~1.66 * 3 = 5%
+            
+            // Standard 4 to 12 months (1% Monthly)
+            for(let i = 4; i <= 12; i++) {
+                opts.push({val: `${i}-1.0`, txt: `${i} Months (1% Monthly)`});
+            }
         } else {
-            opts = [
-                {val: '6-0.7', txt: '6 Months (0.7% Monthly)'},
-                {val: '12-0.7', txt: '12 Months (0.7% Monthly)'}
-            ];
+            // Large Loans (> 25000)
+            opts.push({val: '6-0.7', txt: '6 Months (0.7% Monthly)'});
+            opts.push({val: '9-0.7', txt: '9 Months (0.7% Monthly)'}); // Added 9 Months
+            opts.push({val: '12-0.7', txt: '12 Months (0.7% Monthly)'});
         }
+        
         opts.forEach(o => {
             const el = document.createElement('option');
             el.value = o.val; el.innerText = o.txt; sel.appendChild(el);
@@ -472,7 +472,6 @@
     function generatePreview() {
         if (!currentMember) return alert("Please select a member first!");
         
-        // Populate Preview
         const amt = parseFloat(document.getElementById('amount').value);
         const mode = document.getElementById('appMode').value;
         const dur = document.getElementById('durationRateSelect').value;
@@ -482,11 +481,10 @@
         document.getElementById('displayMobile').innerText = currentMember.mobileNumber;
         document.getElementById('displayAmount').innerText = amt.toFixed(2);
         
-        // Proxy Image Function (CRITICAL FIX FOR HTML2CANVAS)
+        // Proxy Image Function
         const setProxyImg = (id, url) => {
             const el = document.getElementById(id);
             if(url) {
-                // Use weserv.nl proxy to avoid Tainted Canvas error
                 el.src = `https://images.weserv.nl/?url=${url.replace(/^https?:\/\//, '')}`;
                 el.classList.remove('hidden');
             } else {
@@ -497,7 +495,7 @@
         setProxyImg('apiApplicantPhoto', currentMember.profilePicUrl);
         setProxyImg('displaySignature', currentMember.signatureUrl);
         
-        // Handle Doc Upload
+        // Handle Docs
         const file = document.getElementById('imageUpload').files[0];
         if (file) {
             const reader = new FileReader();
@@ -505,7 +503,6 @@
             reader.readAsDataURL(file);
             document.getElementById('docSection').classList.remove('hidden');
         } else {
-            // Use existing docs
             if(currentMember.documentFrontUrl) {
                 setProxyImg('docFrontImg', currentMember.documentFrontUrl);
                 setProxyImg('docBackImg', currentMember.documentBackUrl);
@@ -515,7 +512,6 @@
             }
         }
 
-        // Logic split
         if (mode === 'loan') {
             document.getElementById('preview-subtitle').innerText = "PERSONAL LOAN";
             document.getElementById('loanFields').classList.remove('hidden');
@@ -523,18 +519,36 @@
             document.getElementById('withdrawFields').classList.add('hidden');
             document.getElementById('withdrawNotice').classList.add('hidden');
             
-            // EMI Math
+            // Guarantor
+            if(currentMember.guarantorName) {
+                document.getElementById('displayGuarantor').innerText = currentMember.guarantorName;
+                document.getElementById('guarantorRow').classList.remove('hidden');
+                document.getElementById('guarantorRow').style.display = 'flex';
+            }
+
+            // --- FIX 2: CALCULATION & END DATE ---
             const [months, rate] = dur.split('-');
             const mRate = parseFloat(rate);
             const mCount = parseInt(months);
-            const interest = amt * (mRate/100) * mCount; // Simple Approx
-            const total = amt + interest;
-            const emi = total / mCount;
             
-            document.getElementById('displayRate').innerText = `${mRate}% Monthly`;
+            const interest = amt * (mRate/100) * mCount; // Simple Interest Approx
+            const total = amt + interest;
+            const emi = Math.ceil(total / mCount);
+            
+            // Calculate End Date correctly
+            const endDate = new Date();
+            endDate.setMonth(endDate.getMonth() + mCount);
+            
+            // Show duration in Interest Field
+            document.getElementById('displayRate').innerText = `${mRate.toFixed(1)}% Monthly (${mCount} Months)`;
             document.getElementById('displayEMI').innerText = emi.toFixed(0);
             document.getElementById('displayTotal').innerText = total.toFixed(0);
+            
+            // Show End Date
+            document.getElementById('repaymentDate').innerText = endDate.toLocaleDateString('en-GB');
+
         } else {
+            // Withdrawal Logic
             document.getElementById('preview-subtitle').innerText = "SIP WITHDRAWAL";
             document.getElementById('loanFields').classList.add('hidden');
             document.getElementById('loanCalculations').classList.add('hidden');
@@ -543,9 +557,9 @@
             
             document.getElementById('displayMemId').innerText = currentMember.membershipId;
             document.getElementById('displayJoinDate').innerText = currentMember.joiningDate;
+            document.getElementById('displayAddress').innerText = currentMember.address;
         }
 
-        // Show Overlay
         document.getElementById('input-page').classList.add('hidden');
         document.getElementById('preview-overlay').style.display = 'flex';
         autoScale();
@@ -565,25 +579,21 @@
         btn.disabled = true;
 
         try {
-            // Reset Scale for crisp capture
             const oldTrans = scaler.style.transform;
             scaler.style.transform = 'none';
             window.scrollTo(0,0);
             
-            // Wait for images
             await new Promise(r => setTimeout(r, 1000));
 
             const canvas = await html2canvas(cap, {
                 scale: 2,
-                useCORS: true, // IMPORTANT
+                useCORS: true, 
                 allowTaint: true,
                 backgroundColor: '#ffffff'
             });
 
-            // Restore Scale
             scaler.style.transform = oldTrans;
 
-            // Download
             const link = document.createElement('a');
             link.download = `TCF_Slip.png`;
             link.href = canvas.toDataURL('image/png');
@@ -600,14 +610,13 @@
 
     function autoScale() {
         const w = window.innerWidth;
-        const paper = 794; // approx A4 width px
+        const paper = 794; 
         if (w < paper) {
             const scale = (w - 40) / paper;
             document.getElementById('paper-scaler').style.transform = `scale(${scale})`;
         }
     }
 
-    // Start
     initApp();
 
 </script>
