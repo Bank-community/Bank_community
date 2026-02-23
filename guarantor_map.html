@@ -137,6 +137,12 @@
                 <span class="popup-label">Guarantor</span>
                 <span id="pop-guarantor" class="popup-val" style="color: #002366;">--</span>
             </div>
+            
+            <div class="popup-row" id="liability-row" style="display:none; background:#fff7ed; padding:5px; border-radius:5px;">
+                <span class="popup-label" style="color:#c2410c;">Guarantor Liability</span>
+                <span id="pop-liability" class="popup-val" style="color:#c2410c;">₹0</span>
+            </div>
+
             <div class="popup-row">
                 <span class="popup-label">Joining Date</span>
                 <span id="pop-join" class="popup-val">--</span>
@@ -169,11 +175,13 @@
     <script>
         const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
         const ROOT_ID = "TCF_ROOT";
+        const ROOT_IMG = "https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg?updatedAt=1767833543293";
         const DEFAULT_IMG = "https://i.ibb.co/HTNrbJxD/20250716-222246.png"; 
 
         let network = null;
         let allMembersData = {}; // Store for popup
         let activeLoansMap = {}; // Store loan info per member
+        let guarantorLiabilityMap = {}; // Calculate total risk for each guarantor
 
         window.onload = async () => {
             feather.replace();
@@ -191,7 +199,9 @@
                 ]);
 
                 if(membersSnap.exists()) {
-                    processLoans(loansSnap.val());
+                    const loansData = loansSnap.val() || {};
+                    processLoans(loansData);
+                    calculateGuarantorRisk(membersSnap.val(), loansData);
                     buildGraph(membersSnap.val());
                 } else {
                     alert("No data found.");
@@ -220,6 +230,29 @@
             document.getElementById('stat-loans').innerText = Object.keys(activeLoansMap).length;
         }
 
+        // --- SUGGESTION: CALCULATE GUARANTOR RISK ---
+        function calculateGuarantorRisk(members, loans) {
+            // Find who guarantees whom and sum up the loan
+            Object.values(loans).forEach(loan => {
+                if (loan.status && loan.status.trim() === 'Active') {
+                    const borrower = members[loan.memberId];
+                    if (borrower && borrower.guarantorName) {
+                        const gName = borrower.guarantorName.trim().toLowerCase();
+                        // Find guarantor ID (Rough match by name)
+                        const guarantorEntry = Object.entries(members).find(([id, m]) => 
+                            m.fullName.trim().toLowerCase() === gName
+                        );
+                        
+                        if (guarantorEntry) {
+                            const gId = guarantorEntry[0];
+                            if (!guarantorLiabilityMap[gId]) guarantorLiabilityMap[gId] = 0;
+                            guarantorLiabilityMap[gId] += parseFloat(loan.outstandingAmount || 0);
+                        }
+                    }
+                }
+            });
+        }
+
         // --- 2. BUILD GRAPH ---
         function buildGraph(membersObj) {
             allMembersData = membersObj;
@@ -227,15 +260,18 @@
             const edges = [];
             const nameToIdMap = new Map();
 
-            // Root Node
+            // Root Node (UPDATED WITH LOGO)
             nodes.push({
                 id: ROOT_ID,
                 label: "TCF ROOT",
-                shape: "box",
-                color: { background: "#D4AF37", border: "#B8860B" },
-                font: { color: "white", size: 20, face: "Segoe UI", bold: true },
+                shape: "circularImage", // Changed to image
+                image: ROOT_IMG,        // Your Logo URL
+                size: 50,               // Bigger size for Root
+                borderWidth: 4,
+                color: { border: "#D4AF37", background: "#ffffff" },
+                font: { color: "#002366", size: 14, face: "Segoe UI", bold: true, background: "rgba(255,255,255,0.8)" },
                 shadow: true,
-                fixed: true // Keep root stable
+                fixed: true
             });
 
             // Map IDs
@@ -378,6 +414,7 @@
             
             // Fill Data
             document.getElementById('pop-img').src = m.profilePicUrl || DEFAULT_IMG;
+            
             // Full Image Click Binder
             document.getElementById('pop-img').onclick = (e) => {
                 e.stopPropagation();
@@ -387,8 +424,17 @@
             document.getElementById('pop-name').innerText = m.fullName;
             document.getElementById('pop-id').innerText = `ID: ${m.membershipId}`;
             
-            // NEW: Guarantor
             document.getElementById('pop-guarantor').innerText = m.guarantorName || 'None';
+
+            // --- SHOW GUARANTOR LIABILITY (SUGGESTION) ---
+            const liability = guarantorLiabilityMap[id] || 0;
+            const liabilityRow = document.getElementById('liability-row');
+            if (liability > 0) {
+                liabilityRow.style.display = 'flex';
+                document.getElementById('pop-liability').innerText = `₹${liability.toLocaleString()}`;
+            } else {
+                liabilityRow.style.display = 'none';
+            }
 
             document.getElementById('pop-join').innerText = m.joiningDate || 'N/A';
             document.getElementById('pop-bal').innerText = `₹${(m.accountBalance || 0).toLocaleString()}`;
