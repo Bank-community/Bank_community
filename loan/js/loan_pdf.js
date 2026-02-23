@@ -7,122 +7,99 @@ const preview = {
     inputPage: document.getElementById('input-page'),
     capture: document.getElementById('capture'),
     scaler: document.getElementById('paper-scaler'),
-
-    // Fields
-    name: document.getElementById('displayName'),
-    mobile: document.getElementById('displayMobile'),
-    amount: document.getElementById('displayAmount'),
-    photo: document.getElementById('apiApplicantPhoto'),
-
-    // Sections
-    loanFields: document.getElementById('loanFields'),
-    withdrawFields: document.getElementById('withdrawFields'),
-    loanCalculations: document.getElementById('loanCalculations'),
-    loanNotice: document.getElementById('loanNotice'),
-    withdrawNotice: document.getElementById('withdrawNotice'),
-
-    // Images
-    sig: document.getElementById('displaySignature'),
-    docFront: document.getElementById('docFrontImg'),
-    docBack: document.getElementById('docBackImg'),
-    docSection: document.getElementById('docSection')
+    // ... (rest mapped dynamically below)
 };
 
-// 1. Render Data to Preview
+// 1. Render Data to Preview & SHOW OVERLAY
 export function renderPreviewAndShow(data) {
+    console.log("🖼️ PDF Generator Started...");
     const { member, amount, mode, durationString, manualImage } = data;
 
-    // Common Data
-    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    preview.name.innerText = member.fullName;
-    preview.mobile.innerText = member.mobileNumber || 'N/A';
-    preview.amount.innerText = amount.toFixed(2);
+    // A. Basic Fields
+    setText('currentDate', new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
+    setText('displayName', member.fullName);
+    setText('displayMobile', member.mobileNumber || 'N/A');
+    setText('displayAmount', amount.toFixed(2));
 
-    // Profile Photo (Using weserv.nl for CORS to fix html2canvas issues)
-    setImg(preview.photo, member.profilePicUrl);
+    // B. Profile Photo (with CORS Proxy for html2canvas)
+    setImg('apiApplicantPhoto', member.profilePicUrl);
 
-    // Clear Previous Dynamic Rows
-    const container = document.getElementById('previewFieldsContainer');
-    container.innerHTML = '';
-
+    // C. Mode Specific Layout
     if (mode === 'loan') {
-        // LOAN SETUP
-        document.getElementById('preview-subtitle').innerText = "PERSONAL LOAN";
-        document.getElementById('previewAmountLabel').innerText = "Loan Amount:";
+        // Loan Mode
+        setText('preview-subtitle', "PERSONAL LOAN");
+        setText('previewAmountLabel', "Loan Amount:");
 
-        preview.loanCalculations.classList.remove('hidden');
-        preview.loanNotice.classList.remove('hidden');
-        preview.withdrawNotice.classList.add('hidden');
-        document.getElementById('loanRequestText').classList.remove('hidden');
+        hide('withdrawFields'); show('loanFields');
+        show('loanCalculations'); show('loanNotice'); hide('withdrawNotice');
+        show('loanRequestText');
 
-        // Guarantor (Dynamic Row)
+        // Guarantor
+        const guarRow = document.getElementById('guarantorRow');
         if (member.guarantorName && member.guarantorName !== 'N/A') {
-            addRow(container, 'user-shield', 'Guarantor:', member.guarantorName, 'text-teal-700 font-bold');
+            setText('displayGuarantor', member.guarantorName);
+            guarRow.classList.remove('hidden'); guarRow.style.display = 'flex'; // Important for flex
+        } else {
+            guarRow.classList.add('hidden');
         }
 
         // EMI Math
         const math = calculateEMI(amount, durationString);
         if (math) {
-            document.getElementById('displayRate').innerText = `${math.rate}% Monthly for ${math.months} Months`;
-            document.getElementById('displayEMI').innerText = math.emi.toFixed(2);
-            document.getElementById('displayTotal').innerText = math.totalPayable.toFixed(2);
-            document.getElementById('repaymentDate').innerText = math.endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            setText('displayRate', `${math.rate}% Monthly for ${math.months} Months`);
+            setText('displayEMI', math.emi.toFixed(2));
+            setText('displayTotal', math.totalPayable.toFixed(2));
+            setText('repaymentDate', math.endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }));
         }
 
     } else {
-        // WITHDRAWAL SETUP
-        document.getElementById('preview-subtitle').innerText = "SIP WITHDRAWAL REQUEST";
-        document.getElementById('previewAmountLabel').innerText = "Withdraw Amount:";
+        // Withdrawal Mode
+        setText('preview-subtitle', "SIP WITHDRAWAL REQUEST");
+        setText('previewAmountLabel', "Withdraw Amount:");
 
-        preview.loanCalculations.classList.add('hidden');
-        preview.loanNotice.classList.add('hidden');
-        preview.withdrawNotice.classList.remove('hidden');
-        document.getElementById('loanRequestText').classList.add('hidden');
+        show('withdrawFields'); hide('loanFields');
+        hide('loanCalculations'); hide('loanNotice'); show('withdrawNotice');
+        hide('loanRequestText');
 
-        // Withdrawal Specific Rows
-        addRow(container, 'id-card', 'Membership ID:', member.membershipId || 'N/A');
-        addRow(container, 'calendar-check', 'Joining Date:', member.joiningDate || 'N/A');
-        addRow(container, 'map-marker-alt', 'Address:', member.address || 'N/A', 'text-sm font-normal');
+        setText('displayMemId', member.membershipId || 'N/A');
+        setText('displayJoinDate', member.joiningDate || 'N/A');
+        setText('displayAddress', member.address || 'N/A');
     }
 
-    // Signature
+    // D. Signature
     if (member.signatureUrl) {
-        setImg(preview.sig, member.signatureUrl);
-        document.getElementById('noSignatureText').classList.add('hidden');
+        setImg('displaySignature', member.signatureUrl);
+        hide('noSignatureText');
     } else {
-        preview.sig.classList.add('hidden');
-        document.getElementById('noSignatureText').classList.remove('hidden');
+        hide('displaySignature'); show('noSignatureText');
     }
 
-    // Documents (Manual Upload or Profile Docs)
+    // E. Manual/Auto Documents
     handleDocuments(member, manualImage);
 
-    // Show Overlay
+    // F. Show Overlay (Crucial Step)
     preview.inputPage.classList.add('hidden');
     preview.overlay.style.display = 'flex';
 
-    // Auto-Scale Logic
+    // Scale for Mobile
     autoScalePaper();
     window.scrollTo(0, 0);
+    console.log("✅ Preview Displayed");
 }
 
-// Helper: Add Row dynamically
-function addRow(container, icon, label, value, valClass = 'text-gray-900 font-bold text-base') {
-    const div = document.createElement('div');
-    div.className = 'flex items-center pb-1.5 mb-1.5 border-b border-gray-100 last:border-0';
-    div.innerHTML = `
-        <div class="w-6 text-center text-teal-700 mr-2 text-sm"><i class="fas fa-${icon}"></i></div>
-        <div class="w-32 font-semibold text-gray-500 text-sm">${label}</div>
-        <div class="flex-1 ${valClass}">${value}</div>
-    `;
-    container.appendChild(div);
-}
+// --- HELPER FUNCTIONS ---
 
-// Helper: Handle Images with CORS Proxy
-function setImg(el, url) {
+function setText(id, val) { document.getElementById(id).innerText = val; }
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+// Handle Images with CORS Proxy (Fixes Tainted Canvas)
+function setImg(id, url) {
+    const el = document.getElementById(id);
     if (url && url.length > 5) {
-        // Use weserv.nl to proxy images and avoid tainted canvas
-        el.src = `https://images.weserv.nl/?url=${url.replace(/^https?:\/\//, '')}`;
+        // Using weserv.nl to prevent CORS issues during download
+        const proxyUrl = `https://images.weserv.nl/?url=${url.replace(/^https?:\/\//, '')}`;
+        el.src = proxyUrl;
         el.classList.remove('hidden');
     } else {
         el.src = '';
@@ -130,91 +107,99 @@ function setImg(el, url) {
     }
 }
 
-// Helper: Document Logic
 function handleDocuments(member, manualFile) {
+    const docSection = document.getElementById('docSection');
+
     if (manualFile) {
         const reader = new FileReader();
         reader.onload = e => {
             document.getElementById('docFrontImg').src = e.target.result;
-            if (member.documentBackUrl) setImg(preview.docBack, member.documentBackUrl);
-            preview.docSection.classList.remove('hidden');
+            // Back image from profile if exists
+            if (member.documentBackUrl) setImg('docBackImg', member.documentBackUrl);
+            docSection.classList.remove('hidden');
         };
         reader.readAsDataURL(manualFile);
     } else {
         const front = member.documentFrontUrl || member.documentUrl;
-        const back = member.documentBackUrl;
-
         if (front) {
-            setImg(preview.docFront, front);
-            if (back) setImg(preview.docBack, back);
-            preview.docSection.classList.remove('hidden');
+            setImg('docFrontImg', front);
+            if (member.documentBackUrl) setImg('docBackImg', member.documentBackUrl);
+            docSection.classList.remove('hidden');
         } else {
-            preview.docSection.classList.add('hidden');
+            docSection.classList.add('hidden');
         }
     }
 }
 
-// 2. Download Logic
-document.getElementById('downloadBtn').onclick = async function () {
-    const btn = this;
-    btn.disabled = true;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin animate-spin"></i> Generating...';
+// 2. Download Logic (Attach listener here)
+const downloadBtn = document.getElementById('downloadBtn');
+if(downloadBtn) {
+    downloadBtn.onclick = async function () {
+        console.log("⬇️ Download Started");
+        const btn = this;
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin animate-spin"></i> Generating...';
 
-    try {
-        // Wait for images to load
-        const imgs = Array.from(preview.capture.getElementsByTagName('img'));
-        await Promise.all(imgs.map(img => {
-            if (img.complete) return Promise.resolve();
-            return new Promise(r => { img.onload = r; img.onerror = r; });
-        }));
+        try {
+            // Wait for images to render
+            const imgs = Array.from(preview.capture.getElementsByTagName('img'));
+            await Promise.all(imgs.map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise(r => { img.onload = r; img.onerror = r; });
+            }));
 
-        // Reset transform for capture (Scale 1 for clear screenshot)
-        const currentTransform = preview.scaler.style.transform;
-        preview.scaler.style.transform = 'none';
-        window.scrollTo(0, 0);
+            // Short Delay for rendering
+            await new Promise(r => setTimeout(r, 500));
 
-        const canvas = await html2canvas(preview.capture, {
-            scale: 2, // High Quality (Retina)
-            useCORS: true, // Critical for external images
-            backgroundColor: '#ffffff',
-            scrollY: -window.scrollY
-        });
+            // Reset Transform for clean screenshot
+            const currentTransform = preview.scaler.style.transform;
+            preview.scaler.style.transform = 'none';
+            window.scrollTo(0, 0);
 
-        // Restore transform for viewing
-        preview.scaler.style.transform = currentTransform;
+            // Capture
+            const canvas = await html2canvas(preview.capture, {
+                scale: 2, // High Quality
+                useCORS: true, // IMPORTANT for external images
+                backgroundColor: '#ffffff',
+                scrollY: -window.scrollY
+            });
 
-        // Download
-        const link = document.createElement('a');
-        link.download = `TCF_${preview.name.innerText.replace(/\s/g, '_')}_Slip.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+            // Restore View
+            preview.scaler.style.transform = currentTransform;
 
-        btn.innerHTML = '<i class="fas fa-check"></i> Done';
-        setTimeout(() => {
+            // Trigger Download
+            const link = document.createElement('a');
+            const name = document.getElementById('displayName').innerText.replace(/\s/g, '_');
+            link.download = `TCF_Slip_${name}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            btn.innerHTML = '<i class="fas fa-check"></i> Done';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 2000);
+
+        } catch (e) {
+            console.error(e);
+            alert('Download error: ' + e.message);
+            autoScalePaper();
             btn.disabled = false;
             btn.innerHTML = originalText;
-        }, 2000);
+        }
+    };
+}
 
-    } catch (e) {
-        alert('Download error: ' + e.message);
-        autoScalePaper();
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-};
-
-// Close Button
+// Close Button Logic
 document.getElementById('closePreviewBtn').onclick = () => {
     preview.overlay.style.display = 'none';
     preview.inputPage.classList.remove('hidden');
 };
 
-// Auto Scale for Mobile (Fit A4 to screen width)
 function autoScalePaper() {
     const screenW = window.innerWidth;
     const paperW = preview.capture.offsetWidth;
-    // Add some padding (40px) logic
     if (screenW < paperW + 40) {
         const scale = (screenW - 20) / paperW;
         preview.scaler.style.transform = `scale(${scale})`;
