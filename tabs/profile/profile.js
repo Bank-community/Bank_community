@@ -27,7 +27,7 @@ function renderProfile(m) {
 
     // Document Images
     setImg('doc-thumb-pic', m.profilePicUrl);
-    setImg('doc-thumb-front', m.documentUrl);
+    setImg('doc-thumb-front', m.documentFrontUrl);
     setImg('doc-thumb-back', m.documentBackUrl);
     setImg('doc-thumb-sign', m.signatureUrl);
 
@@ -35,7 +35,7 @@ function renderProfile(m) {
     const verifyTag = document.getElementById('profile-verification-status');
     if (verifyTag) {
         // Check if ALL 4 documents exist
-        const isKycComplete = m.profilePicUrl && m.documentUrl && m.documentBackUrl && m.signatureUrl;
+        const isKycComplete = m.profilePicUrl && m.documentFrontUrl && m.documentBackUrl && m.signatureUrl;
 
         if (isKycComplete) {
             // Gold and Blue VERIFIED Tag
