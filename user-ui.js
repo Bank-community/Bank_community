@@ -232,7 +232,7 @@ function setupEventListeners(database) {
                 const targetValueStr = amountEl.dataset.value || '0';
                 // Commas hata kar asli number nikal rahe hain
                 const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
-                const duration = 2000; // 2000ms = 2 seconds
+                const duration = 1000; // 1000ms = 1 seconds
                 let startTimestamp = null;
 
                 const step = (timestamp) => {
