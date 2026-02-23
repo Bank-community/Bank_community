@@ -390,7 +390,7 @@
 
         if (missing.length === 0) {
             container.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
-            container.innerHTML = `<i class="fas fa-check-circle"></i> KYC Verified`;
+            container.innerHTML = `<i class="fas fa-check-circle"></i> KYC Verified (All Docs OK)`;
             btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
             container.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
@@ -404,6 +404,8 @@
         const msg = document.getElementById('limit-msg');
         const mode = document.getElementById('appMode').value;
         const btn = document.getElementById('generateBtn');
+        
+        // Check KYC first (Don't enable if KYC failed)
         const kycOk = !document.getElementById('kycStatusContainer').innerHTML.includes('Missing');
 
         if (amt > 0) {
@@ -413,7 +415,7 @@
                 msg.className = "text-xs mt-1 font-semibold text-red-600";
                 if(kycOk) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
             } else {
-                msg.innerText = "Amount OK";
+                msg.innerText = "Amount is within limit.";
                 msg.className = "text-xs mt-1 font-semibold text-green-600";
                 if(kycOk) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
             }
@@ -425,26 +427,21 @@
     
     document.getElementById('amount').addEventListener('input', validateAmount);
 
-    // --- FIX 1: UPDATED DURATION LOGIC ---
     function populateDuration(amt) {
         const sel = document.getElementById('durationRateSelect');
         sel.innerHTML = '';
         let opts = [];
         
         if (amt < 25000) {
-            // Small Loans
             opts.push({val: '1-1.0', txt: '1 Month (1% Total)'});
-            opts.push({val: '2-1.5', txt: '2 Months (3% Total)'}); // 1.5 * 2 = 3%
-            opts.push({val: '3-1.666666667', txt: '3 Months (5% Total)'}); // ~1.66 * 3 = 5%
-            
-            // Standard 4 to 12 months (1% Monthly)
+            opts.push({val: '2-1.5', txt: '2 Months (3% Total)'}); 
+            opts.push({val: '3-1.666666667', txt: '3 Months (5% Total)'});
             for(let i = 4; i <= 12; i++) {
                 opts.push({val: `${i}-1.0`, txt: `${i} Months (1% Monthly)`});
             }
         } else {
-            // Large Loans (> 25000)
             opts.push({val: '6-0.7', txt: '6 Months (0.7% Monthly)'});
-            opts.push({val: '9-0.7', txt: '9 Months (0.7% Monthly)'}); // Added 9 Months
+            opts.push({val: '9-0.7', txt: '9 Months (0.7% Monthly)'});
             opts.push({val: '12-0.7', txt: '12 Months (0.7% Monthly)'});
         }
         
@@ -478,37 +475,58 @@
 
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-GB');
         document.getElementById('displayName').innerText = currentMember.fullName;
-        document.getElementById('displayMobile').innerText = currentMember.mobileNumber;
+        document.getElementById('displayMobile').innerText = currentMember.mobileNumber || 'N/A';
         document.getElementById('displayAmount').innerText = amt.toFixed(2);
         
-        // Proxy Image Function
+        // --- ⚡ PROXY IMAGE LOADER (The Fix for Back Image) ---
         const setProxyImg = (id, url) => {
             const el = document.getElementById(id);
-            if(url) {
-                el.src = `https://images.weserv.nl/?url=${url.replace(/^https?:\/\//, '')}`;
+            if(url && url.length > 5) {
+                // Encode Component to handle special chars in URL
+                // Removing https:// is standard for weserv
+                const cleanUrl = url.replace(/^https?:\/\//, '');
+                el.src = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&output=webp`;
                 el.classList.remove('hidden');
             } else {
-                el.src = ''; el.classList.add('hidden');
+                el.src = ''; 
+                el.classList.add('hidden');
             }
         };
 
         setProxyImg('apiApplicantPhoto', currentMember.profilePicUrl);
         setProxyImg('displaySignature', currentMember.signatureUrl);
         
-        // Handle Docs
+        // --- DOCS LOGIC UPDATE ---
         const file = document.getElementById('imageUpload').files[0];
+        const docSection = document.getElementById('docSection');
+        
         if (file) {
+            // Manual Upload Priority
             const reader = new FileReader();
-            reader.onload = e => document.getElementById('docFrontImg').src = e.target.result;
+            reader.onload = e => {
+                document.getElementById('docFrontImg').src = e.target.result;
+                if(currentMember.documentBackUrl) setProxyImg('docBackImg', currentMember.documentBackUrl);
+                docSection.classList.remove('hidden');
+            };
             reader.readAsDataURL(file);
-            document.getElementById('docSection').classList.remove('hidden');
         } else {
-            if(currentMember.documentFrontUrl) {
-                setProxyImg('docFrontImg', currentMember.documentFrontUrl);
-                setProxyImg('docBackImg', currentMember.documentBackUrl);
-                document.getElementById('docSection').classList.remove('hidden');
+            // Automatic from DB
+            const frontUrl = currentMember.documentFrontUrl || currentMember.documentUrl;
+            const backUrl = currentMember.documentBackUrl;
+
+            if (frontUrl || backUrl) {
+                docSection.classList.remove('hidden');
+                setProxyImg('docFrontImg', frontUrl);
+                
+                // Strict check for Back URL
+                if (backUrl && backUrl.length > 5 && backUrl !== 'undefined') {
+                    setProxyImg('docBackImg', backUrl);
+                } else {
+                    // Hide Back Image if missing
+                    document.getElementById('docBackImg').classList.add('hidden');
+                }
             } else {
-                document.getElementById('docSection').classList.add('hidden');
+                docSection.classList.add('hidden');
             }
         }
 
@@ -519,36 +537,30 @@
             document.getElementById('withdrawFields').classList.add('hidden');
             document.getElementById('withdrawNotice').classList.add('hidden');
             
-            // Guarantor
             if(currentMember.guarantorName) {
                 document.getElementById('displayGuarantor').innerText = currentMember.guarantorName;
                 document.getElementById('guarantorRow').classList.remove('hidden');
                 document.getElementById('guarantorRow').style.display = 'flex';
             }
 
-            // --- FIX 2: CALCULATION & END DATE ---
+            // Calculation
             const [months, rate] = dur.split('-');
             const mRate = parseFloat(rate);
             const mCount = parseInt(months);
             
-            const interest = amt * (mRate/100) * mCount; // Simple Interest Approx
+            const interest = amt * (mRate/100) * mCount;
             const total = amt + interest;
             const emi = Math.ceil(total / mCount);
             
-            // Calculate End Date correctly
             const endDate = new Date();
             endDate.setMonth(endDate.getMonth() + mCount);
             
-            // Show duration in Interest Field
             document.getElementById('displayRate').innerText = `${mRate.toFixed(1)}% Monthly (${mCount} Months)`;
             document.getElementById('displayEMI').innerText = emi.toFixed(0);
             document.getElementById('displayTotal').innerText = total.toFixed(0);
-            
-            // Show End Date
             document.getElementById('repaymentDate').innerText = endDate.toLocaleDateString('en-GB');
 
         } else {
-            // Withdrawal Logic
             document.getElementById('preview-subtitle').innerText = "SIP WITHDRAWAL";
             document.getElementById('loanFields').classList.add('hidden');
             document.getElementById('loanCalculations').classList.add('hidden');
@@ -570,41 +582,64 @@
         document.getElementById('input-page').classList.remove('hidden');
     }
 
+    // --- 4. SAFE DOWNLOAD LOGIC ---
     async function downloadSlip() {
         const btn = document.getElementById('downloadBtn');
         const cap = document.getElementById('capture');
         const scaler = document.getElementById('paper-scaler');
         
-        btn.innerHTML = 'Generating...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
 
         try {
+            // 1. Reset Scale
             const oldTrans = scaler.style.transform;
             scaler.style.transform = 'none';
             window.scrollTo(0,0);
             
-            await new Promise(r => setTimeout(r, 1000));
+            // 2. Wait for images (With Safety Timeout to prevent Freezing)
+            const imgs = Array.from(cap.getElementsByTagName('img'));
+            
+            // Promise that resolves when all images load OR error out
+            const imagePromises = imgs.map(img => {
+                if(img.complete) return Promise.resolve();
+                if(!img.src) return Promise.resolve(); // Skip empty sources
+                return new Promise(r => { 
+                    img.onload = r; 
+                    img.onerror = () => { console.warn('Image failed:', img.id); r(); }; 
+                });
+            });
 
+            // Force proceed after 3 seconds even if images are stuck
+            const timeoutPromise = new Promise(r => setTimeout(r, 3000));
+            await Promise.race([Promise.all(imagePromises), timeoutPromise]);
+
+            // 3. Capture
             const canvas = await html2canvas(cap, {
                 scale: 2,
                 useCORS: true, 
                 allowTaint: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                logging: false
             });
 
+            // 4. Restore & Download
             scaler.style.transform = oldTrans;
 
             const link = document.createElement('a');
-            link.download = `TCF_Slip.png`;
+            link.download = `TCF_Slip_${document.getElementById('displayName').innerText.replace(/\s/g,'_')}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
             
-            btn.innerHTML = 'Done';
-            setTimeout(() => { btn.innerHTML = 'Download Slip'; btn.disabled = false; }, 2000);
+            btn.innerHTML = '<i class="fas fa-check"></i> Done';
+            setTimeout(() => { btn.innerHTML = '<i class="fas fa-download mr-2"></i> Download Slip'; btn.disabled = false; }, 2000);
 
         } catch (e) {
-            alert("Error: " + e.message);
+            alert("Download Error: " + e.message);
+            // Restore button state on error
+            scaler.style.transform = `scale(${ (window.innerWidth - 20) / 794 })`;
             btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download mr-2"></i> Download Slip';
         }
     }
 
@@ -620,5 +655,6 @@
     initApp();
 
 </script>
+
 </body>
 </html>
