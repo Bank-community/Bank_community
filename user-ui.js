@@ -240,9 +240,10 @@ function setupEventListeners(database) {
         if (target.closest('#btnSip')) {
             showSipStatusModal(globalData.members);
         }
-        if (target.closest('#btnLoan')) {
-            window.location.href = 'loan_form.html';
+                if (target.closest('#btnLoan')) {
+            window.location.href = 'loan_dashbord.html'; // 🔥 Link change kar diya
         }
+
         if (target.closest('#btnHistory')) {
             window.location.href = 'notifications.html'; 
         }
