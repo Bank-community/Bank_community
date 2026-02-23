@@ -17,7 +17,7 @@ const preview = {
     // Sections
     loanFields: document.getElementById('loanFields'),
     withdrawFields: document.getElementById('withdrawFields'),
-    loanCalc: document.getElementById('loanCalculations'),
+    loanCalculations: document.getElementById('loanCalculations'),
     loanNotice: document.getElementById('loanNotice'),
     withdrawNotice: document.getElementById('withdrawNotice'),
 
@@ -38,28 +38,26 @@ export function renderPreviewAndShow(data) {
     preview.mobile.innerText = member.mobileNumber || 'N/A';
     preview.amount.innerText = amount.toFixed(2);
 
-    // Profile Photo (Using weserv.nl for CORS)
+    // Profile Photo (Using weserv.nl for CORS to fix html2canvas issues)
     setImg(preview.photo, member.profilePicUrl);
+
+    // Clear Previous Dynamic Rows
+    const container = document.getElementById('previewFieldsContainer');
+    container.innerHTML = '';
 
     if (mode === 'loan') {
         // LOAN SETUP
         document.getElementById('preview-subtitle').innerText = "PERSONAL LOAN";
         document.getElementById('previewAmountLabel').innerText = "Loan Amount:";
 
-        preview.withdrawFields.classList.add('hidden');
-        preview.loanFields.classList.remove('hidden');
-        preview.loanCalc.classList.remove('hidden');
+        preview.loanCalculations.classList.remove('hidden');
         preview.loanNotice.classList.remove('hidden');
         preview.withdrawNotice.classList.add('hidden');
         document.getElementById('loanRequestText').classList.remove('hidden');
 
-        // Guarantor
+        // Guarantor (Dynamic Row)
         if (member.guarantorName && member.guarantorName !== 'N/A') {
-            document.getElementById('displayGuarantor').innerText = member.guarantorName;
-            document.getElementById('guarantorRow').classList.remove('hidden');
-            document.getElementById('guarantorRow').style.display = 'flex';
-        } else {
-            document.getElementById('guarantorRow').classList.add('hidden');
+            addRow(container, 'user-shield', 'Guarantor:', member.guarantorName, 'text-teal-700 font-bold');
         }
 
         // EMI Math
@@ -76,16 +74,15 @@ export function renderPreviewAndShow(data) {
         document.getElementById('preview-subtitle').innerText = "SIP WITHDRAWAL REQUEST";
         document.getElementById('previewAmountLabel').innerText = "Withdraw Amount:";
 
-        preview.withdrawFields.classList.remove('hidden');
-        preview.loanFields.classList.add('hidden');
-        preview.loanCalc.classList.add('hidden');
+        preview.loanCalculations.classList.add('hidden');
         preview.loanNotice.classList.add('hidden');
         preview.withdrawNotice.classList.remove('hidden');
         document.getElementById('loanRequestText').classList.add('hidden');
 
-        document.getElementById('displayMemId').innerText = member.membershipId || 'N/A';
-        document.getElementById('displayJoinDate').innerText = member.joiningDate || 'N/A';
-        document.getElementById('displayAddress').innerText = member.address || 'N/A';
+        // Withdrawal Specific Rows
+        addRow(container, 'id-card', 'Membership ID:', member.membershipId || 'N/A');
+        addRow(container, 'calendar-check', 'Joining Date:', member.joiningDate || 'N/A');
+        addRow(container, 'map-marker-alt', 'Address:', member.address || 'N/A', 'text-sm font-normal');
     }
 
     // Signature
@@ -107,6 +104,18 @@ export function renderPreviewAndShow(data) {
     // Auto-Scale Logic
     autoScalePaper();
     window.scrollTo(0, 0);
+}
+
+// Helper: Add Row dynamically
+function addRow(container, icon, label, value, valClass = 'text-gray-900 font-bold text-base') {
+    const div = document.createElement('div');
+    div.className = 'flex items-center pb-1.5 mb-1.5 border-b border-gray-100 last:border-0';
+    div.innerHTML = `
+        <div class="w-6 text-center text-teal-700 mr-2 text-sm"><i class="fas fa-${icon}"></i></div>
+        <div class="w-32 font-semibold text-gray-500 text-sm">${label}</div>
+        <div class="flex-1 ${valClass}">${value}</div>
+    `;
+    container.appendChild(div);
 }
 
 // Helper: Handle Images with CORS Proxy
@@ -150,7 +159,7 @@ document.getElementById('downloadBtn').onclick = async function () {
     const btn = this;
     btn.disabled = true;
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Generating...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin animate-spin"></i> Generating...';
 
     try {
         // Wait for images to load
@@ -160,19 +169,19 @@ document.getElementById('downloadBtn').onclick = async function () {
             return new Promise(r => { img.onload = r; img.onerror = r; });
         }));
 
-        // Reset transform for capture
+        // Reset transform for capture (Scale 1 for clear screenshot)
         const currentTransform = preview.scaler.style.transform;
         preview.scaler.style.transform = 'none';
         window.scrollTo(0, 0);
 
         const canvas = await html2canvas(preview.capture, {
-            scale: 2, // High Quality
-            useCORS: true,
+            scale: 2, // High Quality (Retina)
+            useCORS: true, // Critical for external images
             backgroundColor: '#ffffff',
             scrollY: -window.scrollY
         });
 
-        // Restore transform
+        // Restore transform for viewing
         preview.scaler.style.transform = currentTransform;
 
         // Download
@@ -181,7 +190,7 @@ document.getElementById('downloadBtn').onclick = async function () {
         link.href = canvas.toDataURL('image/png');
         link.click();
 
-        btn.innerHTML = '<i class="fas fa-check mr-2"></i> Done';
+        btn.innerHTML = '<i class="fas fa-check"></i> Done';
         setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -201,10 +210,11 @@ document.getElementById('closePreviewBtn').onclick = () => {
     preview.inputPage.classList.remove('hidden');
 };
 
-// Auto Scale for Mobile
+// Auto Scale for Mobile (Fit A4 to screen width)
 function autoScalePaper() {
     const screenW = window.innerWidth;
     const paperW = preview.capture.offsetWidth;
+    // Add some padding (40px) logic
     if (screenW < paperW + 40) {
         const scale = (screenW - 20) / paperW;
         preview.scaler.style.transform = `scale(${scale})`;

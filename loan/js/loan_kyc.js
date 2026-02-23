@@ -48,27 +48,32 @@ export function updateKYCUI(status) {
     const container = document.getElementById('kycStatusContainer');
     const btn = document.getElementById('generateBtn');
 
-    container.classList.remove('hidden', 'bg-red-50', 'bg-green-50', 'border-red-200', 'border-green-200');
+    // Reset Classes
+    container.classList.remove('hidden', 'bg-red-50', 'bg-green-50', 'border-red-200', 'border-green-200', 'text-red-700', 'text-green-700');
     container.innerHTML = '';
 
     if (status.isValid) {
         // Success State
         container.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
-        container.innerHTML = `<i class="fas fa-check-circle mr-1"></i> KYC Verified`;
+        container.innerHTML = `<div class="font-bold flex items-center gap-2"><i class="fas fa-check-circle text-lg"></i> <span>KYC Verified (All Docs OK)</span></div>`;
+        container.classList.remove('hidden');
 
         // Enable Button (Logic layer says yes, but Date/Amount checks might still disable it later)
         btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        btn.classList.remove('opacity-50', 'cursor-not-allowed', 'shadow-none');
+        btn.title = ""; // Clear tooltip
     } else {
         // Failure State
         container.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
         container.innerHTML = `
-            <div class="font-bold"><i class="fas fa-times-circle mr-1"></i> KYC Incomplete</div>
-            <div class="text-[10px] mt-1">Missing: ${status.missing.join(', ')}</div>
+            <div class="font-bold flex items-center gap-2"><i class="fas fa-times-circle text-lg"></i> <span>KYC Incomplete</span></div>
+            <div class="text-[10px] mt-1 pl-7 font-semibold opacity-80">Missing: ${status.missing.join(', ')}</div>
         `;
+        container.classList.remove('hidden');
 
         // Disable Button Immediately
         btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.classList.add('opacity-50', 'cursor-not-allowed', 'shadow-none');
+        btn.title = "KYC Documents Missing";
     }
 }

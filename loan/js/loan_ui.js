@@ -31,6 +31,8 @@ export function setupUIListeners() {
     // Amount Input
     elements.amountInput.addEventListener('input', handleAmountChange);
 
+    // Duration Select (Auto-update EMI Preview text if needed, currently just selection)
+
     // Generate Button
     document.getElementById('loanForm').addEventListener('submit', handleGenerate);
 }
@@ -42,8 +44,8 @@ function switchMode(mode) {
 
     // Toggle Buttons Styles
     if (mode === 'loan') {
-        elements.btnLoan.className = "flex-1 py-2 text-sm font-bold rounded-md shadow bg-white text-brand-teal transition-all";
-        elements.btnWithdraw.className = "flex-1 py-2 text-sm font-bold rounded-md text-gray-500 hover:bg-gray-200 transition-all";
+        elements.btnLoan.className = "flex-1 py-2.5 text-xs font-bold rounded-lg shadow-sm bg-white text-teal-700 border border-gray-200 transition-all";
+        elements.btnWithdraw.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all";
 
         document.getElementById('portal-subtitle').innerText = "Loan Application Portal";
         document.getElementById('amountLabel').innerText = "Loan Amount (₹)";
@@ -53,10 +55,10 @@ function switchMode(mode) {
         document.getElementById('withdrawalModeField').classList.add('hidden');
         elements.dateBanner.classList.add('hidden');
 
-        elements.generateBtn.innerHTML = `GENERATE FORM <i class="fas fa-file-export ml-2"></i>`;
+        elements.generateBtn.innerHTML = `<span>GENERATE FORM</span> <i class="fas fa-file-export ml-2"></i>`;
     } else {
-        elements.btnWithdraw.className = "flex-1 py-2 text-sm font-bold rounded-md shadow bg-white text-brand-teal transition-all";
-        elements.btnLoan.className = "flex-1 py-2 text-sm font-bold rounded-md text-gray-500 hover:bg-gray-200 transition-all";
+        elements.btnWithdraw.className = "flex-1 py-2.5 text-xs font-bold rounded-lg shadow-sm bg-white text-teal-700 border border-gray-200 transition-all";
+        elements.btnLoan.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all";
 
         document.getElementById('portal-subtitle').innerText = "SIP Withdrawal Portal";
         document.getElementById('amountLabel').innerText = "Withdrawal Amount (₹)";
@@ -66,7 +68,7 @@ function switchMode(mode) {
         document.getElementById('withdrawalModeField').classList.remove('hidden');
 
         checkDateAccess(); // Only for withdrawal
-        elements.generateBtn.innerHTML = `GENERATE WITHDRAWAL SLIP <i class="fas fa-file-export ml-2"></i>`;
+        elements.generateBtn.innerHTML = `<span>GENERATE WITHDRAWAL</span> <i class="fas fa-file-export ml-2"></i>`;
     }
 
     // Recalculate if member is already selected
@@ -89,7 +91,7 @@ function handleMemberChange() {
 
     // B. KYC Check (🌟 The Guard)
     const kycStatus = validateMemberKYC(member);
-    updateKYCUI(kycStatus); // This will Enable/Disable the button based on Email/Docs
+    updateKYCUI(kycStatus); 
 
     // C. Limit Calculation
     const limit = calculateLimit(balance, loanState.appMode);
@@ -106,34 +108,44 @@ function handleAmountChange() {
     const balance = parseFloat(loanState.selectedMember?.accountBalance) || 0;
     const limit = calculateLimit(balance, loanState.appMode);
 
+    // Logic to ensure button stays disabled if KYC is bad
+    const kycStatus = loanState.selectedMember ? validateMemberKYC(loanState.selectedMember) : {isValid:false};
+    if (!kycStatus.isValid) {
+        disableBtn(true); // Always disabled if KYC fail
+        return; 
+    }
+
     if (amt > 0) {
         elements.limitMsg.classList.remove('hidden');
 
-        // If KYC failed, button is already disabled. Don't re-enable it here.
-        const isKycOk = !elements.generateBtn.disabled || elements.generateBtn.title !== "KYC Failed"; 
-
-        if (amt > limit) {
+        if (limit === 0) {
+            elements.limitMsg.innerText = "Not eligible (Low Balance).";
+            elements.limitMsg.className = "text-[10px] mt-1 font-bold text-red-600 ml-1";
+            disableBtn(true);
+        } else if (amt > limit) {
             elements.limitMsg.innerText = `Exceeds Limit (Max: ₹${limit})`;
-            elements.limitMsg.className = "text-xs mt-1 font-semibold text-red-600";
-            if(isKycOk) disableBtn(true);
+            elements.limitMsg.className = "text-[10px] mt-1 font-bold text-red-600 ml-1";
+            disableBtn(true);
         } else {
             elements.limitMsg.innerText = "Amount is within limit.";
-            elements.limitMsg.className = "text-xs mt-1 font-semibold text-green-600";
-            // Only enable if KYC was OK and Date check passes
-            // We need a way to check KYC state again or trust previous state.
-            // Simplified: We assume KYC check ran in handleMemberChange.
-            const kycStatus = loanState.selectedMember ? validateMemberKYC(loanState.selectedMember) : {isValid:false};
+            elements.limitMsg.className = "text-[10px] mt-1 font-bold text-green-600 ml-1";
 
-            if(kycStatus.isValid) {
-                 if (loanState.appMode === 'withdrawal' && !elements.dateBanner.classList.contains('hidden')) {
-                     disableBtn(true);
-                 } else {
-                     disableBtn(false);
-                 }
+            // Check Date constraint for Withdrawal
+            if (loanState.appMode === 'withdrawal' && !elements.dateBanner.classList.contains('hidden')) {
+                disableBtn(true);
+            } else {
+                disableBtn(false);
             }
         }
     } else {
         elements.limitMsg.classList.add('hidden');
+        // If empty amount, technically valid to enable, but usually wait for input
+        // Let's keep enabled if everything else is OK
+         if (loanState.appMode === 'withdrawal' && !elements.dateBanner.classList.contains('hidden')) {
+             disableBtn(true);
+         } else {
+             disableBtn(false);
+         }
     }
 
     // Populate Duration Options (Loan Only)
@@ -152,7 +164,7 @@ function populateDuration(amt, limit) {
     let opts = [];
     if (amt < 25000) {
         opts.push({ val: '1-1.0', txt: '1 Month (1% Total Interest)' });
-        opts.push({ val: '2-1.5', txt: '2 Months (3% Total Interest)' }); // Logic kept from original
+        opts.push({ val: '2-1.5', txt: '2 Months (3% Total Interest)' }); 
         opts.push({ val: '3-1.666666667', txt: '3 Months (5% Total Interest)' });
         for (let m = 4; m <= 12; m++) opts.push({ val: `${m}-1.0`, txt: `${m} Months (1% Monthly Interest)` });
     } else {
@@ -173,9 +185,10 @@ function populateDuration(amt, limit) {
 
 function checkDateAccess() {
     const today = new Date();
-    const currentMonth = today.getMonth(); // 5 = June
+    const currentMonth = today.getMonth(); // 5 = June (JS starts 0)
     const currentDate = today.getDate();
     // Logic: Month must be June (5) AND Date between 23 and 30
+    // NOTE: In production, you might want to fetch server time or make this configurable
     const isOpen = (currentMonth === 5) && (currentDate >= 23 && currentDate <= 30);
 
     if (!isOpen) {
@@ -188,8 +201,8 @@ function checkDateAccess() {
 
 function disableBtn(state) {
     elements.generateBtn.disabled = state;
-    if(state) elements.generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    else elements.generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    if(state) elements.generateBtn.classList.add('opacity-50', 'cursor-not-allowed', 'shadow-none');
+    else elements.generateBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'shadow-none');
 }
 
 // 5. Handle Generate Click

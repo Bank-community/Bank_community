@@ -1,10 +1,14 @@
 // loan/js/loan_core.js
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
 // 1. GLOBAL STATE (Shared across modules)
 export const loanState = {
-    members: {},       // All members data from Firebase
+    members: {},          // All members data
     selectedMember: null, // Currently selected member object
-    appMode: 'loan',   // 'loan' or 'withdrawal'
+    appMode: 'loan',      // 'loan' or 'withdrawal'
     config: {
         maxLoanLimit: 50000,
         withdrawalLimitPercent: 0.5
@@ -17,59 +21,75 @@ const nameSelect = document.getElementById('nameSelect');
 // 3. Initialize App
 export async function initLoanApp() {
     try {
-        // A. Fetch Config
+        console.log("🔄 Connecting to API...");
+
+        // A. Fetch Config from Vercel API
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
 
-        // B. Init Firebase (if not already)
-        if (!firebase.apps.length) {
-            firebase.initializeApp(config);
-        }
+        // B. Init Firebase
+        const app = initializeApp(config);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-        // C. Check Auth
-        firebase.auth().onAuthStateChanged(user => {
+        // C. Check Auth & Load Data
+        onAuthStateChanged(auth, user => {
             if (user) {
-                console.log("✅ Auth Verified. Loading Members...");
-                fetchMembers();
+                console.log("✅ Authenticated. Fetching Members...");
+                fetchMembers(db);
             } else {
-                window.location.href = `/login.html?redirect=${window.location.pathname}`;
+                console.log("⚠️ Not Logged In. Attempting Anonymous Login...");
+                signInAnonymously(auth).catch(e => {
+                    console.error("Auth Failed:", e);
+                    alert("Authentication Failed. Please refresh.");
+                });
             }
         });
 
     } catch (error) {
         console.error("Init Error:", error);
-        alert("System Error: " + error.message);
+        nameSelect.innerHTML = '<option>Error loading system</option>';
     }
 }
 
 // 4. Fetch Members & Populate Dropdown
-function fetchMembers() {
-    firebase.database().ref('members').once('value')
-        .then(snap => {
-            loanState.members = snap.val() || {};
+async function fetchMembers(db) {
+    try {
+        const snapshot = await get(ref(db, 'members'));
+        if (snapshot.exists()) {
+            loanState.members = snapshot.val();
             populateDropdown();
-        })
-        .catch(err => console.error("Data Load Error:", err));
+        } else {
+            console.warn("No members found in DB.");
+            nameSelect.innerHTML = '<option>No members found</option>';
+        }
+    } catch (err) {
+        console.error("Data Load Error:", err);
+    }
 }
 
 // 5. Populate Dropdown
 function populateDropdown() {
     nameSelect.innerHTML = '<option value="" disabled selected>Select Member</option>';
 
-    // Sort & Filter
-    Object.entries(loanState.members)
-        .filter(([_, m]) => m.status === 'Approved')
-        .sort((a, b) => a[1].fullName.localeCompare(b[1].fullName))
-        .forEach(([id, m]) => {
-            const opt = document.createElement('option');
-            opt.value = id;
-            opt.text = m.fullName;
-            nameSelect.appendChild(opt);
-        });
+    // Convert Object to Array, Filter & Sort
+    const sortedMembers = Object.entries(loanState.members)
+        .map(([id, data]) => ({ id, ...data }))
+        .filter(m => m.status === 'Approved' && !m.isDisabled) // Only Active Members
+        .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-    // Notify that data is ready
-    console.log(`✅ Loaded ${nameSelect.options.length - 1} members.`);
+    sortedMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.text = m.fullName;
+        nameSelect.appendChild(opt);
+    });
+
+    console.log(`✅ Loaded ${sortedMembers.length} members.`);
+
+    // Dispatch Event so UI knows data is ready (Optional but good practice)
+    document.dispatchEvent(new CustomEvent('loanDataReady'));
 }
 
 // Start the engine

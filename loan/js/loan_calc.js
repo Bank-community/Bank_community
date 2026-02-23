@@ -35,20 +35,17 @@ export function calculateLimit(balance, mode) {
 export function calculateEMI(amount, rateString) {
     if (!amount || !rateString) return null;
 
+    // Expected format: "Months-Rate-Zero"
     const parts = rateString.split('-');
     const months = parseInt(parts[0]);
-    const monthlyRate = parseFloat(parts[1]);
+    const rateVal = parseFloat(parts[1]);
 
-    // Interest Calculation
-    // Logic: Total Interest = Principal * (Rate/100) * Months (Simple Monthly calc as per previous logic)
-    // Or if Rate is total flat rate (like 1% total for 1 month), logic adjusts.
+    // Interest Logic: Total Interest = Principal * (Rate / 100) * Months (Simple Interest approx per month)
+    // Note: Based on previous logic, rate is monthly %
 
-    // As per previous code logic:
-    // monthlyInt = amt * (intRate/100);
-    // totalPay = amt + (monthlyInt * months); NOTE: Previous code multiplied monthly int by months
+    let monthlyInterestAmount = amount * (rateVal / 100);
+    let totalInterest = monthlyInterestAmount * months;
 
-    const monthlyInterestAmount = amount * (monthlyRate / 100);
-    const totalInterest = monthlyInterestAmount * months;
     const totalPayable = amount + totalInterest;
     const emi = Math.ceil(totalPayable / months);
 
@@ -58,7 +55,7 @@ export function calculateEMI(amount, rateString) {
 
     return {
         months,
-        rate: monthlyRate,
+        rate: rateVal,
         monthlyInterest: monthlyInterestAmount,
         totalPayable,
         emi,
