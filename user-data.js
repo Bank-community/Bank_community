@@ -1,146 +1,134 @@
-// FINAL & CORRECTED UPDATE: OFFLINE FIRST & INSTANT LOAD
-// 1. Instant Cache Load: Displays data immediately even if database connection is pending.
-// 2. All Time Loan: Reads directly from 'lifetimeStats.totalLoanIssued'.
-// 3. Community Funds: Reads directly from 'admin.balanceStats'.
-// 4. Penalty Wallet: Reads directly from 'penaltyWallet.availableBalance'.
+// user-data.js - FINAL VERSION (Data Fetcher)
+// RESPONSIBILITY: Fetch All Data (Loans, Members, History) & Cache It
 
-const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
+const CACHE_KEY = 'tcf_royal_cache_v5'; // Match with user-main.js
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v5'; // Incremented Cache Key
+const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
 /**
- * Data fetch aur process karne ka function.
- * @param {firebase.database.Database} database - Firebase DB instance (Can be null for cache-only load).
- * @param {Function} onUpdate - Callback function for UI update.
+ * Fetch all data from Firebase and process it for the UI.
+ * Now includes 'loans' for the new Dashboard module.
  */
 export async function fetchAndProcessData(database, onUpdate = null) {
-    let cachedDataLoaded = false;
 
-    // STEP 1: LOAD FROM CACHE INSTANTLY (Offline Mode)
-    // Yeh bina database connection ke bhi chalega
+    // 1. Instant Cache Load (Offline Support)
     if (onUpdate) {
         try {
             const cachedRaw = localStorage.getItem(CACHE_KEY);
             if (cachedRaw) {
-                // console.log("⚡ Loading from Cache (Instant)...");
                 const parsedData = JSON.parse(cachedRaw);
-                const processedCache = processRawData(parsedData);
-                onUpdate(processedCache); 
-                cachedDataLoaded = true;
+                onUpdate(parsedData); 
             }
-        } catch (e) {
-            console.warn("Cache load failed:", e);
-        }
+        } catch (e) { console.warn("Cache Read Error"); }
     }
 
-    // Agar database instance nahi diya gaya hai (sirf cache load karna tha), to yahin ruk jao.
     if (!database) return;
 
-    // STEP 2: FETCH FRESH DATA FROM FIREBASE (Background Mode)
     try {
-        // console.log("🌐 Fetching fresh data from Firebase...");
-        const snapshot = await database.ref().once('value');
-        const data = snapshot.val();
-        
-        if (!data) {
-            throw new Error("Database is empty or could not be read.");
-        }
+        // 2. Fetch ALL Data in Parallel (Faster than one big download)
+        // We need: Members, Transactions, Admin, Penalty, AND LOANS
+        const [membersSnap, txSnap, adminSnap, penaltySnap, loansSnap, notifSnap, autoSnap, prodSnap] = await Promise.all([
+            database.ref('members').once('value'),
+            database.ref('transactions').once('value'),
+            database.ref('admin').once('value'),
+            database.ref('penaltyWallet').once('value'),
+            database.ref('loans').once('value'), // 🔥 NEW: Fetch Active Loans
+            database.ref('notifications').once('value'),
+            database.ref('automatedQueue').once('value'),
+            database.ref('products').once('value')
+        ]);
 
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        const processedFresh = processRawData(data);
+        const rawMembers = membersSnap.val() || {};
+        const rawTx = txSnap.val() || {};
+        const rawAdmin = adminSnap.val() || {};
+        const rawPenalty = penaltySnap.val() || {};
+        const rawLoans = loansSnap.val() || {}; // 🔥 Loan Data
+        const rawNotif = notifSnap.val() || {};
+        const rawAuto = autoSnap.val() || {};
+        const rawProd = prodSnap.val() || {};
 
-        if (onUpdate) {
-            onUpdate(processedFresh);
-        }
+        // 3. Process Data
+        const processedData = processRawData(
+            rawMembers, rawTx, rawAdmin, rawPenalty, rawLoans, rawNotif, rawAuto, rawProd
+        );
 
-        return processedFresh;
+        // 4. Send to UI
+        if (onUpdate) onUpdate(processedData);
 
     } catch (error) {
-        console.error('Data processing failed:', error);
-        // Agar cache load ho chuka tha, to error mat dikhao, user ko purane data se chalne do
-        if (cachedDataLoaded) {
-            console.log("⚠️ Network failed, staying on cached data.");
-            return; 
-        }
-        throw error;
+        console.error("Data Fetch Error:", error);
     }
 }
 
-/**
- * Raw Data Processing Logic (Zero Calculation - Direct DB Read)
- */
-function processRawData(data) {
-    const allMembersRaw = data.members || {};
-    const allTransactionsRaw = data.transactions || {}; 
-    const penaltyWalletRaw = data.penaltyWallet || {};
-    const adminSettingsRaw = data.admin || {};
-    const lifetimeStatsRaw = data.lifetimeStats || {}; 
-    
-    // --- DIRECT STATS READ ---
+function processRawData(membersRaw, transactionsRaw, adminSettingsRaw, penaltyWalletRaw, loansRaw, manualNotificationsRaw, automatedQueueRaw, allProductsRaw) {
+
+    // A. Process Transactions
+    const allTransactions = Object.values(transactionsRaw || {}).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // B. Stats Calculation
     const balanceStats = adminSettingsRaw.balanceStats || {};
-    
-    const notificationsRaw = adminSettingsRaw.notifications || {};
-    const manualNotificationsRaw = notificationsRaw.manual || {};
-    const automatedQueueRaw = notificationsRaw.automatedQueue || {};
-    const allProductsRaw = data.products || {};
-    const headerButtonsRaw = adminSettingsRaw.header_buttons || {};
 
-    const processedMembers = {};
-    const allTransactions = Object.values(allTransactionsRaw);
+    // C. Process Members
+    const processedMembers = Object.keys(membersRaw).map(key => {
+        const member = membersRaw[key];
 
-    for (const memberId in allMembersRaw) {
-        const member = allMembersRaw[memberId];
-        if (member.status !== 'Approved' || !member.fullName) continue;
+        // Calculate SIP Status
+        const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+        let isPaid = false;
+        let sipAmount = 0;
 
-        // Direct DB Read
-        const displayBalanceOnCard = parseFloat(member.accountBalance || 0);
-        
-        // HIDE Logic
-        if (member.isDisabled === true && displayBalanceOnCard >= 0) {
-            continue; 
+        // Check manual SIP record
+        if (member.sipHistory && member.sipHistory[currentMonth]) {
+            isPaid = true;
+            sipAmount = member.sipHistory[currentMonth].amount;
+        } 
+        // Check automated transaction logs
+        else {
+            const hasTx = allTransactions.find(t => 
+                t.memberId === key && 
+                (t.type === 'SIP' || t.type === 'Extra Payment') && 
+                t.date.startsWith(currentMonth)
+            );
+            if (hasTx) {
+                isPaid = true;
+                sipAmount = hasTx.amount;
+            }
         }
 
-        const isPaid = (member.currentMonthSIPStatus === 'Paid');
-        const sipAmount = parseFloat(member.currentMonthSIPAmount || 0);
-
-        processedMembers[memberId] = {
+        return {
+            id: key,
             ...member,
-            id: memberId,
-            name: member.fullName,
-            balance: displayBalanceOnCard,
-            totalOutstandingLoan: parseFloat(member.totalLoanDue || 0),
-            totalReturn: 0, 
-            loanCount: 0,
-            displayImageUrl: member.profilePicUrl || DEFAULT_IMAGE,
-            isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === member.fullName.trim().toLowerCase()),
-            sipStatus: { 
-                paid: isPaid, 
-                amount: sipAmount
-            }
+            name: member.fullName || member.name || 'Unknown',
+            balance: parseFloat(member.balance || 0), // Use direct balance
+            displayImageUrl: member.profilePicUrl || member.profileImage || DEFAULT_IMAGE,
+            isPrime: PRIME_MEMBERS.some(p => p.trim().toLowerCase() === (member.fullName || '').trim().toLowerCase()),
+            sipStatus: { paid: isPaid, amount: sipAmount },
+            loanCount: member.loanCount || 0,
+            totalReturn: member.totalReturn || 0
         };
-    }
+    }).sort((a, b) => b.balance - a.balance); // Sort by Highest Balance
 
-    // --- COMMUNITY STATS (DIRECT ASSIGNMENT) ---
+    // D. Community Stats (Merged with Admin Stats)
     const communityStats = {
         totalSipAmount: parseFloat(balanceStats.totalSIP || 0),
         totalCurrentLoanAmount: parseFloat(balanceStats.totalActiveLoans || 0),
         netReturnAmount: parseFloat(balanceStats.totalReturn || 0),
         availableCommunityBalance: parseFloat(balanceStats.availableBalance || 0),
         totalPenaltyBalance: parseFloat(penaltyWalletRaw.availableBalance || 0),
-        totalLoanDisbursed: parseFloat(lifetimeStatsRaw.totalLoanIssued || 0) // Lifetime Stats
+        totalLoanDisbursed: parseFloat(adminSettingsRaw.lifetimeStats?.totalLoanIssued || 0)
     };
 
+    // E. Return Final Bundle
     return {
-        processedMembers: Object.values(processedMembers).sort((a, b) => b.balance - a.balance),
+        processedMembers,
         allTransactions,
         penaltyWalletData: penaltyWalletRaw,
         adminSettings: adminSettingsRaw,
         communityStats,
+        rawActiveLoans: loansRaw, // 🔥 Critical for Loan Dashboard
         manualNotifications: manualNotificationsRaw,
         automatedQueue: automatedQueueRaw,
         allProducts: allProductsRaw,
-        headerButtons: headerButtonsRaw,
+        headerButtons: adminSettingsRaw.headerButtons || {}
     };
 }
-
-

@@ -6,13 +6,8 @@
     <meta name="theme-color" content="#002366"> 
     <title>Trust Community Fund</title>
     
-    <link rel="preload" href="user-style.css" as="style">
-    <link rel="preload" href="https://ik.imagekit.io/kdtvm0r78/1764742107098.png" as="image">
-    
     <link rel="manifest" href="/manifest-user.json">
-    
     <link rel="shortcut icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" type="image/x-icon">
-    <link rel="apple-touch-icon" href="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" sizes="180x180">
     
     <link rel="stylesheet" href="user-style-base.css">
     <link rel="stylesheet" href="user-style-components.css">
@@ -26,46 +21,17 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
 
     <style>
-        /* Temporary Inline Styles for Structure (Will move to CSS file in next step) */
-        .app-tab { display: none; padding-bottom: 80px; animation: fadeIn 0.3s ease; }
-        .app-tab.active-tab { display: block; }
-        
-        /* Bottom Nav Placeholder Style */
-        .bottom-nav-container {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: #fff; box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-            display: flex; justify-content: space-around; align-items: center;
-            padding: 10px 0; z-index: 1000; border-top-left-radius: 20px; border-top-right-radius: 20px;
-        }
-        .nav-item { text-align: center; color: #a0aec0; cursor: pointer; transition: 0.3s; flex: 1; }
-        .nav-item.active { color: #002366; font-weight: bold; }
-        .nav-icon { width: 24px; height: 24px; margin-bottom: 2px; }
-        .nav-text { font-size: 10px; display: block; }
-        
-        /* Center Floating Button */
-        .nav-center-btn {
-            background: #002366; color: #FFD700;
-            width: 55px; height: 55px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin-top: -35px; box-shadow: 0 5px 15px rgba(0, 35, 102, 0.4);
-            border: 4px solid #fff;
-        }
-        
-        /* Profile Gatekeeper Styles */
-        .gatekeeper-container {
+        /* Loading Spinner for Modular Tabs */
+        .module-loader {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 80vh; padding: 20px; text-align: center;
-            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            height: 50vh; color: #a0aec0;
         }
-        .gk-avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #D4AF37; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .gk-name { font-size: 1.5em; color: #002366; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; }
-        .gk-role { color: #D4AF37; font-size: 0.9em; margin-bottom: 20px; font-weight: 600; }
-        .gk-stats { display: flex; gap: 20px; margin-bottom: 30px; background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .gk-stat-item { text-align: center; }
-        .gk-label { font-size: 0.7em; color: #718096; text-transform: uppercase; }
-        .gk-value { font-size: 1.1em; font-weight: 700; color: #2d3748; }
-        .gk-input { width: 100%; max-width: 250px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 1.1em; outline: none; transition: 0.3s; }
-        .gk-input:focus { border-color: #002366; box-shadow: 0 0 0 3px rgba(0,35,102,0.1); }
+        .module-spinner {
+            width: 40px; height: 40px; border: 4px solid #f3f3f3;
+            border-top: 4px solid #D4AF37; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -76,7 +42,7 @@
             <div id="headerDisplay" class="header-display">
                 <div class="ad-content"></div>
                 <div class="ticker-wrap">
-                    <div class="ticker" id="newsTicker">Welcome to Trust Community Fund... Your trusted financial partner...</div>
+                    <div class="ticker" id="newsTicker">Welcome to Trust Community Fund...</div>
                 </div>
             </div>
             <h1>Trust Community Fund</h1>
@@ -133,25 +99,6 @@
                     </div>
                 </div>
 
-                <div class="tcf-action-buttons">
-                    <div class="tcf-action-btn" id="btnQr">
-                        <div class="tcf-action-icon-wrap"><i data-feather="grid" class="tcf-action-icon text-blue"></i></div>
-                        <span>QR</span>
-                    </div>
-                    <div class="tcf-action-btn" id="btnSip">
-                        <div class="tcf-action-icon-wrap"><i data-feather="dollar-sign" class="tcf-action-icon text-green"></i></div>
-                        <span>SIP</span>
-                    </div>
-                    <div class="tcf-action-btn" id="btnLoan">
-                        <div class="tcf-action-icon-wrap"><i data-feather="file-text" class="tcf-action-icon text-orange"></i></div>
-                        <span>Loan</span>
-                    </div>
-                    <div class="tcf-action-btn" id="btnHistory">
-                        <div class="tcf-action-icon-wrap"><i data-feather="clock" class="tcf-action-icon text-gray"></i></div>
-                        <span>History</span>
-                    </div>
-                </div>
-
                 <div id="staticHeaderButtons" style="display: none;"></div>
                 
                 <div class="member-slider" id="memberContainer"> <p class="loading-text">Authenticating...</p> </div> 
@@ -176,10 +123,10 @@
                         <span>SIP<br>Deposit</span>
                     </div> 
 
-                    <a href="loan_dashbord.html" class="compact-card animate-on-scroll">
+                    <div class="compact-card animate-on-scroll" id="btnTransactionsShortcut">
                         <i data-feather="list" class="compact-icon"></i>
                         <span>Transactions</span>
-                    </a> 
+                    </div> 
                     
                     <a href="https://chat.whatsapp.com/G39I0hP55WIDHMu5YkAjDZ?mode=hqrt3" target="_blank" class="compact-card animate-on-scroll">
                         <i data-feather="message-circle" class="compact-icon"></i>
@@ -204,13 +151,6 @@
                 </div> 
             </section>
             
-            <section class="products-section animate-on-scroll">
-                <h2>Products on EMI</h2>
-                <div class="products-container" id="productsContainer">
-                    <p class="loading-text">Loading Products...</p>
-                </div>
-            </section>
-
             <section class="info-slider-section animate-on-scroll"> 
                 <h2>💡 Community Info</h2> 
                 <div class="info-slider-container" id="infoSlider"> </div> 
@@ -228,36 +168,29 @@
         </main>
 
         <footer>
-            <p>© <span id="currentYear"></span> Trust Community Fund. All rights reserved. <a href="Exit_Letter.html" style="color: #a0aec0; text-decoration: none; font-size: 0.8em; opacity: 0.7;" title="Exit Community Letter">Exit</a></p>
+            <p>© <span id="currentYear"></span> Trust Community Fund. All rights reserved. <a href="Exit_Letter.html" style="color: #a0aec0; text-decoration: none; font-size: 0.8em; opacity: 0.7;">Exit</a></p>
         </footer>
     </div>
 
     <div id="tab-loan" class="app-tab">
-        <header class="animate-on-scroll" style="padding-bottom: 20px;">
-            <h2>Loan Services</h2>
-        </header>
-        <div style="padding: 20px; text-align: center;">
-             <img src="https://cdn-icons-png.flaticon.com/512/2830/2830289.png" width="100" style="margin: 0 auto 20px;">
-             <h3>Quick Instant Loan</h3>
-             <p>Select a loan type to proceed.</p>
-             <button class="civil-button" onclick="window.location.href='loan_form.html'">Apply Now</button>
+        <div class="module-loader">
+            <div class="module-spinner"></div>
+            <p>Loading Loan Module...</p>
         </div>
-    </div>
+        </div>
 
     <div id="tab-history" class="app-tab">
-        <header class="animate-on-scroll" style="padding-bottom: 20px;">
-            <h2>Transaction History</h2>
-        </header>
-        <div id="historyListContainer" style="padding: 10px;">
-            <p class="loading-text" style="color:#000;">Loading History...</p>
+        <div class="module-loader">
+            <div class="module-spinner"></div>
+            <p>Loading History Module...</p>
         </div>
-    </div>
+        </div>
 
     <div id="tab-profile" class="app-tab">
-        <div class="gatekeeper-container">
+        <div id="profile-gatekeeper" class="gatekeeper-container">
             <img id="gkProfileImg" src="https://i.ibb.co/HTNrbJxD/20250716-222246.png" class="gk-avatar" alt="Profile">
-            <h2 id="gkProfileName" class="gk-name">Member Name</h2>
-            <p id="gkProfileRole" class="gk-role">👑 Prime Member</p>
+            <h2 id="gkProfileName" class="gk-name">Guest</h2>
+            <p id="gkProfileRole" class="gk-role" style="display:none;">👑 Prime Member</p>
             
             <div class="gk-stats">
                 <div class="gk-stat-item">
@@ -276,6 +209,9 @@
                 Secure Login <i data-feather="lock" style="width: 16px; margin-left: 5px;"></i>
             </button>
         </div>
+
+        <div id="profile-full-view" style="display: none;">
+            </div>
     </div>
 
     <nav class="bottom-nav-container">
@@ -289,7 +225,7 @@
             <span class="nav-text">Loan</span>
         </div>
         
-        <div class="nav-item" onclick="window.location.href='loan_form.html'">
+        <div class="nav-item" data-target="tab-loan">
             <div class="nav-center-btn">
                 <i data-feather="file-text" style="width: 28px; height: 28px;"></i>
             </div>
@@ -313,7 +249,7 @@
             <h2 class="luxury-title">Community Funds</h2>
             <div class="balance-group"><p class="balance-label">Total SIP Amount</p><div id="totalSipAmountDisplay" class="balance-value green-text">₹0</div></div>
             <div class="balance-group"><p class="balance-label">Total Current Loan Amount</p><div id="totalCurrentLoanDisplay" class="balance-value red-text">₹0</div></div>
-            <div class="balance-group"><p class="balance-label">Net Return Amount (After 10% Deduction)</p><div id="netReturnAmountDisplay" class="balance-value gold-text-value">₹0</div></div>
+            <div class="balance-group"><p class="balance-label">Net Return Amount</p><div id="netReturnAmountDisplay" class="balance-value gold-text-value">₹0</div></div>
             <hr class="luxury-divider">
             <div class="balance-group total-group"><p class="balance-label total-label">Available Community Balance</p><div id="availableAmountDisplay" class="balance-value green-text large-text">₹0</div></div>
         </div>
@@ -325,7 +261,7 @@
             <h2 class="luxury-title">PENALTY WALLET</h2>
             <div class="balance-group total-group"><div id="penaltyBalance" class="balance-value red-text large-text">₹0</div><p class="balance-label">Current Penalty Balance</p></div>
             <hr class="luxury-divider">
-            <button id="viewHistoryBtn" class="civil-button" style="margin-bottom: 20px; width: 100%; border-radius: 8px;">View History</button>
+            <button id="viewHistoryBtn" class="civil-button" style="margin-bottom: 20px; width: 100%;">View History</button>
             <ul class="penalty-history-list" id="penaltyHistoryList" style="display: none;"></ul>
         </div>
     </div>
@@ -333,17 +269,17 @@
     <div id="memberProfileModal" class="modal"> 
         <div class="modal-content"> 
             <span class="close" id="closeProfileModal">×</span> 
-            <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile Picture"></div> 
+            <div class="profile-modal-header" id="profileModalHeader"><img id="profileModalImage" src="" alt="Profile"></div> 
             <div class="profile-modal-prime-tag" id="profileModalPrimeTag">👑 Prime</div> 
             <h2 id="profileModalName">Member Name</h2> 
             <ul class="profile-stats-list"> 
-                <li><span class="stat-label"><i data-feather="calendar"></i> Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> 
-                <li><span class="stat-label"><i data-feather="dollar-sign"></i> Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> 
-                <li><span class="stat-label"><i data-feather="trending-up"></i>Loan Return Pay</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> 
-                <li><span class="stat-label"><i data-feather="check-circle"></i> This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> 
-                <li><span class="stat-label"><i data-feather="hash"></i> Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> 
+                <li><span class="stat-label">Joining Date</span><span id="profileModalJoiningDate" class="stat-value">--</span></li> 
+                <li><span class="stat-label">Current Balance</span><span id="profileModalBalance" class="stat-value positive">₹0</span></li> 
+                <li><span class="stat-label">Loan Return Pay</span><span id="profileModalReturn" class="stat-value info">₹0</span></li> 
+                <li><span class="stat-label">This Month SIP</span><span id="profileModalSipStatus" class="stat-value">--</span></li> 
+                <li><span class="stat-label">Loan Count</span><span id="profileModalLoanCount" class="stat-value">0</span></li> 
             </ul> 
-            <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Full View</button> 
+            <button id="fullViewBtn" style="width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px;">Full View</button> 
         </div> 
     </div> 
     
@@ -367,28 +303,25 @@
         <div class="modal-content">
             <span class="close" id="closePasswordModal">×</span>
             <h2>Enter Password</h2>
-            <p style="margin-bottom: 20px; font-size: 0.9em; color: var(--light-text);">Please enter the member's password to view full details.</p>
-            <input type="number" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; font-size: 1.1em; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px; box-sizing: border-box;">
-            <button id="submitPasswordBtn" style="width: 100%; padding: 12px; background-color: var(--success-color); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Submit</button>
+            <input type="number" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 20px;">
+            <button id="submitPasswordBtn" style="width: 100%; padding: 12px; background: var(--success-color); color: white; border: none; border-radius: 8px;">Submit</button>
         </div>
     </div>
 
     <div id="imageModal" class="modal image-modal-overlay"> 
-    <span class="close" id="closeImageModal">×</span> 
-    <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> 
+        <span class="close" id="closeImageModal">×</span> 
+        <img class="image-modal-content" id="fullImageSrc" alt="Full Size Image"> 
     </div>
 
     <div id="deviceVerificationModal" class="modal">
-        <div class="modal-content">
-        </div>
+        <div class="modal-content"></div>
     </div>
 
     <div id="emiModal" class="modal">
         <div class="modal-content">
             <span class="close" id="closeEmiModal">×</span>
             <h2 id="emiModalTitle">EMI Details</h2>
-            <ul class="emi-details-list" id="emiDetailsList">
-            </ul>
+            <ul class="emi-details-list" id="emiDetailsList"></ul>
         </div>
     </div>
     
@@ -396,13 +329,7 @@
 
     <script type="module">
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js')
-            .then((registration) => {
-                console.log('✅ Service Worker Registered');
-            })
-            .catch((err) => {
-                console.log('❌ Service Worker registration failed:', err);
-            });
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(console.error);
         }
     </script>
 
