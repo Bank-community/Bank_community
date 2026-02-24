@@ -206,55 +206,65 @@ function renderHistoryTab() {
     });
 }
 
-// --- 🔥 NEW: Render Profile Gatekeeper (Updated) ---
+
+// --- 🔥 NEW: Render Profile Gatekeeper (With Days Calculator) ---
 function renderProfileGatekeeper() {
     const myId = localStorage.getItem('verifiedMemberId');
 
-    // Default "Guest" View (Agar verified nahi hai)
+    // Default View
     let member = {
         name: "Guest User",
-        displayImageUrl: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+        displayImageUrl: "https://i.ibb.co/HTNrbJxD/20250716-222246.png",
         isPrime: false,
-        joiningDate: "--",
+        joiningDate: null,
         balance: 0
     };
 
-    // Agar ID verified hai, to asli data dhoondo
     if (myId && globalData.members) {
         const found = globalData.members.find(m => m.id === myId);
         if (found) member = found;
     }
 
-    // 1. Update Image
+    // 1. Update Image & Name
     const imgEl = document.getElementById('gkProfileImg');
     if (imgEl) imgEl.src = member.displayImageUrl;
-
-    // 2. Update Name
     setTextContent('gkProfileName', member.name);
 
-    // 3. Update Prime Tag
+    // 2. Prime Tag
     const roleEl = document.getElementById('gkProfileRole');
     if(roleEl) {
         roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
-        roleEl.textContent = '👑 Prime Member';
     }
 
-    // 4. Update Joining Date (Format: DD/MM/YYYY)
-    let joinDate = '--';
+    // 3. ⏳ TOTAL TIME CALCULATOR (New Logic)
+    let daysText = '-- Days';
     if (member.joiningDate && member.joiningDate !== '--') {
-        const d = new Date(member.joiningDate);
-        joinDate = d.toLocaleDateString('en-GB'); // Indian Format
+        const joinDate = new Date(member.joiningDate);
+        const today = new Date();
+        
+        // Difference in Time
+        const diffTime = Math.abs(today - joinDate);
+        // Difference in Days (1000ms * 60s * 60m * 24h)
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        
+        daysText = `${diffDays} Days`;
     }
-    setTextContent('gkJoinDate', joinDate);
-    
-    // 5. Update Balance
-    setTextContent('gkBalance', '₹' + formatNumberWithCommas(member.balance));
+    setTextContent('gkTotalDays', daysText);
 
-    // 6. Set ID for Secure Login Button (Next Page jane ke liye)
+    // 4. Update Balance
+    const balEl = document.getElementById('gkBalance');
+    if(balEl) {
+        balEl.textContent = '₹' + formatNumberWithCommas(member.balance);
+        // Color logic: Green for positive, Red for negative
+        balEl.className = `stat-value ${member.balance >= 0 ? 'text-green' : 'text-red'}`;
+    }
+
+    // 5. Link Button for Next Step
     if (elements.gkSubmitBtn) {
         elements.gkSubmitBtn.dataset.memberId = myId || '';
     }
 }
+
 
 
 function setTextContent(id, text) {
@@ -374,6 +384,18 @@ function setupEventListeners(database) {
 
             if (!memberId) { alert("Please select your name first."); return; }
             if (!password) { alert("Please enter password."); return; }
+
+        // --- 🔍 PROFILE IMAGE ZOOM LOGIC ---
+        // Jab user apni photo par click kare
+        if (target.closest('.profile-image-container') || target.closest('#gkProfileImg')) {
+            const img = document.getElementById('gkProfileImg');
+            const name = document.getElementById('gkProfileName');
+            if (img && name) {
+                // Purana helper function use kar rahe hain
+                showFullImage(img.src, name.textContent);
+            }
+        }
+
 
             // Member dhoondo
             const member = globalData.members.find(m => m.id === memberId);
