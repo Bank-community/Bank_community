@@ -1,4 +1,4 @@
-// user-ui.js - REPAIRED VERSION (All-in-One Safe Mode)
+// user-ui.js - FINAL REPAIRED VERSION (All-in-One Logic)
 // RESPONSIBILITY: Handle Tabs, Inject Modules & Manage All Logic
 // NOTE: Templates are merged here to prevent "Missing File" errors.
 
