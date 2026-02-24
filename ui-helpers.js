@@ -1,5 +1,5 @@
-// ui-helpers.js - FIXED & FULLY COMPATIBLE V4
-// Ensures no function is missing for the new Bottom Nav System
+// ui-helpers.js - FINAL FULL VERSION (Helper Functions)
+// RESPONSIBILITY: Modals, Formatters, Analytics & Verification Logic
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
@@ -12,11 +12,14 @@ export const Analytics = {
     init: function(database) {
         const storedId = localStorage.getItem('verifiedMemberId');
         if (storedId) this.memberId = storedId;
-        // console.log("Analytics Started");
+        // console.log("Analytics Started for:", this.memberId);
     },
 
     identifyUser: function(id) {
-        if (id) this.memberId = id;
+        if (id) {
+            this.memberId = id;
+            localStorage.setItem('verifiedMemberId', id);
+        }
     },
 
     logAction: function(action) {
@@ -28,9 +31,89 @@ export const Analytics = {
 // --- 🔔 NOTIFICATIONS ---
 export function processAndShowNotifications(globalData, container) {
     if (!container) return;
-    // Simple implementation to prevent crash if data is missing
+
+    // Safety check to prevent crash if data is missing
     const transactions = globalData.transactions || [];
-    // (Logic simplified for stability)
+    const manualNotifs = globalData.notifications?.manual || {};
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const sessionKey = `royalPopups_${todayStr}`;
+
+    if (sessionStorage.getItem(sessionKey)) return;
+
+    let delay = 500;
+    const baseDelay = 4000;
+
+    // Show Today's Transactions
+    const todaysTx = transactions.filter(tx => tx.date && tx.date.startsWith(todayStr));
+
+    todaysTx.forEach((tx, i) => {
+        setTimeout(() => {
+            const member = globalData.members.find(m => m.id === tx.memberId);
+            showPopupNotification(container, 'transaction', tx, member);
+        }, delay + (i * baseDelay));
+    });
+
+    delay += todaysTx.length * baseDelay;
+
+    // Show Manual Notices
+    Object.values(manualNotifs).forEach((notif, i) => {
+        setTimeout(() => {
+            showPopupNotification(container, 'manual', notif, null);
+        }, delay + (i * baseDelay));
+    });
+
+    sessionStorage.setItem(sessionKey, 'true');
+}
+
+function showPopupNotification(container, type, data, member) {
+    const popup = document.createElement('div');
+    popup.className = 'notification-popup';
+
+    let content = '', img = DEFAULT_IMAGE, title = 'Notification';
+
+    if (type === 'transaction' && member) {
+        title = member.name;
+        img = member.displayImageUrl;
+        let amountVal = parseFloat(data.amount) || 0;
+        let msg = data.type || 'Transaction';
+
+        if (data.type === 'Loan Payment') msg = 'Loan Repayment';
+        else if (data.type === 'Loan Taken') msg = 'Took a Loan';
+        else if (data.type === 'SIP') msg = 'Paid Monthly SIP';
+
+        content = `<strong>${title}</strong><p>${msg}</p><span class="notification-popup-amount">₹${amountVal.toLocaleString('en-IN')}</span>`;
+    } else {
+        img = data.imageUrl || DEFAULT_IMAGE;
+        title = data.title || 'Notice';
+        content = `<strong>${title}</strong><p>Tap to view</p>`;
+    }
+
+    popup.innerHTML = `
+        <img src="${img}" class="notification-popup-img" onerror="this.src='${DEFAULT_IMAGE}'">
+        <div class="notification-popup-content">${content}</div>
+        <button class="notification-popup-close">&times;</button>`;
+
+    // Click logic
+    popup.onclick = () => {
+        // Use the new tab router if available
+        const historyTabBtn = document.querySelector('.nav-item[data-target="tab-history"]');
+        if(historyTabBtn) historyTabBtn.click();
+        else window.location.href = 'notifications.html';
+    };
+
+    const closeBtn = popup.querySelector('.notification-popup-close');
+    closeBtn.onclick = (e) => { e.stopPropagation(); removePopup(popup); };
+    setTimeout(() => removePopup(popup), 5000);
+
+    container.appendChild(popup);
+}
+
+function removePopup(el) {
+    if(el && el.parentNode) {
+        el.classList.add('closing');
+        el.addEventListener('animationend', () => el.remove());
+    }
 }
 
 export async function requestNotificationPermission() {
@@ -47,11 +130,13 @@ export function showMemberProfileModal(memberId, allMembers) {
     const member = allMembers.find(m => m.id === memberId);
     if (!member) return;
 
-    setText('profileModalName', member.name);
-    setText('profileModalJoiningDate', formatDate(member.joiningDate));
-    setText('profileModalBalance', formatCurrency(member.balance));
-    setText('profileModalReturn', formatCurrency(member.totalReturn));
-    setText('profileModalLoanCount', member.loanCount || 0);
+    Analytics.logAction(`Opened Profile: ${member.name}`);
+
+    setTextContent('profileModalName', member.name);
+    setTextContent('profileModalJoiningDate', formatDate(member.joiningDate));
+    setTextContent('profileModalBalance', formatCurrency(member.balance));
+    setTextContent('profileModalReturn', formatCurrency(member.totalReturn));
+    setTextContent('profileModalLoanCount', member.loanCount || 0);
 
     const imgEl = document.getElementById('profileModalImage');
     if(imgEl) imgEl.src = member.displayImageUrl;
@@ -63,16 +148,20 @@ export function showMemberProfileModal(memberId, allMembers) {
             : `<span class="sip-status-icon not-paid">✖</span> Not Paid`;
     }
 
+    const balEl = document.getElementById('profileModalBalance');
+    if(balEl) balEl.className = `stat-value ${member.balance >= 0 ? 'positive' : 'negative'}`;
+
     const modal = document.getElementById('memberProfileModal');
     if(modal) {
-        modal.classList.add('show');
         modal.classList.toggle('prime-modal', member.isPrime);
         const tag = document.getElementById('profileModalPrimeTag');
         if(tag) tag.style.display = member.isPrime ? 'block' : 'none';
+        openModalById('memberProfileModal');
     }
 }
 
 export function showSipStatusModal(members) {
+    Analytics.logAction("Opened SIP Status List");
     const container = document.getElementById('sipStatusListContainer');
     if (!container) return;
     container.innerHTML = '';
@@ -90,12 +179,12 @@ export function showSipStatusModal(members) {
 }
 
 export function showPenaltyWalletModal(penaltyData, currentBalance) {
-    setText('penaltyBalance', formatCurrency(currentBalance));
+    Analytics.logAction("Opened Penalty Wallet");
+    setTextContent('penaltyBalance', formatCurrency(currentBalance));
     const list = document.getElementById('penaltyHistoryList');
     if (!list) return;
 
     list.innerHTML = '';
-    // Prevent crash if data is missing
     const incomes = penaltyData?.incomes || {};
     const expenses = penaltyData?.expenses || {};
 
@@ -113,6 +202,7 @@ export function showPenaltyWalletModal(penaltyData, currentBalance) {
 }
 
 export function showAllMembersModal(members, onItemClick, onZoomClick) {
+    Analytics.logAction("Opened All Members Grid");
     const container = document.getElementById('allMembersListContainer');
     if(!container) return;
     container.innerHTML = '';
@@ -132,35 +222,30 @@ export function showAllMembersModal(members, onItemClick, onZoomClick) {
 }
 
 export function showBalanceModal(stats) {
+    Analytics.logAction("Viewed Community Balance");
     if(!stats) return;
     openModalById('balanceModal');
-    setText('totalSipAmountDisplay', formatCurrency(stats.totalSipAmount));
-    setText('totalCurrentLoanDisplay', formatCurrency(stats.totalCurrentLoanAmount));
-    setText('netReturnAmountDisplay', formatCurrency(stats.netReturnAmount));
-    setText('availableAmountDisplay', formatCurrency(stats.availableCommunityBalance));
-}
-
-export function showEmiModal(emi, name, price, modalElement) {
-    if(!modalElement) return;
-    document.getElementById('emiModalTitle').textContent = `EMI: ${name}`;
-    const list = document.getElementById('emiDetailsList');
-    list.innerHTML = '';
-    Object.entries(emi).forEach(([months, rate]) => {
-        const total = price * (1 + parseFloat(rate)/100);
-        const monthly = Math.ceil(total / parseInt(months));
-        list.innerHTML += `<li>${months} Months @ ${rate}% = ₹${monthly}/mo</li>`;
-    });
-    modalElement.classList.add('show');
+    animateValue('totalSipAmountDisplay', stats.totalSipAmount);
+    animateValue('totalCurrentLoanDisplay', stats.totalCurrentLoanAmount);
+    animateValue('netReturnAmountDisplay', stats.netReturnAmount);
+    animateValue('availableAmountDisplay', stats.availableCommunityBalance);
 }
 
 // --- PASSWORD & VERIFICATION ---
 export async function handlePasswordCheck(database, memberId) {
     const input = document.getElementById('passwordInput');
-    if (!input || !input.value) return alert('Enter password.');
+    if (!input || !input.value) return alert('Please enter password.');
+
+    // Auto-Connect if DB missing
+    let dbInstance = database;
+    if (!dbInstance && typeof firebase !== 'undefined') {
+        dbInstance = firebase.database(); 
+    }
 
     try {
-        const snap = await database.ref(`members/${memberId}/password`).once('value');
+        const snap = await dbInstance.ref(`members/${memberId}/password`).once('value');
         if (String(input.value).trim() === String(snap.val()).trim()) {
+            Analytics.logAction("Password Verified for Full View");
             window.location.href = `view.html?memberId=${memberId}`;
         } else { 
             alert('Wrong Password!'); 
@@ -168,10 +253,11 @@ export async function handlePasswordCheck(database, memberId) {
         }
     } catch (e) { 
         console.error(e);
-        alert('Verification failed. Database error.'); 
+        alert('Verification failed. Check internet.'); 
     }
 }
 
+// --- DEVICE VERIFICATION (UPDATED FOR GATEKEEPER) ---
 export function promptForDeviceVerification(members) {
     return new Promise(resolve => {
         const modal = document.getElementById('deviceVerificationModal');
@@ -192,14 +278,15 @@ export function promptForDeviceVerification(members) {
 
         modal.classList.add('show');
 
+        // Use event delegation or direct attachment safely
         const btn = document.getElementById('verifyBtn');
         if(btn) {
             btn.onclick = () => {
                 const val = document.getElementById('memberVerifySelect').value;
                 if(val) { 
                     modal.classList.remove('show'); 
+                    Analytics.identifyUser(val); 
                     resolve(val); 
-                    localStorage.setItem('verifiedMemberId', val);
                 }
             };
         }
@@ -213,7 +300,22 @@ export function showFullImage(src, alt) {
         img.src = src; 
         img.alt = alt || 'Image'; 
         modal.classList.add('show'); 
+        Analytics.logAction("Zoomed Image"); 
     }
+}
+
+export function showEmiModal(emi, name, price, modalElement) {
+    Analytics.logAction(`Viewed EMI: ${name}`);
+    if(!modalElement) return;
+    document.getElementById('emiModalTitle').textContent = `EMI: ${name}`;
+    const list = document.getElementById('emiDetailsList');
+    list.innerHTML = '';
+    Object.entries(emi).forEach(([months, rate]) => {
+        const total = price * (1 + parseFloat(rate)/100);
+        const monthly = Math.ceil(total / parseInt(months));
+        list.innerHTML += `<li>${months} Months @ ${rate}% = ₹${monthly}/mo</li>`;
+    });
+    modalElement.classList.add('show');
 }
 
 export function observeElements(elements) {
@@ -232,9 +334,24 @@ function openModalById(id) {
     if(m) { m.classList.add('show'); document.body.style.overflow = 'hidden'; } 
 }
 
-function setText(id, val) { 
+// Exported assetTextContent but also accessible as setText internally
+export function setTextContent(id, val) { 
     const el = document.getElementById(id); 
     if(el) el.textContent = val; 
+}
+
+function animateValue(id, end) { 
+    const el = document.getElementById(id); 
+    if(!el) return; 
+    const start = 0, duration = 1000; 
+    let startTime = null; 
+    const step = (ts) => { 
+        if(!startTime) startTime = ts; 
+        const progress = Math.min((ts - startTime)/duration, 1); 
+        el.textContent = formatCurrency(Math.floor(progress * ((end || 0) - start) + start)); 
+        if(progress < 1) requestAnimationFrame(step); 
+    }; 
+    requestAnimationFrame(step); 
 }
 
 function formatCurrency(amount) { 

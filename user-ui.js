@@ -1,5 +1,5 @@
-// user-ui.js - PART 1 of 3 (Main Controller)
-// UPDATED: Added Bottom Nav Router & Gatekeeper Logic
+// user-ui.js - FINAL FULL VERSION (Restored & Upgraded)
+// RESPONSIBILITY: Main UI Controller, Tab Router & Data Renderer
 
 import { 
     displayHeaderButtons, 
@@ -24,8 +24,7 @@ import {
     showEmiModal, 
     showFullImage, 
     handlePasswordCheck, 
-    observeElements,
-    Analytics 
+    observeElements 
 } from './ui-helpers.js';
 
 // --- Global State ---
@@ -77,7 +76,7 @@ export const elements = {
     emiModal: getElement('emiModal'),
     popupContainer: getElement('notification-popup-container'),
 
-    // NEW: Gatekeeper Elements
+    // Gatekeeper Elements
     gkSubmitBtn: getElement('gkSubmitBtn'),
     gkPasswordInput: getElement('gkPasswordInput')
 };
@@ -90,15 +89,17 @@ function formatNumberWithCommas(amount) {
 // --- Initialization ---
 export function initUI(database) {
     setupEventListeners(database);
-    setupBottomNav(); // 🔥 NEW: Initialize Bottom Navigation
+    setupBottomNav(); // 🔥 NEW: Initialize Tabs
     setupPWA();
 
+    // Initial Animation Check
     setTimeout(() => {
         document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
     }, 500);
 
     if (elements.year) elements.year.textContent = new Date().getFullYear();
 
+    // Back Button Handling
     window.onpopstate = function(event) {
         if (currentOpenModal) {
             currentOpenModal.classList.remove('show');
@@ -153,7 +154,7 @@ function renderHistoryTab() {
     const myId = localStorage.getItem('verifiedMemberId');
     const transactions = globalData.transactions || [];
 
-    // Filter Logic: If logged in, show MY transactions, else show Global recent 10
+    // Filter Logic: If logged in, show MY transactions, else show Global recent 20
     let displayTx = [];
     if (myId) {
         displayTx = transactions.filter(t => t.memberId === myId);
@@ -165,6 +166,9 @@ function renderHistoryTab() {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No transactions found.</div>';
         return;
     }
+
+    // Sort by Date (Newest First)
+    displayTx.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     container.innerHTML = '';
     displayTx.forEach(tx => {
@@ -212,10 +216,13 @@ function renderProfileGatekeeper() {
     const imgEl = document.getElementById('gkProfileImg');
     if (imgEl) imgEl.src = member.displayImageUrl;
 
-    document.getElementById('gkProfileName').textContent = member.name;
-    document.getElementById('gkProfileRole').style.display = member.isPrime ? 'inline-block' : 'none';
-    document.getElementById('gkJoinDate').textContent = member.joiningDate || '--';
-    document.getElementById('gkBalance').textContent = '₹' + formatNumberWithCommas(member.balance);
+    setTextContent('gkProfileName', member.name);
+
+    const roleEl = document.getElementById('gkProfileRole');
+    if(roleEl) roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
+
+    setTextContent('gkJoinDate', member.joiningDate || '--');
+    setTextContent('gkBalance', '₹' + formatNumberWithCommas(member.balance));
 
     // Set ID for password check
     if (elements.gkSubmitBtn) {
@@ -223,44 +230,64 @@ function renderProfileGatekeeper() {
     }
 }
 
-// --- Main Render Function ---
+function setTextContent(id, text) {
+    const el = document.getElementById(id);
+    if(el) el.textContent = text;
+}
+
+// --- Main Render Function (RESTORED FULL LOGIC) ---
 export function renderPage(data) {
-    globalData = data; // Update State
+    // Update Global State
+    globalData.members = data.processedMembers || [];
+    globalData.penalty = data.penaltyWalletData || {};
+    globalData.transactions = data.allTransactions || [];
+    globalData.stats = data.communityStats || {};
+    globalData.products = data.allProducts || {};
+    globalData.notifications.manual = data.manualNotifications || {};
+    globalData.notifications.automated = data.automatedQueue || {};
 
-    const approvedMembers = (globalData.members || []).filter(m => m.status === 'Approved');
+    const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
 
-    // 0. Update TCF Card
+    // 0. Update TCF Premium Card (Real-Time Data Injection)
     if (elements.tcfAvailableFunds) {
         elements.tcfAvailableFunds.dataset.value = formatNumberWithCommas(globalData.stats.availableCommunityBalance);
+
         if (!elements.tcfAvailableFunds.classList.contains('masked')) {
             elements.tcfAvailableFunds.textContent = elements.tcfAvailableFunds.dataset.value;
         }
+
         if (elements.tcfTotalSip) elements.tcfTotalSip.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalSipAmount);
         if (elements.tcfActiveLoans) elements.tcfActiveLoans.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalCurrentLoanAmount);
         if (elements.tcfReturns) elements.tcfReturns.textContent = '₹' + formatNumberWithCommas(globalData.stats.netReturnAmount);
     }
 
-    // 1. Render Header Buttons
+    // 1. Render Header Buttons (Hidden div support)
     displayHeaderButtons(data.headerButtons || {}, elements.headerActions, elements.staticButtons);
 
-    // 2. Render Members
+    // 2. Render Members (Top 3 + Others)
     displayMembers(approvedMembers, data.adminSettings || {}, elements.memberContainer, (id) => {
         currentMemberForFullView = id;
         showMemberProfileModal(id, globalData.members);
     });
 
-    // 3. Components
+    // 3. Render Custom Cards & Sliders
     displayCustomCards(data.adminSettings?.custom_cards || {}, elements.customCards);
     displayCommunityLetters(data.adminSettings?.community_letters || {}, elements.letters, showFullImage);
+
+    // 4. Update Stats & Info
     updateInfoCards(approvedMembers.length, globalData.stats.totalLoanDisbursed);
     startHeaderDisplayRotator(elements.headerDisplay, approvedMembers, globalData.stats);
     buildInfoSlider(elements.infoSlider, globalData.members);
+
+    // 5. Render Products (Pass Callback for EMI Modal)
     renderProducts(globalData.products, elements.products, (emi, name, price) => {
         showEmiModal(emi, name, price, elements.emiModal);
     });
 
+    // 6. Notifications
     processAndShowNotifications(globalData, elements.popupContainer);
 
+    // 7. Animations & Icons
     if(typeof feather !== 'undefined') feather.replace();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
 }
@@ -279,7 +306,10 @@ function setupEventListeners(database) {
             if (!memberId || memberId === 'null') {
                 alert("Please select your identity first (Click on your photo in Home List)");
                 promptForDeviceVerification(globalData.members).then(id => {
-                    if(id) renderProfileGatekeeper();
+                    if(id) {
+                        localStorage.setItem('verifiedMemberId', id);
+                        renderProfileGatekeeper();
+                    }
                 });
                 return;
             }
@@ -299,11 +329,13 @@ function setupEventListeners(database) {
             showSipStatusModal(globalData.members);
         }
 
-        // Modal & Other Click Logic (Existing)
+        // Close Modal Logic
         if (target.matches('.close') || target.matches('.close *') || target.classList.contains('modal')) {
             const modal = target.closest('.modal') || target;
             closeModal(modal);
         }
+
+        // Feature: Show All Members
         if (target.closest('#totalMembersCard')) {
             showAllMembersModal(globalData.members, (id) => {
                 closeModal(elements.allMembersModal);
@@ -311,9 +343,13 @@ function setupEventListeners(database) {
                 showMemberProfileModal(id, globalData.members);
             }, showFullImage);
         }
+
+        // Feature: Full Profile View (Password Check)
         if (target.closest('#fullViewBtn')) {
             swapModals(elements.profileModal, elements.passwordModal);
         }
+
+        // Feature: View History (Penalty)
         if (target.closest('#viewHistoryBtn')) {
             const list = document.getElementById('penaltyHistoryList');
             const btn = target.closest('#viewHistoryBtn');
@@ -321,25 +357,50 @@ function setupEventListeners(database) {
             list.style.display = isHidden ? 'block' : 'none';
             btn.textContent = isHidden ? 'Hide History' : 'View History';
         }
+
+        // Feature: Profile Image Zoom
         if (target.closest('#profileModalHeader')) {
             const img = document.getElementById('profileModalImage');
             const name = document.getElementById('profileModalName');
             if (img && name) showFullImage(img.src, name.textContent);
         }
+
+        // Feature: Submit Password (Existing Modal)
         if (target.closest('#submitPasswordBtn')) {
             handlePasswordCheck(database, currentMemberForFullView);
         }
 
-        // TCF Card Toggle
+        // --- TCF CARD LOGIC ---
+        // Eye Icon Toggle Logic (Hide/Show Balance)
         if (target.closest('#tcfBalanceToggleBtn')) {
             const amountEl = elements.tcfAvailableFunds;
             const iconEl = elements.tcfEyeIcon;
+
             if (amountEl.classList.contains('masked')) {
+                // Show Real Balance with 2s Animation
                 amountEl.classList.remove('masked');
                 iconEl.setAttribute('data-feather', 'eye');
                 balanceClickSound.play().catch(console.warn);
-                const targetVal = amountEl.dataset.value || '0';
-                amountEl.textContent = targetVal;
+
+                const targetValueStr = amountEl.dataset.value || '0';
+                const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
+                const duration = 1000;
+                let startTimestamp = null;
+
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const currentVal = Math.floor(progress * endValue);
+                    amountEl.textContent = formatNumberWithCommas(currentVal);
+
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    } else {
+                        amountEl.textContent = targetValueStr; 
+                    }
+                };
+                window.requestAnimationFrame(step);
+
             } else {
                 amountEl.classList.add('masked');
                 amountEl.textContent = '••••••';
@@ -348,21 +409,34 @@ function setupEventListeners(database) {
             if(typeof feather !== 'undefined') feather.replace();
         }
 
-        // Naye Button Mapping
+        // Naye 4 Bottom Buttons Route Mapping (Quick Actions Fallback)
         if (target.closest('#btnQr')) window.location.href = 'qr.html';
         if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
         if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
         if (target.closest('#btnHistory')) {
-            // Switch to history tab instead of page reload
-            document.querySelector('.nav-item[data-target="tab-history"]').click();
+             document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
 
+        // --- OLD BUTTONS LOGIC ---
         if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
             showBalanceModal(globalData.stats);
         }
+
         if (target.closest('#viewPenaltyWalletBtn')) {
             showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
+        }
+
+        if (target.closest('#notificationBtn')) {
+            window.location.href = 'notifications.html';
+        }
+    });
+
+    // Keyboard Events
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
+        if (e.key === 'Enter' && document.getElementById('passwordInput') === document.activeElement) {
+            handlePasswordCheck(database, currentMemberForFullView);
         }
     });
 }

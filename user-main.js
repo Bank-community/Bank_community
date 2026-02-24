@@ -1,84 +1,139 @@
-// user-main.js - FIXED ENGINE
-// Connects Data to the new UI Logic
+// user-main.js - FINAL ENGINE (Fixed Data Flow)
+// RESPONSIBILITY: Auth, Data Fetching & UI Connection
 
 import { fetchAndProcessData } from './user-data.js';
 import { initUI, renderPage } from './user-ui.js'; 
-import { Analytics } from './ui-helpers.js';
+import { Analytics, promptForDeviceVerification, requestNotificationPermission } from './ui-helpers.js';
 
-// 1. UI Listeners Start (Immediate)
-// This sets up the bottom nav clicks even before data loads
+// VAPID Key for Notifications (Keep existing)
+const VAPID_KEY = "BE1NgqUcrYaBxWxd0hRrtW7wES0PJ-orGaxlGVj-oT1UZyJwLaaAk7z6KczQ2ZrSy_XjSwkL6WjpX_gHMpXPp3M";
+const CACHE_KEY = 'tcf_royal_cache_v5'; // Match key with user-data.js
+
+// 1. UI Listeners Start (IMMEDIATE)
+// This makes the Bottom Nav clickable instantly
 initUI(null);
 
-// 2. Cache Load (Offline First)
+// 2. Cache Load (INSTANT DISPLAY)
 function loadFromLocalCache() {
     try {
-        // Updated cache key to force refresh for new structure
-        const cachedData = localStorage.getItem('tcf_royal_cache_v5'); 
-        if (cachedData) {
-            const data = JSON.parse(cachedData);
-            // Verify data integrity before rendering
-            if(data && data.members) {
-                renderPage(data); // Show cached data immediately
+        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        if (cachedRaw) {
+            const data = JSON.parse(cachedRaw);
+            // Basic validation to ensure cache isn't corrupt
+            if (data && data.processedMembers) {
+                // console.log("⚡ Loaded from Cache");
+                renderPage(data);
             }
         }
-    } catch (e) { console.error("Cache Error:", e); }
+    } catch (e) { console.warn("Cache Load Error:", e); }
 }
 
 // 3. App Entry Point
 async function checkAuthAndInitialize() {
     try {
-        // Try Cache First
+        // A. Load Cache First (To remove "Authenticating..." loading text)
         loadFromLocalCache();
 
-        // Firebase Setup
+        // B. Firebase Config
         if (!firebase.apps.length) {
             const response = await fetch('/api/firebase-config');
             if (response.ok) {
                 firebase.initializeApp(await response.json());
+            } else {
+                console.error("Firebase Config Failed");
+                return;
             }
         }
 
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // Auth Listener
+        // C. Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log("SW Registered"))
+                .catch(err => console.log("SW Fail:", err));
+        }
+
+        // D. Auth Listener
         auth.onAuthStateChanged(user => {
             if (user) {
+                // Initialize Analytics
                 Analytics.init(db);
-                // Start the main data fetch loop
+
+                // Identify User if already saved
+                const savedId = localStorage.getItem('verifiedMemberId');
+                if (savedId) Analytics.identifyUser(savedId);
+
+                // Start Data Fetching
                 runAppLogic(db);
             } else {
+                // Redirect to Login if not authenticated
                 window.location.href = 'login.html';
             }
         });
 
     } catch (error) {
         console.error("Critical Init Error:", error);
-        // If critical fail, try to render cache anyway
-        loadFromLocalCache();
     }
 }
 
-// 4. Main Data Logic
+// 4. Main Logic Loop
 async function runAppLogic(database) {
 
+    // Callback: When data comes from Firebase
     const handleDataUpdate = (data) => {
         if (!data) return;
 
-        // Save to cache
+        // Save to Cache
         try {
-            localStorage.setItem('tcf_royal_cache_v5', JSON.stringify(data));
-        } catch(e) { console.warn("Cache write failed (quota?)"); }
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        } catch(e) { console.warn("Cache Quota Exceeded"); }
 
-        // 🔥 Render the new UI
+        // Render UI
         renderPage(data);
+
+        // Post-Render Tasks (Verification & Notifs)
+        if (data.processedMembers) {
+            verifyDeviceAndSetupNotifications(database, data.processedMembers);
+        }
     };
 
-    // Fetch fresh data
+    // Fetch Data
     await fetchAndProcessData(database, handleDataUpdate);
 }
 
-// PWA Install Logic
+// 5. Device Verification & Push Notifs
+async function verifyDeviceAndSetupNotifications(database, allMembers) {
+    try {
+        let memberId = localStorage.getItem('verifiedMemberId');
+
+        // Only prompt if not verified AND user interacts (handled in UI clicks now)
+        // We strictly don't force prompt on load anymore to keep UI clean
+        // But we do register notifications if ID exists
+
+        if (memberId) {
+            const permission = await requestNotificationPermission();
+            if (permission) await registerForPushNotifications(database, memberId);
+        }
+    } catch (e) { console.log(e); }
+}
+
+// 6. Push Registration Logic
+async function registerForPushNotifications(database, memberId) {
+    if (!VAPID_KEY) return;
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const messaging = firebase.messaging();
+        const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+
+        if (token) {
+            await database.ref(`members/${memberId}/notificationTokens/${token}`).set(true);
+        }
+    } catch (err) { console.error('Token Error:', err); }
+}
+
+// 7. Global PWA Install Logic
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredInstallPrompt = e;
@@ -101,5 +156,5 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
 });
 
-// Start the engine
+// Start Everything
 document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
