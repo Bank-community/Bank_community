@@ -306,12 +306,110 @@ export function renderPage(data) {
     // 7. Animations & Icons
     if(typeof feather !== 'undefined') feather.replace();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
+
+    // --- 🔒 NEW VERIFICATION LOGIC START ---
+    const verifyModal = document.getElementById('deviceVerificationModal');
+    const verifiedId = localStorage.getItem('verifiedMemberId');
+
+    // Agar ID verified nahi hai, to Pop-up dikhao
+    if (!verifiedId && verifyModal) {
+        verifyModal.classList.add('show'); 
+        
+        // Dropdown list mein naam bharo
+        const select = document.getElementById('verifyNameSelect');
+        if (select && select.options.length <= 1 && globalData.members) { 
+            // List clear karke dobara bharo
+            select.innerHTML = '<option value="">-- Select Your Name --</option>';
+            
+            // Members ko sort karke add karo
+            [...globalData.members]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.name;
+                    select.appendChild(opt);
+                });
+        }
+    } 
+    // Agar verified hai, to Pop-up hata do aur Profile update karo
+    else if (verifiedId && verifyModal) {
+        verifyModal.classList.remove('show');
+        if (typeof renderProfileGatekeeper === 'function') {
+            renderProfileGatekeeper();
+        }
+    }
+    // --- 🔒 NEW VERIFICATION LOGIC END ---
+
 }
 
 // --- Event Listeners ---
 function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
+
+        // --- 🟢 BUTTON CLICK HANDLERS START ---
+        
+        // 1. LOGIN & VERIFY BUTTON (Jab user password submit kare)
+        if (target.closest('#verifySubmitBtn')) {
+            const select = document.getElementById('verifyNameSelect');
+            const input = document.getElementById('verifyPasswordInput');
+            
+            const memberId = select ? select.value : null;
+            const password = input ? input.value : null;
+
+            if (!memberId) { alert("Please select your name first."); return; }
+            if (!password) { alert("Please enter password."); return; }
+
+            // Member dhoondo
+            const member = globalData.members.find(m => m.id === memberId);
+            
+            // Password Check Karo
+            if (member && String(member.password).trim() === String(password).trim()) {
+                // SUCCESS: ID Save karo
+                localStorage.setItem('verifiedMemberId', memberId);
+                
+                // Modal band karo
+                const modal = document.getElementById('deviceVerificationModal');
+                if(modal) modal.classList.remove('show');
+                
+                alert(`Welcome, ${member.name}! Verification Successful.`);
+                
+                // Profile Page Turant Update karo
+                if (typeof renderProfileGatekeeper === 'function') renderProfileGatekeeper();
+                
+            } else {
+                // FAIL
+                alert("Incorrect Password! Please try again.");
+                if(input) input.value = ''; // Password clear karo
+            }
+        }
+
+        // 2. FORGOT PASSWORD (WHATSAPP REDIRECT)
+        if (target.closest('#verifyForgotBtn')) {
+            const select = document.getElementById('verifyNameSelect');
+            const memberId = select ? select.value : null;
+
+            // Check: Agar naam select nahi kiya
+            if (!memberId) {
+                alert("Please select your name from the list first, then click Forgot Password.");
+                return;
+            }
+
+            // Member detail nikalo aur WhatsApp par bhejo
+            const member = globalData.members.find(m => m.id === memberId);
+            if (member) {
+                const phone = "7903698180"; // Aapka Number
+                
+                // Message format
+                const text = `*TCF Password Recovery*\n\n*Name:* ${member.name}\n*Issue:* I have forgotten my password.\n*Request:* Please provide me with my login password. 🔑`;
+                
+                const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+                window.location.href = url;
+            }
+        }
+        // --- 🟢 BUTTON CLICK HANDLERS END ---
+
 
         // --- NEW GATEKEEPER SUBMIT LOGIC ---
         if (target.closest('#gkSubmitBtn')) {
