@@ -1,481 +1,486 @@
-// user-ui.js - FINAL REPAIRED VERSION (All-in-One Logic)
-// RESPONSIBILITY: Handle Tabs, Inject Modules & Manage All Logic
-// NOTE: Templates are merged here to prevent "Missing File" errors.
+// user-ui.js - FINAL FULL VERSION (Restored & Upgraded)
+// RESPONSIBILITY: Main UI Controller, Tab Router & Data Renderer
 
 import { 
-    displayHeaderButtons, displayMembers, renderProducts, displayCustomCards, 
-    displayCommunityLetters, buildInfoSlider, startHeaderDisplayRotator, updateInfoCards 
+    displayHeaderButtons, 
+    displayMembers, 
+    renderProducts, 
+    displayCustomCards, 
+    displayCommunityLetters, 
+    buildInfoSlider, 
+    startHeaderDisplayRotator,
+    updateInfoCards 
 } from './ui-components.js';
 
 import { 
-    processAndShowNotifications, promptForDeviceVerification, requestNotificationPermission, 
-    showSipStatusModal, showPenaltyWalletModal, showAllMembersModal, showMemberProfileModal, 
-    showBalanceModal, showEmiModal, showFullImage, handlePasswordCheck, observeElements, 
-    setTextContent, Analytics 
+    processAndShowNotifications, 
+    promptForDeviceVerification, 
+    requestNotificationPermission, 
+    showSipStatusModal, 
+    showPenaltyWalletModal, 
+    showAllMembersModal, 
+    showMemberProfileModal, 
+    showBalanceModal, 
+    showEmiModal, 
+    showFullImage, 
+    handlePasswordCheck, 
+    observeElements 
 } from './ui-helpers.js';
 
 // --- Global State ---
 let globalData = {
     members: [],
+    penalty: {},
     transactions: [],
     stats: {},
-    activeLoans: {}, 
     products: {},
     notifications: { manual: {}, automated: {} }
 };
 
-let modulesLoaded = { loan: false, history: false, profile: false };
 let currentMemberForFullView = null;
 let currentOpenModal = null;
 const balanceClickSound = new Audio('/mixkit-clinking-coins-1993.wav');
 
-// =========================================================
-// 🛠️ INTERNAL TEMPLATES (To fix missing file error)
-// =========================================================
-const SectionTemplates = {
-    getLoanDashboardHTML: () => `
-        <div class="main-wrapper animate-on-scroll">
-            <header class="premium-header">
-                <span class="header-super-title">Trust Community Fund</span>
-                <h1 class="header-main-title">Loan Dashboard</h1>
-                <button id="generate-credit-btn"><i data-feather="credit-card"></i> Generate Card</button>
-            </header>
-            <div class="stats-wrapper">
-                <div class="combined-stats-card">
-                    <div class="stat-part"><div class="stat-label">Outstanding Loans</div><div class="stat-value" id="count-val">0</div></div>
-                    <div class="stat-separator"></div>
-                    <div class="stat-part"><div class="stat-label">Total Due</div><div class="stat-value" id="amount-val">₹0</div></div>
-                </div>
-            </div>
-            <div class="search-area"><input type="text" id="search-input" placeholder="Search member..." autocomplete="off"></div>
-            <div id="outstanding-loans-container" style="padding-bottom:100px;"></div>
-        </div>
-        <div class="modal-overlay" id="gen-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center;">
-            <div class="modal-box" style="background:white; width:90%; padding:20px; border-radius:15px; position:relative;">
-                <button class="close-modal" style="position:absolute; right:15px; top:10px; border:none; background:none; font-size:24px;">&times;</button>
-                <h3 style="text-align:center; color:#002366;">GENERATE CARD</h3>
-                <div style="margin-bottom:15px;"><label>Member</label><select id="m-select" style="width:100%; padding:10px;"><option value="">Loading...</option></select></div>
-                <div style="margin-bottom:15px;"><label>Type</label><select id="t-select" style="width:100%; padding:10px;"><option value="credit">10 Days Credit</option><option value="recharge">Recharge</option></select></div>
-                <div style="margin-bottom:15px;"><label>Amount</label><input type="number" id="amt-input" style="width:100%; padding:10px;" disabled></div>
-                <div id="prov-group" style="display:none; margin-bottom:15px;"><label>Operator</label><select id="prov-select" style="width:100%; padding:10px;"><option>Jio</option><option>Airtel</option><option>Vi</option></select></div>
-                <button id="btn-create" class="civil-button" style="width:100%;">Create</button>
-                <div id="gen-result" style="margin-top:15px;"></div>
-            </div>
-        </div>
-    `,
-    getHistoryHTML: () => `
-        <div class="main-wrapper animate-on-scroll" style="padding-top: 10px;">
-            <div class="history-header"><h2 style="margin:0; color:white; font-size:1.2em;">Transaction History</h2><span id="monthDisplay" style="font-size:0.8em; opacity:0.8;">Current Month</span></div>
-            <div class="history-boxes">
-                <div class="h-box sip"><span class="h-lbl">SIP Rec.</span><span class="h-val" id="totalSipVal">₹0</span></div>
-                <div class="h-box repay"><span class="h-lbl">Repayment</span><span class="h-val" id="totalRepayVal">₹0</span></div>
-                <div class="h-box loan"><span class="h-lbl">Loan Given</span><span class="h-val" id="totalLoanVal">₹0</span></div>
-            </div>
-            <div class="sub-filter-container">
-                <button class="filter-chip active" data-filter="ALL">All</button>
-                <button class="filter-chip" data-filter="SIP">SIP Rank 🏆</button>
-                <button class="filter-chip" data-filter="LOAN">Loan</button>
-                <button class="filter-chip" data-filter="REPAY">Repayment</button>
-            </div>
-            <div id="historyContainer" class="hist-list"><p class="loading-text" style="text-align:center; padding:20px;">Loading transactions...</p></div>
-        </div>
-    `,
-    getProfileHTML: () => `
-        <div class="main-wrapper animate-on-scroll">
-            <div class="profile-header-card">
-                <button class="close-profile-btn" onclick="document.getElementById('profile-full-view').style.display='none'; document.getElementById('profile-gatekeeper').style.display='flex';">&times;</button>
-                <img id="fullProfilePic" src="" class="fp-big-img">
-                <h2 id="fullProfileName" style="color:white;">Member Name</h2>
-                <span id="fullProfileId" class="fp-id-badge">ID: --</span>
-            </div>
-            <div class="full-profile-body">
-                <div class="full-profile-grid">
-                    <div class="full-profile-item"><strong>Mobile</strong><span id="fullProfileMobile">--</span></div>
-                    <div class="full-profile-item"><strong>DOB</strong><span id="fullProfileDob">--</span></div>
-                    <div class="full-profile-item"><strong>Aadhaar</strong><span id="fullProfileAadhaar">--</span></div>
-                    <div class="full-profile-item full-width"><strong>Address</strong><span id="fullProfileAddress">--</span></div>
-                    <div class="full-profile-item full-width extra-amt-box"><strong>Extra Amount</strong><span id="fullProfileExtraAmount">--</span></div>
-                </div>
-            </div>
-        </div>
-    `
+// --- Element Cache ---
+const getElement = (id) => document.getElementById(id);
+export const elements = {
+    memberContainer: getElement('memberContainer'),
+    headerActions: getElement('headerActionsContainer'),
+    staticButtons: getElement('staticHeaderButtons'),
+    customCards: getElement('customCardsContainer'),
+    letters: getElement('communityLetterSlides'),
+    totalMembers: getElement('totalMembersValue'),
+    totalLoan: getElement('totalLoanValue'),
+    year: getElement('currentYear'),
+    headerDisplay: getElement('headerDisplay'),
+    infoSlider: getElement('infoSlider'),
+    products: getElement('productsContainer'),
+
+    // TCF Card Elements
+    tcfAvailableFunds: getElement('tcfAvailableFunds'),
+    tcfTotalSip: getElement('tcfTotalSip'),
+    tcfActiveLoans: getElement('tcfActiveLoans'),
+    tcfReturns: getElement('tcfReturns'),
+    tcfBalanceToggleBtn: getElement('tcfBalanceToggleBtn'),
+    tcfEyeIcon: getElement('tcfEyeIcon'),
+
+    // Modals
+    balanceModal: getElement('balanceModal'),
+    penaltyModal: getElement('penaltyWalletModal'),
+    profileModal: getElement('memberProfileModal'),
+    sipModal: getElement('sipStatusModal'),
+    allMembersModal: getElement('allMembersModal'),
+    passwordModal: getElement('passwordPromptModal'),
+    imageModal: getElement('imageModal'),
+    verifyModal: getElement('deviceVerificationModal'),
+    emiModal: getElement('emiModal'),
+    popupContainer: getElement('notification-popup-container'),
+
+    // Gatekeeper Elements
+    gkSubmitBtn: getElement('gkSubmitBtn'),
+    gkPasswordInput: getElement('gkPasswordInput')
 };
+
+// --- Helper: Format Number ---
+function formatNumberWithCommas(amount) {
+    return (amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
 
 // --- Initialization ---
 export function initUI(database) {
-    try {
-        setupGlobalListeners(database);
-        setupBottomNav(); 
-        setupPWA();
+    setupEventListeners(database);
+    setupBottomNav(); // 🔥 NEW: Initialize Tabs
+    setupPWA();
 
-        // Initial Animation
-        setTimeout(() => {
-            document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
-        }, 500);
+    // Initial Animation Check
+    setTimeout(() => {
+        document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('is-visible'));
+    }, 500);
 
-        if (document.getElementById('currentYear')) 
-            document.getElementById('currentYear').textContent = new Date().getFullYear();
-    } catch(e) { console.error("UI Init Error:", e); }
+    if (elements.year) elements.year.textContent = new Date().getFullYear();
+
+    // Back Button Handling
+    window.onpopstate = function(event) {
+        if (currentOpenModal) {
+            currentOpenModal.classList.remove('show');
+            document.body.style.overflow = '';
+            currentOpenModal = null;
+        }
+    };
 }
 
-// =========================================================
-// 🚀 PART 1: THE ROUTER (Module Injection Logic)
-// =========================================================
+// --- 🔥 NEW: Bottom Navigation Router Logic ---
 function setupBottomNav() {
     const navItems = document.querySelectorAll('.nav-item');
     const tabs = document.querySelectorAll('.app-tab');
 
     navItems.forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            // Prevent click on "Apply" center button (it has its own onclick in HTML)
+            if (item.querySelector('.nav-center-btn')) return;
+
             const targetId = item.getAttribute('data-target');
             if (!targetId) return;
 
-            // 1. Update Active Nav Icon
+            // 1. Update Active State in Nav
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-            // 2. Hide All Tabs, Show Target
+            // 2. Hide all tabs, Show Target Tab
             tabs.forEach(tab => {
                 tab.classList.remove('active-tab');
                 if (tab.id === targetId) {
                     tab.classList.add('active-tab');
-                    
-                    // 3. LAZY LOAD MODULES
-                    if (targetId === 'tab-loan' && !modulesLoaded.loan) loadLoanModule();
-                    if (targetId === 'tab-history' && !modulesLoaded.history) loadHistoryModule();
+
+                    // 3. Trigger Data Load for specific tabs
+                    if (targetId === 'tab-history') renderHistoryTab();
+                    if (targetId === 'tab-profile') renderProfileGatekeeper();
                 }
             });
-            
-            window.scrollTo(0, 0);
+
+            // 4. Re-init Icons
             if(typeof feather !== 'undefined') feather.replace();
+            window.scrollTo(0, 0);
         });
     });
 }
 
-function loadLoanModule() {
-    const container = document.getElementById('tab-loan');
-    if(container) {
-        container.innerHTML = SectionTemplates.getLoanDashboardHTML(); 
-        modulesLoaded.loan = true;
-        initLoanLogic(); 
-        if(typeof feather !== 'undefined') feather.replace();
+// --- 🔥 NEW: Render History Tab (Instant Load) ---
+function renderHistoryTab() {
+    const container = document.getElementById('historyListContainer');
+    if (!container) return;
+
+    // Get verified user ID
+    const myId = localStorage.getItem('verifiedMemberId');
+    const transactions = globalData.transactions || [];
+
+    // Filter Logic: If logged in, show MY transactions, else show Global recent 20
+    let displayTx = [];
+    if (myId) {
+        displayTx = transactions.filter(t => t.memberId === myId);
+    } else {
+        displayTx = transactions.slice(0, 20); // Show top 20 recent
+    }
+
+    if (displayTx.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No transactions found.</div>';
+        return;
+    }
+
+    // Sort by Date (Newest First)
+    displayTx.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    container.innerHTML = '';
+    displayTx.forEach(tx => {
+        const isIncome = ['SIP', 'Extra Payment', 'Loan Return'].includes(tx.type);
+        const colorClass = isIncome ? 'income' : 'expense';
+        const symbol = isIncome ? '+' : '-';
+
+        container.innerHTML += `
+            <div class="history-list-item ${colorClass}">
+                <div>
+                    <strong style="display:block; font-size:0.9em; color:#333;">${tx.type || 'Transaction'}</strong>
+                    <span style="font-size:0.75em; color:#888;">${tx.date || 'N/A'}</span>
+                </div>
+                <div style="text-align:right;">
+                    <strong style="display:block; color:${isIncome ? '#28a745' : '#dc3545'}">
+                        ${symbol} ₹${formatNumberWithCommas(tx.amount)}
+                    </strong>
+                    <span style="font-size:0.7em; color:#aaa;">${tx.status || 'Success'}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// --- 🔥 NEW: Render Profile Gatekeeper ---
+function renderProfileGatekeeper() {
+    const myId = localStorage.getItem('verifiedMemberId');
+
+    // Default "Guest" View
+    let member = {
+        name: "Guest User",
+        displayImageUrl: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+        isPrime: false,
+        joiningDate: "--",
+        balance: 0
+    };
+
+    // If identified, find real data
+    if (myId && globalData.members) {
+        const found = globalData.members.find(m => m.id === myId);
+        if (found) member = found;
+    }
+
+    // Update UI
+    const imgEl = document.getElementById('gkProfileImg');
+    if (imgEl) imgEl.src = member.displayImageUrl;
+
+    setTextContent('gkProfileName', member.name);
+
+    const roleEl = document.getElementById('gkProfileRole');
+    if(roleEl) roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
+
+    setTextContent('gkJoinDate', member.joiningDate || '--');
+    setTextContent('gkBalance', '₹' + formatNumberWithCommas(member.balance));
+
+    // Set ID for password check
+    if (elements.gkSubmitBtn) {
+        elements.gkSubmitBtn.dataset.memberId = myId || '';
     }
 }
 
-function loadHistoryModule() {
-    const container = document.getElementById('tab-history');
-    if(container) {
-        container.innerHTML = SectionTemplates.getHistoryHTML();
-        modulesLoaded.history = true;
-        initHistoryLogic();
-    }
+function setTextContent(id, text) {
+    const el = document.getElementById(id);
+    if(el) el.textContent = text;
 }
 
-export function loadProfileModule(memberId) {
-    let container = document.getElementById('profile-full-view');
-    if (container) {
-        if (!modulesLoaded.profile) {
-            container.innerHTML = SectionTemplates.getProfileHTML();
-            modulesLoaded.profile = true;
-        }
-        document.getElementById('profile-gatekeeper').style.display = 'none';
-        container.style.display = 'block';
-        populateFullProfile(memberId);
-    }
-}
-
-// =========================================================
-// 📊 PART 2: MAIN HOME RENDERER
-// =========================================================
+// --- Main Render Function (RESTORED FULL LOGIC) ---
 export function renderPage(data) {
-    if(!data) return;
-    
-    // Store Data Globally
+    // Update Global State
     globalData.members = data.processedMembers || [];
+    globalData.penalty = data.penaltyWalletData || {};
     globalData.transactions = data.allTransactions || [];
     globalData.stats = data.communityStats || {};
     globalData.products = data.allProducts || {};
-    globalData.notifications = { manual: data.manualNotifications, automated: data.automatedQueue };
-    globalData.activeLoans = data.rawActiveLoans || {}; 
+    globalData.notifications.manual = data.manualNotifications || {};
+    globalData.notifications.automated = data.automatedQueue || {};
 
     const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
 
-    // 1. Update Home Components
-    updateTCFCard(globalData.stats);
-    displayHeaderButtons(data.headerButtons || {}, document.getElementById('headerActionsContainer'), document.getElementById('staticHeaderButtons'));
-    displayMembers(approvedMembers, data.adminSettings || {}, document.getElementById('memberContainer'), (id) => {
+    // 0. Update TCF Premium Card (Real-Time Data Injection)
+    if (elements.tcfAvailableFunds) {
+        elements.tcfAvailableFunds.dataset.value = formatNumberWithCommas(globalData.stats.availableCommunityBalance);
+
+        if (!elements.tcfAvailableFunds.classList.contains('masked')) {
+            elements.tcfAvailableFunds.textContent = elements.tcfAvailableFunds.dataset.value;
+        }
+
+        if (elements.tcfTotalSip) elements.tcfTotalSip.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalSipAmount);
+        if (elements.tcfActiveLoans) elements.tcfActiveLoans.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalCurrentLoanAmount);
+        if (elements.tcfReturns) elements.tcfReturns.textContent = '₹' + formatNumberWithCommas(globalData.stats.netReturnAmount);
+    }
+
+    // 1. Render Header Buttons (Hidden div support)
+    displayHeaderButtons(data.headerButtons || {}, elements.headerActions, elements.staticButtons);
+
+    // 2. Render Members (Top 3 + Others)
+    displayMembers(approvedMembers, data.adminSettings || {}, elements.memberContainer, (id) => {
         currentMemberForFullView = id;
         showMemberProfileModal(id, globalData.members);
     });
-    
-    // 2. Components
-    displayCustomCards(data.adminSettings?.custom_cards || {}, document.getElementById('customCardsContainer'));
-    displayCommunityLetters(data.adminSettings?.community_letters || {}, document.getElementById('communityLetterSlides'), showFullImage);
+
+    // 3. Render Custom Cards & Sliders
+    displayCustomCards(data.adminSettings?.custom_cards || {}, elements.customCards);
+    displayCommunityLetters(data.adminSettings?.community_letters || {}, elements.letters, showFullImage);
+
+    // 4. Update Stats & Info
     updateInfoCards(approvedMembers.length, globalData.stats.totalLoanDisbursed);
-    startHeaderDisplayRotator(document.getElementById('headerDisplay'), approvedMembers, globalData.stats);
-    buildInfoSlider(document.getElementById('infoSlider'), globalData.members);
-    
-    // 3. Products
-    renderProducts(globalData.products, document.getElementById('productsContainer'), (emi, name, price) => {
-        showEmiModal(emi, name, price, document.getElementById('emiModal'));
+    startHeaderDisplayRotator(elements.headerDisplay, approvedMembers, globalData.stats);
+    buildInfoSlider(elements.infoSlider, globalData.members);
+
+    // 5. Render Products (Pass Callback for EMI Modal)
+    renderProducts(globalData.products, elements.products, (emi, name, price) => {
+        showEmiModal(emi, name, price, elements.emiModal);
     });
 
-    // 4. Notifications
-    processAndShowNotifications(globalData, document.getElementById('notification-popup-container'));
-    
-    // 5. Update Modules if loaded
-    if (modulesLoaded.loan) initLoanLogic();
-    if (modulesLoaded.history) initHistoryLogic();
+    // 6. Notifications
+    processAndShowNotifications(globalData, elements.popupContainer);
 
+    // 7. Animations & Icons
     if(typeof feather !== 'undefined') feather.replace();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
 }
 
-function updateTCFCard(stats) {
-    const fundEl = document.getElementById('tcfAvailableFunds');
-    if (fundEl) {
-        fundEl.dataset.value = (stats.availableCommunityBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
-        if (!fundEl.classList.contains('masked')) fundEl.textContent = fundEl.dataset.value;
-    }
-    setTextContent('tcfTotalSip', '₹' + (stats.totalSipAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }));
-    setTextContent('tcfActiveLoans', '₹' + (stats.totalCurrentLoanAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }));
-    setTextContent('tcfReturns', '₹' + (stats.netReturnAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }));
-}
-
-// =========================================================
-// 💰 PART 3: LOAN LOGIC
-// =========================================================
-function initLoanLogic() {
-    const listContainer = document.getElementById('outstanding-loans-container');
-    if (!listContainer) return;
-
-    // Filter Active Loans
-    const loans = Object.values(globalData.activeLoans || {})
-        .filter(l => l.status === 'Active')
-        .map(l => {
-            const mem = globalData.members.find(m => m.id === l.memberId);
-            return { ...l, memberName: mem?.name || 'Unknown', pic: mem?.displayImageUrl || '' };
-        })
-        .sort((a,b) => new Date(a.loanDate) - new Date(b.loanDate));
-
-    // Update Totals
-    const totalDue = loans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount || 0), 0);
-    setTextContent('count-val', loans.length);
-    setTextContent('amount-val', '₹' + totalDue.toLocaleString('en-IN'));
-
-    // Render List
-    const renderList = (filterText = '') => {
-        listContainer.innerHTML = '';
-        const filtered = loans.filter(l => l.memberName.toLowerCase().includes(filterText));
-        
-        if (filtered.length === 0) {
-            listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No active loans found.</div>';
-            return;
-        }
-
-        filtered.forEach(l => {
-            listContainer.innerHTML += createLoanCardHTML(l);
-        });
-        if(typeof feather !== 'undefined') feather.replace();
-    };
-
-    renderList();
-
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) searchInput.oninput = (e) => renderList(e.target.value.toLowerCase());
-    
-    // Modal Generator Logic
-    const btnGen = document.getElementById('generate-credit-btn');
-    const modal = document.getElementById('gen-modal');
-    if(btnGen && modal) {
-        btnGen.onclick = () => {
-            modal.style.display = 'flex';
-            const sel = document.getElementById('m-select');
-            sel.innerHTML = '<option value="">-- Select Member --</option>';
-            globalData.members.forEach(m => {
-                sel.innerHTML += `<option value="${m.id}">${m.name}</option>`;
-            });
-        };
-        modal.querySelector('.close-modal').onclick = () => modal.style.display = 'none';
-        
-        // Mock Card Generate (Simple logic for now)
-        document.getElementById('btn-create').onclick = () => {
-            alert("Card generated (Preview Only)");
-        }
-    }
-}
-
-function createLoanCardHTML(loan) {
-    const dateStr = new Date(loan.loanDate).toLocaleDateString('en-GB');
-    const daysActive = Math.ceil(Math.abs(new Date() - new Date(loan.loanDate)) / (1000 * 60 * 60 * 24));
-    
-    return `
-    <div class="premium-card-wrapper card-platinum animate-on-scroll">
-        <div class="pc-days-circle"><span class="day-num">${daysActive}</span><span class="day-label">DAYS</span></div>
-        <div class="pc-top"><div class="pc-bank">TCF LOAN</div></div>
-        <div class="pc-middle">
-            <span class="pc-date">${dateStr}</span>
-            <h1 class="pc-title">${loan.loanType || 'LOAN'}</h1>
-        </div>
-        <div class="pc-bottom">
-            <div class="pc-profile-group">
-                <img src="${loan.pic}" class="pc-pic" onerror="this.src='https://i.ibb.co/HTNrbJxD/20250716-222246.png'">
-                <div class="pc-name">${loan.memberName}</div>
-            </div>
-            <div class="pc-amount-group"><div class="pc-amount">₹${parseFloat(loan.outstandingAmount).toLocaleString('en-IN')}</div></div>
-        </div>
-    </div>`;
-}
-
-// =========================================================
-// 📜 PART 4: HISTORY LOGIC
-// =========================================================
-function initHistoryLogic() {
-    const listContainer = document.getElementById('historyContainer');
-    if (!listContainer) return;
-
-    const filterBtns = document.querySelectorAll('.filter-chip');
-    filterBtns.forEach(btn => {
-        btn.onclick = () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderHistoryList(btn.dataset.filter);
-        };
-    });
-
-    updateHistoryStats();
-    renderHistoryList('ALL');
-}
-
-function updateHistoryStats() {
-    const now = new Date();
-    let stats = { sip: 0, repay: 0, loan: 0 };
-    
-    globalData.transactions.forEach(t => {
-        const d = new Date(t.date || t.timestamp);
-        if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-            const amt = parseFloat(t.amount || 0);
-            if (t.type === 'SIP' || t.type === 'Extra Payment') stats.sip += amt;
-            else if (t.type === 'Loan Payment') stats.repay += amt;
-            else if (t.type.includes('Loan Taken')) stats.loan += amt;
-        }
-    });
-
-    setTextContent('totalSipVal', '₹' + stats.sip.toLocaleString('en-IN'));
-    setTextContent('totalRepayVal', '₹' + stats.repay.toLocaleString('en-IN'));
-    setTextContent('totalLoanVal', '₹' + stats.loan.toLocaleString('en-IN'));
-    setTextContent('monthDisplay', now.toLocaleString('default', { month: 'long', year: 'numeric' }));
-}
-
-function renderHistoryList(filterType) {
-    const container = document.getElementById('historyContainer');
-    container.innerHTML = '';
-    
-    const now = new Date();
-    let txs = globalData.transactions.filter(t => {
-        const d = new Date(t.date || t.timestamp);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-
-    if (filterType === 'SIP') txs = txs.filter(t => t.type === 'SIP' || t.type === 'Extra Payment');
-    if (filterType === 'LOAN') txs = txs.filter(t => t.type.includes('Loan Taken'));
-    if (filterType === 'REPAY') txs = txs.filter(t => t.type === 'Loan Payment');
-    
-    txs.sort((a,b) => new Date(b.date) - new Date(a.date));
-
-    if (txs.length === 0) {
-        container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">No transactions found.</div>';
-        return;
-    }
-
-    txs.forEach(t => {
-        const isIncome = ['SIP', 'Extra Payment', 'Loan Payment'].includes(t.type);
-        const colorClass = isIncome ? '#28a745' : '#dc3545';
-        const member = globalData.members.find(m => m.id === t.memberId);
-        
-        container.innerHTML += `
-        <div class="hist-item">
-            <div class="hist-info">
-                <h5 style="margin:0; font-size:0.95em;">${member?.name || 'Unknown'}</h5>
-                <p style="margin:2px 0 0 0; font-size:0.8em; color:#666;">${t.type} • ${new Date(t.date).getDate()} ${now.toLocaleString('default', {month:'short'})}</p>
-            </div>
-            <div class="hist-amt" style="color:${colorClass}; font-weight:700;">
-                ${isIncome ? '+' : '-'} ₹${parseFloat(t.amount).toLocaleString('en-IN')}
-            </div>
-        </div>`;
-    });
-}
-
-// =========================================================
-// 👤 PART 5: FULL PROFILE LOGIC
-// =========================================================
-function populateFullProfile(memberId) {
-    const member = globalData.members.find(m => m.id === memberId);
-    if (!member) return;
-
-    document.getElementById('fullProfilePic').src = member.displayImageUrl || 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
-    setTextContent('fullProfileName', member.name);
-    setTextContent('fullProfileId', `ID: ${member.id}`);
-    setTextContent('fullProfileMobile', member.mobile || 'N/A');
-    setTextContent('fullProfileDob', member.dob || 'N/A');
-    setTextContent('fullProfileAadhaar', member.aadhar || 'N/A');
-    setTextContent('fullProfileAddress', member.address || 'N/A');
-    setTextContent('fullProfileExtraAmount', `₹${member.extraAmount || 0}`);
-}
-
-// --- GLOBAL LISTENERS ---
-function setupGlobalListeners(database) {
+// --- Event Listeners ---
+function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
-        
-        // Gatekeeper Login
+
+        // --- NEW GATEKEEPER SUBMIT LOGIC ---
         if (target.closest('#gkSubmitBtn')) {
-            const memberId = document.getElementById('gkSubmitBtn').dataset.memberId;
+            const btn = document.getElementById('gkSubmitBtn');
             const input = document.getElementById('gkPasswordInput');
-            
-            // Check password manually for SPA
-            if(!memberId) return alert("Select user first");
-            const mem = globalData.members.find(m => m.id === memberId);
-            if(mem && String(mem.password) === String(input.value)) {
-                loadProfileModule(memberId);
+            const memberId = btn.dataset.memberId;
+
+            if (!memberId || memberId === 'null') {
+                alert("Please select your identity first (Click on your photo in Home List)");
+                promptForDeviceVerification(globalData.members).then(id => {
+                    if(id) {
+                        localStorage.setItem('verifiedMemberId', id);
+                        renderProfileGatekeeper();
+                    }
+                });
+                return;
+            }
+
+            const member = globalData.members.find(m => m.id === memberId);
+            if (member && String(member.password).trim() === String(input.value).trim()) {
+                // Success! Redirect
+                window.location.href = `view.html?memberId=${memberId}`;
             } else {
-                alert("Incorrect Password");
+                alert("Incorrect Password!");
+                input.value = '';
             }
         }
 
-        // Identify User
-        if (target.closest('.gk-avatar') || target.closest('.gk-name')) {
-            promptForDeviceVerification(globalData.members).then(id => {
-                if(id) {
-                    localStorage.setItem('verifiedMemberId', id);
-                    const m = globalData.members.find(mem => mem.id === id);
-                    if(m) {
-                        document.getElementById('gkProfileName').textContent = m.name;
-                        document.getElementById('gkProfileImg').src = m.displayImageUrl;
-                        document.getElementById('gkJoinDate').textContent = m.joiningDate;
-                        document.getElementById('gkBalance').textContent = '₹' + m.balance;
-                        document.getElementById('gkSubmitBtn').dataset.memberId = id;
-                    }
-                }
-            });
+        // --- NEW QUICK ACTIONS MAPPING ---
+        if (target.closest('#quickActionSip')) {
+            showSipStatusModal(globalData.members);
         }
-        
+
+        // Close Modal Logic
+        if (target.matches('.close') || target.matches('.close *') || target.classList.contains('modal')) {
+            const modal = target.closest('.modal') || target;
+            closeModal(modal);
+        }
+
+        // Feature: Show All Members
+        if (target.closest('#totalMembersCard')) {
+            showAllMembersModal(globalData.members, (id) => {
+                closeModal(elements.allMembersModal);
+                currentMemberForFullView = id;
+                showMemberProfileModal(id, globalData.members);
+            }, showFullImage);
+        }
+
+        // Feature: Full Profile View (Password Check)
+        if (target.closest('#fullViewBtn')) {
+            swapModals(elements.profileModal, elements.passwordModal);
+        }
+
+        // Feature: View History (Penalty)
+        if (target.closest('#viewHistoryBtn')) {
+            const list = document.getElementById('penaltyHistoryList');
+            const btn = target.closest('#viewHistoryBtn');
+            const isHidden = list.style.display === 'none' || list.style.display === '';
+            list.style.display = isHidden ? 'block' : 'none';
+            btn.textContent = isHidden ? 'Hide History' : 'View History';
+        }
+
+        // Feature: Profile Image Zoom
+        if (target.closest('#profileModalHeader')) {
+            const img = document.getElementById('profileModalImage');
+            const name = document.getElementById('profileModalName');
+            if (img && name) showFullImage(img.src, name.textContent);
+        }
+
+        // Feature: Submit Password (Existing Modal)
+        if (target.closest('#submitPasswordBtn')) {
+            handlePasswordCheck(database, currentMemberForFullView);
+        }
+
+        // --- TCF CARD LOGIC ---
+        // Eye Icon Toggle Logic (Hide/Show Balance)
         if (target.closest('#tcfBalanceToggleBtn')) {
-            const el = document.getElementById('tcfAvailableFunds');
-            el.classList.toggle('masked');
-            if(!el.classList.contains('masked')) el.textContent = el.dataset.value;
-            else el.textContent = '••••••';
+            const amountEl = elements.tcfAvailableFunds;
+            const iconEl = elements.tcfEyeIcon;
+
+            if (amountEl.classList.contains('masked')) {
+                // Show Real Balance with 2s Animation
+                amountEl.classList.remove('masked');
+                iconEl.setAttribute('data-feather', 'eye');
+                balanceClickSound.play().catch(console.warn);
+
+                const targetValueStr = amountEl.dataset.value || '0';
+                const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
+                const duration = 1000;
+                let startTimestamp = null;
+
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const currentVal = Math.floor(progress * endValue);
+                    amountEl.textContent = formatNumberWithCommas(currentVal);
+
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    } else {
+                        amountEl.textContent = targetValueStr; 
+                    }
+                };
+                window.requestAnimationFrame(step);
+
+            } else {
+                amountEl.classList.add('masked');
+                amountEl.textContent = '••••••';
+                iconEl.setAttribute('data-feather', 'eye-off');
+            }
+            if(typeof feather !== 'undefined') feather.replace();
         }
-        
-        if (target.closest('#quickActionSip')) showSipStatusModal(globalData.members);
-        
-        if (target.closest('#btnTransactionsShortcut')) {
-            document.querySelector('.nav-item[data-target="tab-history"]').click();
+
+        // Naye 4 Bottom Buttons Route Mapping (Quick Actions Fallback)
+        if (target.closest('#btnQr')) window.location.href = 'qr.html';
+        if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
+        if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
+        if (target.closest('#btnHistory')) {
+             document.querySelector('.nav-item[data-target="tab-history"]').click();
+        }
+
+        // --- OLD BUTTONS LOGIC ---
+        if (target.closest('#viewBalanceBtn')) {
+            balanceClickSound.play().catch(console.warn);
+            showBalanceModal(globalData.stats);
+        }
+
+        if (target.closest('#viewPenaltyWalletBtn')) {
+            showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
+        }
+
+        if (target.closest('#notificationBtn')) {
+            window.location.href = 'notifications.html';
+        }
+    });
+
+    // Keyboard Events
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
+        if (e.key === 'Enter' && document.getElementById('passwordInput') === document.activeElement) {
+            handlePasswordCheck(database, currentMemberForFullView);
         }
     });
 }
 
-// Global Export
-window.viewImage = showFullImage;
-export function openModal(modal) { modal.classList.add('show'); currentOpenModal = modal; }
-export function closeModal(modal) { modal.classList.remove('show'); currentOpenModal = null; }
+// --- Core Modal Logic ---
+export function openModal(modal) { 
+    if (modal) { 
+        modal.classList.add('show'); 
+        document.body.style.overflow = 'hidden'; 
+        window.history.pushState({modalOpen: true}, "", "");
+        currentOpenModal = modal;
+    } 
+}
+
+export function closeModal(modal) { 
+    if (modal) { 
+        modal.classList.remove('show'); 
+        document.body.style.overflow = ''; 
+        currentOpenModal = null;
+        if (window.history.state && window.history.state.modalOpen) {
+            window.history.back();
+        }
+    } 
+}
+
+function swapModals(fromModal, toModal) {
+    if (fromModal) fromModal.classList.remove('show');
+    if (toModal) {
+        toModal.classList.add('show');
+        currentOpenModal = toModal;
+    }
+}
+
+function setupPWA() {
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('installAppBtn');
+        if (btn) {
+            btn.style.display = 'inline-flex';
+            btn.onclick = async () => {
+                e.prompt();
+                await e.userChoice;
+                btn.style.display = 'none';
+            };
+        }
+    });
+}
