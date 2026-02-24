@@ -90,7 +90,20 @@ function formatNumberWithCommas(amount) {
 export function initUI(database) {
     setupEventListeners(database);
     setupBottomNav(); // 🔥 NEW: Initialize Tabs
+
+    // 🔥 NEW: URL se Tab Auto-Open karne ka logic
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetTab = urlParams.get('tab');
+    if (targetTab) {
+        setTimeout(() => {
+            const tabBtn = document.querySelector(`.nav-item[data-target="${targetTab}"]`);
+            if (tabBtn) tabBtn.click();
+        }, 100); // Halki si deri taaki page load ho jaye
+    }
+
     setupPWA();
+    // ...
+
 
     // Initial Animation Check
     setTimeout(() => {
@@ -264,11 +277,14 @@ export function renderPage(data) {
     // 1. Render Header Buttons (Hidden div support)
     displayHeaderButtons(data.headerButtons || {}, elements.headerActions, elements.staticButtons);
 
-    // 2. Render Members (Top 3 + Others)
+        // 2. Render Members (Top 3 + Others) - ONLY SHOW IMAGE ON CLICK
     displayMembers(approvedMembers, data.adminSettings || {}, elements.memberContainer, (id) => {
-        currentMemberForFullView = id;
-        showMemberProfileModal(id, globalData.members);
+        const member = globalData.members.find(m => m.id === id);
+        if (member) {
+            showFullImage(member.displayImageUrl, member.name);
+        }
     });
+
 
     // 3. Render Custom Cards & Sliders
     displayCustomCards(data.adminSettings?.custom_cards || {}, elements.customCards);
