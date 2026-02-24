@@ -206,11 +206,11 @@ function renderHistoryTab() {
     });
 }
 
-// --- 🔥 NEW: Render Profile Gatekeeper ---
+// --- 🔥 NEW: Render Profile Gatekeeper (Updated) ---
 function renderProfileGatekeeper() {
     const myId = localStorage.getItem('verifiedMemberId');
 
-    // Default "Guest" View
+    // Default "Guest" View (Agar verified nahi hai)
     let member = {
         name: "Guest User",
         displayImageUrl: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
@@ -219,29 +219,43 @@ function renderProfileGatekeeper() {
         balance: 0
     };
 
-    // If identified, find real data
+    // Agar ID verified hai, to asli data dhoondo
     if (myId && globalData.members) {
         const found = globalData.members.find(m => m.id === myId);
         if (found) member = found;
     }
 
-    // Update UI
+    // 1. Update Image
     const imgEl = document.getElementById('gkProfileImg');
     if (imgEl) imgEl.src = member.displayImageUrl;
 
+    // 2. Update Name
     setTextContent('gkProfileName', member.name);
 
+    // 3. Update Prime Tag
     const roleEl = document.getElementById('gkProfileRole');
-    if(roleEl) roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
+    if(roleEl) {
+        roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
+        roleEl.textContent = '👑 Prime Member';
+    }
 
-    setTextContent('gkJoinDate', member.joiningDate || '--');
+    // 4. Update Joining Date (Format: DD/MM/YYYY)
+    let joinDate = '--';
+    if (member.joiningDate && member.joiningDate !== '--') {
+        const d = new Date(member.joiningDate);
+        joinDate = d.toLocaleDateString('en-GB'); // Indian Format
+    }
+    setTextContent('gkJoinDate', joinDate);
+    
+    // 5. Update Balance
     setTextContent('gkBalance', '₹' + formatNumberWithCommas(member.balance));
 
-    // Set ID for password check
+    // 6. Set ID for Secure Login Button (Next Page jane ke liye)
     if (elements.gkSubmitBtn) {
         elements.gkSubmitBtn.dataset.memberId = myId || '';
     }
 }
+
 
 function setTextContent(id, text) {
     const el = document.getElementById(id);
