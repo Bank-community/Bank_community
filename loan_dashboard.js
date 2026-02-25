@@ -349,17 +349,15 @@ state.els.search.addEventListener('input', (e) => {
     updateUI(filtered);
 });
 
-// --- HIGH QUALITY DOWNLOAD FIX (Text Shift Solved) ---
+
+// --- HIGH QUALITY DOWNLOAD FIX (Button Visible + No Text Shift) ---
 window.dlCard = (id) => {
     const el = document.getElementById(id);
     const btn = el.querySelector('.pc-download');
     
-    // Hide Download Icon & Pay Button temporarily
+    // सिर्फ Download Icon को छुपाएं (Pay Button को नहीं)
     btn.style.opacity = '0';
-    const payBtn = el.querySelector('.btn-pay-now');
-    if(payBtn) payBtn.style.display = 'none';
 
-    // 🔥 FIX: clone hone par line-height fix karna
     html2canvas(el, { 
         scale: 4, // High Quality
         useCORS: true, 
@@ -368,10 +366,20 @@ window.dlCard = (id) => {
         logging: false,
         onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(id);
-            // Download ke waqt text hilne se rokne ke liye CSS fix
+            const clonedPayBtn = clonedEl.querySelector('.btn-pay-now');
+            
+            // 1. Text Shift Fix (टेक्स्ट अपनी जगह पर रहे)
             clonedEl.style.transform = "none"; 
             const titles = clonedEl.querySelectorAll('.pc-title, .pc-amount');
-            titles.forEach(t => t.style.lineHeight = "1"); // Text ko upar khichna
+            titles.forEach(t => t.style.lineHeight = "1.1"); 
+
+            // 2. Button Fix for Download (Position adjust agar zaroorat ho)
+            if(clonedPayBtn) {
+                clonedPayBtn.style.display = 'flex'; // सुनिश्चित करें कि बटन दिखे
+                // html2canvas में कभी-कभी shadow कट जाती है, उसे ठीक करने के लिए
+                clonedPayBtn.style.boxShadow = 'none'; 
+                clonedPayBtn.style.border = '1px solid #D4AF37';
+            }
         }
     })
     .then(c => {
@@ -380,11 +388,11 @@ window.dlCard = (id) => {
         a.href = c.toDataURL('image/png');
         a.click();
         
-        // Restore Buttons
+        // Restore Download Icon
         btn.style.opacity = '1';
-        if(payBtn) payBtn.style.display = 'flex';
     });
 };
+
 
 
 // --- MODAL & GENERATOR ---
