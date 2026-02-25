@@ -1,7 +1,7 @@
 // loan_dashboard.js - FINAL UPDATED VERSION
-// FEATURES: Filters, Pay Now, WhatsApp Reminders, Overdue Alerts
+// FEATURES: Smart Alerts (90/365 Days), ⚠️ Blink Symbol, HD Download, Pay Now Right-Bottom
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v9'; 
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v10'; 
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
@@ -35,7 +35,7 @@ const state = {
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", async () => {
     try {
-        setupFilters(); // Setup Filter Click Listeners
+        setupFilters(); 
         loadFromCache();
         
         const res = await fetch(PRELOAD_CONFIG_URL);
@@ -55,12 +55,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 function setupFilters() {
     const setFilter = (type, btn) => {
         state.currentFilter = type;
-        
-        // Update Buttons
         [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
-        // Re-render
         renderLoans();
     };
 
@@ -92,10 +88,8 @@ function processLoanData(rawLoans, members) {
         .map(l => ({
             ...l,
             memberName: members[l.memberId]?.fullName || 'Unknown',
-            pic: members[l.memberId]?.profilePicUrl || '',
-            phone: members[l.memberId]?.mobile || members[l.memberId]?.phone || '' // For WhatsApp
+            pic: members[l.memberId]?.profilePicUrl || ''
         }))
-        // Sort: Oldest Loan First (Critical First)
         .sort((a,b) => new Date(a.loanDate) - new Date(b.loanDate));
 }
 
@@ -139,19 +133,19 @@ function renderLoans() {
         filtered = filtered.filter(l => l.loanType === 'Recharge' || l.loanType === '10 Days Credit');
     }
 
-    // 2. Search Filter (if text exists)
+    // 2. Search Filter
     const term = state.els.search.value.toLowerCase();
     if(term) {
         filtered = filtered.filter(l => l.memberName.toLowerCase().includes(term));
     }
 
-    // 3. Update Stats Header
+    // 3. Update Stats
     const totalDue = filtered.reduce((sum, l) => sum + parseFloat(l.outstandingAmount || 0), 0);
     state.els.count.textContent = filtered.length;
     state.els.amt.textContent = `₹${totalDue.toLocaleString('en-IN')}`;
 
     if(filtered.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:40px; color:#999; font-weight:600;">No loans found in this category.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:#999; font-weight:600;">No loans found.</div>';
         return;
     }
 
@@ -161,11 +155,9 @@ function renderLoans() {
         const dateObj = new Date(l.loanDate);
         const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
         
-        // Days Calculation
         const diffTime = Math.abs(new Date() - dateObj);
         const daysActive = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
         
-        // Logic Vars
         let providerOrProduct = 'N/A';
         let emiAmount = null;
         let tenureMonths = l.tenureMonths || 0; 
@@ -180,7 +172,7 @@ function renderLoans() {
         }
         if (l.monthlyEmi) emiAmount = l.monthlyEmi;
 
-        // HTML Generation based on Type
+        // Card Type Selection
         let cardHTML = '';
         if (l.loanType === '10 Days Credit') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
@@ -189,7 +181,6 @@ function renderLoans() {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
         else {
-            // High Value Luxury vs Platinum
             if (amount >= 25000) {
                 cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             } else {
@@ -205,44 +196,54 @@ function renderLoans() {
     if(typeof feather !== 'undefined') feather.replace();
 }
 
-// === CARD TEMPLATES ===
-
-// Helper: Common Action Row (Pay & WhatsApp)
-function getActionRowHTML(loan, amount) {
-    const waLink = loan.phone 
-        ? `https://wa.me/${loan.phone}?text=${encodeURIComponent(`Hello ${loan.memberName}, your loan payment of ₹${amount} is pending. Please pay soon.`)}`
-        : '#';
+// === HELPER: ALERT LOGIC (New 90/365 Rule) ===
+function getAlertStatus(amount, days) {
+    let threshold = 90; // Default 90 days for small loans
     
+    // For Big Loans (> 25000), limit is 1 year (365 days)
+    if (amount > 25000) {
+        threshold = 365;
+    }
+
+    return {
+        isCritical: days > threshold,
+        threshold: threshold
+    };
+}
+
+// Helper: Pay Now Button Only
+function getPayButtonHTML(loan, amount) {
     const payLink = `qr.html?amount=${amount}&type=loan&id=${loan.loanId}`;
-
     return `
-    <div class="card-action-row">
-        <a href="${waLink}" target="_blank" class="btn-whatsapp">
-            <i data-feather="message-circle" style="width:14px;"></i>
-        </a>
-        <a href="${payLink}" class="btn-pay-now">
-            PAY NOW <i data-feather="chevron-right" style="width:12px;"></i>
-        </a>
-    </div>`;
+    <a href="${payLink}" class="btn-pay-now">
+        PAY NOW <i data-feather="chevron-right" style="width:10px;"></i>
+    </a>`;
 }
 
-// Helper: Get Overdue Class
-function getAlertClass(days) {
-    return days > 30 ? 'critical' : '';
+// Helper: Warning Symbol Injection
+function getWarningSymbol(isCritical) {
+    if (!isCritical) return '';
+    return `<div class="overdue-watermark">⚠️</div>`;
 }
 
-// 1. LUXURY CARD
+// --- 1. LUXURY CARD (>25k) ---
 function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
     const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
+    
+    // Alert Logic
+    const alertState = getAlertStatus(amount, daysActive);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
 
     return `
-    <div class="premium-card-wrapper card-premium" id="${loanId}">
+    <div class="premium-card-wrapper card-premium ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
         
-        <div class="pc-days-circle ${getAlertClass(daysActive)}">
+        <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -260,7 +261,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#D4AF37;">HIGH VALUE</div>
         </div>
 
-        ${getActionRowHTML(loan, amount)}
+        ${getPayButtonHTML(loan, amount)}
 
         <div class="pc-bottom">
             <div class="pc-profile-group">
@@ -278,18 +279,24 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     </div>`;
 }
 
-// 2. PLATINUM CARD
+// --- 2. PLATINUM CARD (<25k) ---
 function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
     const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
 
+    // Alert Logic
+    const alertState = getAlertStatus(amount, daysActive);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
     return `
-    <div class="premium-card-wrapper card-platinum" id="${loanId}">
+    <div class="premium-card-wrapper card-platinum ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
         
-        <div class="pc-days-circle ${getAlertClass(daysActive)}">
+        <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -307,7 +314,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">Standard</div>
         </div>
 
-        ${getActionRowHTML(loan, amount)}
+        ${getPayButtonHTML(loan, amount)}
 
         <div class="pc-bottom">
             <div class="pc-profile-group">
@@ -325,7 +332,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
     </div>`;
 }
 
-// 3. STANDARD CARD (Recharge/Credit)
+// --- 3. STANDARD CARD (Recharge/Credit) ---
 function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
@@ -343,11 +350,17 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
         if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
     }
 
+    // Alert Logic (Standard logic also applies here: 90 days default)
+    const alertState = getAlertStatus(amount, daysActive);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
     return `
-    <div class="premium-card-wrapper ${cardClass}" id="${loanId}">
+    <div class="premium-card-wrapper ${cardClass} ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
         
-        <div class="pc-days-circle ${getAlertClass(daysActive)}">
+        <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -365,7 +378,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
         </div>
 
-        ${getActionRowHTML(loan, amount)}
+        ${getPayButtonHTML(loan, amount)}
 
         <div class="pc-bottom">
             <div class="pc-profile-group">
@@ -387,16 +400,24 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
 // --- SEARCH ---
 state.els.search.addEventListener('input', () => renderLoans());
 
-// --- DOWNLOAD FEATURE ---
+// --- HIGH QUALITY DOWNLOAD (Fixed) ---
 window.dlCard = (id) => {
     const el = document.getElementById(id);
     const btn = el.querySelector('.pc-download');
-    // Hide buttons for screenshot
-    const actions = el.querySelector('.card-action-row');
-    if(actions) actions.style.display = 'none';
-    btn.style.opacity = '0';
+    // Hide ONLY the Pay button row
+    const btnRow = el.querySelector('.btn-pay-now'); 
     
-    html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null })
+    btn.style.opacity = '0';
+    if(btnRow) btnRow.style.display = 'none'; // Hide pay button for screenshot
+    
+    // Scale 4 for High Quality
+    html2canvas(el, { 
+        scale: 4, 
+        useCORS: true, 
+        allowTaint: true, 
+        backgroundColor: null,
+        logging: false
+    })
     .then(c => {
         const a = document.createElement('a');
         a.download = `LoanCard_${id}.png`;
@@ -405,11 +426,11 @@ window.dlCard = (id) => {
         
         // Restore
         btn.style.opacity = '1';
-        if(actions) actions.style.display = 'flex';
+        if(btnRow) btnRow.style.display = 'flex';
     });
 };
 
-// --- ADMIN GENERATOR LOGIC (KEPT AS IS) ---
+// --- ADMIN GENERATOR ---
 document.getElementById('generate-credit-btn').onclick = () => {
     state.els.modal.style.visibility = 'visible';
     state.els.modal.style.opacity = '1';
