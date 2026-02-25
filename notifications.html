@@ -59,7 +59,7 @@
         .page-title { font-size: 1.4rem; font-weight: 600; margin: 0; }
         .sub-title { font-size: 0.75rem; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; font-weight: 600; display: block; }
         
-        /* PDF Download Icon (Logo) */
+        /* PDF Download Icon */
         .header-logo-btn {
             width: 45px;
             height: 45px;
@@ -77,7 +77,7 @@
         .header-logo-btn:active { transform: scale(0.9); }
         .header-logo-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* MONTH NAVIGATOR (Floating) */
+        /* MONTH NAVIGATOR */
         .month-nav-container {
             position: absolute;
             bottom: -22px;
@@ -169,7 +169,7 @@
         .card-repay .stat-icon-circle { background: #e3f2fd; color: var(--blue); }
         .card-repay .stat-value { color: var(--blue); }
 
-        /* TRANSACTION LIST HEADER */
+        /* LIST HEADER */
         .list-header {
             padding: 15px 20px 5px;
             display: flex;
@@ -235,7 +235,6 @@
         .tx-info { flex-grow: 1; }
         .tx-name { font-size: 0.95rem; font-weight: 600; color: var(--primary); margin: 0; }
         .tx-type { font-size: 0.7rem; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
-        
         .tx-amount { font-size: 1rem; font-weight: 700; text-align: right; }
 
         .color-green { color: var(--green); }
@@ -346,9 +345,9 @@
         
         let allTransactions = [];
         let membersData = {};
-        let currentMonthTransactions = []; // Store for PDF
+        let globalData = {}; // Full data store for Global Stats
+        let currentMonthTransactions = []; 
         
-        // State
         let currentDate = new Date();
         let activeFilter = null;
 
@@ -361,7 +360,9 @@
         async function initFirebase() {
             const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
-                processData(JSON.parse(cached));
+                const data = JSON.parse(cached);
+                globalData = data;
+                processData(data);
             }
 
             try {
@@ -374,6 +375,7 @@
                 const freshData = snap.val();
                 
                 localStorage.setItem(CACHE_KEY, JSON.stringify(freshData));
+                globalData = freshData;
                 processData(freshData);
             } catch(e) { console.warn("Using offline mode/cache", e); }
         }
@@ -397,22 +399,18 @@
 
             document.getElementById('currentMonthDisplay').textContent = `${currentMonthName} ${currentYear}`;
 
-            // Filter by Month
             let monthTx = allTransactions.filter(t => 
                 t.dateObj.getMonth() === currentDate.getMonth() && 
                 t.dateObj.getFullYear() === currentDate.getFullYear()
             );
 
-            // Store for PDF use
             currentMonthTransactions = [...monthTx];
 
-            // Calculate Totals
             const stats = calculateStats(monthTx);
             animateValue('val-sip', stats.sip);
             animateValue('val-loan', stats.loan);
             animateValue('val-repay', stats.repay);
 
-            // Filter & Sort for List
             let displayTx = [...monthTx];
             const filterEl = document.getElementById('filterStatus');
 
@@ -421,18 +419,14 @@
                 else if (activeFilter === 'LOAN') displayTx = displayTx.filter(t => t.type === 'Loan Taken' || t.type.includes('Withdraw'));
                 else if (activeFilter === 'REPAY') displayTx = displayTx.filter(t => t.type === 'Loan Payment');
                 
-                // Sort: Highest Amount
                 displayTx.sort((a, b) => getTxAmount(b) - getTxAmount(a));
                 filterEl.textContent = `Showing Highest ${activeFilter}`;
             } else {
-                // Default: Newest Date
                 displayTx.sort((a, b) => b.dateObj - a.dateObj);
                 filterEl.textContent = "";
             }
 
-            // Update Count Badge (NEW FEATURE)
             document.getElementById('txCountBadge').textContent = `${displayTx.length} Transactions`;
-
             renderList(displayTx);
         }
 
@@ -448,6 +442,36 @@
                 else if (t.type === 'Loan Payment') repay += (pPaid + iPaid > 0) ? (pPaid + iPaid) : amt;
             });
             return { sip, loan, repay };
+        }
+
+        // 🌟 NEW FUNCTION: CALCULATE GLOBAL FUND HEALTH (For PDF Footer)
+        function calculateGlobalSnapshot() {
+            // 1. Available Balance (From Admin Stats if available, else calc)
+            let available = 0;
+            if (globalData.admin && globalData.admin.balanceStats) {
+                available = parseFloat(globalData.admin.balanceStats.availableBalance || 0);
+            }
+
+            // 2. Total SIP (Cumulative)
+            let totalSip = 0;
+            if (globalData.admin && globalData.admin.balanceStats) {
+                totalSip = parseFloat(globalData.admin.balanceStats.totalSIP || 0);
+            } else {
+                 // Fallback calculation
+                 allTransactions.forEach(t => {
+                    if(t.type === 'SIP' || t.type === 'Extra Payment') totalSip += parseFloat(t.amount || 0);
+                 });
+            }
+
+            // 3. Active Loans (Outstanding)
+            let totalActiveLoans = 0;
+            if (globalData.activeLoans) {
+                Object.values(globalData.activeLoans).forEach(l => {
+                    if(l.status === 'Active') totalActiveLoans += parseFloat(l.outstandingAmount || l.amount || 0);
+                });
+            }
+
+            return { available, totalSip, totalActiveLoans };
         }
 
         function renderList(list) {
@@ -498,28 +522,20 @@
             feather.replace();
         }
 
-        // 3. PDF GENERATION (PROFESSIONAL)
+        // 3. PDF GENERATION (UPDATED WITH FOOTER SNAPSHOT)
         async function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             const monthText = document.getElementById('currentMonthDisplay').textContent;
-            
-            // Stats for Summary
             const stats = calculateStats(currentMonthTransactions);
+            const globalSnapshot = calculateGlobalSnapshot(); // 🟢 NEW: Get Global Stats
+
+            const primaryColor = [0, 21, 64]; 
+            const goldColor = [212, 175, 55]; 
             
-            // Colors
-            const primaryColor = [0, 21, 64]; // #001540
-            const goldColor = [212, 175, 55]; // #D4AF37
-            
-            // 1. HEADER LOGO & TITLE
-            // Add Logo (Using addImage with URL - works if server allows CORS, else fallback)
-            try {
-                // Centered Logo
-                doc.addImage(LOGO_URL, 'JPEG', 90, 10, 30, 30); 
-            } catch(e) {
-                console.warn("Image load failed", e);
-            }
+            // 1. Header
+            try { doc.addImage(LOGO_URL, 'JPEG', 90, 10, 30, 30); } catch(e) {}
 
             doc.setFont("helvetica", "bold");
             doc.setFontSize(18);
@@ -531,10 +547,10 @@
             doc.setTextColor(100);
             doc.text(`Transaction Statement: ${monthText}`, 105, 58, null, null, "center");
 
-            // 2. SUMMARY BOX
+            // 2. Summary Box (Current Month)
             doc.setDrawColor(...goldColor);
             doc.setLineWidth(0.5);
-            doc.rect(15, 65, 180, 25); // Border
+            doc.rect(15, 65, 180, 25); 
 
             doc.setFontSize(10);
             doc.setTextColor(...primaryColor);
@@ -544,16 +560,14 @@
 
             doc.setFont("helvetica", "bold");
             doc.setFontSize(12);
-            doc.setTextColor(46, 125, 50); // Green
+            doc.setTextColor(46, 125, 50); 
             doc.text(`Rs. ${stats.sip.toLocaleString()}`, 40, 80, null, null, "center");
-            
-            doc.setTextColor(198, 40, 40); // Red
+            doc.setTextColor(198, 40, 40); 
             doc.text(`Rs. ${stats.loan.toLocaleString()}`, 105, 80, null, null, "center");
-
-            doc.setTextColor(21, 101, 192); // Blue
+            doc.setTextColor(21, 101, 192); 
             doc.text(`Rs. ${stats.repay.toLocaleString()}`, 170, 80, null, null, "center");
 
-            // 3. TABLE OF TRANSACTIONS
+            // 3. Transactions Table
             const tableBody = currentMonthTransactions.sort((a,b)=>a.dateObj-b.dateObj).map(t => {
                 const date = t.dateObj.toLocaleDateString('en-GB');
                 const name = membersData[t.memberId]?.fullName || "Unknown";
@@ -570,10 +584,57 @@
                 headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
                 alternateRowStyles: { fillColor: [248, 249, 253] },
                 styles: { fontSize: 9, cellPadding: 3 },
-                columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }, // Amount Align Right
+                columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } },
             });
 
-            // 4. FOOTER
+            // 4. 🟢 NEW: FUND HEALTH CARD (FOOTER on Last Page)
+            const finalY = doc.lastAutoTable.finalY + 10;
+            
+            // Check if we need a new page for the footer card
+            if (finalY > 250) {
+                doc.addPage();
+                doc.lastAutoTable.finalY = 20; 
+            }
+            
+            const cardY = (finalY > 250) ? 20 : finalY;
+
+            // Card Background (Dark Blue)
+            doc.setFillColor(...primaryColor);
+            doc.rect(15, cardY, 180, 45, 'F');
+            doc.setDrawColor(...goldColor);
+            doc.rect(15, cardY, 180, 45); // Border
+
+            // Card Header
+            doc.setFontSize(14);
+            doc.setTextColor(...goldColor);
+            doc.text("CURRENT FUND STATUS", 105, cardY + 12, null, null, "center");
+            doc.setFontSize(9);
+            doc.setTextColor(200);
+            doc.text(`(As of ${new Date().toLocaleDateString('en-GB')})`, 105, cardY + 18, null, null, "center");
+
+            // Card Content (Row 1: SIP & Active Loans)
+            doc.setFontSize(10);
+            doc.setTextColor(255, 255, 255);
+            doc.text("Total SIP Collected:", 30, cardY + 28);
+            doc.text(`Rs. ${globalSnapshot.totalSip.toLocaleString('en-IN')}`, 90, cardY + 28, null, null, "right");
+
+            doc.text("Active Loans:", 110, cardY + 28);
+            doc.text(`Rs. ${globalSnapshot.totalActiveLoans.toLocaleString('en-IN')}`, 180, cardY + 28, null, null, "right");
+
+            // Card Content (Row 2: Available - Big)
+            doc.setDrawColor(255, 255, 255);
+            doc.line(30, cardY + 32, 180, cardY + 32); // Divider line
+
+            doc.setFontSize(12);
+            doc.setTextColor(...goldColor);
+            doc.text("AVAILABLE FUNDS:", 70, cardY + 40);
+            
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(255, 255, 255);
+            doc.text(`Rs. ${globalSnapshot.available.toLocaleString('en-IN')}`, 160, cardY + 40, null, null, "center");
+
+            // Page Numbers Footer
             const pageCount = doc.internal.getNumberOfPages();
             for(let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
@@ -583,38 +644,20 @@
                 doc.text(`Page ${i} of ${pageCount}`, 190, 290, null, null, "right");
             }
 
-            // Save
             doc.save(`TCF_Statement_${monthText}.pdf`);
         }
 
         // Helpers
-        function changeMonth(dir) {
-            currentDate.setMonth(currentDate.getMonth() + dir);
-            renderUI();
-        }
-
-        function toggleFilter(type, cardEl) {
+        function changeMonth(dir) { currentDate.setMonth(currentDate.getMonth() + dir); renderUI(); }
+        function toggleFilter(type, cardEl) { 
             document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
             if (activeFilter === type) { activeFilter = null; } 
             else { activeFilter = type; cardEl.classList.add('active'); }
             renderUI();
         }
-
-        function parseDate(input) {
-            if (!input) return new Date();
-            let d = new Date(input);
-            if (!isNaN(d.getTime())) return d;
-            return new Date();
-        }
-
-        function getTxAmount(t) {
-            if (t.type === 'Loan Payment') return (parseFloat(t.principalPaid||0) + parseFloat(t.interestPaid||0)) || parseFloat(t.amount||0);
-            return parseFloat(t.amount||0);
-        }
-
-        function animateValue(id, end) {
-            document.getElementById(id).textContent = '₹' + end.toLocaleString('en-IN');
-        }
+        function parseDate(input) { if (!input) return new Date(); let d = new Date(input); return !isNaN(d.getTime()) ? d : new Date(); }
+        function getTxAmount(t) { return (t.type === 'Loan Payment') ? ((parseFloat(t.principalPaid||0) + parseFloat(t.interestPaid||0)) || parseFloat(t.amount||0)) : parseFloat(t.amount||0); }
+        function animateValue(id, end) { document.getElementById(id).textContent = '₹' + end.toLocaleString('en-IN'); }
 
     </script>
 </body>
