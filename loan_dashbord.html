@@ -29,7 +29,6 @@
             --platinum-gradient: linear-gradient(135deg, #ffffff 0%, #f3f4f6 50%, #e5e7eb 100%);
             --bg-color: #f8f9fc;
             --danger-red: #d32f2f;
-            --whatsapp-green: #25D366;
             --font-heading: 'Cinzel', serif;
             --font-body: 'Manrope', sans-serif;
         }
@@ -69,11 +68,11 @@
         .stat-value { font-size: 1.4rem; font-weight: 800; color: var(--primary-blue); }
         .stat-separator { width: 1px; height: 35px; background: #eee; }
 
-        /* === NEW: FILTER CHIPS === */
+        /* FILTER CHIPS */
         .filter-section {
             padding: 15px 20px 5px 20px;
             display: flex; gap: 10px; overflow-x: auto;
-            scrollbar-width: none; /* Hide scrollbar */
+            scrollbar-width: none; 
         }
         .filter-section::-webkit-scrollbar { display: none; }
         
@@ -163,6 +162,12 @@
         .card-10days { background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C); color: #2a2a2a; }
         .card-recharge { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); color: white; }
         
+        /* 🔥 FIXED: White text for Recharge Cards */
+        .card-recharge, .card-recharge .pc-title, .card-recharge .pc-amount, .card-recharge .pc-name { color: #ffffff !important; }
+        .card-recharge .pc-date, .card-recharge .pc-subtitle { color: rgba(255,255,255,0.85) !important; }
+        .card-recharge .pc-download { border-color: rgba(255,255,255,0.3); color: white; }
+        .card-recharge .pc-pic { border-color: white !important; }
+
         /* === CARD LAYOUT === */
         .pc-top { display: flex; justify-content: space-between; align-items: flex-start; z-index: 2; position: relative; padding: 0 5px; }
         .pc-bank { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; font-weight: 700; opacity: 0.9; }
@@ -176,10 +181,8 @@
             margin-top: 10px; position: relative; z-index: 2; text-align: left; 
             padding-right: 60px; /* Space for Days Circle */
         }
-        /* 🔥 FIXED: Left Align for Recharge & Credit Cards specific override */
-        .card-recharge .pc-middle, .card-10days .pc-middle {
-            padding-left: 10px; /* Align Left properly */
-        }
+        /* Left Align for Recharge & Credit Cards */
+        .card-recharge .pc-middle, .card-10days .pc-middle { padding-left: 5px; }
 
         .pc-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0; line-height: 1; }
         .pc-date { font-size: 10px; letter-spacing: 1px; display: block; margin-bottom: 4px; }
@@ -189,13 +192,13 @@
         .pc-bottom { 
             margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; 
             z-index: 2; position: relative; 
-            padding-bottom: 45px; /* Space for Pay Button */
+            padding-bottom: 40px; 
         }
         .pc-profile-group { display: flex; align-items: center; }
         .pc-pic { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .pc-name { font-size: 14px; font-weight: 700; margin-left: 12px; text-transform: capitalize; }
         
-        .pc-amount-group { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .pc-amount-group { text-align: right; display: flex; flex-direction: column; align-items: flex-end; margin-right: 5px; }
         .pc-emi-label { font-size: 11px; opacity: 1; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
         .pc-amount { font-size: 28px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1; }
 
@@ -212,7 +215,7 @@
             z-index: 2;
         }
 
-        /* Days Circle (Alert Logic Added) */
+        /* Days Circle */
         .pc-days-circle {
             position: absolute; right: 15px; top: 42%; transform: translateY(-50%);
             width: 50px; height: 50px; 
@@ -223,42 +226,54 @@
         }
         .card-premium .pc-days-circle { background: var(--gold-plate); border-color: #fff; color: #3e2702; }
         
-        /* 🚨 CRITICAL ALERT STYLE */
+        /* 🚨 CRITICAL ALERT STYLE (Red Circle) */
         .pc-days-circle.critical {
             background: var(--danger-red) !important;
             border-color: #ff8a80 !important;
             color: white !important;
-            animation: pulse-red 2s infinite;
+            box-shadow: 0 0 15px rgba(211, 47, 47, 0.6);
         }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); } 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); } }
 
         .day-num { font-size: 16px; font-weight: 900; line-height: 1; }
         .day-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
 
-        /* === NEW: ACTION BUTTONS ROW === */
-        .card-action-row {
-            position: absolute; bottom: 85px; right: 15px; /* Floats above amount */
-            display: flex; gap: 8px; align-items: center; z-index: 20;
+        /* 🔥 NEW: OVERDUE WATERMARK BLINKING SYMBOL ⚠️ */
+        .overdue-watermark {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            opacity: 0; /* Hidden by default */
+            z-index: 1; /* Behind text */
+            pointer-events: none;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            transition: opacity 0.5s;
         }
         
-        /* Pay Now Button */
+        .overdue-active .overdue-watermark {
+            animation: watermark-blink 2s infinite ease-in-out;
+            opacity: 0.25; /* Visible but subtle */
+        }
+
+        @keyframes watermark-blink {
+            0% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.4; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* 🔥 NEW: ACTION BUTTON (Small, Bottom Right) */
         .btn-pay-now {
+            position: absolute;
+            bottom: 45px; /* Aligned with tenure tag line */
+            right: 15px;
             background: linear-gradient(135deg, var(--royal-gold), #B8860B);
-            color: white; border: none; padding: 6px 14px; border-radius: 20px;
-            font-size: 0.7rem; font-weight: 800; text-decoration: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;
-            display: flex; align-items: center; gap: 4px; transition: transform 0.2s;
+            color: #000; border: none; padding: 5px 12px; border-radius: 6px;
+            font-size: 0.65rem; font-weight: 800; text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 3px; z-index: 20;
+            border: 1px solid rgba(255,255,255,0.3);
         }
         .btn-pay-now:active { transform: scale(0.95); }
-        
-        /* WhatsApp Icon */
-        .btn-whatsapp {
-            width: 28px; height: 28px; background: var(--whatsapp-green);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: white; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-        }
-        .btn-whatsapp:active { transform: scale(0.95); }
         
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
