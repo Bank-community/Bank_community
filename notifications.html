@@ -242,6 +242,50 @@
         .color-blue { color: var(--blue); }
         .empty-state { text-align: center; padding: 40px; color: #999; font-size: 0.9rem; }
 
+        /* --- TODAY HIGHLIGHT --- */
+        .tx-card.today {
+            background-color: #fffdf0; /* Cream Color */
+            border: 1px solid rgba(212, 175, 55, 0.4); /* Light Gold Border */
+        }
+        .tx-today-badge {
+            font-size: 0.55rem;
+            background: var(--gold);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 5px;
+            vertical-align: middle;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- TRANSACTION DETAIL MODAL --- */
+        .tx-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,21,64,0.7); z-index: 2000; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .tx-modal-content {
+            background: white; border-radius: 20px; width: 90%; max-width: 350px;
+            padding: 25px 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(30px); transition: transform 0.3s ease;
+        }
+        .tx-modal-overlay.show { display: flex; }
+        .tx-modal-overlay.show .tx-modal-content { transform: translateY(0); }
+        .tx-modal-close {
+            position: absolute; top: 15px; right: 15px; background: #f0f2f5;
+            border: none; width: 32px; height: 32px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--primary);
+        }
+        .tx-modal-header { text-align: center; border-bottom: 1px dashed #ddd; padding-bottom: 15px; margin-bottom: 15px; }
+        .tx-modal-amount { font-size: 2rem; font-weight: 800; color: var(--primary); margin: 5px 0; }
+        .tx-modal-type { font-size: 0.85rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 1px;}
+        .tx-modal-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.85rem; }
+        .tx-modal-row span:first-child { color: #888; font-weight: 500; }
+        .tx-modal-row span:last-child { color: var(--primary); font-weight: 700; text-align: right; }
+        .tx-modal-id { font-family: monospace; font-size: 0.75rem; background: #f5f7fa; padding: 6px 10px; border-radius: 8px; color: #555; word-break: break-all; margin-top: 5px; border: 1px solid #eee;}
+
+
         /* BOTTOM NAV */
         .bottom-nav-container {
             position: fixed; bottom: 0; left: 0; width: 100%; height: 70px;
@@ -313,6 +357,24 @@
     <div id="transactionList" class="tx-list">
         <div class="empty-state">Loading transactions...</div>
     </div>
+
+    <div id="txDetailModal" class="tx-modal-overlay" onclick="closeTxModal(event)">
+        <div class="tx-modal-content" onclick="event.stopPropagation()">
+            <button class="tx-modal-close" onclick="closeTxModal()"><i data-feather="x" style="width:18px;"></i></button>
+            <div class="tx-modal-header">
+                <div class="tx-modal-type" id="modalTxType">Transaction Type</div>
+                <div class="tx-modal-amount" id="modalTxAmount">₹0</div>
+                <div style="font-size: 0.8rem; color: #888; font-weight: 500;" id="modalTxDate">Date & Time</div>
+            </div>
+            <div id="modalTxDetails">
+                </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <span style="font-size: 0.65rem; color: #aaa; font-weight: 600; text-transform: uppercase;">Transaction ID</span>
+                <div class="tx-modal-id" id="modalTxId">---</div>
+            </div>
+        </div>
+    </div>
+
 
     <nav class="bottom-nav-container">
         <div class="nav-item" onclick="window.location.href='index.html'">
@@ -474,7 +536,7 @@
             return { available, totalSip, totalActiveLoans };
         }
 
-        function renderList(list) {
+                function renderList(list) {
             const container = document.getElementById('transactionList');
             container.innerHTML = '';
 
@@ -483,11 +545,21 @@
                 return;
             }
 
+            const today = new Date(); // To check 'Today'
+
             list.forEach(t => {
                 const memberName = membersData[t.memberId]?.fullName || membersData[t.memberId]?.name || 'Unknown';
                 const day = t.dateObj.getDate();
                 const monthShort = t.dateObj.toLocaleString('default', { month: 'short' });
                 
+                // Check if transaction is TODAY
+                const isToday = t.dateObj.getDate() === today.getDate() && 
+                                t.dateObj.getMonth() === today.getMonth() && 
+                                t.dateObj.getFullYear() === today.getFullYear();
+                
+                const cardClass = isToday ? 'tx-card today' : 'tx-card';
+                const todayBadgeHtml = isToday ? `<span class="tx-today-badge">TODAY</span>` : '';
+
                 let typeHtml = '', amountClass = '', amountSign = '+';
                 let displayAmt = getTxAmount(t);
 
@@ -504,13 +576,13 @@
                 }
 
                 container.innerHTML += `
-                    <div class="tx-card">
+                    <div class="${cardClass}" onclick="openTxModal('${t.transactionId}')" style="cursor: pointer;">
                         <div class="tx-date-box">
                             <span class="tx-month">${monthShort}</span>
                             <span class="tx-day">${day}</span>
                         </div>
                         <div class="tx-info">
-                            <h4 class="tx-name">${memberName}</h4>
+                            <h4 class="tx-name">${memberName} ${todayBadgeHtml}</h4>
                             ${typeHtml}
                         </div>
                         <div class="tx-amount ${amountClass}">
@@ -521,6 +593,7 @@
             });
             feather.replace();
         }
+
 
         // 3. PDF GENERATION (UPDATED WITH FOOTER SNAPSHOT)
         async function generatePDF() {
@@ -658,6 +731,59 @@
         function parseDate(input) { if (!input) return new Date(); let d = new Date(input); return !isNaN(d.getTime()) ? d : new Date(); }
         function getTxAmount(t) { return (t.type === 'Loan Payment') ? ((parseFloat(t.principalPaid||0) + parseFloat(t.interestPaid||0)) || parseFloat(t.amount||0)) : parseFloat(t.amount||0); }
         function animateValue(id, end) { document.getElementById(id).textContent = '₹' + end.toLocaleString('en-IN'); }
+
+        // --- MODAL LOGIC ---
+        function openTxModal(txId) {
+            if(!txId || txId === 'undefined') return;
+            const tx = allTransactions.find(t => t.transactionId === txId);
+            if(!tx) return;
+
+            const modal = document.getElementById('txDetailModal');
+            const memberName = membersData[tx.memberId]?.fullName || membersData[tx.memberId]?.name || 'Unknown';
+            const displayAmt = getTxAmount(tx);
+
+            // Set Header Info
+            document.getElementById('modalTxType').textContent = tx.type;
+            document.getElementById('modalTxAmount').textContent = '₹' + displayAmt.toLocaleString('en-IN');
+            
+            // Format Date & Time (e.g., 26 Feb 2026 • 09:15 AM)
+            const timeStr = tx.dateObj.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+            const dateStr = tx.dateObj.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+            document.getElementById('modalTxDate').textContent = `${dateStr} • ${timeStr}`;
+
+            // Build Details Rows
+            let detailsHtml = `
+                <div class="tx-modal-row"><span>Member Name</span><span>${memberName}</span></div>
+                <div class="tx-modal-row"><span>Status</span><span style="color:var(--green)">Success</span></div>
+            `;
+
+            // If Loan Payment, show Principal vs Interest
+            if (tx.type === 'Loan Payment') {
+                const pPaid = parseFloat(tx.principalPaid || 0);
+                const iPaid = parseFloat(tx.interestPaid || 0);
+                detailsHtml += `
+                    <div style="border-top: 1px solid #eee; margin: 10px 0;"></div>
+                    <div class="tx-modal-row"><span>Principal Paid</span><span>₹${pPaid.toLocaleString('en-IN')}</span></div>
+                    <div class="tx-modal-row"><span>Interest Paid</span><span>₹${iPaid.toLocaleString('en-IN')}</span></div>
+                `;
+            }
+
+            document.getElementById('modalTxDetails').innerHTML = detailsHtml;
+            document.getElementById('modalTxId').textContent = tx.transactionId || 'N/A';
+
+            // Show Modal
+            modal.classList.add('show');
+            feather.replace();
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeTxModal(e) {
+            // Close if clicking outside the modal content or on the X button
+            if (e && e.target !== document.getElementById('txDetailModal')) return;
+            document.getElementById('txDetailModal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
 
     </script>
 </body>
