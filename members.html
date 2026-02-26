@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#001540">
+    <meta name="theme-color" content="#001540">
     <title>Trust Community Fund Dashboard</title>
     
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    <!-- Google Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
 
     <style>
@@ -25,10 +26,9 @@
             --bg-color: #f4f6f9;
             --card-bg: #ffffff;
             --text-dark: #1a1a1a;
-            --text-light: #f8f9fa;
             --success-color: #28a745;
             --danger-color: #dc3545;
-            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --blue-color: #1565c0;
             --shadow-gold: 0 8px 25px rgba(212, 175, 55, 0.15);
             --glass-bg: rgba(255, 255, 255, 0.95);
         }
@@ -38,12 +38,11 @@
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-dark);
-            /* Adjusted padding to push content down further as requested */
-            padding-top: 400px; 
+            padding-top: 400px; /* Space for fixed Profile Section */
             transition: padding-top 0.3s ease;
         }
 
-        /* === HEADER === */
+        /* === HEADER (With Hidden Download Trigger) === */
         .header {
             background: linear-gradient(160deg, var(--primary-color) 0%, var(--primary-darker) 100%);
             color: white;
@@ -52,9 +51,7 @@
             align-items: center;
             justify-content: center;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
+            top: 0; left: 0; width: 100%;
             z-index: 1001;
             height: 70px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -63,20 +60,24 @@
             border-bottom-right-radius: 20px;
         }
 
+        /* The Hidden Download Button */
         .header img {
-            width: 45px;
-            height: 45px;
+            width: 45px; height: 45px;
             margin-right: 12px;
             border-radius: 50%;
             border: 2px solid var(--accent-gold);
+            cursor: pointer; /* Indicates Clickable */
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .header img:active {
+            transform: scale(0.90);
+            box-shadow: 0 0 15px var(--accent-gold);
         }
 
         .header h1 {
-            font-family: 'Times New Roman', serif;
-            font-size: 1.3em;
-            margin: 0;
-            font-weight: 700;
-            letter-spacing: 0.5px;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3em; margin: 0;
+            font-weight: 700; letter-spacing: 0.5px;
             text-transform: uppercase;
             background: linear-gradient(to right, #fff, #e0e0e0);
             -webkit-background-clip: text;
@@ -90,21 +91,20 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 4000; color: var(--accent-gold); transition: opacity 0.5s ease;
         }
-        #loader .spinner {
+        .spinner {
             width: 50px; height: 50px;
             border: 4px solid rgba(212, 175, 55, 0.2);
             border-left-color: var(--accent-gold);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         #loader.hidden { opacity: 0; pointer-events: none; }
 
-        /* === PIN PROMPT (LUXURY MODAL) === */
+        /* === PIN PROMPT === */
         #passwordPromptContainer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            background-color: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
             display: flex; align-items: center; justify-content: center;
             z-index: 3000; transition: opacity 0.3s ease;
         }
@@ -114,35 +114,27 @@
             padding: 30px;
             background: linear-gradient(145deg, #ffffff, #f0f4ff);
             border-radius: 16px;
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
             text-align: center;
             max-width: 320px; width: 85%;
             border: 2px solid var(--accent-gold);
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
         }
-        #passwordPromptMessage p { font-weight: bold; color: var(--primary-color); margin-bottom: 20px; text-transform: uppercase; }
-        
         #passwordInput {
-            width: 80%; padding: 12px; margin-bottom: 20px;
+            width: 80%; padding: 12px; margin: 20px 0;
             border: 2px solid #ccc; border-radius: 50px;
-            font-size: 20px; text-align: center; letter-spacing: 8px;
-            outline: none; transition: border-color 0.3s;
+            font-size: 20px; text-align: center; letter-spacing: 8px; outline: none;
         }
         #passwordInput:focus { border-color: var(--primary-color); }
-        
         #passwordSubmit {
-            padding: 12px 30px; font-size: 16px; font-weight: bold;
+            padding: 12px 30px; font-weight: bold;
             background: var(--primary-color); color: white;
             border: none; border-radius: 50px; cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
         }
-        #passwordSubmit:active { transform: scale(0.95); }
-        #passwordError { color: var(--danger-color); margin-top: 10px; font-size: 0.9em; font-weight: 600; min-height: 20px; }
 
         /* === PROFILE SECTION (HERO CARD) === */
         .profile-section {
-            /* Pushed down further for better aesthetics */
-            position: fixed; top: 130px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
             background: var(--glass-bg);
             border: 1px solid rgba(212, 175, 55, 0.4);
             border-radius: 20px;
@@ -152,56 +144,33 @@
             display: grid;
             grid-template-areas: "pic header" "stats stats";
             grid-template-columns: auto 1fr; 
-            gap: 15px;
-            align-items: center; transition: top 0.3s ease;
+            gap: 15px; align-items: center;
+            transition: top 0.3s ease;
         }
 
         .profile-picture {
             grid-area: pic; width: 80px; height: 80px;
-            border-radius: 50%;
-            padding: 3px;
-            background: var(--gold-gradient); /* Gold Ring */
+            border-radius: 50%; padding: 3px;
+            background: var(--gold-gradient);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         .profile-picture img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid white; cursor: pointer; }
 
         .profile-header-area { 
-            grid-area: header; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center;
-            padding-right: 80px;
+            grid-area: header; display: flex; flex-direction: column; justify-content: center; padding-right: 80px;
         }
         .profile-header-area h3 {
             margin: 0; font-size: 1.4em; color: var(--primary-color);
-            font-family: 'Times New Roman', serif; font-weight: 700;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-family: 'Playfair Display', serif; font-weight: 700;
         }
 
-        /* === RIGHT SIDE SIP BUTTON === */
-        .profile-buttons-area { 
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-
+        /* Buttons Area */
+        .profile-buttons-area { position: absolute; top: 20px; right: 20px; }
         #sipStatusButton {
             background: linear-gradient(to bottom, #002366, #001233);
-            color: var(--accent-gold); 
-            border: 1px solid var(--accent-gold); 
-            padding: 8px 14px;
-            border-radius: 8px; 
-            font-size: 0.8em; 
-            font-weight: 600;
-            cursor: pointer; 
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            display: flex; align-items: center; gap: 5px;
-            transition: all 0.2s;
-        }
-        #sipStatusButton:hover {
-            transform: translateY(-2px);
-            background: var(--accent-gold);
-            color: #002366;
+            color: var(--accent-gold); border: 1px solid var(--accent-gold); 
+            padding: 6px 12px; border-radius: 8px; font-size: 0.8em; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
         }
 
         .profile-stats-grid {
@@ -209,23 +178,18 @@
             grid-template-columns: repeat(3, 1fr); gap: 10px;
             margin-top: 5px;
         }
-
         .metric-card {
-            background: linear-gradient(135deg, #ffffff, #f9fcff);
-            border: 1px solid #e0e0e0;
+            background: #fff; border: 1px solid #e0e0e0;
             padding: 10px 5px; border-radius: 12px;
             text-align: center; display: flex; flex-direction: column; justify-content: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        
-        /* Renamed ID for context, used to be accountBalanceCard (Extra Wallet) */
         #netBalanceCard { border-color: var(--primary-color); background: #f0f4ff; }
         #loanDueCard { border-color: var(--danger-color); background: #fff5f5; }
-
-        .metric-card .label { font-size: 0.75em; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .metric-card .value { font-weight: 800; font-size: 1.1em; color: var(--primary-color); }
         
-        #netBalanceCard .value { color: var(--primary-color); }
+        .metric-card .label { font-size: 0.75em; color: #666; text-transform: uppercase; margin-bottom: 4px; }
+        .metric-card .value { font-weight: 800; font-size: 1.1em; color: var(--primary-color); }
+        #netBalanceCard .value { color: var(--blue-color); }
         #loanDueCard .value { color: var(--danger-color); }
         #totalSipValue { color: var(--success-color); }
 
@@ -235,157 +199,113 @@
         }
         .filter-item { flex: 1; }
         label { display: block; margin-bottom: 5px; font-size: 0.85em; font-weight: 700; color: #555; margin-left: 5px; }
-        
         select {
-            width: 100%; padding: 12px 15px;
-            font-size: 14px; border: 1px solid #ccc;
-            border-radius: 50px;
-            background-color: white;
+            width: 100%; padding: 12px 15px; font-size: 14px; border: 1px solid #ccc;
+            border-radius: 50px; background-color: white; outline: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            outline: none; appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23002366%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat; background-position: right 15px center; background-size: 10px;
         }
 
-        /* === TABLE / CARDS === */
-        .table-container { width: 95%; max-width: 800px; margin: 0 auto 30px auto; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; background: transparent; }
-        
-        thead { display: table-header-group; }
-        tr { background: white; }
-        th { background-color: var(--primary-color); color: white; padding: 15px; text-align: left; font-size: 0.9em; letter-spacing: 0.5px; }
-        th:first-child { border-top-left-radius: 10px; }
-        th:last-child { border-top-right-radius: 10px; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 0.9em; color: #333; }
-        tfoot td { background-color: #f0f4ff; font-weight: bold; color: var(--primary-color); }
-        
-        td.credit { color: var(--success-color); font-weight: 600; }
-        td.debit { color: var(--danger-color); font-weight: 600; }
-
-        /* === MOBILE RESPONSIVE CARD VIEW === */
-        @media only screen and (max-width: 768px) {
-            body { padding-top: 400px; } /* Increased for mobile */
-            .profile-section { 
-                width: 92%; padding: 15px; 
-                top: 120px; /* Increased for mobile */
-                grid-template-areas: "pic header" "stats stats";
-                grid-template-columns: 60px 1fr; 
-                gap: 10px; 
-            }
-            .profile-picture { width: 60px; height: 60px; }
-            .profile-header-area { 
-                grid-area: header; 
-                justify-content: center;
-                padding-right: 0; 
-            }
-            .profile-header-area h3 { 
-                font-size: 1.2em; 
-                max-width: 65%; 
-            }
-            
-            .profile-buttons-area {
-                top: 25px;
-                right: 15px;
-            }
-            #sipStatusButton {
-                padding: 5px 10px;
-                font-size: 0.75em;
-            }
-
-            .profile-stats-grid { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-            .metric-card { padding: 8px 2px; }
-            .metric-card .label { font-size: 0.65em; }
-            .metric-card .value { font-size: 0.9em; }
-
-            /* Mobile Table to Cards */
-            table, thead, tbody, th, td, tr { display: block; }
-            thead tr { position: absolute; top: -9999px; left: -9999px; }
-            
-            tr {
-                margin-bottom: 15px;
-                background: white;
-                border-radius: 12px;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-                padding: 15px;
-                border: 1px solid #eee;
-                position: relative;
-            }
-            
-            tbody tr:nth-child(even) { background-color: #fff; }
-
-            td {
-                border: none;
-                position: relative;
-                padding: 5px 0 5px 45%;
-                text-align: right;
-                display: flex;
-                justify-content: flex-end;
-                align-items: center;
-            }
-            
-            td:before {
-                position: absolute;
-                left: 0;
-                width: 40%;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: 700;
-                color: #888;
-                font-size: 0.85em;
-                content: attr(data-label);
-            }
-
-            td:last-child {
-                border-top: 1px dashed #eee;
-                margin-top: 5px;
-                padding-top: 10px;
-                font-weight: 800;
-                color: var(--primary-color);
-            }
-            
-            tfoot { display: none; } 
+        /* === RESPONSIVE TABLE (THE MAIN UPDATE) === */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto; /* Enable Horizontal Scroll */
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 5px; /* Space for scrollbar */
         }
+
+        .table-container { 
+            width: 95%; max-width: 800px; margin: 0 auto 30px auto; 
+            background: white; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden; /* Round corners */
+        }
+
+        table { 
+            width: 100%; border-collapse: collapse; 
+            min-width: 600px; /* Forces scroll on small screens */
+        }
+
+        thead {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        th {
+            padding: 15px 12px;
+            text-align: left;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap; /* Prevent headers breaking */
+            position: sticky; top: 0; z-index: 10;
+        }
+        /* Specific Alignments */
+        th.text-right, td.text-right { text-align: right; }
+        th.text-center, td.text-center { text-align: center; }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+            color: #333;
+            white-space: nowrap; /* Prevent data breaking */
+        }
+
+        /* Zebra Striping for readability */
+        tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        tbody tr:hover { background-color: #f0f4ff; }
+
+        /* Color Coding */
+        .val-credit { color: var(--success-color); font-weight: 600; }
+        .val-debit { color: var(--danger-color); font-weight: 600; }
+        .val-balance { color: var(--primary-color); font-weight: 700; }
+        
+        tfoot { background-color: #f0f4ff; border-top: 2px solid var(--accent-gold); }
+        tfoot td { font-weight: bold; color: var(--primary-color); padding: 15px; }
+
+        /* Scrollbar Styling for Table */
+        .table-wrapper::-webkit-scrollbar { height: 6px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
+        .table-wrapper::-webkit-scrollbar-track { background-color: #f1f1f1; }
 
         /* === MODALS === */
         .modal { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.85); backdrop-filter: blur(3px);
-            display: flex; align-items: center; justify-content: center; 
+            background-color: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; 
             z-index: 2500; opacity: 1; transition: opacity 0.3s ease; 
         }
         .modal.hidden { opacity: 0; pointer-events: none; }
         
         .modal-content { 
             background: white; padding: 25px; border-radius: 16px; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4); 
-            max-width: 400px; width: 90%; max-height: 80vh; 
-            overflow-y: auto; position: relative; 
-            border-top: 5px solid var(--accent-gold);
+            max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; 
+            border-top: 5px solid var(--accent-gold); position: relative;
         }
-        
         .modal-close { 
             position: absolute; top: 10px; right: 15px; 
-            background: #f0f0f0; border: none; font-size: 20px; 
-            color: #333; cursor: pointer; width: 30px; height: 30px; 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            background: #eee; border: none; font-size: 20px; 
+            cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
         }
         
-        #sipStatusModal h2 { color: var(--primary-color); text-align: center; font-size: 1.2em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
-        
-        .status-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px 10px; border-bottom: 1px solid #f5f5f5; 
+        /* Status List inside Modal */
+        .status-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f5f5f5; }
+        .status-paid { color: var(--success-color); background: #e8f5e9; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        .status-pending { color: var(--danger-color); background: #ffebee; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+
+        #modalImage { width: 100%; border-radius: 8px; border: 2px solid var(--accent-gold); }
+
+        /* Mobile Adjustment for Header */
+        @media only screen and (max-width: 768px) {
+            body { padding-top: 420px; }
+            .profile-section { top: 90px; padding: 15px; }
+            .profile-stats-grid { gap: 8px; }
+            .metric-card { padding: 8px 4px; }
+            .metric-card .value { font-size: 0.95em; }
         }
-        .status-paid { color: var(--success-color); font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 4px; }
-        .status-pending { color: var(--danger-color); font-weight: bold; background: #ffebee; padding: 2px 8px; border-radius: 4px; }
-        .status-due { color: #fbc02d; font-weight: bold; }
-
-        #imageModal .modal-content { background: transparent; box-shadow: none; border: none; padding: 0; width: auto; max-width: 100%; }
-        #modalImage { max-width: 95vw; max-height: 80vh; border-radius: 10px; border: 4px solid var(--accent-gold); }
-
     </style>
 </head>
 <body>
+
     <div id="loader"> <div class="spinner"></div> Loading Dashboard... </div>
 
     <div id="passwordPromptContainer" class="hidden">
@@ -398,8 +318,9 @@
     </div>
 
     <div id="dashboardContent" class="hidden">
+        
         <div class="header">
-            <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" alt="Logo">
+            <img src="https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg" alt="Download Report" id="downloadPdfBtn" title="Download Statement">
             <h1>Trust Community Fund</h1>
         </div>
 
@@ -424,9 +345,8 @@
                      <span class="label">Total Loan</span>
                      <span id="totalLoanValue" class="value">₹0</span>
                  </div>
-                 <!-- Renamed Card: Shows Net Balance -->
                  <div class="metric-card" id="netBalanceCard">
-                     <span class="label">Balance</span>
+                     <span class="label">Net Balance</span>
                      <span id="netBalanceValue" class="value">₹0</span>
                  </div>
                  <div class="metric-card" id="loanDueCard">
@@ -434,7 +354,7 @@
                      <span id="loanDueValue" class="value">₹0</span>
                  </div>
                  <div class="metric-card">
-                     <span class="label">Interest Paid</span>
+                     <span class="label">Int. Paid</span>
                      <span id="interestPaidValue" class="value">₹0</span>
                  </div>
                  <div class="metric-card">
@@ -464,521 +384,43 @@
         </div>
         
         <div class="table-container">
-            <table id="dataTable">
-                <thead></thead>
-                <tbody></tbody>
-                <tfoot></tfoot>
-            </table>
+            <div class="table-wrapper">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th class="text-right">Debit (₹)</th>
+                            <th class="text-right">Principal (₹)</th>
+                            <th class="text-right">Interest (₹)</th>
+                            <th class="text-right">Balance (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                    <tfoot>
+                        </tfoot>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Modals -->
     <div id="imageModal" class="modal hidden">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('imageModal')">×</button>
+        <div class="modal-content" style="background:transparent; border:none; box-shadow:none; padding:0;">
+            <button class="modal-close" onclick="document.getElementById('imageModal').classList.add('hidden')">×</button>
             <img id="modalImage" src="" alt="Profile Image Fullscreen">
         </div>
     </div>
     
     <div id="sipStatusModal" class="modal hidden">
          <div class="modal-content">
-             <button class="modal-close" onclick="closeModal('sipStatusModal')">×</button>
-             <h2>Current Month SIP</h2>
+             <button class="modal-close" onclick="document.getElementById('sipStatusModal').classList.add('hidden')">×</button>
+             <h2 style="text-align:center; color:var(--primary-color);">Current Month SIP</h2>
              <div id="sipStatusList" class="status-list">Loading...</div>
          </div>
      </div>
 
-<script>
-    feather.replace();
+    <script src="members.js"></script>
 
-    let allMembers = {};
-    let allTransactions = [];
-    let allActiveLoans = [];
-    let loggedInUserPassword = null; 
-    const defaultProfilePic = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'; 
-
-    document.addEventListener("DOMContentLoaded", () => {
-        initializeApp();
-    });
-
-    async function initializeApp() {
-        const loader = document.getElementById('loader');
-        try {
-            const response = await fetch('/api/firebase-config'); 
-            if (!response.ok) throw new Error('Configuration API could not be fetched.');
-            const config = await response.json();
-
-            if (!firebase.apps.length) {
-                firebase.initializeApp(config); 
-            }
-            setupPasswordPrompt();
-        } catch (error) {
-            console.error("Initialization Error:", error);
-            loader.innerHTML = `<div style="color:white; padding:20px; text-align:center;"><b>Initialization Error:</b><br> ${error.message}</div>`;
-        }
-    }
-
-    function setupPasswordPrompt() {
-        const passwordInput = document.getElementById('passwordInput');
-        const passwordSubmit = document.getElementById('passwordSubmit');
-        const passwordError = document.getElementById('passwordError');
-        const passwordContainer = document.getElementById('passwordPromptContainer');
-        const loader = document.getElementById('loader');
-
-        loader.classList.add('hidden');
-        passwordContainer.classList.remove('hidden');
-        passwordInput.focus();
-
-        passwordSubmit.addEventListener('click', checkPassword);
-        passwordInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') checkPassword();
-        });
-
-        async function checkPassword() {
-            const enteredPassword = passwordInput.value;
-            if (!enteredPassword) return;
-
-            passwordError.textContent = "";
-            passwordSubmit.disabled = true;
-            passwordSubmit.textContent = "Verifying...";
-
-            try {
-                const membersSnapshot = await firebase.database().ref('members').once('value');
-                const allMembersData = membersSnapshot.val() || {};
-                
-                const isValidUser = Object.values(allMembersData).some(member => member.password === enteredPassword);
-
-                if (isValidUser) {
-                    loggedInUserPassword = enteredPassword;
-                    passwordContainer.classList.add('hidden');
-                    loader.classList.remove('hidden'); 
-                    await processFirebaseData();
-                } else {
-                    passwordError.textContent = "Incorrect PIN. Try again.";
-                    passwordInput.value = "";
-                    passwordInput.focus();
-                }
-            } catch (error) {
-                console.error("Error during PIN verification:", error);
-                passwordError.textContent = "Connection Error.";
-            } finally {
-                passwordSubmit.disabled = false;
-                passwordSubmit.textContent = "UNLOCK";
-            }
-        }
-    }
-    
-    async function processFirebaseData() {
-        try {
-            const [membersSnap, transactionsSnap, activeLoansSnap] = await Promise.all([
-                firebase.database().ref('members').once('value'),
-                firebase.database().ref('transactions').once('value'),
-                firebase.database().ref('activeLoans').once('value')
-            ]);
-
-            allMembers = membersSnap.val() || {};
-            
-            allTransactions = Object.values(transactionsSnap.val() || {})
-                .sort((a, b) => new Date(b.date) - new Date(a.date)); 
-            
-            allActiveLoans = Object.values(activeLoansSnap.val() || {});
-
-            initializeDashboard();
-
-        } catch (error) {
-            console.error("Error processing Firebase data:", error);
-            document.getElementById('loader').innerHTML = `<div style="color:white;">Error: ${error.message}</div>`;
-        }
-    }
-
-    function initializeDashboard() {
-        document.getElementById('dashboardContent').classList.remove('hidden');
-        populateMemberFilter(); 
-        setupEventListeners();
-        updateDisplay(); 
-        document.getElementById('loader').classList.add('hidden');
-        adjustBodyPadding();
-    }
-
-    function adjustBodyPadding() {
-        const profileSection = document.getElementById('profileSection');
-        if(profileSection) {
-            const height = profileSection.offsetHeight;
-            document.body.style.paddingTop = `${height + 150}px`; 
-        }
-    }
-
-    function populateMemberFilter() {
-        const memberFilter = document.getElementById('memberFilter');
-        memberFilter.innerHTML = '<option value="all">All Members</option>';
-
-        const approvedMembers = Object.values(allMembers)
-            .filter(member => member.status === 'Approved' && !member.isDisabled) // Filter Disabled Members
-            .sort((a, b) => a.fullName.localeCompare(b.fullName));
-
-        approvedMembers.forEach(member => {
-            const option = document.createElement('option');
-            option.value = member.membershipId; 
-            option.textContent = member.fullName;
-            memberFilter.appendChild(option);
-        });
-    }
-
-    function setupEventListeners() {
-        document.getElementById('memberFilter').addEventListener('change', updateDisplay);
-        document.getElementById('typeFilter').addEventListener('change', updateDisplay);
-        
-        document.getElementById('imageModal').addEventListener('click', () => closeModal('imageModal'));
-        
-        document.getElementById('profilePictureContainer').addEventListener('click', (event) => {
-            const img = document.getElementById('profilePictureContainer').querySelector('img');
-            if (img && img.src) {
-                openModal('imageModal', img.src);
-            }
-        });
-
-        document.getElementById('sipStatusButton').addEventListener('click', () => {
-            populateSipStatusModal();
-            openModal('sipStatusModal');
-        });
-
-        const profileSection = document.getElementById('profileSection');
-        const resizeObserver = new ResizeObserver(entries => {
-            adjustBodyPadding();
-        });
-        resizeObserver.observe(profileSection);
-    }
-
-    function updateDisplay() {
-        const selectedMemberId = document.getElementById('memberFilter').value;
-        const selectedType = document.getElementById('typeFilter').value;
-        
-        updateProfileSection(selectedMemberId);
-        updateTopCards(selectedMemberId);
-        
-        if (selectedType === 'active_loans') {
-            displayActiveLoansData(selectedMemberId);
-        } else {
-            displayTransactionData(selectedMemberId, selectedType);
-        }
-    }
-    
-    function updateProfileSection(selectedMemberId) {
-        const profileNameEl = document.getElementById("profileName");
-        const profilePicContainer = document.getElementById("profilePictureContainer");
-
-        if (selectedMemberId === 'all') {
-            profileNameEl.textContent = "Community Overview";
-            profilePicContainer.innerHTML = `<img src="${defaultProfilePic}" alt="Community Logo">`;
-        } else {
-            const member = Object.values(allMembers).find(m => m.membershipId === selectedMemberId || m.id === selectedMemberId);
-            if (member) {
-                profileNameEl.textContent = member.fullName;
-                const profileImageUrl = member.profilePicUrl || defaultProfilePic;
-                profilePicContainer.innerHTML = `<img src="${profileImageUrl}" alt="Profile image" onerror="this.onerror=null; this.src='${defaultProfilePic}';">`;
-            }
-        }
-    }
-
-    function updateTopCards(selectedMemberId) {
-        const memberTransactions = (selectedMemberId === 'all') 
-            ? allTransactions 
-            : allTransactions.filter(tx => tx.memberId === selectedMemberId);
-        
-        const memberActiveLoans = (selectedMemberId === 'all')
-            ? allActiveLoans
-            : allActiveLoans.filter(loan => loan.memberId === selectedMemberId);
-
-        let totalSip = 0, interestPaid = 0, totalLoanTaken = 0;
-        
-        memberTransactions.forEach(tx => {
-            const amt = parseFloat(tx.amount || 0);
-            
-            if (tx.type === 'SIP') {
-                totalSip += amt;
-            }
-            if (tx.type === 'Loan Payment') {
-                interestPaid += parseFloat(tx.interestPaid || 0);
-            }
-            if (tx.type === 'Loan Taken') totalLoanTaken += amt;
-            
-            // "Extra" transactions are completely ignored in totals
-        });
-
-        // Current Active Loan Due
-        const loanDue = memberActiveLoans
-            .filter(l => l.status === 'Active')
-            .reduce((sum, loan) => sum + parseFloat(loan.outstandingAmount || 0), 0);
-        
-        // --- NEW BALANCE LOGIC ---
-        // Balance = Total SIP - Loan Due
-        // (If no loan, Balance = SIP. If Loan, Balance = SIP - Loan)
-        const netBalance = totalSip - loanDue;
-
-        let joiningDate = '-';
-        if (selectedMemberId !== 'all') {
-            const member = Object.values(allMembers).find(m => m.membershipId === selectedMemberId);
-            if(member && member.joiningDate) {
-                 joiningDate = formatDate(new Date(member.joiningDate));
-            } else {
-                const sipTransactions = memberTransactions.filter(tx => tx.type === 'SIP').sort((a,b) => new Date(a.date) - new Date(b.date));
-                if (sipTransactions.length > 0) {
-                    joiningDate = formatDate(new Date(sipTransactions[0].date));
-                }
-            }
-        }
-
-        document.getElementById('totalSipValue').textContent = f(totalSip);
-        document.getElementById('interestPaidValue').textContent = f(interestPaid);
-        document.getElementById('netBalanceValue').textContent = f(netBalance); // Replaced Extra Wallet
-        document.getElementById('loanDueValue').textContent = f(loanDue);
-        document.getElementById('totalLoanValue').textContent = f(totalLoanTaken);
-        document.getElementById('joiningDateValue').textContent = joiningDate;
-    }
-
-    function displayTransactionData(selectedMemberId, typeFilter) {
-        const table = document.getElementById('dataTable');
-        const thead = table.querySelector('thead');
-        const tbody = table.querySelector('tbody');
-        const tfoot = table.querySelector('tfoot');
-        tbody.innerHTML = "";
-
-        thead.innerHTML = `
-            <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th style="text-align: right;">Debit (₹)</th>
-                <th style="text-align: right;">Principal (₹)</th>
-                <th style="text-align: right;">Interest (₹)</th>
-                <th style="text-align: right;">Balance (₹)</th>
-            </tr>`;
-        
-        tfoot.innerHTML = `
-            <tr>
-                <td colspan="2" style="text-align: right; font-weight: bold;">TOTALS</td>
-                <td id="totalDebitCell" style="text-align: right;" class="debit">0</td>
-                <td id="totalPrincipalCell" style="text-align: right;" class="credit">0</td>
-                <td id="totalInterestCell" style="text-align: right;" class="credit">0</td>
-                <td></td>
-            </tr>`;
-        
-        const memberTransactions = (selectedMemberId === 'all')
-            ? allTransactions
-            : allTransactions.filter(tx => tx.memberId === selectedMemberId);
-            
-        // SORT BY DATE ASCENDING TO CALCULATE RUNNING BALANCE
-        const sortedForCalc = [...memberTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        let runningBalance = 0;
-        let totalDebit = 0, totalPrincipal = 0, totalInterest = 0;
-        const statementLines = [];
-
-        sortedForCalc.forEach(tx => {
-            let line = { date: new Date(tx.date), description: '', debit: 0, principal: 0, interest: 0, type: tx.type };
-            const amt = parseFloat(tx.amount || 0);
-            
-            // --- STRICT RUNNING BALANCE LOGIC ---
-            // Balance = SIP - Loan Taken + Principal Repaid
-            // Interest and Extra Wallet are IGNORED in balance calc
-
-            switch (tx.type) {
-                case 'SIP': 
-                    line.description = 'SIP Deposit'; 
-                    line.principal = amt; 
-                    runningBalance += amt; 
-                    break;
-                    
-                case 'Loan Taken': 
-                    line.description = `${tx.loanType || 'Loan'} Disbursed`; 
-                    line.debit = amt; 
-                    runningBalance -= amt; // Liability created, balance reduces
-                    break;
-                    
-                case 'Loan Payment': 
-                    // Find context (which loan?)
-                    let loanContext = "";
-                    if(tx.paidForLoanId) {
-                        let loan = allActiveLoans.find(l => l.id === tx.paidForLoanId || l.transactionId === tx.paidForLoanId);
-                        if (!loan) {
-                             const originalLoanTx = allTransactions.find(t => t.transactionId === tx.paidForLoanId || t.linkedLoanId === tx.paidForLoanId);
-                             if (originalLoanTx) loan = { originalAmount: originalLoanTx.amount };
-                        }
-                        if(loan && loan.originalAmount) {
-                            loanContext = ` (Loan: ${f(loan.originalAmount)})`;
-                        }
-                    }
-
-                    line.description = `Repayment${loanContext}`; 
-                    line.principal = parseFloat(tx.principalPaid || 0); 
-                    line.interest = parseFloat(tx.interestPaid || 0); 
-                    
-                    runningBalance += line.principal; // Only Principal affects balance
-                    break;
-                    
-                case 'Extra Payment': 
-                case 'Extra Withdraw':
-                    // Explicitly IGNORE Extra types as per instructions
-                    return; 
-            }
-            
-            line.balance = runningBalance;
-            statementLines.push(line);
-        });
-
-        const filteredLines = statementLines.filter(line => {
-            if (typeFilter === 'all') return true;
-            if (typeFilter === 'loan' && line.description.includes('Disbursed')) return true;
-            if (typeFilter === 'payment' && line.description.includes('Repayment')) return true;
-            if (typeFilter === 'sip' && line.description.includes('SIP')) return true;
-            return false;
-        });
-        
-        filteredLines.reverse(); // Newest First
-
-        if (filteredLines.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #777;">No transactions found.</td></tr>`;
-            tfoot.style.display = 'none';
-            return;
-        }
-
-        tfoot.style.display = '';
-        
-        filteredLines.forEach(line => {
-            totalDebit += line.debit;
-            totalPrincipal += line.principal;
-            totalInterest += line.interest;
-            
-            let rowStyle = "";
-            if(line.debit > 0) rowStyle = "border-left: 4px solid var(--danger-color);";
-            else rowStyle = "border-left: 4px solid var(--success-color);";
-
-            tbody.innerHTML += `
-                <tr style="${rowStyle}">
-                    <td data-label="Date">${formatDate(line.date)}</td>
-                    <td data-label="Description" style="font-weight: 500;">${line.description}</td>
-                    <td data-label="Debit" class="debit">${line.debit > 0 ? f(line.debit) : '-'}</td>
-                    <td data-label="Principal" class="credit">${line.principal > 0 ? f(line.principal) : '-'}</td>
-                    <td data-label="Interest" class="credit">${line.interest > 0 ? f(line.interest) : '-'}</td>
-                    <td data-label="Balance" style="font-weight: bold;">${f(line.balance)}</td>
-                </tr>
-            `;
-        });
-        
-        document.getElementById('totalDebitCell').textContent = f(totalDebit);
-        document.getElementById('totalPrincipalCell').textContent = f(totalPrincipal);
-        document.getElementById('totalInterestCell').textContent = f(totalInterest);
-    }
-
-    function displayActiveLoansData(selectedMemberId) {
-        const table = document.getElementById('dataTable');
-        const thead = table.querySelector('thead');
-        const tbody = table.querySelector('tbody');
-        const tfoot = table.querySelector('tfoot');
-        tbody.innerHTML = "";
-        
-        thead.innerHTML = `
-            <tr>
-                <th>Member Name</th>
-                <th>Loan Date</th>
-                <th>Loan Type</th>
-                <th style="text-align: right;">Original (₹)</th>
-                <th style="text-align: right;">Outstanding (₹)</th>
-            </tr>`;
-
-        tfoot.innerHTML = '';
-
-        const memberActiveLoans = (selectedMemberId === 'all')
-            ? allActiveLoans.filter(loan => loan.status === 'Active')
-            : allActiveLoans.filter(loan => loan.memberId === selectedMemberId && loan.status === 'Active');
-
-        if (memberActiveLoans.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px;">No active loans found.</td></tr>`;
-            return;
-        }
-
-        memberActiveLoans.forEach(loan => {
-            const member = Object.values(allMembers).find(m => m.membershipId === loan.memberId);
-            const memberName = member ? member.fullName : 'Unknown';
-            
-            tbody.innerHTML += `
-                <tr style="border-left: 4px solid var(--danger-color);">
-                    <td data-label="Member">${memberName}</td>
-                    <td data-label="Date">${formatDate(new Date(loan.loanDate))}</td>
-                    <td data-label="Type">${loan.loanType}</td>
-                    <td data-label="Original">${f(loan.originalAmount)}</td>
-                    <td data-label="Outstanding" class="debit" style="font-weight: bold;">${f(loan.outstandingAmount)}</td>
-                </tr>
-            `;
-        });
-    }
-
-    function populateSipStatusModal() {
-        const listContainer = document.getElementById('sipStatusList');
-        listContainer.innerHTML = "";
-        
-        const approvedMembers = Object.values(allMembers)
-            .filter(member => member.status === 'Approved' && !member.isDisabled)
-            .sort((a, b) => a.fullName.localeCompare(b.fullName));
-            
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        const currentDay = now.getDate();
-
-        if (approvedMembers.length === 0) { listContainer.innerHTML = "<p>No members found.</p>"; return; }
-
-        approvedMembers.forEach(member => {
-            const paidThisMonth = allTransactions.some(tx => 
-                tx.memberId === member.membershipId && 
-                tx.type === 'SIP' && 
-                new Date(tx.date).getMonth() === currentMonth && 
-                new Date(tx.date).getFullYear() === currentYear
-            );
-            
-            let statusText, statusClass, statusIcon;
-            if (paidThisMonth) { [statusText, statusClass, statusIcon] = ["PAID", "status-paid", "✔"]; } 
-            else if (currentDay > 10) { [statusText, statusClass, statusIcon] = ["LATE", "status-pending", "⚠"]; } 
-            else { [statusText, statusClass, statusIcon] = ["DUE", "status-due", "⏳"]; }
-
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'status-item';
-            itemDiv.innerHTML = `<span>${member.fullName}</span><span class="${statusClass}">${statusIcon} ${statusText}</span>`;
-            listContainer.appendChild(itemDiv);
-        });
-    }
-
-    function openModal(modalId, imageSrc = null) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            if (modalId === 'imageModal' && imageSrc) {
-                modal.querySelector('#modalImage').src = imageSrc;
-            }
-            modal.classList.remove('hidden');
-        }
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-             if (modalId === 'imageModal') {
-                 setTimeout(() => { modal.querySelector('#modalImage').src = ""; }, 300);
-             }
-        }
-    }
-
-    function formatDate(date) {
-        if (!(date instanceof Date) || isNaN(date)) return "N/A";
-        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    }
-    
-    function f(num) {
-        if(isNaN(num)) return "₹0";
-        return "₹" + parseFloat(num).toLocaleString('en-IN', {maximumFractionDigits: 0});
-    }
-
-</script>
 </body>
 </html>
-
-
