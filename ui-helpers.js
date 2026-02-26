@@ -75,7 +75,12 @@ function showPopupNotification(container, type, data, member) {
     if (type === 'transaction' && member) {
         title = member.name;
         img = member.displayImageUrl;
-        let amountVal = parseFloat(data.amount) || 0;
+        
+        // 🔥 FIXED: Robust Amount Parsing (Removes Rs., commas, spaces)
+        let rawAmount = String(data.amount || '0');
+        let cleanAmount = rawAmount.replace(/[^0-9.-]/g, ''); // Keep only digits, dots, and minus
+        let amountVal = parseFloat(cleanAmount) || 0;
+        
         let msg = data.type || 'Transaction';
 
         if (data.type === 'Loan Payment') msg = 'Loan Repayment';
