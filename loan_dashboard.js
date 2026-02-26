@@ -1,14 +1,20 @@
 // loan_dashboard.js - FINAL UPDATED VERSION
-// FEATURES: Smart Alerts (90/365 Days), ⚠️ Blink Symbol, HD Download, Pay Now Right-Bottom
+// FIXES: Filters Working, Text Shift on Download Solved, Compact Button Support
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v10'; 
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v11'; 
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
     activeLoans: [],
     members: {},
     currentFilter: 'all', // 'all', 'personal', 'recharge'
-    els: {
+    els: {} // Will be populated after DOM Load
+};
+
+// --- INITIALIZATION ---
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Initialize Elements Cache
+    state.els = {
         container: document.getElementById('outstanding-loans-container'),
         loader: document.getElementById('loader'),
         count: document.getElementById('count-val'),
@@ -29,13 +35,11 @@ const state = {
         provGroup: document.getElementById('prov-group'),
         btnCreate: document.getElementById('btn-create'),
         genResult: document.getElementById('gen-result')
-    }
-};
+    };
 
-// --- INITIALIZATION ---
-document.addEventListener("DOMContentLoaded", async () => {
     try {
-        setupFilters(); 
+        setupFilters(); // Setup Click Listeners
+        setupAdminModal(); // Setup Generator Logic
         loadFromCache();
         
         const res = await fetch(PRELOAD_CONFIG_URL);
@@ -51,12 +55,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch(e) { console.error("Init Error:", e); }
 });
 
-// --- FILTER LOGIC ---
+// --- FILTER LOGIC (FIXED) ---
 function setupFilters() {
+    if(!state.els.btnAll) return; // Safety check
+
     const setFilter = (type, btn) => {
         state.currentFilter = type;
-        [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        
+        // Update Buttons Visual State
+        [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => {
+            if(b) b.classList.remove('active');
+        });
+        if(btn) btn.classList.add('active');
+        
+        // Re-render
         renderLoans();
     };
 
@@ -76,7 +88,7 @@ function loadFromCache() {
             if (state.activeLoans.length > 0) {
                 renderLoans();
                 fillDropdown();
-                state.els.loader.classList.add('hidden');
+                if(state.els.loader) state.els.loader.classList.add('hidden');
             }
         } catch (e) { console.error(e); }
     }
@@ -113,16 +125,17 @@ async function loadData() {
         state.activeLoans = processLoanData(loansVal, state.members);
         renderLoans();
         fillDropdown();
-        state.els.loader.classList.add('hidden');
+        if(state.els.loader) state.els.loader.classList.add('hidden');
     } catch(e) {
         console.error(e);
-        state.els.loader.classList.add('hidden');
+        if(state.els.loader) state.els.loader.classList.add('hidden');
     }
 }
 
 // --- MAIN RENDERER ---
 function renderLoans() {
     const container = state.els.container;
+    if(!container) return;
     container.innerHTML = '';
 
     // 1. Filter Data
@@ -134,15 +147,17 @@ function renderLoans() {
     }
 
     // 2. Search Filter
-    const term = state.els.search.value.toLowerCase();
-    if(term) {
-        filtered = filtered.filter(l => l.memberName.toLowerCase().includes(term));
+    if(state.els.search) {
+        const term = state.els.search.value.toLowerCase();
+        if(term) {
+            filtered = filtered.filter(l => l.memberName.toLowerCase().includes(term));
+        }
     }
 
     // 3. Update Stats
     const totalDue = filtered.reduce((sum, l) => sum + parseFloat(l.outstandingAmount || 0), 0);
-    state.els.count.textContent = filtered.length;
-    state.els.amt.textContent = `₹${totalDue.toLocaleString('en-IN')}`;
+    if(state.els.count) state.els.count.textContent = filtered.length;
+    if(state.els.amt) state.els.amt.textContent = `₹${totalDue.toLocaleString('en-IN')}`;
 
     if(filtered.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding:40px; color:#999; font-weight:600;">No loans found.</div>';
@@ -211,12 +226,12 @@ function getAlertStatus(amount, days) {
     };
 }
 
-// Helper: Pay Now Button Only
+// Helper: Pay Now Button (Supports CSS Updates)
 function getPayButtonHTML(loan, amount) {
     const payLink = `qr.html?amount=${amount}&type=loan&id=${loan.loanId}`;
     return `
     <a href="${payLink}" class="btn-pay-now">
-        PAY NOW <i data-feather="chevron-right" style="width:10px;"></i>
+        PAY NOW <i data-feather="chevron-right"></i>
     </a>`;
 }
 
@@ -233,7 +248,6 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
     const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
     
-    // Alert Logic
     const alertState = getAlertStatus(amount, daysActive);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
@@ -286,7 +300,6 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
     const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
 
-    // Alert Logic
     const alertState = getAlertStatus(amount, daysActive);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
@@ -350,7 +363,6 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
         if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
     }
 
-    // Alert Logic (Standard logic also applies here: 90 days default)
     const alertState = getAlertStatus(amount, daysActive);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
@@ -398,25 +410,43 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
 }
 
 // --- SEARCH ---
-state.els.search.addEventListener('input', () => renderLoans());
+if(state.els.search) {
+    state.els.search.addEventListener('input', () => renderLoans());
+}
 
-// --- HIGH QUALITY DOWNLOAD (Fixed) ---
+// --- HIGH QUALITY DOWNLOAD FIX (Text Shift Solved) ---
 window.dlCard = (id) => {
     const el = document.getElementById(id);
     const btn = el.querySelector('.pc-download');
-    // Hide ONLY the Pay button row
-    const btnRow = el.querySelector('.btn-pay-now'); 
     
+    // Hide Download Icon
     btn.style.opacity = '0';
-    if(btnRow) btnRow.style.display = 'none'; // Hide pay button for screenshot
-    
-    // Scale 4 for High Quality
+
     html2canvas(el, { 
-        scale: 4, 
+        scale: 4, // High Quality
         useCORS: true, 
         allowTaint: true, 
         backgroundColor: null,
-        logging: false
+        logging: false,
+        onclone: (clonedDoc) => {
+            const clonedEl = clonedDoc.getElementById(id);
+            const clonedPayBtn = clonedEl.querySelector('.btn-pay-now');
+            
+            // 🔥 1. Fix Text Shift Issue
+            clonedEl.style.transform = "none"; 
+            const titles = clonedEl.querySelectorAll('.pc-title, .pc-amount');
+            titles.forEach(t => {
+                t.style.marginTop = "-5px"; // Pull text up slightly for screenshot
+                t.style.lineHeight = "1";
+            });
+
+            // 2. Ensure Button is Visible in Download
+            if(clonedPayBtn) {
+                clonedPayBtn.style.display = 'flex';
+                clonedPayBtn.style.boxShadow = 'none'; 
+                clonedPayBtn.style.border = '1px solid #D4AF37';
+            }
+        }
     })
     .then(c => {
         const a = document.createElement('a');
@@ -426,21 +456,47 @@ window.dlCard = (id) => {
         
         // Restore
         btn.style.opacity = '1';
-        if(btnRow) btnRow.style.display = 'flex';
     });
 };
 
 // --- ADMIN GENERATOR ---
-document.getElementById('generate-credit-btn').onclick = () => {
-    state.els.modal.style.visibility = 'visible';
-    state.els.modal.style.opacity = '1';
-    state.els.genResult.innerHTML = '';
-    fillDropdown();
-};
-document.querySelector('.close-modal').onclick = () => {
-    state.els.modal.style.visibility = 'hidden';
-    state.els.modal.style.opacity = '0';
-};
+function setupAdminModal() {
+    if(!state.els.btnCreate) return;
+
+    document.getElementById('generate-credit-btn').onclick = () => {
+        state.els.modal.style.visibility = 'visible';
+        state.els.modal.style.opacity = '1';
+        state.els.genResult.innerHTML = '';
+        fillDropdown();
+    };
+    document.querySelector('.close-modal').onclick = () => {
+        state.els.modal.style.visibility = 'hidden';
+        state.els.modal.style.opacity = '0';
+    };
+
+    state.els.mSelect.onchange = () => {
+        state.els.amtInput.disabled = !state.els.mSelect.value;
+        if(state.els.mSelect.value) state.els.amtInput.focus();
+    };
+    state.els.tSelect.onchange = () => {
+        state.els.provGroup.style.display = (state.els.tSelect.value === 'recharge') ? 'block' : 'none';
+    };
+    state.els.btnCreate.onclick = () => {
+        const mId = state.els.mSelect.value;
+        if(!mId) return alert('Select Member');
+        const amt = parseFloat(state.els.amtInput.value);
+        if(!amt) return alert('Enter Amount');
+        
+        const name = state.els.mSelect.options[state.els.mSelect.selectedIndex].text;
+        const pic = state.els.mSelect.options[state.els.mSelect.selectedIndex].dataset.pic;
+        const typeKey = state.els.tSelect.value;
+        const dateStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+
+        const mockLoan = { loanId: 'preview', memberName: name, pic: pic, loanType: typeKey === 'credit' ? '10 Days Credit' : 'Recharge', tenureMonths: 0 };
+        let providerInfo = (typeKey === 'recharge') ? state.els.provSelect.value : '';
+        state.els.genResult.innerHTML = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
+    };
+}
 
 function fillDropdown() {
     state.els.mSelect.innerHTML = '<option value="">-- Select --</option>';
@@ -452,25 +508,3 @@ function fillDropdown() {
         state.els.mSelect.appendChild(opt);
     });
 }
-state.els.mSelect.onchange = () => {
-    state.els.amtInput.disabled = !state.els.mSelect.value;
-    if(state.els.mSelect.value) state.els.amtInput.focus();
-};
-state.els.tSelect.onchange = () => {
-    state.els.provGroup.style.display = (state.els.tSelect.value === 'recharge') ? 'block' : 'none';
-};
-state.els.btnCreate.onclick = () => {
-    const mId = state.els.mSelect.value;
-    if(!mId) return alert('Select Member');
-    const amt = parseFloat(state.els.amtInput.value);
-    if(!amt) return alert('Enter Amount');
-    
-    const name = state.els.mSelect.options[state.els.mSelect.selectedIndex].text;
-    const pic = state.els.mSelect.options[state.els.mSelect.selectedIndex].dataset.pic;
-    const typeKey = state.els.tSelect.value;
-    const dateStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-
-    const mockLoan = { loanId: 'preview', memberName: name, pic: pic, loanType: typeKey === 'credit' ? '10 Days Credit' : 'Recharge', tenureMonths: 0 };
-    let providerInfo = (typeKey === 'recharge') ? state.els.provSelect.value : '';
-    state.els.genResult.innerHTML = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
-};
