@@ -177,7 +177,9 @@ function renderHistoryTab() {
 
     container.innerHTML = '';
     displayTx.forEach(tx => {
-        const isIncome = ['SIP', 'Extra Payment', 'Loan Return'].includes(tx.type);
+                // 🔥 FIX: Added 'Loan Payment' to income array
+        const isIncome = ['SIP', 'Extra Payment', 'Loan Return', 'Loan Payment'].includes(tx.type);
+
         const colorClass = isIncome ? 'income' : 'expense';
         const symbol = isIncome ? '+' : '-';
 

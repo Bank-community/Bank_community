@@ -64,17 +64,23 @@ function processRawData(data) {
     const rawLoans = data.activeLoans || {};
     const rawAdmin = data.admin || {};
     const rawPenalty = data.penaltyWallet || {};
-    
-    // Convert Transactions to Array
-    const allTransactions = Object.values(rawTx).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+       // Convert Transactions to Array (🔥 FIX: Missing amount calculation for Loans)
+    const allTransactions = Object.values(rawTx).map(tx => {
+        // Agar amount field missing hai (jaise Loan Payment me), to principal aur interest ko jodein
+        if (tx.amount === undefined && (tx.principalPaid !== undefined || tx.interestPaid !== undefined)) {
+            tx.amount = (parseFloat(tx.principalPaid) || 0) + (parseFloat(tx.interestPaid) || 0);
+        }
+        return tx;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     // A. Calculate Dynamic Balances (Fix for ₹0 issue)
     const memberBalances = {};
-    
+
     allTransactions.forEach(tx => {
         if (!memberBalances[tx.memberId]) memberBalances[tx.memberId] = 0;
         const amt = parseFloat(tx.amount || 0);
-        
+
         // Add Logic: Deposit badhata hai, Withdraw ghatata hai
         if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
             memberBalances[tx.memberId] += amt;
@@ -87,7 +93,7 @@ function processRawData(data) {
     // B. Process Members
     const processedMembers = Object.keys(rawMembers).map(key => {
         const m = rawMembers[key];
-        
+
         // Balance Priority: Database > Calculated > 0
         let finalBalance = parseFloat(m.accountBalance || 0);
         if (finalBalance === 0 && memberBalances[key]) {
