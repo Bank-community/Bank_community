@@ -1,11 +1,11 @@
-// members.js - Logic for Trust Community Fund Dashboard
+// members.js - TRUST COMMUNITY FUND (Fixed PDF Layout)
 
 // --- Global Variables ---
 let allMembers = {};
 let allTransactions = [];
 let allActiveLoans = [];
 let adminStats = {}; 
-const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'; // Fallback Image
+const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png'; 
 
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,7 +27,6 @@ async function initializeApp() {
         setupPasswordPrompt(); 
     } catch (error) {
         console.error(error);
-        // alert("System Error: Could not load configuration.");
     }
 }
 
@@ -143,7 +142,6 @@ function updateView() {
     updateProfileCard(memberId);
     renderTable(memberId, filterType);
     
-    // Adjust padding dynamically whenever view changes
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
         document.body.style.paddingTop = (headerHeight + 160) + 'px';
@@ -208,18 +206,58 @@ function renderTable(memberId, type) {
     const tfoot = document.querySelector('#dataTable tfoot');
     tbody.innerHTML = '';
     
+    // Use the logic to get data arrays
+    const { rows, totals } = getProcessedData(memberId, type);
+
+    // Reverse for UI display (Newest First)
+    const uiRows = [...rows].reverse();
+
+    if (uiRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding:20px">No transactions found.</td></tr>`;
+        tfoot.innerHTML = '';
+        return;
+    }
+
+    let rowsHTML = '';
+    uiRows.forEach(row => {
+        rowsHTML += `
+            <tr>
+                <td>${row.date}</td>
+                <td style="font-weight:500">${row.desc}</td>
+                <td class="text-right ${row.debit > 0 ? 'val-debit' : ''}">${row.debit ? formatMoney(row.debit) : '-'}</td>
+                <td class="text-right val-credit">${row.principal ? formatMoney(row.principal) : '-'}</td>
+                <td class="text-right val-credit">${row.interest ? formatMoney(row.interest) : '-'}</td>
+                <td class="text-right val-balance">${formatMoney(row.balance)}</td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = rowsHTML;
+    tfoot.innerHTML = `
+        <tr>
+            <td colspan="2" class="text-right">TOTALS</td>
+            <td class="text-right val-debit">${formatMoney(totals.debit)}</td>
+            <td class="text-right val-credit">${formatMoney(totals.principal)}</td>
+            <td class="text-right val-credit">${formatMoney(totals.interest)}</td>
+            <td></td>
+        </tr>
+    `;
+}
+
+// Helper to get clean data for both Table and PDF
+function getProcessedData(memberId, type) {
     let data = [...allTransactions];
     if (memberId !== 'all') {
         data = data.filter(t => t.memberId === memberId);
     }
-
-    // Sort: Oldest to Newest for calc
+    
+    // Sort Oldest to Newest for math
     data.sort((a, b) => a.dateObj - b.dateObj);
 
     let runningBalance = 0;
     let totalDebit = 0, totalPrincipal = 0, totalInterest = 0;
-    
-    const processedRows = data.map(tx => {
+
+    const rows = data.map(tx => {
         const amt = parseFloat(tx.amount || 0);
         let desc = '', debit = 0, principal = 0, interest = 0;
         let isRelevant = true;
@@ -253,204 +291,172 @@ function renderTable(memberId, type) {
         totalPrincipal += principal;
         totalInterest += interest;
 
+        // Append Name if All Members view
+        let finalDesc = desc;
+        if (memberId === 'all') {
+             const mName = allMembers[tx.memberId]?.fullName.split(' ')[0] || 'Unknown';
+             finalDesc = `${desc} - ${mName}`;
+        }
+
         return {
             date: tx.dateObj.toLocaleDateString('en-GB'),
-            desc: memberId === 'all' ? `${desc} - ${allMembers[tx.memberId]?.fullName.split(' ')[0]}` : desc,
+            desc: finalDesc,
             debit,
             principal,
             interest,
             balance: runningBalance
         };
-    }).filter(r => r !== null).reverse(); // Display Newest First
+    }).filter(r => r !== null);
 
-    if (processedRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding:20px">No transactions found.</td></tr>`;
-        tfoot.innerHTML = '';
-        return;
-    }
-
-    let rowsHTML = '';
-    processedRows.forEach(row => {
-        rowsHTML += `
-            <tr>
-                <td>${row.date}</td>
-                <td style="font-weight:500">${row.desc}</td>
-                <td class="text-right ${row.debit > 0 ? 'val-debit' : ''}">${row.debit ? formatMoney(row.debit) : '-'}</td>
-                <td class="text-right val-credit">${row.principal ? formatMoney(row.principal) : '-'}</td>
-                <td class="text-right val-credit">${row.interest ? formatMoney(row.interest) : '-'}</td>
-                <td class="text-right val-balance">${formatMoney(row.balance)}</td>
-            </tr>
-        `;
-    });
-
-    tbody.innerHTML = rowsHTML;
-    tfoot.innerHTML = `
-        <tr>
-            <td colspan="2" class="text-right">TOTALS</td>
-            <td class="text-right val-debit">${formatMoney(totalDebit)}</td>
-            <td class="text-right val-credit">${formatMoney(totalPrincipal)}</td>
-            <td class="text-right val-credit">${formatMoney(totalInterest)}</td>
-            <td></td>
-        </tr>
-    `;
+    return { rows, totals: { debit: totalDebit, principal: totalPrincipal, interest: totalInterest } };
 }
 
-// --- 4. ADVANCED PDF GENERATOR (Professional Dashboard Look) ---
+
+// --- 4. BRAHMASTRA PDF GENERATOR (Fixed Layout) ---
 async function generateSmartPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const memberId = document.getElementById('memberFilter').value;
     const isCommunity = memberId === 'all';
     
-    // Colors
+    // === Colors ===
     const colPrimary = [0, 35, 102];  // Royal Blue
     const colGold = [212, 175, 55];   // Gold
-    const colBg = [244, 246, 249];    // Light Gray
     const colRed = [220, 53, 69];
     const colGreen = [40, 167, 69];
 
-    // --- A. TOP HEADER ---
+    // === A. HEADER SECTION ===
     doc.setFillColor(...colPrimary);
-    doc.rect(0, 0, 210, 45, 'F');
-    
-    // Logo (Simulated or from URL if possible - using fallback for stability)
-    // For now we use text, but if you have base64 logo, add here.
+    doc.rect(0, 0, 210, 40, 'F');
     
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("TRUST COMMUNITY FUND", 105, 20, null, null, "center");
+    doc.text("TRUST COMMUNITY FUND", 105, 18, null, null, "center");
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...colGold);
-    doc.text(isCommunity ? "OFFICIAL COMMUNITY LEDGER" : "MEMBER ACCOUNT STATEMENT", 105, 30, null, null, "center");
+    doc.text(isCommunity ? "OFFICIAL COMMUNITY LEDGER" : "MEMBER ACCOUNT STATEMENT", 105, 26, null, null, "center");
     
     doc.setTextColor(200, 200, 200);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 38, null, null, "center");
+    doc.text(`Generated On: ${new Date().toLocaleString('en-GB')}`, 105, 34, null, null, "center");
 
-    let startY = 55;
+    let startY = 50;
 
-    // --- B. MEMBER DASHBOARD (If Individual) ---
+    // === B. MEMBER DASHBOARD (Stats Boxes) ===
     if (!isCommunity) {
-        // 1. Draw Dashboard Box
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(255, 255, 255);
-        doc.roundedRect(14, 50, 182, 55, 3, 3, 'FD');
-
-        // 2. Fetch Data from UI (HTML Elements)
-        const name = document.getElementById('profileName').textContent;
-        const join = document.getElementById('joiningDateValue').textContent;
-        const vSip = document.getElementById('totalSipValue').textContent;
-        const vLoan = document.getElementById('totalLoanValue').textContent;
-        const vBal = document.getElementById('netBalanceValue').textContent;
-        const vDue = document.getElementById('loanDueValue').textContent;
-        const vInt = document.getElementById('interestPaidValue').textContent;
-
-        // 3. Avatar Placeholder (Left)
-        doc.setFillColor(230, 230, 230);
-        doc.circle(30, 75, 12, 'F'); // Circle Avatar
-        doc.setFontSize(16);
-        doc.setTextColor(...colPrimary);
-        doc.text(name.charAt(0), 30, 78, null, null, "center"); // Initial
-
-        // Name & Join Date
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.text(name, 50, 70);
+        // Get values directly from UI or Memory (Better to use Memory for PDF consistency)
+        const member = Object.values(allMembers).find(m => m.membershipId === memberId);
         
-        doc.setFontSize(9);
+        // Calculate Stats specifically for this member
+        const { totals } = getProcessedData(memberId, 'all');
+        const myLoans = allActiveLoans.filter(l => l.memberId === memberId && l.status === 'Active');
+        const due = myLoans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount||0), 0);
+        
+        // Data Prep
+        const name = member.fullName;
+        const joinDate = new Date(member.joiningDate || Date.now()).toLocaleDateString('en-GB');
+        const vSip = formatMoney(totals.principal + totals.debit); // Rough total flow (simplified) or grab from UI logic
+        // Let's grab DOM values for perfect sync with what user sees
+        const domSip = document.getElementById('totalSipValue').innerText;
+        const domLoan = document.getElementById('totalLoanValue').innerText;
+        const domBal = document.getElementById('netBalanceValue').innerText;
+        const domDue = document.getElementById('loanDueValue').innerText;
+        const domInt = document.getElementById('interestPaidValue').innerText;
+
+        // Draw Name & Info
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text(name, 14, 55);
+        
+        doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(100);
-        doc.text(`Joined: ${join}`, 50, 76);
+        doc.text(`Member ID: ${memberId} | Joined: ${joinDate}`, 14, 61);
 
-        // 4. Stats Grid (2 Rows x 3 Cols) - Right Side
-        const gridX = 90;
-        const gridY = 60;
+        // Draw 6 Stats Boxes (Grid Layout)
         const boxW = 30;
-        const boxH = 18;
-        const gap = 2;
+        const boxH = 16;
+        const gap = 4;
+        const startX = 14; 
+        const statsY = 70;
 
-        const stats = [
-            { label: "TOTAL SIP", val: vSip, color: colGreen },
-            { label: "TOTAL LOAN", val: vLoan, color: colPrimary },
-            { label: "NET BAL", val: vBal, color: colPrimary },
-            { label: "LOAN DUE", val: vDue, color: colRed },
-            { label: "INT. PAID", val: vInt, color: colPrimary },
-            { label: "STATUS", val: "ACTIVE", color: colGold }
+        const statsData = [
+            { label: "Total SIP", val: domSip, col: colGreen },
+            { label: "Total Loan", val: domLoan, col: colPrimary },
+            { label: "Net Bal", val: domBal, col: colPrimary },
+            { label: "Loan Due", val: domDue, col: colRed },
+            { label: "Int. Paid", val: domInt, col: colPrimary },
+            { label: "Status", val: "ACTIVE", col: colGold }
         ];
 
-        let i = 0;
-        for (let r = 0; r < 2; r++) {
-            for (let c = 0; c < 3; c++) {
-                const s = stats[i];
-                const bx = gridX + (c * (boxW + gap));
-                const by = gridY + (r * (boxH + gap));
+        statsData.forEach((s, i) => {
+            const x = startX + (i * (boxW + gap));
+            // Box Border
+            doc.setDrawColor(200);
+            doc.setFillColor(252, 252, 252);
+            doc.roundedRect(x, statsY, boxW, boxH, 2, 2, 'FD');
+            
+            // Label
+            doc.setFontSize(7);
+            doc.setTextColor(100);
+            doc.text(s.label, x + (boxW/2), statsY + 5, null, null, "center");
+            
+            // Value
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...s.col);
+            doc.text(s.val, x + (boxW/2), statsY + 12, null, null, "center");
+        });
 
-                // Box
-                doc.setDrawColor(220);
-                doc.setFillColor(250, 252, 255);
-                doc.roundedRect(bx, by, boxW, boxH, 2, 2, 'FD');
-
-                // Label
-                doc.setFontSize(6);
-                doc.setTextColor(120);
-                doc.text(s.label, bx + 15, by + 6, null, null, "center");
-
-                // Value
-                doc.setFontSize(9);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(...s.color);
-                doc.text(s.val, bx + 15, by + 13, null, null, "center");
-                i++;
-            }
-        }
-        startY = 115; // Move Table Down
+        startY = 95; // Push table down
     }
 
-    // --- C. DATA TABLE ---
-    const rows = [];
-    const tableRows = document.querySelectorAll('#dataTable tbody tr');
-    tableRows.forEach(tr => {
-        const tds = tr.querySelectorAll('td');
-        if(tds.length > 1) {
-            rows.push([
-                tds[0].innerText, // Date
-                tds[1].innerText, // Desc
-                tds[2].innerText, // Debit
-                tds[3].innerText, // Principal
-                tds[4].innerText, // Interest
-                tds[5].innerText  // Balance
-            ]);
-        }
-    });
+    // === C. THE TABLE (FIXED WIDTHS - THE BRAHMASTRA) ===
+    // 1. Get Clean Data
+    const { rows } = getProcessedData(memberId, document.getElementById('typeFilter').value);
+    const tableData = rows.reverse().map(r => [
+        r.date,
+        r.desc,
+        r.debit > 0 ? formatMoney(r.debit) : '-',
+        r.principal > 0 ? formatMoney(r.principal) : '-',
+        r.interest > 0 ? formatMoney(r.interest) : '-',
+        formatMoney(r.balance)
+    ]);
 
+    // 2. Render Table with STRICT Column Styles
     doc.autoTable({
         startY: startY,
-        head: [['Date', 'Description', 'Debit (-)', 'Principal (+)', 'Interest', 'Balance']],
-        body: rows,
+        head: [['Date', 'Description', 'Debit', 'Principal', 'Interest', 'Balance']],
+        body: tableData,
         theme: 'grid',
-        headStyles: { 
-            fillColor: colPrimary, 
-            textColor: 255, 
+        styles: {
+            fontSize: 8,       // Small font
+            cellPadding: 3,    // Compact padding
+            valign: 'middle',
+            overflow: 'linebreak',
+            lineColor: [220, 220, 220],
+            lineWidth: 0.1,
+        },
+        headStyles: {
+            fillColor: colPrimary,
+            textColor: 255,
             fontStyle: 'bold',
             halign: 'center'
         },
-        styles: { 
-            fontSize: 8, 
-            cellPadding: 3,
-            valign: 'middle' 
-        },
+        // 🔥 HERE IS THE FIX: Explicit Column Widths (Sum approx 182)
         columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 'auto' }, // Desc fits space
-            2: { textColor: colRed, halign: 'right', cellWidth: 25 },
-            3: { textColor: colGreen, halign: 'right', cellWidth: 25 },
-            4: { textColor: colGreen, halign: 'right', cellWidth: 20 },
-            5: { fontStyle: 'bold', halign: 'right', cellWidth: 25 }
+            0: { cellWidth: 22 }, // Date
+            1: { cellWidth: 'auto' }, // Desc (Flexible)
+            2: { cellWidth: 22, halign: 'right', textColor: colRed }, // Debit
+            3: { cellWidth: 22, halign: 'right', textColor: colGreen }, // Principal
+            4: { cellWidth: 20, halign: 'right', textColor: colGreen }, // Interest
+            5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }  // Balance
         },
         didDrawPage: function (data) {
-            // Footer on every page
+            // Footer Page Number
             const pageSize = doc.internal.pageSize;
             const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
             doc.setFontSize(8);
@@ -459,49 +465,50 @@ async function generateSmartPDF() {
         }
     });
 
-    // --- D. COMMUNITY FOOTER CARD (Only for All Members) ---
+    // === D. COMMUNITY FOOTER (Only for All Members View) ===
     if (isCommunity) {
         let finalY = doc.lastAutoTable.finalY + 10;
         if (finalY > 240) { doc.addPage(); finalY = 20; }
 
         const gStats = calculateGlobalStats();
 
-        // Big Card
+        // Footer Card Box
         doc.setDrawColor(...colGold);
-        doc.setFillColor(250, 250, 250);
-        doc.roundedRect(14, finalY, 182, 50, 2, 2, 'FD');
+        doc.setLineWidth(0.5);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(14, finalY, 182, 45, 3, 3, 'FD');
 
-        // Header Strip
+        // Header Strip inside card
         doc.setFillColor(...colPrimary);
         doc.rect(14, finalY, 182, 10, 'F');
         doc.setTextColor(255);
         doc.setFontSize(10);
-        doc.text("COMMUNITY HEALTH SNAPSHOT", 105, finalY + 7, null, null, "center");
+        doc.setFont("helvetica", "bold");
+        doc.text("CURRENT COMMUNITY FUND STATUS", 105, finalY + 7, null, null, "center");
 
-        // Content
-        const row1 = finalY + 25;
-        const row2 = finalY + 40;
-
+        // Stats Row
+        const yRow = finalY + 25;
+        
         // Total SIP
-        doc.setTextColor(100); doc.setFontSize(8);
-        doc.text("TOTAL SIP FUND", 40, row1, null, null, "center");
-        doc.setTextColor(...colPrimary); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-        doc.text(formatMoney(gStats.totalSip), 40, row1 + 7, null, null, "center");
+        doc.setTextColor(100); doc.setFontSize(9);
+        doc.text("Total SIP Fund", 40, yRow, null, null, "center");
+        doc.setTextColor(...colPrimary); doc.setFontSize(12); doc.setFont("helvetica", "bold");
+        doc.text(formatMoney(gStats.totalSip), 40, yRow + 6, null, null, "center");
 
         // Active Loans
-        doc.setTextColor(100); doc.setFontSize(8); doc.setFont("helvetica", "normal");
-        doc.text("MARKET LOANS", 170, row1, null, null, "center");
-        doc.setTextColor(...colRed); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-        doc.text(formatMoney(gStats.activeLoansOutstanding), 170, row1 + 7, null, null, "center");
-
-        // Available Balance (Center Big)
         doc.setTextColor(100); doc.setFontSize(9); doc.setFont("helvetica", "normal");
-        doc.text("AVAILABLE LIQUIDITY", 105, row2, null, null, "center");
-        doc.setTextColor(...colGreen); doc.setFontSize(18); doc.setFont("helvetica", "bold");
-        doc.text(formatMoney(gStats.availableBalance), 105, row2 + 8, null, null, "center");
+        doc.text("Market Loans", 105, yRow, null, null, "center");
+        doc.setTextColor(...colRed); doc.setFontSize(12); doc.setFont("helvetica", "bold");
+        doc.text(formatMoney(gStats.activeLoansOutstanding), 105, yRow + 6, null, null, "center");
+
+        // Available Balance
+        doc.setTextColor(100); doc.setFontSize(9); doc.setFont("helvetica", "normal");
+        doc.text("Available Cash", 170, yRow, null, null, "center");
+        doc.setTextColor(...colGreen); doc.setFontSize(12); doc.setFont("helvetica", "bold");
+        doc.text(formatMoney(gStats.availableBalance), 170, yRow + 6, null, null, "center");
     }
 
-    doc.save(isCommunity ? 'TCF_Community_Ledger.pdf' : `TCF_${memberId}_Statement.pdf`);
+    doc.save(isCommunity ? 'TCF_Community_Report.pdf' : `TCF_${memberId}.pdf`);
 }
 
 // --- Utilities ---
@@ -534,7 +541,7 @@ function calculateGlobalStats() {
 }
 
 function formatMoney(amount) {
-    return '₹' + parseFloat(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    return 'Rs. ' + parseFloat(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 }
 
 function openModal(id, src) {
