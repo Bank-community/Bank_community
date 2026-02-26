@@ -1,17 +1,26 @@
-// loan_dashboard.js
+// loan_dashboard.js - FINAL UPDATED VERSION
+// FEATURES: Smart Alerts (90/365 Days), ⚠️ Blink Symbol, HD Download, Pay Now Right-Bottom
 
-const CACHE_KEY = 'tcf_loan_dashboard_cache_v8'; 
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v10'; 
 const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
 
 const state = {
     activeLoans: [],
     members: {},
+    currentFilter: 'all', // 'all', 'personal', 'recharge'
     els: {
         container: document.getElementById('outstanding-loans-container'),
         loader: document.getElementById('loader'),
         count: document.getElementById('count-val'),
         amt: document.getElementById('amount-val'),
         search: document.getElementById('search-input'),
+        
+        // Filters
+        btnAll: document.getElementById('filter-all'),
+        btnPersonal: document.getElementById('filter-personal'),
+        btnRecharge: document.getElementById('filter-recharge'),
+
+        // Admin Modal Els
         modal: document.getElementById('gen-modal'),
         mSelect: document.getElementById('m-select'),
         tSelect: document.getElementById('t-select'),
@@ -26,12 +35,15 @@ const state = {
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", async () => {
     try {
+        setupFilters(); 
         loadFromCache();
+        
         const res = await fetch(PRELOAD_CONFIG_URL);
         if(res.ok) {
             const config = await res.json();
             if (!firebase.apps.length) firebase.initializeApp(config);
         }
+        
         firebase.auth().onAuthStateChanged(u => {
             if(u) loadData(); 
             else window.location.href = `/login.html?redirect=${window.location.pathname}`;
@@ -39,7 +51,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch(e) { console.error("Init Error:", e); }
 });
 
-// --- CACHE & DATA ---
+// --- FILTER LOGIC ---
+function setupFilters() {
+    const setFilter = (type, btn) => {
+        state.currentFilter = type;
+        [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderLoans();
+    };
+
+    state.els.btnAll.onclick = () => setFilter('all', state.els.btnAll);
+    state.els.btnPersonal.onclick = () => setFilter('personal', state.els.btnPersonal);
+    state.els.btnRecharge.onclick = () => setFilter('recharge', state.els.btnRecharge);
+}
+
+// --- DATA HANDLING ---
 function loadFromCache() {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
@@ -48,7 +74,7 @@ function loadFromCache() {
             state.members = data.members || {};
             state.activeLoans = processLoanData(data.rawLoans || {}, state.members);
             if (state.activeLoans.length > 0) {
-                updateUI(state.activeLoans);
+                renderLoans();
                 fillDropdown();
                 state.els.loader.classList.add('hidden');
             }
@@ -77,13 +103,15 @@ async function loadData() {
         const membersVal = mSnap.val() || {};
         const loansVal = lSnap.val() || {};
         state.members = membersVal;
+        
         localStorage.setItem(CACHE_KEY, JSON.stringify({
             members: membersVal,
             rawLoans: loansVal,
             timestamp: Date.now()
         }));
+        
         state.activeLoans = processLoanData(loansVal, state.members);
-        updateUI(state.activeLoans);
+        renderLoans();
         fillDropdown();
         state.els.loader.classList.add('hidden');
     } catch(e) {
@@ -92,31 +120,48 @@ async function loadData() {
     }
 }
 
-// --- UI UPDATES ---
-function updateUI(loans) {
-    const total = loans.reduce((s,l) => s + parseFloat(l.outstandingAmount || 0), 0);
-    state.els.count.textContent = loans.length;
-    state.els.amt.textContent = `₹${total.toLocaleString('en-IN')}`;
-    state.els.container.innerHTML = '';
-    
-    if(!loans.length) {
-        state.els.container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No Active Loans</div>';
+// --- MAIN RENDERER ---
+function renderLoans() {
+    const container = state.els.container;
+    container.innerHTML = '';
+
+    // 1. Filter Data
+    let filtered = state.activeLoans;
+    if (state.currentFilter === 'personal') {
+        filtered = filtered.filter(l => l.loanType === 'Personal Loan' || parseFloat(l.amount) >= 10000);
+    } else if (state.currentFilter === 'recharge') {
+        filtered = filtered.filter(l => l.loanType === 'Recharge' || l.loanType === '10 Days Credit');
+    }
+
+    // 2. Search Filter
+    const term = state.els.search.value.toLowerCase();
+    if(term) {
+        filtered = filtered.filter(l => l.memberName.toLowerCase().includes(term));
+    }
+
+    // 3. Update Stats
+    const totalDue = filtered.reduce((sum, l) => sum + parseFloat(l.outstandingAmount || 0), 0);
+    state.els.count.textContent = filtered.length;
+    state.els.amt.textContent = `₹${totalDue.toLocaleString('en-IN')}`;
+
+    if(filtered.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:#999; font-weight:600;">No loans found.</div>';
         return;
     }
 
-    loans.forEach(l => {
+    // 4. Generate Cards
+    filtered.forEach(l => {
         const amount = parseFloat(l.outstandingAmount || 0);
         const dateObj = new Date(l.loanDate);
         const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
         
-        // Days Count
         const diffTime = Math.abs(new Date() - dateObj);
         const daysActive = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
+        
         let providerOrProduct = 'N/A';
         let emiAmount = null;
         let tenureMonths = l.tenureMonths || 0; 
-        
+
         if (l.rechargeDetails) {
             providerOrProduct = l.rechargeDetails.operator;
             emiAmount = l.rechargeDetails.rechargeEmi;
@@ -127,67 +172,78 @@ function updateUI(loans) {
         }
         if (l.monthlyEmi) emiAmount = l.monthlyEmi;
 
-        // === CARD SELECTION ===
+        // Card Type Selection
         let cardHTML = '';
-        
         if (l.loanType === '10 Days Credit') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
         else if (l.loanType === 'Recharge') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
-        else if (l.loanType === 'Personal Loan' || amount >= 25000) {
+        else {
             if (amount >= 25000) {
-                // LUXURY CARD (High Value)
-                cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount, l);
+                cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             } else {
-                // PLATINUM CARD (Small Value)
-                cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount, l);
+                cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             }
         }
-        else {
-            cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount, l);
-        }
         
-        const el = document.createElement('div');
-        el.innerHTML = cardHTML;
-        state.els.container.appendChild(el);
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = cardHTML;
+        container.appendChild(wrapper);
     });
+
+    if(typeof feather !== 'undefined') feather.replace();
 }
 
-// === HELPER: Format Rate ===
-function getFormattedRate(loan) {
-    if (loan.interestDetails && loan.interestDetails.rate) {
-        // Convert 0.015 to 1.5
-        const percent = parseFloat(loan.interestDetails.rate) * 100;
-        // Remove trailing zeros (e.g. 1.50 -> 1.5)
-        return `{${parseFloat(percent.toFixed(2))}%}`; 
+// === HELPER: ALERT LOGIC (New 90/365 Rule) ===
+function getAlertStatus(amount, days) {
+    let threshold = 90; // Default 90 days for small loans
+    
+    // For Big Loans (> 25000), limit is 1 year (365 days)
+    if (amount > 25000) {
+        threshold = 365;
     }
-    return ''; // Return empty if no rate found
+
+    return {
+        isCritical: days > threshold,
+        threshold: threshold
+    };
 }
 
-// --- 1. LUXURY CARD (High Value) ---
-function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi, loanData) {
-    const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
-    const pic = loan.pic || defaultPic;
-    const loanId = `card-${loan.loanId}`;
-    
-    const footerText = (tenureMonths > 3) 
-        ? '⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY' 
-        : 'Standard terms apply.';
+// Helper: Pay Now Button Only
+function getPayButtonHTML(loan, amount) {
+    const payLink = `qr.html?amount=${amount}&type=loan&id=${loan.loanId}`;
+    return `
+    <a href="${payLink}" class="btn-pay-now">
+        PAY NOW <i data-feather="chevron-right" style="width:10px;"></i>
+    </a>`;
+}
 
+// Helper: Warning Symbol Injection
+function getWarningSymbol(isCritical) {
+    if (!isCritical) return '';
+    return `<div class="overdue-watermark">⚠️</div>`;
+}
+
+// --- 1. LUXURY CARD (>25k) ---
+function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const loanId = `card-${loan.loanId}`;
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
+    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
     
-    // Get Rate string e.g., "{0.7%}" or "{1.5%}"
-    const rateStr = getFormattedRate(loanData);
-    
-    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')} <span style="color:#D4AF37; font-weight:800;">${rateStr}</span>` : '';
+    // Alert Logic
+    const alertState = getAlertStatus(amount, daysActive);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
 
     return `
-    <div class="premium-card-wrapper card-premium" id="${loanId}">
+    <div class="premium-card-wrapper card-premium ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
         
-        <div class="pc-days-circle">
+        <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -205,6 +261,8 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi,
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#D4AF37;">HIGH VALUE</div>
         </div>
 
+        ${getPayButtonHTML(loan, amount)}
+
         <div class="pc-bottom">
             <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" crossorigin="anonymous">
@@ -217,34 +275,28 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi,
         </div>
 
         <div class="loan-tenure-tag">Time: ${tenureMonths || 12} Month</div>
-
-        <div class="pc-footer">${footerText}</div>
+        <div class="pc-footer">⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY</div>
     </div>`;
 }
 
-// --- 2. PLATINUM CARD (Small Value) ---
-function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi, loanData) {
-    const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
-    const pic = loan.pic || defaultPic;
+// --- 2. PLATINUM CARD (<25k) ---
+function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-
-    const footerText = (tenureMonths > 3) 
-        ? '⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY' 
-        : 'Standard terms apply. Pay on time.';
-
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
-    
-    // Get Rate string
-    const rateStr = getFormattedRate(loanData);
-    
-    // Updated EMI Display with Rate
-    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')} <span style="color:#2563eb; font-weight:800;">${rateStr}</span>` : '';
+    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
+
+    // Alert Logic
+    const alertState = getAlertStatus(amount, daysActive);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
 
     return `
-    <div class="premium-card-wrapper card-platinum" id="${loanId}">
+    <div class="premium-card-wrapper card-platinum ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
         
-        <div class="pc-days-circle">
+        <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -259,8 +311,10 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         <div class="pc-middle">
             <span class="pc-date">${dateStr}</span>
             <h1 class="pc-title">PERSONAL LOAN</h1>
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">SMALL VALUE</div>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">Standard</div>
         </div>
+
+        ${getPayButtonHTML(loan, amount)}
 
         <div class="pc-bottom">
             <div class="pc-profile-group">
@@ -274,40 +328,39 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         </div>
 
         <div class="loan-tenure-tag">Time: ${tenureMonths || 6} Month</div>
-
-        <div class="pc-footer">${footerText}</div>
+        <div class="pc-footer">Standard terms apply. Pay on time.</div>
     </div>`;
 }
 
-// --- 3. STANDARD CARD (10 Days / Recharge) ---
+// --- 3. STANDARD CARD (Recharge/Credit) ---
 function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, emi) {
-    const defaultPic = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}&background=fff&color=000`;
-    const pic = loan.pic || defaultPic;
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
     const type = loan.loanType;
 
     let cardClass = 'card-10days'; 
-    let title = type;
-    let footer = 'Standard terms apply.';
+    let title = '10 DAYS CREDIT';
+    let footer = 'No Interest if paid within 10 Days.';
     let emiHtml = '';
 
-    if(type === '10 Days Credit') {
-        cardClass = 'card-10days';
-        title = '10 DAYS CREDIT';
-        footer = 'No Interest if paid within 10 Days.';
-    } 
-    else if(type === 'Recharge') {
+    if(type === 'Recharge') {
         cardClass = 'card-recharge';
         title = 'RECHARGE CARD';
         footer = `Operator: ${providerInfo}`;
         if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
     }
 
+    // Alert Logic (Standard logic also applies here: 90 days default)
+    const alertState = getAlertStatus(amount, daysActive);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
     return `
-    <div class="premium-card-wrapper ${cardClass}" id="${loanId}">
+    <div class="premium-card-wrapper ${cardClass} ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
         
-        <div class="pc-days-circle">
+        <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
         </div>
@@ -319,11 +372,13 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
             </div>
         </div>
 
-        <div class="pc-middle" style="padding-left: 70px;">
+        <div class="pc-middle">
             <span class="pc-date" style="color:inherit; opacity:0.8;">${dateStr}</span>
             <h1 class="pc-title" style="font-size:18px;">${title}</h1>
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
         </div>
+
+        ${getPayButtonHTML(loan, amount)}
 
         <div class="pc-bottom">
             <div class="pc-profile-group">
@@ -342,45 +397,26 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
     </div>`;
 }
 
-// --- SEARCH & DOWNLOAD ---
-state.els.search.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = state.activeLoans.filter(l => l.memberName.toLowerCase().includes(term));
-    updateUI(filtered);
-});
+// --- SEARCH ---
+state.els.search.addEventListener('input', () => renderLoans());
 
-
-// --- HIGH QUALITY DOWNLOAD FIX (Button Visible + No Text Shift) ---
+// --- HIGH QUALITY DOWNLOAD (Fixed) ---
 window.dlCard = (id) => {
     const el = document.getElementById(id);
     const btn = el.querySelector('.pc-download');
+    // Hide ONLY the Pay button row
+    const btnRow = el.querySelector('.btn-pay-now'); 
     
-    // सिर्फ Download Icon को छुपाएं (Pay Button को नहीं)
     btn.style.opacity = '0';
-
+    if(btnRow) btnRow.style.display = 'none'; // Hide pay button for screenshot
+    
+    // Scale 4 for High Quality
     html2canvas(el, { 
-        scale: 4, // High Quality
+        scale: 4, 
         useCORS: true, 
         allowTaint: true, 
         backgroundColor: null,
-        logging: false,
-        onclone: (clonedDoc) => {
-            const clonedEl = clonedDoc.getElementById(id);
-            const clonedPayBtn = clonedEl.querySelector('.btn-pay-now');
-            
-            // 1. Text Shift Fix (टेक्स्ट अपनी जगह पर रहे)
-            clonedEl.style.transform = "none"; 
-            const titles = clonedEl.querySelectorAll('.pc-title, .pc-amount');
-            titles.forEach(t => t.style.lineHeight = "1.1"); 
-
-            // 2. Button Fix for Download (Position adjust agar zaroorat ho)
-            if(clonedPayBtn) {
-                clonedPayBtn.style.display = 'flex'; // सुनिश्चित करें कि बटन दिखे
-                // html2canvas में कभी-कभी shadow कट जाती है, उसे ठीक करने के लिए
-                clonedPayBtn.style.boxShadow = 'none'; 
-                clonedPayBtn.style.border = '1px solid #D4AF37';
-            }
-        }
+        logging: false
     })
     .then(c => {
         const a = document.createElement('a');
@@ -388,14 +424,13 @@ window.dlCard = (id) => {
         a.href = c.toDataURL('image/png');
         a.click();
         
-        // Restore Download Icon
+        // Restore
         btn.style.opacity = '1';
+        if(btnRow) btnRow.style.display = 'flex';
     });
 };
 
-
-
-// --- MODAL & GENERATOR ---
+// --- ADMIN GENERATOR ---
 document.getElementById('generate-credit-btn').onclick = () => {
     state.els.modal.style.visibility = 'visible';
     state.els.modal.style.opacity = '1';
@@ -417,16 +452,13 @@ function fillDropdown() {
         state.els.mSelect.appendChild(opt);
     });
 }
-
 state.els.mSelect.onchange = () => {
     state.els.amtInput.disabled = !state.els.mSelect.value;
     if(state.els.mSelect.value) state.els.amtInput.focus();
 };
 state.els.tSelect.onchange = () => {
-    const val = state.els.tSelect.value;
-    state.els.provGroup.style.display = (val === 'recharge') ? 'block' : 'none';
+    state.els.provGroup.style.display = (state.els.tSelect.value === 'recharge') ? 'block' : 'none';
 };
-
 state.els.btnCreate.onclick = () => {
     const mId = state.els.mSelect.value;
     if(!mId) return alert('Select Member');
@@ -438,17 +470,7 @@ state.els.btnCreate.onclick = () => {
     const typeKey = state.els.tSelect.value;
     const dateStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
-    const mockLoan = {
-        loanId: 'preview',
-        memberName: name,
-        pic: pic,
-        loanType: typeKey === 'credit' ? '10 Days Credit' : 'Recharge',
-        tenureMonths: 0
-    };
-    
-    let html = '';
+    const mockLoan = { loanId: 'preview', memberName: name, pic: pic, loanType: typeKey === 'credit' ? '10 Days Credit' : 'Recharge', tenureMonths: 0 };
     let providerInfo = (typeKey === 'recharge') ? state.els.provSelect.value : '';
-    html = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
-    
-    state.els.genResult.innerHTML = html;
+    state.els.genResult.innerHTML = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
 };
