@@ -1,4 +1,4 @@
-// user-ui.js - FINAL FULL VERSION (Restored & Upgraded)
+// user-ui.js - FINAL FULL VERSION (With SIP & Loan Stats in Profile)
 // RESPONSIBILITY: Main UI Controller, Tab Router & Data Renderer
 
 import { 
@@ -34,7 +34,8 @@ let globalData = {
     transactions: [],
     stats: {},
     products: {},
-    notifications: { manual: {}, automated: {} }
+    notifications: { manual: {}, automated: {} },
+    activeLoans: {} // 🔥 NEW: Store Loans Globally
 };
 
 let currentMemberForFullView = null;
@@ -89,21 +90,19 @@ function formatNumberWithCommas(amount) {
 // --- Initialization ---
 export function initUI(database) {
     setupEventListeners(database);
-    setupBottomNav(); // 🔥 NEW: Initialize Tabs
+    setupBottomNav(); 
 
-    // 🔥 NEW: URL se Tab Auto-Open karne ka logic
+    // Auto-Open Tab from URL
     const urlParams = new URLSearchParams(window.location.search);
     const targetTab = urlParams.get('tab');
     if (targetTab) {
         setTimeout(() => {
             const tabBtn = document.querySelector(`.nav-item[data-target="${targetTab}"]`);
             if (tabBtn) tabBtn.click();
-        }, 100); // Halki si deri taaki page load ho jaye
+        }, 100); 
     }
 
     setupPWA();
-    // ...
-
 
     // Initial Animation Check
     setTimeout(() => {
@@ -122,57 +121,51 @@ export function initUI(database) {
     };
 }
 
-// --- 🔥 NEW: Bottom Navigation Router Logic ---
+// --- Bottom Navigation Router Logic ---
 function setupBottomNav() {
     const navItems = document.querySelectorAll('.nav-item');
     const tabs = document.querySelectorAll('.app-tab');
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            // Prevent click on "Apply" center button (it has its own onclick in HTML)
             if (item.querySelector('.nav-center-btn')) return;
 
             const targetId = item.getAttribute('data-target');
             if (!targetId) return;
 
-            // 1. Update Active State in Nav
+            // 1. Update Active State
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-            // 2. Hide all tabs, Show Target Tab
+            // 2. Show Target Tab
             tabs.forEach(tab => {
                 tab.classList.remove('active-tab');
                 if (tab.id === targetId) {
                     tab.classList.add('active-tab');
-
-                    // 3. Trigger Data Load for specific tabs
                     if (targetId === 'tab-history') renderHistoryTab();
                     if (targetId === 'tab-profile') renderProfileGatekeeper();
                 }
             });
 
-            // 4. Re-init Icons
             if(typeof feather !== 'undefined') feather.replace();
             window.scrollTo(0, 0);
         });
     });
 }
 
-// --- 🔥 NEW: Render History Tab (Instant Load) ---
+// --- Render History Tab ---
 function renderHistoryTab() {
     const container = document.getElementById('historyListContainer');
     if (!container) return;
 
-    // Get verified user ID
     const myId = localStorage.getItem('verifiedMemberId');
     const transactions = globalData.transactions || [];
 
-    // Filter Logic: If logged in, show MY transactions, else show Global recent 20
     let displayTx = [];
     if (myId) {
         displayTx = transactions.filter(t => t.memberId === myId);
     } else {
-        displayTx = transactions.slice(0, 20); // Show top 20 recent
+        displayTx = transactions.slice(0, 20); 
     }
 
     if (displayTx.length === 0) {
@@ -180,7 +173,6 @@ function renderHistoryTab() {
         return;
     }
 
-    // Sort by Date (Newest First)
     displayTx.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     container.innerHTML = '';
@@ -206,18 +198,17 @@ function renderHistoryTab() {
     });
 }
 
-
-// --- 🔥 NEW: Render Profile Gatekeeper (With Days Calculator) ---
+// --- 🔥 UPDATED: Render Profile Gatekeeper (With Loan & SIP Stats) ---
 function renderProfileGatekeeper() {
     const myId = localStorage.getItem('verifiedMemberId');
 
-    // Default View
     let member = {
         name: "Guest User",
         displayImageUrl: "https://i.ibb.co/HTNrbJxD/20250716-222246.png",
         isPrime: false,
         joiningDate: null,
-        balance: 0
+        balance: 0,
+        id: null
     };
 
     if (myId && globalData.members) {
@@ -236,17 +227,13 @@ function renderProfileGatekeeper() {
         roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
     }
 
-    // 3. ⏳ TOTAL TIME CALCULATOR (New Logic)
+    // 3. Time Calculator
     let daysText = '-- Days';
     if (member.joiningDate && member.joiningDate !== '--') {
         const joinDate = new Date(member.joiningDate);
         const today = new Date();
-        
-        // Difference in Time
         const diffTime = Math.abs(today - joinDate);
-        // Difference in Days (1000ms * 60s * 60m * 24h)
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        
         daysText = `${diffDays} Days`;
     }
     setTextContent('gkTotalDays', daysText);
@@ -255,24 +242,46 @@ function renderProfileGatekeeper() {
     const balEl = document.getElementById('gkBalance');
     if(balEl) {
         balEl.textContent = '₹' + formatNumberWithCommas(member.balance);
-        // Color logic: Green for positive, Red for negative
         balEl.className = `stat-value ${member.balance >= 0 ? 'text-green' : 'text-red'}`;
     }
 
-    // 5. Link Button for Next Step
+    // 🔥 5. NEW: Active Loan Logic
+    let activeLoanAmt = 0;
+    if (member.id && globalData.activeLoans) {
+        Object.values(globalData.activeLoans).forEach(l => {
+            if (l.memberId === member.id && l.status === 'Active') {
+                activeLoanAmt += parseFloat(l.outstandingAmount || l.amount || 0);
+            }
+        });
+    }
+    const loanEl = document.getElementById('gkActiveLoan');
+    if (loanEl) {
+        loanEl.textContent = '₹' + formatNumberWithCommas(activeLoanAmt);
+        // Red color if loan exists
+        loanEl.style.color = activeLoanAmt > 0 ? '#dc3545' : '#28a745';
+    }
+
+    // 🔥 6. NEW: SIP Status Logic
+    const sipEl = document.getElementById('gkSipStatus');
+    if (sipEl) {
+        const isPaid = member.sipStatus?.paid;
+        sipEl.innerHTML = isPaid 
+            ? '<span style="color:#28a745; font-weight:800;">Paid ✅</span>' 
+            : '<span style="color:#dc3545; font-weight:800;">Pending ❌</span>';
+    }
+
+    // 7. Link Button
     if (elements.gkSubmitBtn) {
         elements.gkSubmitBtn.dataset.memberId = myId || '';
     }
 }
-
-
 
 function setTextContent(id, text) {
     const el = document.getElementById(id);
     if(el) el.textContent = text;
 }
 
-// --- Main Render Function (RESTORED FULL LOGIC) ---
+// --- Main Render Function (Updated to Store Loans) ---
 export function renderPage(data) {
     // Update Global State
     globalData.members = data.processedMembers || [];
@@ -282,70 +291,51 @@ export function renderPage(data) {
     globalData.products = data.allProducts || {};
     globalData.notifications.manual = data.manualNotifications || {};
     globalData.notifications.automated = data.automatedQueue || {};
+    globalData.activeLoans = data.rawActiveLoans || {}; // 🔥 STORE LOANS
 
     const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
 
-    // 0. Update TCF Premium Card (Real-Time Data Injection)
     if (elements.tcfAvailableFunds) {
         elements.tcfAvailableFunds.dataset.value = formatNumberWithCommas(globalData.stats.availableCommunityBalance);
-
         if (!elements.tcfAvailableFunds.classList.contains('masked')) {
             elements.tcfAvailableFunds.textContent = elements.tcfAvailableFunds.dataset.value;
         }
-
         if (elements.tcfTotalSip) elements.tcfTotalSip.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalSipAmount);
         if (elements.tcfActiveLoans) elements.tcfActiveLoans.textContent = '₹' + formatNumberWithCommas(globalData.stats.totalCurrentLoanAmount);
         if (elements.tcfReturns) elements.tcfReturns.textContent = '₹' + formatNumberWithCommas(globalData.stats.netReturnAmount);
     }
 
-    // 1. Render Header Buttons (Hidden div support)
     displayHeaderButtons(data.headerButtons || {}, elements.headerActions, elements.staticButtons);
 
-        // 2. Render Members (Top 3 + Others) - ONLY SHOW IMAGE ON CLICK
     displayMembers(approvedMembers, data.adminSettings || {}, elements.memberContainer, (id) => {
         const member = globalData.members.find(m => m.id === id);
-        if (member) {
-            showFullImage(member.displayImageUrl, member.name);
-        }
+        if (member) showFullImage(member.displayImageUrl, member.name);
     });
 
-
-    // 3. Render Custom Cards & Sliders
     displayCustomCards(data.adminSettings?.custom_cards || {}, elements.customCards);
     displayCommunityLetters(data.adminSettings?.community_letters || {}, elements.letters, showFullImage);
 
-    // 4. Update Stats & Info
     updateInfoCards(approvedMembers.length, globalData.stats.totalLoanDisbursed);
     startHeaderDisplayRotator(elements.headerDisplay, approvedMembers, globalData.stats);
     buildInfoSlider(elements.infoSlider, globalData.members);
 
-    // 5. Render Products (Pass Callback for EMI Modal)
     renderProducts(globalData.products, elements.products, (emi, name, price) => {
         showEmiModal(emi, name, price, elements.emiModal);
     });
 
-    // 6. Notifications
     processAndShowNotifications(globalData, elements.popupContainer);
 
-    // 7. Animations & Icons
     if(typeof feather !== 'undefined') feather.replace();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
 
-    // --- 🔒 NEW VERIFICATION LOGIC START ---
     const verifyModal = document.getElementById('deviceVerificationModal');
     const verifiedId = localStorage.getItem('verifiedMemberId');
 
-    // Agar ID verified nahi hai, to Pop-up dikhao
     if (!verifiedId && verifyModal) {
         verifyModal.classList.add('show'); 
-        
-        // Dropdown list mein naam bharo
         const select = document.getElementById('verifyNameSelect');
         if (select && select.options.length <= 1 && globalData.members) { 
-            // List clear karke dobara bharo
             select.innerHTML = '<option value="">-- Select Your Name --</option>';
-            
-            // Members ko sort karke add karo
             [...globalData.members]
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .forEach(m => {
@@ -355,16 +345,12 @@ export function renderPage(data) {
                     select.appendChild(opt);
                 });
         }
-    } 
-    // Agar verified hai, to Pop-up hata do aur Profile update karo
-    else if (verifiedId && verifyModal) {
+    } else if (verifiedId && verifyModal) {
         verifyModal.classList.remove('show');
         if (typeof renderProfileGatekeeper === 'function') {
             renderProfileGatekeeper();
         }
     }
-    // --- 🔒 NEW VERIFICATION LOGIC END ---
-
 }
 
 // --- Event Listeners ---
@@ -372,82 +358,51 @@ function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
 
-        // --- 🟢 BUTTON CLICK HANDLERS START ---
-        
-        // 1. LOGIN & VERIFY BUTTON (Jab user password submit kare)
         if (target.closest('#verifySubmitBtn')) {
             const select = document.getElementById('verifyNameSelect');
             const input = document.getElementById('verifyPasswordInput');
-            
+
             const memberId = select ? select.value : null;
             const password = input ? input.value : null;
 
             if (!memberId) { alert("Please select your name first."); return; }
             if (!password) { alert("Please enter password."); return; }
 
-        // --- 🔍 PROFILE IMAGE ZOOM LOGIC ---
-        // Jab user apni photo par click kare
+            const member = globalData.members.find(m => m.id === memberId);
+
+            if (member && String(member.password).trim() === String(password).trim()) {
+                localStorage.setItem('verifiedMemberId', memberId);
+                const modal = document.getElementById('deviceVerificationModal');
+                if(modal) modal.classList.remove('show');
+                alert(`Welcome, ${member.name}! Verification Successful.`);
+                if (typeof renderProfileGatekeeper === 'function') renderProfileGatekeeper();
+            } else {
+                alert("Incorrect Password! Please try again.");
+                if(input) input.value = ''; 
+            }
+        }
+
         if (target.closest('.profile-image-container') || target.closest('#gkProfileImg')) {
             const img = document.getElementById('gkProfileImg');
             const name = document.getElementById('gkProfileName');
-            if (img && name) {
-                // Purana helper function use kar rahe hain
-                showFullImage(img.src, name.textContent);
-            }
+            if (img && name) showFullImage(img.src, name.textContent);
         }
 
-
-            // Member dhoondo
-            const member = globalData.members.find(m => m.id === memberId);
-            
-            // Password Check Karo
-            if (member && String(member.password).trim() === String(password).trim()) {
-                // SUCCESS: ID Save karo
-                localStorage.setItem('verifiedMemberId', memberId);
-                
-                // Modal band karo
-                const modal = document.getElementById('deviceVerificationModal');
-                if(modal) modal.classList.remove('show');
-                
-                alert(`Welcome, ${member.name}! Verification Successful.`);
-                
-                // Profile Page Turant Update karo
-                if (typeof renderProfileGatekeeper === 'function') renderProfileGatekeeper();
-                
-            } else {
-                // FAIL
-                alert("Incorrect Password! Please try again.");
-                if(input) input.value = ''; // Password clear karo
-            }
-        }
-
-        // 2. FORGOT PASSWORD (WHATSAPP REDIRECT)
         if (target.closest('#verifyForgotBtn')) {
             const select = document.getElementById('verifyNameSelect');
             const memberId = select ? select.value : null;
-
-            // Check: Agar naam select nahi kiya
             if (!memberId) {
                 alert("Please select your name from the list first, then click Forgot Password.");
                 return;
             }
-
-            // Member detail nikalo aur WhatsApp par bhejo
             const member = globalData.members.find(m => m.id === memberId);
             if (member) {
-                const phone = "7903698180"; // Aapka Number
-                
-                // Message format
+                const phone = "7903698180"; 
                 const text = `*TCF Password Recovery*\n\n*Name:* ${member.name}\n*Issue:* I have forgotten my password.\n*Request:* Please provide me with my login password. 🔑`;
-                
-                const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-                window.location.href = url;
+                window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
             }
         }
-        // --- 🟢 BUTTON CLICK HANDLERS END ---
 
-
-        // --- NEW GATEKEEPER SUBMIT LOGIC ---
         if (target.closest('#gkSubmitBtn')) {
             const btn = document.getElementById('gkSubmitBtn');
             const input = document.getElementById('gkPasswordInput');
@@ -466,7 +421,6 @@ function setupEventListeners(database) {
 
             const member = globalData.members.find(m => m.id === memberId);
             if (member && String(member.password).trim() === String(input.value).trim()) {
-                // Success! Redirect
                 window.location.href = `view.html?memberId=${memberId}`;
             } else {
                 alert("Incorrect Password!");
@@ -474,18 +428,13 @@ function setupEventListeners(database) {
             }
         }
 
-        // --- NEW QUICK ACTIONS MAPPING ---
-        if (target.closest('#quickActionSip')) {
-            showSipStatusModal(globalData.members);
-        }
+        if (target.closest('#quickActionSip')) showSipStatusModal(globalData.members);
 
-        // Close Modal Logic
         if (target.matches('.close') || target.matches('.close *') || target.classList.contains('modal')) {
             const modal = target.closest('.modal') || target;
             closeModal(modal);
         }
 
-        // Feature: Show All Members
         if (target.closest('#totalMembersCard')) {
             showAllMembersModal(globalData.members, (id) => {
                 closeModal(elements.allMembersModal);
@@ -494,12 +443,8 @@ function setupEventListeners(database) {
             }, showFullImage);
         }
 
-        // Feature: Full Profile View (Password Check)
-        if (target.closest('#fullViewBtn')) {
-            swapModals(elements.profileModal, elements.passwordModal);
-        }
+        if (target.closest('#fullViewBtn')) swapModals(elements.profileModal, elements.passwordModal);
 
-        // Feature: View History (Penalty)
         if (target.closest('#viewHistoryBtn')) {
             const list = document.getElementById('penaltyHistoryList');
             const btn = target.closest('#viewHistoryBtn');
@@ -508,26 +453,19 @@ function setupEventListeners(database) {
             btn.textContent = isHidden ? 'Hide History' : 'View History';
         }
 
-        // Feature: Profile Image Zoom
         if (target.closest('#profileModalHeader')) {
             const img = document.getElementById('profileModalImage');
             const name = document.getElementById('profileModalName');
             if (img && name) showFullImage(img.src, name.textContent);
         }
 
-        // Feature: Submit Password (Existing Modal)
-        if (target.closest('#submitPasswordBtn')) {
-            handlePasswordCheck(database, currentMemberForFullView);
-        }
+        if (target.closest('#submitPasswordBtn')) handlePasswordCheck(database, currentMemberForFullView);
 
-        // --- TCF CARD LOGIC ---
-        // Eye Icon Toggle Logic (Hide/Show Balance)
         if (target.closest('#tcfBalanceToggleBtn')) {
             const amountEl = elements.tcfAvailableFunds;
             const iconEl = elements.tcfEyeIcon;
 
             if (amountEl.classList.contains('masked')) {
-                // Show Real Balance with 2s Animation
                 amountEl.classList.remove('masked');
                 iconEl.setAttribute('data-feather', 'eye');
                 balanceClickSound.play().catch(console.warn);
@@ -543,11 +481,8 @@ function setupEventListeners(database) {
                     const currentVal = Math.floor(progress * endValue);
                     amountEl.textContent = formatNumberWithCommas(currentVal);
 
-                    if (progress < 1) {
-                        window.requestAnimationFrame(step);
-                    } else {
-                        amountEl.textContent = targetValueStr; 
-                    }
+                    if (progress < 1) window.requestAnimationFrame(step);
+                    else amountEl.textContent = targetValueStr; 
                 };
                 window.requestAnimationFrame(step);
 
@@ -559,7 +494,6 @@ function setupEventListeners(database) {
             if(typeof feather !== 'undefined') feather.replace();
         }
 
-        // Naye 4 Bottom Buttons Route Mapping (Quick Actions Fallback)
         if (target.closest('#btnQr')) window.location.href = 'qr.html';
         if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
         if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
@@ -567,22 +501,15 @@ function setupEventListeners(database) {
              document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
 
-        // --- OLD BUTTONS LOGIC ---
         if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
             showBalanceModal(globalData.stats);
         }
 
-        if (target.closest('#viewPenaltyWalletBtn')) {
-            showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
-        }
-
-        if (target.closest('#notificationBtn')) {
-            window.location.href = 'notifications.html';
-        }
+        if (target.closest('#viewPenaltyWalletBtn')) showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
+        if (target.closest('#notificationBtn')) window.location.href = 'notifications.html';
     });
 
-    // Keyboard Events
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
         if (e.key === 'Enter' && document.getElementById('passwordInput') === document.activeElement) {
@@ -591,7 +518,6 @@ function setupEventListeners(database) {
     });
 }
 
-// --- Core Modal Logic ---
 export function openModal(modal) { 
     if (modal) { 
         modal.classList.add('show'); 
