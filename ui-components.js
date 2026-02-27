@@ -9,10 +9,10 @@ const BANK_LOGO_URL = 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg'
 // --- 1. Header Buttons Renderer ---
 export function displayHeaderButtons(buttons, container, staticContainer) {
     if (!container || !staticContainer) return;
-    
+
     container.innerHTML = '';
     staticContainer.innerHTML = '';
-    
+
     if (!buttons || Object.keys(buttons).length === 0) {
         container.innerHTML = '<p class="loading-text" style="color: white;">No actions configured.</p>';
         return;
@@ -25,10 +25,10 @@ export function displayHeaderButtons(buttons, container, staticContainer) {
     Object.values(buttons).sort((a, b) => (a.order || 99) - (b.order || 99)).forEach(btnData => {
         const isAutoUrl = btnData.url === 'auto';
         const isLink = btnData.url && !isAutoUrl;
-        
+
         const element = document.createElement(isLink ? 'a' : 'button');
         element.className = `${btnData.base_class || 'civil-button'} ${btnData.style_preset || ''}`;
-        
+
         if (btnData.id) element.id = btnData.id;
 
         if (isLink) {
@@ -39,7 +39,7 @@ export function displayHeaderButtons(buttons, container, staticContainer) {
         // HTML Content for Button
         element.innerHTML = `${btnData.icon_svg || ''}<b>${btnData.name || ''}</b>` + 
                            (btnData.id === 'notificationBtn' ? '<span id="notificationDot" class="notification-dot"></span>' : '');
-        
+
         // Custom Styling (Color/Border) if not using preset classes
         if (!['viewBalanceBtn', 'viewPenaltyWalletBtn'].includes(btnData.id)) {
             Object.assign(element.style, {
@@ -58,7 +58,7 @@ export function displayHeaderButtons(buttons, container, staticContainer) {
             buttonWrapper.appendChild(element);
         }
     });
-    
+
     container.appendChild(buttonWrapper);
 }
 
@@ -66,7 +66,7 @@ export function displayHeaderButtons(buttons, container, staticContainer) {
 export function displayMembers(members, adminSettings, container, onProfileClick) {
     if (!container) return;
     container.innerHTML = '';
-    
+
     if (!members || members.length === 0) {
         container.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
         return;
@@ -81,12 +81,12 @@ export function displayMembers(members, adminSettings, container, onProfileClick
 
     members.forEach((member, index) => {
         const card = document.createElement('div');
-        
+
         if (index < 3) {
             // Top 3 Ranking Cards
             const rankType = ['gold', 'silver', 'bronze'][index];
             card.className = `framed-card-wrapper ${rankType}-card animate-on-scroll`;
-            
+
             card.innerHTML = `
                 <div class="framed-card-content">
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="framed-member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
@@ -103,7 +103,7 @@ export function displayMembers(members, adminSettings, container, onProfileClick
             // Normal Cards
             card.className = 'normal-framed-card-wrapper animate-on-scroll';
             const rankText = getRankText(index + 1);
-            
+
             card.innerHTML = `
                 <div class="normal-card-content">
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="normal-framed-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
@@ -116,28 +116,108 @@ export function displayMembers(members, adminSettings, container, onProfileClick
                     ${member.isPrime ? '<div class="normal-prime-tag">Prime</div>' : ''}
                 </div>`;
         }
-        
+
         card.onclick = () => onProfileClick(member.id);
         container.appendChild(card);
     });
 }
 
+// --- NEW: All Ranked Members Grid Renderer (ADDED FOR FULL PAGE VIEW) ---
+export function displayAllRankedMembers(members, adminSettings, container, onImageClick) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!members || members.length === 0) {
+        container.innerHTML = '<p class="loading-text">Koi sadasya nahi mila.</p>';
+        return;
+    }
+
+    const normalCardFrameUrl = adminSettings?.normal_card_frame_url || 'https://ik.imagekit.io/nsyr92pse/20251007_103318.png';
+    const rankFrames = {
+        gold: 'https://ik.imagekit.io/kdtvm0r78/1764742107098.png',
+        silver: 'https://ik.imagekit.io/kdtvm0r78/20251203_134510.png',
+        bronze: 'https://ik.imagekit.io/kdtvm0r78/20251203_133726.png'
+    };
+
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'ranked-grid-container';
+
+    // Helper functions (yahi par define kar diye taaki koi error na aaye)
+    function formatCurrency(amount) {
+        return (amount || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+    }
+    function getRankText(i) {
+        const j = i % 10, k = i % 100;
+        if (j == 1 && k != 11) return i + "st";
+        if (j == 2 && k != 12) return i + "nd";
+        if (j == 3 && k != 13) return i + "rd";
+        return i + "th";
+    }
+
+    members.forEach((member, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'scaled-card-wrapper';
+        wrapper.dataset.name = member.name.toLowerCase(); // Search functionality ke liye name save kiya
+
+        const card = document.createElement('div');
+        // Card par click karne se member ki full photo dikhegi
+        card.onclick = () => onImageClick(member.displayImageUrl, member.name);
+
+        if (index < 3) {
+            // Top 3 Ranking Cards (Gold, Silver, Bronze)
+            const rankType = ['gold', 'silver', 'bronze'][index];
+            card.className = `framed-card-wrapper ${rankType}-card`;
+            card.innerHTML = `
+                <div class="framed-card-content">
+                    <img src="${member.displayImageUrl}" alt="${member.name}" class="framed-member-photo" loading="lazy" onerror="this.onerror=null; this.src='https://i.ibb.co/HTNrbJxD/20250716-222246.png';">
+                    <img src="${rankFrames[rankType]}" alt="${rankType} frame" class="card-frame-image">
+                    <div class="framed-info-container">
+                        <p class="framed-member-name ${rankType}-text">${member.name}</p>
+                        <div class="framed-balance-badge ${rankType}-bg">${formatCurrency(member.balance)}</div>
+                    </div>
+                    ${member.isPrime ? '<div class="framed-prime-tag">Prime</div>' : ''}
+                </div>`;
+        } else {
+            // Normal Cards (4th rank onwards)
+            card.className = 'normal-framed-card-wrapper';
+            const rankText = getRankText(index + 1);
+            card.innerHTML = `
+                <div class="normal-card-content">
+                    <img src="${member.displayImageUrl}" alt="${member.name}" class="normal-framed-photo" loading="lazy" onerror="this.onerror=null; this.src='https://i.ibb.co/HTNrbJxD/20250716-222246.png';">
+                    <img src="${normalCardFrameUrl}" alt="Card Frame" class="normal-card-frame-image">
+                    <div class="normal-card-rank">${rankText}</div>
+                    <div class="normal-info-container">
+                        <p class="normal-framed-name">${member.name}</p>
+                        <div class="normal-framed-balance">${formatCurrency(member.balance)}</div>
+                    </div>
+                    ${member.isPrime ? '<div class="normal-prime-tag">Prime</div>' : ''}
+                </div>`;
+        }
+
+        wrapper.appendChild(card);
+        gridContainer.appendChild(wrapper);
+    });
+
+    container.appendChild(gridContainer);
+}
+
+
 // --- 3. Products Renderer ---
 export function renderProducts(products, container, onEmiClick) {
     if (!container) return;
     const entries = Object.entries(products);
-    
+
     if (entries.length === 0) {
         const section = container.closest('.products-section');
         if (section) section.style.display = 'none';
         return;
     }
-    
+
     container.innerHTML = '';
     entries.forEach(([id, product]) => {
         const card = document.createElement('div');
         card.className = 'product-card animate-on-scroll';
-        
+
         const price = parseFloat(product.price) || 0;
         const mrp = parseFloat(product.mrp) || 0;
         const hasEmi = product.emi && Object.keys(product.emi).length > 0;
@@ -176,15 +256,15 @@ export function displayCustomCards(cards, container) {
     const section = document.getElementById('customCardsSection');
     const indicator = document.getElementById('custom-cards-indicator');
     if (!container || !section) return;
-    
+
     container.innerHTML = '';
     const cardArray = Object.values(cards);
-    
+
     if (cardArray.length === 0) {
         section.style.display = 'none';
         return;
     }
-    
+
     section.style.display = 'block';
     cardArray.forEach(cardData => {
         const card = document.createElement('div');
@@ -200,7 +280,7 @@ export function displayCustomCards(cards, container) {
             </div>`;
         container.appendChild(card);
     });
-    
+
     // Slider Dot Logic
     if (indicator && cardArray.length > 1) {
         indicator.style.display = 'block';
@@ -212,7 +292,7 @@ export function displayCustomCards(cards, container) {
             dot.onclick = () => container.children[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
             indicator.appendChild(dot);
         });
-        
+
         // Scroll Listener for Active Dot
         const onScroll = () => {
              const scrollLeft = container.scrollLeft;
@@ -234,7 +314,7 @@ export function displayCommunityLetters(letters, container, onImageClick) {
     if (!container) return;
     container.innerHTML = '';
     const letterArray = Object.values(letters);
-    
+
     if (letterArray.length === 0) {
         container.innerHTML = `<div class="slide"><p class="p-8 text-center text-gray-500">No letters available.</p></div>`;
     } else {
@@ -298,7 +378,7 @@ export function startHeaderDisplayRotator(container, members, stats) {
 
     const ads = [];
     const topThree = members.slice(0, 3);
-    
+
     if (topThree.length >= 3) {
         ads.push(() => {
             const html = topThree.map(m => `
@@ -310,7 +390,7 @@ export function startHeaderDisplayRotator(container, members, stats) {
             return `<div class="ad-headline">🚀 Top 3 Wealth Creators 🚀</div><div class="ad-top-three-container">${html}</div>`;
         });
     }
-    
+
     if (stats) {
         ads.push(() => `
             <div class="ad-bank-stats-container">
@@ -325,7 +405,7 @@ export function startHeaderDisplayRotator(container, members, stats) {
 
     if (ads.length === 0) return;
     let index = 0;
-    
+
     const show = () => {
         adContent.innerHTML = ads[index]();
         index = (index + 1) % ads.length;
@@ -339,7 +419,7 @@ export function startHeaderDisplayRotator(container, members, stats) {
 export function buildInfoSlider(container, members) {
     if (!container) return;
     container.innerHTML = '';
-    
+
     const cards = [
         { icon: 'dollar-sign', title: 'Fund Deposit', text: 'Sabhi sadasya milkar fund jama karte hain <strong>(Every Month SIP)</strong> ke roop mein.', img: 'https://i.ibb.co/LzBMSjTy/20251005-091714.png' },
         { icon: 'gift', title: 'Loan Provision', text: 'Zarooratmand sadasya ko usi fund se <strong>loan</strong> diya jaata hai.', img: 'https://i.ibb.co/WNkzG5rm/20251005-100155.png' },

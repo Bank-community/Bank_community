@@ -767,3 +767,41 @@
 .eco-filter-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #888; font-weight: 600; padding: 0; }
 .eco-filter-labels span { cursor: pointer; transition: color 0.2s; }
 .eco-filter-labels span.active { color: #D4AF37; font-weight: 800; }
+
+/* ==========================================================================
+   PART 7: FULL PAGE RANKED GRID VIEW STYLES
+   ========================================================================== */
+
+.ranked-grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px; /* Cards ke beech ka gap */
+    justify-items: center;
+}
+
+/* Wrapper to scale down the 180px cards to fit 3 in a row on mobile */
+.scaled-card-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    /* Extra height ko hide karne ke liye */
+    height: 190px; 
+}
+
+/* Transform use karke existing classes ka size chota kar rahe hain */
+.scaled-card-wrapper > div {
+    transform: scale(0.58); /* Scale down to 58% */
+    transform-origin: top center;
+    pointer-events: auto;
+}
+
+/* Small adjustments for very small screens */
+@media (max-width: 380px) {
+    .scaled-card-wrapper > div {
+        transform: scale(0.52);
+    }
+    .scaled-card-wrapper {
+        height: 170px;
+    }
+}

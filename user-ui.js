@@ -4,7 +4,8 @@
 import { 
     displayHeaderButtons, 
     displayMembers, 
-    renderProducts, 
+    renderProducts,
+    displayAllRankedMembers, 
     displayCustomCards, 
     displayCommunityLetters, 
     buildInfoSlider, 
@@ -76,6 +77,8 @@ export const elements = {
     verifyModal: getElement('deviceVerificationModal'),
     emiModal: getElement('emiModal'),
     popupContainer: getElement('notification-popup-container'),
+    rankedModal: getElement('rankedMembersModal'), // <--- NAYA
+    rankedGrid: getElement('rankedMembersGrid'),   // <--- NAYA
 
     // Gatekeeper Elements
     gkSubmitBtn: getElement('gkSubmitBtn'),
@@ -505,14 +508,79 @@ function setupEventListeners(database) {
              document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
 
-        if (target.closest('#viewBalanceBtn')) {
+                if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
             showBalanceModal(globalData.stats);
         }
 
-        if (target.closest('#viewPenaltyWalletBtn')) showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
-        if (target.closest('#notificationBtn')) window.location.href = 'notifications.html';
+        // --- NEW: View All Ranked Members Button Logic ---
+        if (target.closest('#viewAllRankedBtn')) {
+            const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
+            displayAllRankedMembers(approvedMembers, {}, elements.rankedGrid, (imgSrc, name) => {
+                showFullImage(imgSrc, name); // Image zoom karne ke liye
+            });
+            openModal(elements.rankedModal);
+        }
+
+        // --- NEW: Close Ranked Members Modal ---
+        if (target.closest('#closeRankedModal')) {
+            closeModal(elements.rankedModal);
+        }
+
+    }); // <--- YAHAN PAR CLICK EVENT CLOSE HOTA HAI (Yeh line pehle missing thi)
+
+    // --- NEW: Live Search Filter for Ranked Members ---
+    const rankedSearchInput = document.getElementById('rankedSearchInput');
+    if (rankedSearchInput) {
+        rankedSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.scaled-card-wrapper');
+
+            cards.forEach(card => {
+                const memberName = card.dataset.name || "";
+                if (memberName.includes(searchTerm)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
+        if (e.key === 'Enter' && document.getElementById('passwordInput') === document.activeElement) {
+            handlePasswordCheck(database, currentMemberForFullView);
+        }
     });
+}
+
+            openModal(elements.rankedModal);
+        }
+
+        // --- NEW: Close Ranked Members Modal ---
+        if (target.closest('#closeRankedModal')) {
+            closeModal(elements.rankedModal);
+        }
+
+    // --- NEW: Live Search Filter for Ranked Members ---
+    const rankedSearchInput = document.getElementById('rankedSearchInput');
+    if (rankedSearchInput) {
+        rankedSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.scaled-card-wrapper');
+
+            cards.forEach(card => {
+                const memberName = card.dataset.name || "";
+                if (memberName.includes(searchTerm)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
