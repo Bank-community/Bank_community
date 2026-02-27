@@ -774,11 +774,14 @@
 
 .ranked-grid-container {
     display: grid;
-    /* Yeh strictly 3 column banayega */
-    grid-template-columns: repeat(3, 1fr) !important; 
+    /* Extra space aur scroll ko rokne ke liye minmax(0, 1fr) lagaya hai */
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important; 
     gap: 5px; 
     justify-items: center;
     padding: 0 5px;
+    width: 100%;
+    overflow-x: hidden; /* Left/Right swipe ko puri tarah block karega */
+    box-sizing: border-box;
 }
 
 .scaled-card-wrapper {
@@ -786,7 +789,8 @@
     display: flex;
     justify-content: center;
     position: relative;
-    height: 180px; /* Thoda kam height kiya hai taaki theek lage */
+    height: 180px; 
+    overflow: hidden; /* Card ka chhipa hua hissa grid ko disturb nahi karega */
 }
 
 /* Normal scale - !important lagaya taaki hover effect ise tod na sake */
