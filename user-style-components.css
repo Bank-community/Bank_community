@@ -769,39 +769,47 @@
 .eco-filter-labels span.active { color: #D4AF37; font-weight: 800; }
 
 /* ==========================================================================
-   PART 7: FULL PAGE RANKED GRID VIEW STYLES
+   PART 7: FULL PAGE RANKED GRID VIEW STYLES (FIXED)
    ========================================================================== */
 
 .ranked-grid-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px; /* Cards ke beech ka gap */
+    /* Yeh strictly 3 column banayega */
+    grid-template-columns: repeat(3, 1fr) !important; 
+    gap: 5px; 
     justify-items: center;
+    padding: 0 5px;
 }
 
-/* Wrapper to scale down the 180px cards to fit 3 in a row on mobile */
 .scaled-card-wrapper {
     width: 100%;
     display: flex;
     justify-content: center;
     position: relative;
-    /* Extra height ko hide karne ke liye */
-    height: 190px; 
+    height: 180px; /* Thoda kam height kiya hai taaki theek lage */
 }
 
-/* Transform use karke existing classes ka size chota kar rahe hain */
+/* Normal scale - !important lagaya taaki hover effect ise tod na sake */
 .scaled-card-wrapper > div {
-    transform: scale(0.58); /* Scale down to 58% */
+    transform: scale(0.52) !important; /* 3 fit karne ke liye perfect size */
     transform-origin: top center;
     pointer-events: auto;
+    margin: 0 !important;
 }
 
-/* Small adjustments for very small screens */
+/* 🔥 Hover par jo ajeeb bada zoom ho raha tha usko theek kiya */
+.scaled-card-wrapper > div:hover,
+.scaled-card-wrapper > div:active {
+    transform: scale(0.54) translateY(-5px) !important; 
+    z-index: 10;
+    filter: drop-shadow(0 8px 15px rgba(212, 175, 55, 0.4));
+}
+
 @media (max-width: 380px) {
     .scaled-card-wrapper > div {
-        transform: scale(0.52);
+        transform: scale(0.48) !important;
     }
     .scaled-card-wrapper {
-        height: 170px;
+        height: 160px;
     }
 }
