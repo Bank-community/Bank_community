@@ -73,7 +73,7 @@ function setupPasswordPrompt() {
     };
 
     ui.btn.onclick = verify;
-    ui.input.onkeydown = (e) => e.key === 'Enter' && verify();
+    ui.input.onkeydown = (e) => { if (e.key === 'Enter') verify(); };
 }
 
 // --- 2. Data Fetching ---
