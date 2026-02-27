@@ -327,6 +327,8 @@ export function renderPage(data) {
 
     processAndShowNotifications(globalData, elements.popupContainer);
 
+    renderEcosystemChart();
+
     if(typeof feather !== 'undefined') feather.replace();
     observeElements(document.querySelectorAll('.animate-on-scroll'));
 
@@ -561,4 +563,97 @@ function setupPWA() {
             };
         }
     });
+}
+
+
+// --- ECOSYSTEM CHART LOGIC (IN vs OUT) ---
+function renderEcosystemChart() {
+    const ctx = document.getElementById('ecosystemChart');
+    const slider = document.getElementById('ecoTimeSlider');
+    if (!ctx || !slider) return;
+
+    function updateChart() {
+        const txs = globalData.transactions || [];
+        const mode = parseInt(slider.value); // 0: 1M, 1: 3M, 2: 6M, 3: 1Y, 4: ALL
+        const now = new Date();
+        let cutoffDate = new Date();
+
+        // Date Filtering
+        if (mode === 0) cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1); // Current Month Start
+        else if (mode === 1) cutoffDate.setMonth(now.getMonth() - 3);
+        else if (mode === 2) cutoffDate.setMonth(now.getMonth() - 6);
+        else if (mode === 3) cutoffDate.setFullYear(now.getFullYear() - 1);
+        else cutoffDate = new Date(2000, 0, 1); // All Time
+
+        document.querySelectorAll('.eco-filter-labels span').forEach((el, idx) => el.classList.toggle('active', idx == mode));
+
+        let totalIn = 0; let totalOut = 0;
+        let chartLabels = []; let chartData = []; let runningBalance = 0;
+
+        const filteredTxs = txs.filter(t => new Date(t.date || t.timestamp) >= cutoffDate)
+                               .sort((a,b) => new Date(a.date || a.timestamp) - new Date(b.date || b.timestamp));
+
+        filteredTxs.forEach(tx => {
+            let amt = parseFloat(tx.amount || 0);
+            let addedToGraph = false;
+
+            // 🟢 IN: SIP aur Loan Payment (Extra Payment Excluded)
+            if (tx.type === 'SIP') {
+                totalIn += amt; runningBalance += amt; addedToGraph = true;
+            } else if (tx.type === 'Loan Payment') {
+                let pPaid = parseFloat(tx.principalPaid || 0);
+                let iPaid = parseFloat(tx.interestPaid || 0);
+                let paid = (pPaid + iPaid > 0) ? (pPaid + iPaid) : amt;
+                totalIn += paid; runningBalance += paid; addedToGraph = true;
+            } 
+            // 🔴 OUT: Loan Taken (Withdrawals)
+            else if (tx.type === 'Loan Taken' || (tx.type && tx.type.includes('Withdraw'))) {
+                totalOut += amt; runningBalance -= amt; addedToGraph = true;
+            }
+
+            if (addedToGraph) {
+                const d = new Date(tx.date || tx.timestamp);
+                chartLabels.push(d.getDate() + ' ' + d.toLocaleString('default', {month:'short'}));
+                chartData.push(runningBalance);
+            }
+        });
+
+        // % Growth Formula: ((IN - OUT) / IN) * 100
+        let growth = 0;
+        if (totalIn > 0) growth = ((totalIn - totalOut) / totalIn) * 100;
+
+        const growthBadge = document.getElementById('ecoGrowthBadge');
+        growthBadge.textContent = (growth >= 0 ? '+' : '') + growth.toFixed(2) + '%';
+        growthBadge.className = 'eco-growth ' + (growth >= 0 ? '' : 'negative');
+
+        document.getElementById('ecoTotalIn').textContent = '₹' + Math.round(totalIn).toLocaleString('en-IN');
+        document.getElementById('ecoTotalOut').textContent = '₹' + Math.round(totalOut).toLocaleString('en-IN');
+
+        if(window.ecosystemChartInstance) window.ecosystemChartInstance.destroy();
+        if(chartData.length === 0) { chartLabels = ['No Data']; chartData = [0]; }
+
+        window.ecosystemChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    data: chartData,
+                    borderColor: '#D4AF37', backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                    borderWidth: 3, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { display: false } },
+                interaction: { mode: 'index', intersect: false }
+            }
+        });
+    }
+
+    slider.oninput = updateChart;
+    document.querySelectorAll('.eco-filter-labels span').forEach((el, idx) => {
+        el.onclick = () => { slider.value = idx; updateChart(); }
+    });
+    updateChart(); // Initialize On Load
 }
