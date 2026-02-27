@@ -180,7 +180,6 @@ function renderHistoryTab() {
 
     container.innerHTML = '';
     displayTx.forEach(tx => {
-                // 🔥 FIX: Added 'Loan Payment' to income array
         const isIncome = ['SIP', 'Extra Payment', 'Loan Return', 'Loan Payment'].includes(tx.type);
 
         const colorClass = isIncome ? 'income' : 'expense';
@@ -203,7 +202,7 @@ function renderHistoryTab() {
     });
 }
 
-// --- 🔥 UPDATED: Render Profile Gatekeeper (With Loan & SIP Stats) ---
+// --- Render Profile Gatekeeper ---
 function renderProfileGatekeeper() {
     const myId = localStorage.getItem('verifiedMemberId');
 
@@ -221,18 +220,15 @@ function renderProfileGatekeeper() {
         if (found) member = found;
     }
 
-    // 1. Update Image & Name
     const imgEl = document.getElementById('gkProfileImg');
     if (imgEl) imgEl.src = member.displayImageUrl;
     setTextContent('gkProfileName', member.name);
 
-    // 2. Prime Tag
     const roleEl = document.getElementById('gkProfileRole');
     if(roleEl) {
         roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
     }
 
-    // 3. Time Calculator
     let daysText = '-- Days';
     if (member.joiningDate && member.joiningDate !== '--') {
         const joinDate = new Date(member.joiningDate);
@@ -243,14 +239,12 @@ function renderProfileGatekeeper() {
     }
     setTextContent('gkTotalDays', daysText);
 
-    // 4. Update Balance
     const balEl = document.getElementById('gkBalance');
     if(balEl) {
         balEl.textContent = '₹' + formatNumberWithCommas(member.balance);
         balEl.className = `stat-value ${member.balance >= 0 ? 'text-green' : 'text-red'}`;
     }
 
-    // 🔥 5. NEW: Active Loan Logic
     let activeLoanAmt = 0;
     if (member.id && globalData.activeLoans) {
         Object.values(globalData.activeLoans).forEach(l => {
@@ -262,11 +256,9 @@ function renderProfileGatekeeper() {
     const loanEl = document.getElementById('gkActiveLoan');
     if (loanEl) {
         loanEl.textContent = '₹' + formatNumberWithCommas(activeLoanAmt);
-        // Red color if loan exists
         loanEl.style.color = activeLoanAmt > 0 ? '#dc3545' : '#28a745';
     }
 
-    // 🔥 6. NEW: SIP Status Logic
     const sipEl = document.getElementById('gkSipStatus');
     if (sipEl) {
         const isPaid = member.sipStatus?.paid;
@@ -275,7 +267,6 @@ function renderProfileGatekeeper() {
             : '<span style="color:#dc3545; font-weight:800;">Pending ❌</span>';
     }
 
-    // 7. Link Button
     if (elements.gkSubmitBtn) {
         elements.gkSubmitBtn.dataset.memberId = myId || '';
     }
@@ -286,9 +277,8 @@ function setTextContent(id, text) {
     if(el) el.textContent = text;
 }
 
-// --- Main Render Function (Updated to Store Loans) ---
+// --- Main Render Function ---
 export function renderPage(data) {
-    // Update Global State
     globalData.members = data.processedMembers || [];
     globalData.penalty = data.penaltyWalletData || {};
     globalData.transactions = data.allTransactions || [];
@@ -296,7 +286,7 @@ export function renderPage(data) {
     globalData.products = data.allProducts || {};
     globalData.notifications.manual = data.manualNotifications || {};
     globalData.notifications.automated = data.automatedQueue || {};
-    globalData.activeLoans = data.rawActiveLoans || {}; // 🔥 STORE LOANS
+    globalData.activeLoans = data.rawActiveLoans || {}; 
 
     const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
 
@@ -504,14 +494,18 @@ function setupEventListeners(database) {
         if (target.closest('#btnQr')) window.location.href = 'qr.html';
         if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
         if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
+        
         if (target.closest('#btnHistory')) {
              document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
 
-                if (target.closest('#viewBalanceBtn')) {
+        if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
             showBalanceModal(globalData.stats);
         }
+
+        if (target.closest('#viewPenaltyWalletBtn')) showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
+        if (target.closest('#notificationBtn')) window.location.href = 'notifications.html';
 
         // --- NEW: View All Ranked Members Button Logic ---
         if (target.closest('#viewAllRankedBtn')) {
@@ -527,7 +521,7 @@ function setupEventListeners(database) {
             closeModal(elements.rankedModal);
         }
 
-    }); // <--- YAHAN PAR CLICK EVENT CLOSE HOTA HAI (Yeh line pehle missing thi)
+    }); 
 
     // --- NEW: Live Search Filter for Ranked Members ---
     const rankedSearchInput = document.getElementById('rankedSearchInput');
@@ -535,7 +529,7 @@ function setupEventListeners(database) {
         rankedSearchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             const cards = document.querySelectorAll('.scaled-card-wrapper');
-
+            
             cards.forEach(card => {
                 const memberName = card.dataset.name || "";
                 if (memberName.includes(searchTerm)) {
@@ -546,41 +540,6 @@ function setupEventListeners(database) {
             });
         });
     }
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
-        if (e.key === 'Enter' && document.getElementById('passwordInput') === document.activeElement) {
-            handlePasswordCheck(database, currentMemberForFullView);
-        }
-    });
-}
-
-            openModal(elements.rankedModal);
-        }
-
-        // --- NEW: Close Ranked Members Modal ---
-        if (target.closest('#closeRankedModal')) {
-            closeModal(elements.rankedModal);
-        }
-
-    // --- NEW: Live Search Filter for Ranked Members ---
-    const rankedSearchInput = document.getElementById('rankedSearchInput');
-    if (rankedSearchInput) {
-        rankedSearchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const cards = document.querySelectorAll('.scaled-card-wrapper');
-
-            cards.forEach(card => {
-                const memberName = card.dataset.name || "";
-                if (memberName.includes(searchTerm)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-    }
-
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(closeModal);
@@ -633,7 +592,6 @@ function setupPWA() {
     });
 }
 
-
 // --- ECOSYSTEM CHART LOGIC (IN vs OUT) ---
 function renderEcosystemChart() {
     const ctx = document.getElementById('ecosystemChart');
@@ -642,16 +600,15 @@ function renderEcosystemChart() {
 
     function updateChart() {
         const txs = globalData.transactions || [];
-        const mode = parseInt(slider.value); // 0: 1M, 1: 3M, 2: 6M, 3: 1Y, 4: ALL
+        const mode = parseInt(slider.value); 
         const now = new Date();
         let cutoffDate = new Date();
 
-        // Date Filtering
-        if (mode === 0) cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1); // Current Month Start
+        if (mode === 0) cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1); 
         else if (mode === 1) cutoffDate.setMonth(now.getMonth() - 3);
         else if (mode === 2) cutoffDate.setMonth(now.getMonth() - 6);
         else if (mode === 3) cutoffDate.setFullYear(now.getFullYear() - 1);
-        else cutoffDate = new Date(2000, 0, 1); // All Time
+        else cutoffDate = new Date(2000, 0, 1); 
 
         document.querySelectorAll('.eco-filter-labels span').forEach((el, idx) => el.classList.toggle('active', idx == mode));
 
@@ -665,7 +622,6 @@ function renderEcosystemChart() {
             let amt = parseFloat(tx.amount || 0);
             let addedToGraph = false;
 
-            // 🟢 IN: SIP aur Loan Payment (Extra Payment Excluded)
             if (tx.type === 'SIP') {
                 totalIn += amt; runningBalance += amt; addedToGraph = true;
             } else if (tx.type === 'Loan Payment') {
@@ -674,7 +630,6 @@ function renderEcosystemChart() {
                 let paid = (pPaid + iPaid > 0) ? (pPaid + iPaid) : amt;
                 totalIn += paid; runningBalance += paid; addedToGraph = true;
             } 
-            // 🔴 OUT: Loan Taken (Withdrawals)
             else if (tx.type === 'Loan Taken' || (tx.type && tx.type.includes('Withdraw'))) {
                 totalOut += amt; runningBalance -= amt; addedToGraph = true;
             }
@@ -686,7 +641,6 @@ function renderEcosystemChart() {
             }
         });
 
-        // % Growth Formula: ((IN - OUT) / IN) * 100
         let growth = 0;
         if (totalIn > 0) growth = ((totalIn - totalOut) / totalIn) * 100;
 
@@ -723,5 +677,5 @@ function renderEcosystemChart() {
     document.querySelectorAll('.eco-filter-labels span').forEach((el, idx) => {
         el.onclick = () => { slider.value = idx; updateChart(); }
     });
-    updateChart(); // Initialize On Load
+    updateChart(); 
 }
