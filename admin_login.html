@@ -7,7 +7,7 @@
     <title>Direct Member Access - TCF</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <script src="https://unpkg.com/feather-icons"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -39,7 +39,6 @@
             overflow: hidden;
         }
 
-        /* Decorative Top Strip */
         .login-card::before {
             content: '';
             position: absolute;
@@ -164,7 +163,7 @@
         <h2>Member Access</h2>
         <p class="subtitle">Select account to view dashboard</p>
 
-        <div id="loadingMessage" class="loading-text">Loading members list...</div>
+        <div id="loadingMessage" class="loading-text">Authenticating...</div>
 
         <form id="accessForm" style="display: none;">
             <div class="input-group">
@@ -190,7 +189,7 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE SETUP ---
+        // --- 1. FIREBASE SETUP & AUTH CHECK ---
         async function initApp() {
             try {
                 // Config Load
@@ -198,13 +197,26 @@
                 const config = await response.json();
                 
                 if (!firebase.apps.length) firebase.initializeApp(config);
+                
+                const auth = firebase.auth();
                 const db = firebase.database();
 
-                // Fetch Members
-                loadMembers(db);
+                // 🔥 CRITICAL: Listen for Auth State
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        // User Login Hai -> Data Load karo
+                        document.getElementById('loadingMessage').textContent = "Loading members list...";
+                        loadMembers(db);
+                    } else {
+                        // User Login Nahi Hai -> Redirect to Login Page
+                        document.getElementById('loadingMessage').textContent = "Redirecting to Login...";
+                        // ?redirect parameter ke saath bhej rahe hain taaki login ke baad wapas yahi aaye
+                        window.location.href = 'login.html?redirect=admin_login.html';
+                    }
+                });
 
             } catch (error) {
-                document.getElementById('loadingMessage').innerHTML = `<span style="color:red">Error loading system. Check internet.</span>`;
+                document.getElementById('loadingMessage').innerHTML = `<span style="color:red">Error connecting to system.</span>`;
                 console.error(error);
             }
         }
@@ -220,12 +232,12 @@
                     (a.name || a.fullName).localeCompare(b.name || b.fullName)
                 );
 
-                // Store passwords in memory for quick check (Client Side Logic)
+                // Store passwords in memory for quick check
                 window.memberData = {}; 
 
                 sortedMembers.forEach(m => {
                     const name = m.name || m.fullName || "Unknown";
-                    const id = m.id || m.membershipId; // Fallback IDs
+                    const id = m.id || m.membershipId; 
                     
                     if(id && m.password) {
                         const option = document.createElement('option');
@@ -233,20 +245,25 @@
                         option.textContent = name;
                         select.appendChild(option);
                         
-                        // Store minimal data for validation
+                        // Store password for verification
                         window.memberData[id] = {
                             pass: String(m.password).trim()
                         };
                     }
                 });
 
-                // Show Form
+                // UI Show
                 document.getElementById('loadingMessage').style.display = 'none';
                 document.getElementById('accessForm').style.display = 'block';
                 feather.replace();
 
             }).catch(err => {
-                document.getElementById('loadingMessage').textContent = "Failed to load members.";
+                console.error(err);
+                document.getElementById('loadingMessage').innerHTML = "<span style='color:red'>Permission Denied.<br>Please re-login.</span>";
+                // Agar error aaye (permission denied), to 2 second baad login page par bhej do
+                setTimeout(() => {
+                    window.location.href = 'login.html?redirect=admin_login.html';
+                }, 2000);
             });
         }
 
@@ -266,9 +283,7 @@
 
             if (enteredPass === actualPass) {
                 // ✅ SUCCESS: Redirect to View Page
-                // Also set this ID in localStorage so index.html treats user as verified if they go back
                 localStorage.setItem('verifiedMemberId', memberId);
-                
                 window.location.href = `view.html?memberId=${memberId}`;
             } else {
                 // ❌ FAIL
