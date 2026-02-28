@@ -1,9 +1,7 @@
 // tabs/payment/paymentUI.js
-import { allMembers, currentApp, allTransactions } from './payment.js';
+// IMPORT CORRECTION: Global variables import karein
+import { allMembers, allTransactions, currentApp } from './payment.js';
 import { openChatScreen, openAmountScreen, validateAmount, initiatePayment, processPinSetup, verifyAndPay, handlePinChangeMode, openHistoryScreen } from './paymentLogic.js';
-
-
-
 
 let showingAll = false;
 let html5QrcodeScanner = null;
@@ -26,73 +24,61 @@ export function initUI(myMemberInfo, membersList) {
     renderMembersGrid(membersList);
 }
 
-// [REPLACE] paymentUI.js mein renderMembersGrid function ko isse replace karein:
-
-// [REPLACE] paymentUI.js mein renderMembersGrid function ko is naye code se replace karein:
-
+// --- OPTIMIZED RENDER FUNCTION ---
 export function renderMembersGrid(membersList, searchQuery = "") {
     const grid = document.getElementById('members-grid');
     if(!grid) return;
     grid.innerHTML = '';
 
-    // 1. Global Data Access (Safe Check)
-    // Hum payment.js ke exported variable ya global state dono check karenge
-    let txs = [];
-    if (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData && window.tcfApp.state.allData.length > 0) {
-        txs = window.tcfApp.state.allData;
-    } else {
-        // Fallback: Agar global state khali hai to payment.js wala variable try karo
-        // (Note: Import variable direct access nahi milta yahan easily bina module reload ke, 
-        // isliye hum window object ya passed arguments use karte hain usually)
-        // Lekin 'payment.js' me humne 'onValue' lagaya hai jo render call kar raha hai,
-        // to hum assume kar sakte hain data sync ho raha hai.
-        
-        // Quick Fix: Hum 'payment.js' se data pass karwa sakte the, par abhi hum global transactions use karenge
-        // jo 'view_core.js' ya 'payment.js' se populate hote hain.
-        // Chaliye hum 'allTransactions' ko direct import variable mante hain (ES6 module scope)
-        // Lekin safety ke liye hum window object pe depend rahenge agar available hai.
-    }
-    
-    // Agar upar wala check fail ho, to hum payment.js se aayi hui 'allTransactions' use karne ki koshish karenge
-    // (Iske liye file ke top pe: import { allTransactions } from './payment.js'; hona chahiye)
-    // Lekin runtime error se bachne ke liye hum ek custom logic lagayenge:
-    const { allTransactions } = require('./payment.js'); // Hack for intelligent IDEs, browser ignore karega
-    if (!txs || txs.length === 0) txs = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData) || [];
-
-    // My ID
-    const myId = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.member) 
-                 ? window.tcfApp.state.member.membershipId 
+    // 1. Safe ID Access
+    const myId = (currentApp && currentApp.state && currentApp.state.member) 
+                 ? currentApp.state.member.membershipId 
                  : localStorage.getItem('verifiedMemberId');
 
-    // 2. Helper: Get Last Interaction Time
-    const getInteractionInfo = (otherMemberId) => {
-        if (!myId) return { time: 0, receivedRecently: false };
+    // 2. PRE-CALCULATE MAP (Super Fast Logic)
+    // Har member ke liye baar baar filter karne ki jagah ek baar map bana lo
+    const activityMap = {}; // { memberId: { time: 123456, incoming: true/false } }
 
-        // Filter transactions between ME and OTHER
-        const interactions = txs.filter(t => 
-            (t.senderId === myId && t.receiverId === otherMemberId) || // Maine bheja
-            (t.senderId === otherMemberId && t.receiverId === myId) || // Usne bheja
-            (t.memberId === myId && t.receiverId === otherMemberId) || // Old structure
-            (t.memberId === myId && t.senderId === otherMemberId)      // Old structure
-        );
+    if (allTransactions && allTransactions.length > 0) {
+        allTransactions.forEach(tx => {
+            if (!tx.date) return;
+            const time = new Date(tx.date).getTime();
 
-        if (interactions.length === 0) return { time: 0, receivedRecently: false };
+            // Identify other party
+            let otherId = null;
+            let isIncomingFromThem = false;
 
-        // Sort desc (Latest first)
-        interactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-        const lastTx = interactions[0];
-        const lastTime = new Date(lastTx.date).getTime();
+            if (tx.senderId === myId) {
+                otherId = tx.receiverId; // Maine bheja
+            } else if (tx.receiverId === myId) {
+                otherId = tx.senderId; // Mujhe aaya
+                isIncomingFromThem = true;
+            } else if (tx.type === 'P2P Sent' && tx.memberId === myId) {
+                 otherId = tx.receiverId;
+            } else if (tx.type === 'P2P Received' && tx.memberId === myId) {
+                 otherId = tx.senderId;
+                 isIncomingFromThem = true;
+            }
 
-        // Check if I RECEIVED money recently (within 24 hours)
-        let receivedRecently = false;
-        // Logic: Agar sender WO hai aur receiver MAIN hu
-        if (lastTx.senderId === otherMemberId && (lastTx.receiverId === myId || lastTx.memberId === myId)) {
-            const diffHours = (new Date() - new Date(lastTx.date)) / (1000 * 60 * 60);
-            if (diffHours < 24) receivedRecently = true;
-        }
+            if (otherId) {
+                // Agar pehle se data hai, to latest wala rakho
+                if (!activityMap[otherId] || time > activityMap[otherId].time) {
 
-        return { time: lastTime, receivedRecently: receivedRecently };
-    };
+                    // Check if recently received (within 48 hours)
+                    let showDot = false;
+                    if (isIncomingFromThem) {
+                        const diffHours = (new Date() - new Date(tx.date)) / (1000 * 60 * 60);
+                        if (diffHours < 48) showDot = true;
+                    }
+
+                    activityMap[otherId] = {
+                        time: time,
+                        hasGreenDot: showDot
+                    };
+                }
+            }
+        });
+    }
 
     // 3. Search Filter
     let filteredList = membersList;
@@ -102,37 +88,37 @@ export function renderMembersGrid(membersList, searchQuery = "") {
             (m.fullName && m.fullName.toLowerCase().includes(lowerQ)) || 
             (m.membershipId && m.membershipId.toLowerCase().includes(lowerQ))
         );
+        showingAll = true; // Search karte waqt sab dikhao
     }
 
-    // 4. SORTING: Active Members First
-    // Hum har member ke object me temporary sort key add karenge
-    const listWithMeta = filteredList.map(m => {
-        const info = getInteractionInfo(m.membershipId);
-        return { ...m, _lastTime: info.time, _isRecent: info.receivedRecently };
+    // 4. SORTING (Using Map - Very Fast)
+    filteredList.sort((a, b) => {
+        const timeA = activityMap[a.membershipId]?.time || 0;
+        const timeB = activityMap[b.membershipId]?.time || 0;
+        return timeB - timeA; // Latest first
     });
 
-    listWithMeta.sort((a, b) => b._lastTime - a._lastTime);
-
-    // 5. Render UI
-    let displayList = listWithMeta;
+    // 5. Render Limit
+    let displayList = filteredList;
     let needsMoreBtn = false;
 
-    if (!window.showingAllMembers && displayList.length > 7) {
-        displayList = displayList.slice(0, 7);
+    if (!showingAll && filteredList.length > 8) {
+        displayList = filteredList.slice(0, 7);
         needsMoreBtn = true;
     }
 
     let html = '';
     displayList.forEach(m => {
         const initial = m.fullName ? m.fullName.charAt(0).toUpperCase() : '?';
-        
-        // STYLING LOGIC
-        let borderClass = 'border-indigo-100'; // Default Border
-        let indicatorHtml = ''; // Green Dot
+        const activity = activityMap[m.membershipId];
+        const showGreenDot = activity && activity.hasGreenDot;
 
-        // Agar paisa aaya hai (Green Circle + Dot)
-        if (m._isRecent) {
-            borderClass = 'border-green-500 ring-2 ring-green-100'; // Green Ring styling
+        // Styling
+        let borderClass = 'border-indigo-100'; 
+        let indicatorHtml = ''; 
+
+        if (showGreenDot) {
+            borderClass = 'border-green-500 ring-2 ring-green-100';
             indicatorHtml = `
                 <div class="absolute -bottom-1 -right-1 bg-green-500 text-white text-[8px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white z-10 shadow-sm animate-pulse">
                     <i class="fas fa-arrow-down"></i>
@@ -145,7 +131,6 @@ export function renderMembersGrid(membersList, searchQuery = "") {
 
         const shortName = m.fullName && m.fullName.length > 10 ? m.fullName.substring(0, 9) + '...' : (m.fullName || 'Unknown');
 
-        // Main HTML Structure
         html += `
         <div class="flex flex-col items-center member-btn cursor-pointer group animate-fade" data-id="${m.membershipId}">
             <div class="w-16 h-16 rounded-full bg-white border-2 ${borderClass} p-0.5 shadow-sm mb-1 relative group-active:scale-95 transition-transform">
@@ -154,7 +139,7 @@ export function renderMembersGrid(membersList, searchQuery = "") {
                 </div>
                 ${indicatorHtml}
             </div>
-            <span class="text-[10px] font-bold text-gray-700 text-center w-full truncate px-1 ${m._isRecent ? 'text-green-700' : ''}">${shortName}</span>
+            <span class="text-[10px] font-bold text-gray-700 text-center w-full truncate px-1 ${showGreenDot ? 'text-green-700' : ''}">${shortName}</span>
         </div>`;
     });
 
@@ -168,7 +153,7 @@ export function renderMembersGrid(membersList, searchQuery = "") {
         </div>`;
     }
 
-    if (displayList.length === 0) {
+    if (filteredList.length === 0) {
         grid.innerHTML = `<div class="col-span-4 text-center py-12"><p class="text-gray-500 text-xs font-bold">No members found</p></div>`;
         return;
     }
@@ -263,7 +248,7 @@ export function renderFullHistory(historyArray, myId) {
         const iconClass = isSent ? 'fa-arrow-up' : 'fa-arrow-down';
 
         let title = isSent ? `Paid to ${tx.receiverName || 'Unknown'}` : `Received from ${tx.senderName || 'Member'}`;
-        
+
         // Unique ID for receipt generation
         const rowId = `tx-row-${index}`;
 
@@ -490,7 +475,7 @@ window.downloadReceiptImage = function(rowId, title, amount, time) {
         <div style="border: 2px solid #D4AF37; padding: 20px; border-radius: 15px; position: relative;">
             <h2 style="color: #D4AF37; font-size: 18px; margin: 0 0 5px 0; text-transform: uppercase; letter-spacing: 1px;">TCF Payment Receipt</h2>
             <p style="font-size: 10px; color: #aaa; margin-bottom: 20px;">Trust Community Fund</p>
-            
+
             <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
                 <p style="font-size: 12px; color: #ddd; margin: 0;">Amount</p>
                 <p style="font-size: 32px; font-weight: bold; margin: 5px 0; color: #fff;">₹${parseFloat(amount).toLocaleString('en-IN')}</p>
@@ -502,13 +487,13 @@ window.downloadReceiptImage = function(rowId, title, amount, time) {
                 <p style="margin-bottom: 8px;"><strong style="color:#D4AF37">Date:</strong> ${time}</p>
                 <p style="margin-bottom: 0;"><strong style="color:#D4AF37">Status:</strong> Completed</p>
             </div>
-            
+
             <div style="margin-top: 25px; font-size: 9px; color: #666;">
                 Generated by TCF App
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(receiptDiv);
 
     // 2. Capture and Download
