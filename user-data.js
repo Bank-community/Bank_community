@@ -1,9 +1,9 @@
-// user-data.js - SUPREME LOGIC (Self-Correcting Engine)
-// RESPONSIBILITY: Force Calculate Balances from History & Ignore Wrong DB Data
+// user-data.js - FINAL FORMULA VERSION (Strict SIP - Loans = Available)
+// RESPONSIBILITY: Force Calculate Everything from Transaction History
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v10'; // Version 10: Force New Logic
+const CACHE_KEY = 'tcf_royal_cache_v11'; // Version 11: Fresh Start
 
 export async function fetchAndProcessData(database, onUpdate = null) {
     // 1. Load Cache (Fast View)
@@ -11,7 +11,6 @@ export async function fetchAndProcessData(database, onUpdate = null) {
         try {
             const cachedRaw = localStorage.getItem(CACHE_KEY);
             if (cachedRaw) {
-                // Cache data ko bhi wapas re-calculate karke bhejo
                 onUpdate(processRawData(JSON.parse(cachedRaw))); 
             }
         } catch (e) { console.warn("Cache Warning"); }
@@ -20,7 +19,7 @@ export async function fetchAndProcessData(database, onUpdate = null) {
     if (!database) return;
 
     try {
-        // 2. Fetch Fresh Data
+        // 2. Fetch Fresh Data from Database
         const [membersSnap, txSnap, adminSnap, penaltySnap, loansSnap, notifSnap, autoSnap, prodSnap, lifetimeSnap] = await Promise.all([
             database.ref('members').once('value'),
             database.ref('transactions').once('value'),
@@ -45,10 +44,10 @@ export async function fetchAndProcessData(database, onUpdate = null) {
             lifetimeStats: lifetimeSnap.val() || {}
         };
 
-        // Save Raw Data (Logic will run on this raw data every time)
+        // Update Cache
         localStorage.setItem(CACHE_KEY, JSON.stringify(rawData));
         
-        // Process & Calculate
+        // Process Data
         const processed = processRawData(rawData);
         if (onUpdate) onUpdate(processed);
 
@@ -66,10 +65,10 @@ function processRawData(data) {
     const rawLifetime = data.lifetimeStats || {};
 
     // -----------------------------------------------------------
-    // 🕵️‍♂️ STEP 1: PREPARE TRANSACTIONS (Sabse Pehle History Nikalo)
+    // 🧹 STEP 1: CLEAN TRANSACTIONS (History)
     // -----------------------------------------------------------
     const allTransactions = Object.values(rawTx).map(tx => {
-        // Fix: Agar amount gayab hai (Loan Payment me), to principal+interest jodo
+        // Agar amount field gayab hai, to usse banao
         if (tx.amount === undefined && (tx.principalPaid !== undefined || tx.interestPaid !== undefined)) {
             tx.amount = (parseFloat(tx.principalPaid) || 0) + (parseFloat(tx.interestPaid) || 0);
         }
@@ -77,78 +76,74 @@ function processRawData(data) {
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     // -----------------------------------------------------------
-    // 🧮 STEP 2: MASTER CALCULATION LOOP (Self-Correction Mode)
+    // 🧮 STEP 2: CALCULATE TOTAL SIP & INTEREST (From History)
     // -----------------------------------------------------------
-    
-    // Global Counters (Community Fund)
-    let calculatedTotalSIP = 0;      
-    let calculatedTotalInterest = 0; 
+    let grandTotalSIP = 0;      
+    let grandTotalInterest = 0; // Returns
+    const memberRealBalances = {}; // Har member ka asli balance
 
-    // Individual Member Wallets (Har member ka hisaab)
-    const memberRealWallets = {}; 
-
-    // Loop through EVERY transaction
     allTransactions.forEach(tx => {
         const amt = parseFloat(tx.amount || 0);
         const type = tx.type || '';
         const mId = tx.memberId;
 
-        // Init Member Wallet if needed
-        if (!memberRealWallets[mId]) memberRealWallets[mId] = 0;
+        // Member ka wallet initialize karo
+        if (!memberRealBalances[mId]) memberRealBalances[mId] = 0;
 
-        // --- Logic A: Member Balance & Total SIP ---
+        // --- Logic: Total SIP ---
         if (type === 'SIP' || type === 'Extra Payment') {
-            memberRealWallets[mId] += amt; // Member ka paisa bada
-            calculatedTotalSIP += amt;     // Community ka SIP bada
+            grandTotalSIP += amt;         // Community SIP badhao
+            memberRealBalances[mId] += amt; // Member ka balance badhao
         } 
         else if (type === 'Extra Withdraw') {
-            memberRealWallets[mId] -= amt; // Member ne paisa nikala
-            // Note: Community SIP amount usually remains cumulative, but available balance drops.
+            // Withdraw se community SIP kam nahi hota, bas available cash kam hota hai
+            // Lekin member ka balance kam hota hai
+            memberRealBalances[mId] -= amt; 
+            grandTotalSIP -= amt; // Agar aap chahte hain ki withdraw se Total Fund kam dikhe
         }
 
-        // --- Logic B: Interest Earnings ---
+        // --- Logic: Interest (Returns) ---
         if (type === 'Loan Payment') {
             const interest = parseFloat(tx.interestPaid || 0);
-            calculatedTotalInterest += interest; // Ye Community ki kamai hai
+            grandTotalInterest += interest; 
         }
     });
 
     // -----------------------------------------------------------
-    // 📉 STEP 3: ACTIVE LOANS (Kitna paisa bahar hai?)
+    // 📉 STEP 3: CALCULATE ACTIVE LOANS (From ActiveLoans Node)
     // -----------------------------------------------------------
-    let calculatedActiveLoans = 0;
-    let totalLoansDisbursed = parseFloat(rawLifetime.totalLoanIssued || 0);
-
+    let grandTotalActiveLoans = 0;
+    
     Object.values(rawLoans).forEach(loan => {
         if (loan.status === 'Active') {
-            // Hum 'amount' (Principal) lenge jo abhi wapas aana baki hai
-            calculatedActiveLoans += parseFloat(loan.amount || loan.originalAmount || 0);
+            // Hum 'amount' (Principal) lenge
+            grandTotalActiveLoans += parseFloat(loan.amount || loan.originalAmount || 0);
         }
     });
 
     // -----------------------------------------------------------
-    // ⚖️ STEP 4: THE MATCHING LOGIC (Available Balance Formula)
-    // Available = (Total SIP + Total Interest Earned) - (Active Loan Principal)
+    // ⚖️ STEP 4: YOUR FORMULA (The Supreme Logic)
+    // Formula: Total SIP - Active Loans = Available Balance
+    // Note: Hum Interest bhi jod rahe hain kyunki wo bhi Cash In Hand hai
     // -----------------------------------------------------------
-    let realAvailableBalance = (calculatedTotalSIP + calculatedTotalInterest) - calculatedActiveLoans;
     
-    // Safety: Negative nahi hona chahiye
-    if (realAvailableBalance < 0) realAvailableBalance = 0;
+    // Total Cash In Hand = (SIP Ka Paisa + Byaj Ka Paisa) - (Loan Me Diya Paisa)
+    let calculatedAvailableBalance = (grandTotalSIP + grandTotalInterest) - grandTotalActiveLoans;
 
-    // NOTE: Humne Database ki 'admin.balanceStats.availableBalance' ko check bhi nahi kiya.
-    // Sidha 'realAvailableBalance' use karenge. Yehi "Update" logic hai.
+    // Safety: Negative na ho
+    if (calculatedAvailableBalance < 0) calculatedAvailableBalance = 0;
 
     // -----------------------------------------------------------
-    // 👤 STEP 5: PROCESS MEMBERS (Override Wrong DB Data)
+    // 👤 STEP 5: FIX MEMBERS (Ignore Database 'accountBalance')
     // -----------------------------------------------------------
     const processedMembers = Object.keys(rawMembers).map(key => {
         const m = rawMembers[key];
 
-        // 🛑 IMPORTANT: Database ka 'accountBalance' IGNORE karo.
-        // Humne jo 'memberRealWallets[key]' calculate kiya hai, wahi SACH hai.
-        const actualBalance = memberRealWallets[key] || 0;
+        // 🛑 DATABASE VALUE IGNORED
+        // Humne jo upar 'memberRealBalances' calculate kiya, wahi use karenge
+        const actualBalance = memberRealBalances[key] || 0;
 
-        // SIP Status Check (Current Month)
+        // SIP Status Logic
         const currentMonth = new Date().toISOString().slice(0, 7);
         let isPaid = false;
         let sipAmount = 0;
@@ -157,7 +152,6 @@ function processRawData(data) {
             isPaid = true;
             sipAmount = m.sipHistory[currentMonth].amount;
         } else {
-            // Agar profile me flag nahi hai, to Transaction check karo
             const hasTx = allTransactions.find(t => 
                 t.memberId === key && 
                 (t.type === 'SIP' || t.type === 'Extra Payment') && 
@@ -170,7 +164,7 @@ function processRawData(data) {
             id: key,
             name: m.fullName || m.name || 'Unknown',
             
-            // 🔥 Yahan humne database ki galti sudhar di
+            // 🔥 REAL CALCULATED BALANCE
             balance: actualBalance, 
             
             displayImageUrl: m.profilePicUrl || m.profileImage || DEFAULT_IMAGE,
@@ -178,24 +172,22 @@ function processRawData(data) {
             sipStatus: { paid: isPaid, amount: sipAmount },
             loanCount: m.loanCount || 0,
             totalReturn: m.totalReturn || 0,
-            ...m // Baki details wahi rahengi
+            ...m 
         };
     }).sort((a, b) => b.balance - a.balance);
 
     // -----------------------------------------------------------
-    // 📊 STEP 6: COMMUNITY STATS (Final Corrected Data)
+    // 📊 STEP 6: FIX TCF CARD (Ignore Database Stats)
     // -----------------------------------------------------------
     const stats = {
-        // Ye teeno values ab HISTORY se calculate hokar aayi hain, DB se nahi.
-        totalSipAmount: calculatedTotalSIP,              
-        totalCurrentLoanAmount: calculatedActiveLoans,   
-        netReturnAmount: calculatedTotalInterest,        
+        totalSipAmount: grandTotalSIP,               // History se calculated
+        totalCurrentLoanAmount: grandTotalActiveLoans, // Active Loan node se calculated
+        netReturnAmount: grandTotalInterest,         // History se calculated
         
-        // Ye sabse important fix hai
-        availableCommunityBalance: realAvailableBalance, 
+        availableCommunityBalance: calculatedAvailableBalance, // Formula Result
         
         totalPenaltyBalance: parseFloat(rawPenalty.availableBalance || 0),
-        totalLoanDisbursed: totalLoansDisbursed
+        totalLoanDisbursed: parseFloat(rawLifetime.totalLoanIssued || 0)
     };
 
     return {
