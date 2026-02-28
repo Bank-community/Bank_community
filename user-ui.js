@@ -432,13 +432,7 @@ function setupEventListeners(database) {
             closeModal(modal);
         }
 
-        if (target.closest('#totalMembersCard')) {
-            showAllMembersModal(globalData.members, (id) => {
-                closeModal(elements.allMembersModal);
-                currentMemberForFullView = id;
-                showMemberProfileModal(id, globalData.members);
-            }, showFullImage);
-        }
+
 
         if (target.closest('#fullViewBtn')) swapModals(elements.profileModal, elements.passwordModal);
 
@@ -494,7 +488,7 @@ function setupEventListeners(database) {
         if (target.closest('#btnQr')) window.location.href = 'qr.html';
         if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
         if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
-        
+
         if (target.closest('#btnHistory')) {
              document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
@@ -529,7 +523,7 @@ function setupEventListeners(database) {
         rankedSearchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             const cards = document.querySelectorAll('.scaled-card-wrapper');
-            
+
             cards.forEach(card => {
                 const memberName = card.dataset.name || "";
                 if (memberName.includes(searchTerm)) {
