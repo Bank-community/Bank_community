@@ -312,7 +312,7 @@ function getProcessedData(memberId, type) {
 }
 
 
-// --- 4. BRAHMASTRA PDF GENERATOR (Updated with Password & Footer Totals) ---
+// --- 4. BRAHMASTRA PDF GENERATOR (Updated: No Hint, No Status Box) ---
 async function generateSmartPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -328,7 +328,8 @@ async function generateSmartPDF() {
         
         const todayPass = `${dd}${mm}${yy}`; // Example: 280226
         
-        const userPass = prompt(`🔒 Protected File\nEnter Today's Date (DDMMYY) to Download:\n(Hint: ${todayPass})`);
+        // ⚡ CHANGE 1: Hint Removed
+        const userPass = prompt(`🔒 Protected File\nThis file is password protected.\nEnter Today's Date (DDMMYY) to Download:`);
         
         if (userPass !== todayPass) {
             alert("❌ Incorrect Password! Download Cancelled.");
@@ -385,17 +386,17 @@ async function generateSmartPDF() {
         doc.setTextColor(100);
         doc.text(`Member ID: ${memberId} | Joined: ${joinDate}`, 14, 61);
 
-        // Draw 6 Stats Boxes
+        // Draw Stats Boxes
         const boxW = 30; const boxH = 16; const gap = 4;
         const startX = 14; const statsY = 70;
 
+        // ⚡ CHANGE 2: Removed 'Status' Object from here
         const statsData = [
             { label: "Total SIP", val: domSip, col: colGreen },
             { label: "Total Loan", val: domLoan, col: colPrimary },
             { label: "Net Bal", val: domBal, col: colPrimary },
             { label: "Loan Due", val: domDue, col: colRed },
-            { label: "Int. Paid", val: domInt, col: colPrimary },
-            { label: "Status", val: "ACTIVE", col: colGold }
+            { label: "Int. Paid", val: domInt, col: colPrimary }
         ];
 
         statsData.forEach((s, i) => {
@@ -416,10 +417,8 @@ async function generateSmartPDF() {
     }
 
     // === C. THE TABLE (WITH FOOTER TOTALS) ===
-    // Get Data AND Totals
     const { rows, totals } = getProcessedData(memberId, document.getElementById('typeFilter').value);
     
-    // Prepare Body Data
     const tableData = rows.reverse().map(r => [
         r.date,
         r.desc,
@@ -429,8 +428,6 @@ async function generateSmartPDF() {
         formatMoney(r.balance)
     ]);
 
-    // Prepare Footer Row (Totals)
-    // Calculating final balance for footer (Using the latest balance from the first row of reversed data)
     const closingBalance = rows.length > 0 ? rows[0].balance : 0;
 
     const footerRow = [
@@ -442,12 +439,11 @@ async function generateSmartPDF() {
         formatMoney(closingBalance)
     ];
 
-    // Render Table
     doc.autoTable({
         startY: startY,
         head: [['Date', 'Description', 'Debit', 'Principal', 'Interest', 'Balance']],
         body: tableData,
-        foot: [footerRow], // 🔥 Footer Added Here
+        foot: [footerRow],
         theme: 'grid',
         styles: {
             fontSize: 8, cellPadding: 3, valign: 'middle',
@@ -456,7 +452,7 @@ async function generateSmartPDF() {
         headStyles: {
             fillColor: colPrimary, textColor: 255, fontStyle: 'bold', halign: 'center'
         },
-        footStyles: { // 🔥 Footer Styling
+        footStyles: {
             fillColor: [240, 240, 240], textColor: colPrimary, fontStyle: 'bold', halign: 'right'
         },
         columnStyles: {
@@ -474,7 +470,7 @@ async function generateSmartPDF() {
         }
     });
 
-    // === D. COMMUNITY FOOTER (For All Members) ===
+    // === D. COMMUNITY FOOTER ===
     if (isCommunity) {
         let finalY = doc.lastAutoTable.finalY + 10;
         if (finalY > 240) { doc.addPage(); finalY = 20; }
@@ -507,6 +503,7 @@ async function generateSmartPDF() {
 
     doc.save(isCommunity ? 'TCF_Community_Report.pdf' : `TCF_${memberId}.pdf`);
 }
+
 
 
 // --- Utilities ---
