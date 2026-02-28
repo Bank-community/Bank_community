@@ -1,6 +1,9 @@
 // tabs/payment/paymentUI.js
-import { allMembers, currentApp } from './payment.js';
+import { allMembers, currentApp, allTransactions } from './payment.js';
 import { openChatScreen, openAmountScreen, validateAmount, initiatePayment, processPinSetup, verifyAndPay, handlePinChangeMode, openHistoryScreen } from './paymentLogic.js';
+
+
+
 
 let showingAll = false;
 let html5QrcodeScanner = null;
@@ -23,11 +26,14 @@ export function initUI(myMemberInfo, membersList) {
     renderMembersGrid(membersList);
 }
 
+// [REPLACE] paymentUI.js mein renderMembersGrid function ko isse replace karein:
+
 export function renderMembersGrid(membersList, searchQuery = "") {
     const grid = document.getElementById('members-grid');
     if(!grid) return;
     grid.innerHTML = '';
 
+    // 1. Search Filter
     let filteredList = membersList;
     if (searchQuery.trim() !== "") {
         const lowerQ = searchQuery.toLowerCase();
@@ -35,13 +41,31 @@ export function renderMembersGrid(membersList, searchQuery = "") {
             (m.fullName && m.fullName.toLowerCase().includes(lowerQ)) || 
             (m.membershipId && m.membershipId.toLowerCase().includes(lowerQ))
         );
-        showingAll = true;
     }
 
+    // 2. SORTING LOGIC (Corrected)
+    // Uses global state or imported transactions to sort active members first
+    filteredList.sort((a, b) => {
+        // Global state se data lo (Safe fallback)
+        const txs = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData) ? window.tcfApp.state.allData : allTransactions;
+
+        const getLastTime = (mId) => {
+            // Find latest transaction involving this member
+            const tList = txs.filter(x => x.memberId === mId || x.senderId === mId || x.receiverId === mId);
+            if(tList.length === 0) return 0;
+            // Sort to get latest
+            tList.sort((x,y) => new Date(y.date) - new Date(x.date));
+            return new Date(tList[0].date).getTime();
+        };
+
+        return getLastTime(b.membershipId) - getLastTime(a.membershipId);
+    });
+
+    // 3. Render UI
     let displayList = filteredList;
     let needsMoreBtn = false;
 
-    if (!showingAll && filteredList.length > 7) {
+    if (!window.showingAllMembers && filteredList.length > 7) {
         displayList = filteredList.slice(0, 7);
         needsMoreBtn = true;
     }
@@ -49,6 +73,26 @@ export function renderMembersGrid(membersList, searchQuery = "") {
     let html = '';
     displayList.forEach(m => {
         const initial = m.fullName ? m.fullName.charAt(0).toUpperCase() : '?';
+
+        // GREEN DOT CHECK
+        let greenDotHtml = '';
+        const txs = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData) ? window.tcfApp.state.allData : allTransactions;
+        const myId = window.tcfApp.state.member.membershipId;
+
+        // Member ke transactions mere sath
+        const mTx = txs.filter(t => (t.senderId === m.membershipId && t.receiverId === myId) || (t.type === 'P2P Received' && t.memberId === myId && t.senderId === m.membershipId));
+
+        if(mTx.length > 0) {
+            mTx.sort((a,b) => new Date(b.date) - new Date(a.date));
+            const last = mTx[0];
+            const diffHours = (new Date() - new Date(last.date)) / (1000 * 60 * 60);
+
+            // Agar last transaction 48 ghante ke andar received hai
+            if(diffHours < 48) { 
+                greenDotHtml = `<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>`;
+            }
+        }
+
         let avatarHtml = m.profilePicUrl 
             ? `<img src="${m.profilePicUrl}" class="w-full h-full object-cover rounded-full" crossorigin="anonymous">`
             : `<div class="w-full h-full bg-indigo-500 text-white flex items-center justify-center text-xl font-bold rounded-full">${initial}</div>`;
@@ -56,9 +100,12 @@ export function renderMembersGrid(membersList, searchQuery = "") {
         const shortName = m.fullName && m.fullName.length > 10 ? m.fullName.substring(0, 9) + '...' : (m.fullName || 'Unknown');
 
         html += `
-        <div class="flex flex-col items-center member-btn cursor-pointer group" data-id="${m.membershipId}">
-            <div class="w-16 h-16 rounded-full bg-white border-2 border-indigo-100 p-0.5 shadow-sm overflow-hidden mb-1 relative group-active:scale-95 transition-transform">
-                ${avatarHtml}
+        <div class="flex flex-col items-center member-btn cursor-pointer group animate-fade" data-id="${m.membershipId}">
+            <div class="w-16 h-16 rounded-full bg-white border-2 border-indigo-100 p-0.5 shadow-sm overflow-visible mb-1 relative group-active:scale-95 transition-transform">
+                <div class="w-full h-full relative rounded-full overflow-hidden">
+                    ${avatarHtml}
+                </div>
+                ${greenDotHtml} 
             </div>
             <span class="text-[10px] font-bold text-gray-700 text-center w-full truncate px-1">${shortName}</span>
         </div>`;
@@ -66,7 +113,7 @@ export function renderMembersGrid(membersList, searchQuery = "") {
 
     if (needsMoreBtn) {
         html += `
-        <div class="flex flex-col items-center cursor-pointer group" id="view-more-btn">
+        <div class="flex flex-col items-center cursor-pointer group" id="view-more-btn" onclick="window.showingAllMembers=true; import('./paymentUI.js').then(m=>m.renderMembersGrid(window.tcfApp.state.memberMap.values(), ''))">
             <div class="w-16 h-16 rounded-full bg-white border-2 border-gray-100 p-0.5 shadow-sm flex items-center justify-center mb-1 group-active:scale-95 transition-transform">
                 <div class="w-full h-full bg-gray-50 rounded-full flex items-center justify-center"><i class="fas fa-chevron-down text-gray-400 text-xl"></i></div>
             </div>
@@ -80,6 +127,8 @@ export function renderMembersGrid(membersList, searchQuery = "") {
     }
     grid.innerHTML = html;
 }
+
+
 
 export function renderChatHistory(myId, receiverId, transactions) {
     const container = document.getElementById('chat-bubbles');
@@ -138,6 +187,8 @@ export function renderChatHistory(myId, receiverId, transactions) {
 }
 
 // 📜 NEW: RENDER FULL TRANSACTION HISTORY LIST
+// [REPLACE] paymentUI.js mein renderFullHistory function ko isse replace karein:
+
 export function renderFullHistory(historyArray, myId) {
     const container = document.getElementById('history-list-container');
     if (!container) return;
@@ -153,7 +204,7 @@ export function renderFullHistory(historyArray, myId) {
     }
 
     let html = '';
-    historyArray.forEach(tx => {
+    historyArray.forEach((tx, index) => {
         const isSent = tx.type === 'P2P Sent' && tx.memberId === myId;
         const timeStr = new Date(tx.date).toLocaleString('en-IN', {
             day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'
@@ -165,18 +216,13 @@ export function renderFullHistory(historyArray, myId) {
         const iconColor = isSent ? 'text-gray-500' : 'text-green-500';
         const iconClass = isSent ? 'fa-arrow-up' : 'fa-arrow-down';
 
-        // Define title carefully based on transaction type
-        let title = '';
-        if (isSent) {
-            title = `Paid to ${tx.receiverName || 'Unknown'}`;
-        } else {
-            // For received, we should ideally use senderName. 
-            // Fallback to "Member" if senderName is missing in older DB records.
-            title = `Received from ${tx.senderName || 'Member'}`; 
-        }
+        let title = isSent ? `Paid to ${tx.receiverName || 'Unknown'}` : `Received from ${tx.senderName || 'Member'}`;
+
+        // Unique ID for receipt generation
+        const rowId = `tx-row-${index}`;
 
         html += `
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition-transform active:scale-[0.98]">
+        <div id="${rowId}" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition-transform relative group">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full ${iconBg} ${iconColor} flex items-center justify-center text-sm shadow-inner">
                     <i class="fas ${iconClass}"></i>
@@ -187,15 +233,21 @@ export function renderFullHistory(historyArray, myId) {
                     ${tx.p2pNote ? `<p class="text-[9px] text-gray-500 italic mt-0.5 max-w-[120px] truncate">"${tx.p2pNote}"</p>` : ''}
                 </div>
             </div>
-            <div class="text-right">
-                <p class="font-extrabold ${amountColor} text-sm">${sign}₹${tx.amount.toLocaleString('en-IN')}</p>
-                <p class="text-[8px] text-gray-400 mt-0.5">Success</p>
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <p class="font-extrabold ${amountColor} text-sm">${sign}₹${tx.amount.toLocaleString('en-IN')}</p>
+                    <p class="text-[8px] text-gray-400 mt-0.5">Success</p>
+                </div>
+                <button onclick="window.downloadReceiptImage('${rowId}', '${title}', '${tx.amount}', '${timeStr}')" class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 hover:text-[#001540] hover:bg-gray-200 flex items-center justify-center transition-colors">
+                    <i class="fas fa-download text-xs"></i>
+                </button>
             </div>
         </div>`;
     });
 
     container.innerHTML = html;
 }
+
 
 export function setupUIListeners() {
     const container = document.getElementById('app-content');
@@ -370,3 +422,60 @@ function onScanSuccess(decodedText) {
         else alert(`❌ Member ID [${scannedId}] not found in your active list.`);
     } else { alert("⚠️ Invalid QR Code. Please scan a valid TCF SIP QR."); }
 }
+
+
+// [ADD AT THE END] paymentUI.js ke sabse last me ye code paste karein:
+
+// --- RECEIPT GENERATOR ---
+window.downloadReceiptImage = function(rowId, title, amount, time) {
+    // 1. Create a temporary receipt element
+    const receiptDiv = document.createElement('div');
+    receiptDiv.style.position = 'fixed';
+    receiptDiv.style.top = '-9999px';
+    receiptDiv.style.left = '-9999px';
+    receiptDiv.style.width = '350px';
+    receiptDiv.style.background = 'linear-gradient(135deg, #001540 0%, #002366 100%)';
+    receiptDiv.style.padding = '30px 20px';
+    receiptDiv.style.borderRadius = '20px';
+    receiptDiv.style.color = 'white';
+    receiptDiv.style.fontFamily = 'Poppins, sans-serif';
+    receiptDiv.style.textAlign = 'center';
+    receiptDiv.innerHTML = `
+        <div style="border: 2px solid #D4AF37; padding: 20px; border-radius: 15px; position: relative;">
+            <h2 style="color: #D4AF37; font-size: 18px; margin: 0 0 5px 0; text-transform: uppercase; letter-spacing: 1px;">TCF Payment Receipt</h2>
+            <p style="font-size: 10px; color: #aaa; margin-bottom: 20px;">Trust Community Fund</p>
+
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                <p style="font-size: 12px; color: #ddd; margin: 0;">Amount</p>
+                <p style="font-size: 32px; font-weight: bold; margin: 5px 0; color: #fff;">₹${parseFloat(amount).toLocaleString('en-IN')}</p>
+                <p style="font-size: 10px; color: #4ade80;">Payment Successful <span style="font-size:12px">✔</span></p>
+            </div>
+
+            <div style="text-align: left; margin-top: 20px; font-size: 12px; color: #ccc;">
+                <p style="margin-bottom: 8px;"><strong style="color:#D4AF37">Type:</strong> ${title}</p>
+                <p style="margin-bottom: 8px;"><strong style="color:#D4AF37">Date:</strong> ${time}</p>
+                <p style="margin-bottom: 0;"><strong style="color:#D4AF37">Status:</strong> Completed</p>
+            </div>
+
+            <div style="margin-top: 25px; font-size: 9px; color: #666;">
+                Generated by TCF App
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(receiptDiv);
+
+    // 2. Capture and Download
+    if(typeof html2canvas !== 'undefined') {
+        html2canvas(receiptDiv, { scale: 2, backgroundColor: null }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `TCF-Receipt-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            document.body.removeChild(receiptDiv);
+        });
+    } else {
+        alert("Receipt library loading... Try again in 2 seconds.");
+        document.body.removeChild(receiptDiv);
+    }
+};
