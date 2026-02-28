@@ -312,13 +312,30 @@ function getProcessedData(memberId, type) {
 }
 
 
-// --- 4. BRAHMASTRA PDF GENERATOR (Fixed Layout) ---
+// --- 4. BRAHMASTRA PDF GENERATOR (Updated with Password & Footer Totals) ---
 async function generateSmartPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const memberId = document.getElementById('memberFilter').value;
     const isCommunity = memberId === 'all';
     
+    // --- 🔒 PASSWORD LOGIC FOR ALL MEMBERS ---
+    if (isCommunity) {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0'); // Jan is 0
+        const yy = String(now.getFullYear()).slice(-2);
+        
+        const todayPass = `${dd}${mm}${yy}`; // Example: 280226
+        
+        const userPass = prompt(`🔒 Protected File\nEnter Today's Date (DDMMYY) to Download:\n(Hint: ${todayPass})`);
+        
+        if (userPass !== todayPass) {
+            alert("❌ Incorrect Password! Download Cancelled.");
+            return;
+        }
+    }
+
     // === Colors ===
     const colPrimary = [0, 35, 102];  // Royal Blue
     const colGold = [212, 175, 55];   // Gold
@@ -346,19 +363,11 @@ async function generateSmartPDF() {
 
     // === B. MEMBER DASHBOARD (Stats Boxes) ===
     if (!isCommunity) {
-        // Get values directly from UI or Memory (Better to use Memory for PDF consistency)
         const member = Object.values(allMembers).find(m => m.membershipId === memberId);
-        
-        // Calculate Stats specifically for this member
-        const { totals } = getProcessedData(memberId, 'all');
-        const myLoans = allActiveLoans.filter(l => l.memberId === memberId && l.status === 'Active');
-        const due = myLoans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount||0), 0);
-        
-        // Data Prep
         const name = member.fullName;
         const joinDate = new Date(member.joiningDate || Date.now()).toLocaleDateString('en-GB');
-        const vSip = formatMoney(totals.principal + totals.debit); // Rough total flow (simplified) or grab from UI logic
-        // Let's grab DOM values for perfect sync with what user sees
+        
+        // Grab values from DOM for consistency
         const domSip = document.getElementById('totalSipValue').innerText;
         const domLoan = document.getElementById('totalLoanValue').innerText;
         const domBal = document.getElementById('netBalanceValue').innerText;
@@ -376,12 +385,9 @@ async function generateSmartPDF() {
         doc.setTextColor(100);
         doc.text(`Member ID: ${memberId} | Joined: ${joinDate}`, 14, 61);
 
-        // Draw 6 Stats Boxes (Grid Layout)
-        const boxW = 30;
-        const boxH = 16;
-        const gap = 4;
-        const startX = 14; 
-        const statsY = 70;
+        // Draw 6 Stats Boxes
+        const boxW = 30; const boxH = 16; const gap = 4;
+        const startX = 14; const statsY = 70;
 
         const statsData = [
             { label: "Total SIP", val: domSip, col: colGreen },
@@ -394,29 +400,26 @@ async function generateSmartPDF() {
 
         statsData.forEach((s, i) => {
             const x = startX + (i * (boxW + gap));
-            // Box Border
             doc.setDrawColor(200);
             doc.setFillColor(252, 252, 252);
             doc.roundedRect(x, statsY, boxW, boxH, 2, 2, 'FD');
             
-            // Label
-            doc.setFontSize(7);
-            doc.setTextColor(100);
+            doc.setFontSize(7); doc.setTextColor(100);
             doc.text(s.label, x + (boxW/2), statsY + 5, null, null, "center");
             
-            // Value
-            doc.setFontSize(9);
-            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9); doc.setFont("helvetica", "bold");
             doc.setTextColor(...s.col);
             doc.text(s.val, x + (boxW/2), statsY + 12, null, null, "center");
         });
 
-        startY = 95; // Push table down
+        startY = 95;
     }
 
-    // === C. THE TABLE (FIXED WIDTHS - THE BRAHMASTRA) ===
-    // 1. Get Clean Data
-    const { rows } = getProcessedData(memberId, document.getElementById('typeFilter').value);
+    // === C. THE TABLE (WITH FOOTER TOTALS) ===
+    // Get Data AND Totals
+    const { rows, totals } = getProcessedData(memberId, document.getElementById('typeFilter').value);
+    
+    // Prepare Body Data
     const tableData = rows.reverse().map(r => [
         r.date,
         r.desc,
@@ -426,82 +429,76 @@ async function generateSmartPDF() {
         formatMoney(r.balance)
     ]);
 
-    // 2. Render Table with STRICT Column Styles
+    // Prepare Footer Row (Totals)
+    // Calculating final balance for footer (Using the latest balance from the first row of reversed data)
+    const closingBalance = rows.length > 0 ? rows[0].balance : 0;
+
+    const footerRow = [
+        "TOTALS", 
+        "", 
+        formatMoney(totals.debit), 
+        formatMoney(totals.principal), 
+        formatMoney(totals.interest), 
+        formatMoney(closingBalance)
+    ];
+
+    // Render Table
     doc.autoTable({
         startY: startY,
         head: [['Date', 'Description', 'Debit', 'Principal', 'Interest', 'Balance']],
         body: tableData,
+        foot: [footerRow], // 🔥 Footer Added Here
         theme: 'grid',
         styles: {
-            fontSize: 8,       // Small font
-            cellPadding: 3,    // Compact padding
-            valign: 'middle',
-            overflow: 'linebreak',
-            lineColor: [220, 220, 220],
-            lineWidth: 0.1,
+            fontSize: 8, cellPadding: 3, valign: 'middle',
+            lineColor: [220, 220, 220], lineWidth: 0.1,
         },
         headStyles: {
-            fillColor: colPrimary,
-            textColor: 255,
-            fontStyle: 'bold',
-            halign: 'center'
+            fillColor: colPrimary, textColor: 255, fontStyle: 'bold', halign: 'center'
         },
-        // 🔥 HERE IS THE FIX: Explicit Column Widths (Sum approx 182)
+        footStyles: { // 🔥 Footer Styling
+            fillColor: [240, 240, 240], textColor: colPrimary, fontStyle: 'bold', halign: 'right'
+        },
         columnStyles: {
-            0: { cellWidth: 22 }, // Date
-            1: { cellWidth: 'auto' }, // Desc (Flexible)
-            2: { cellWidth: 22, halign: 'right', textColor: colRed }, // Debit
-            3: { cellWidth: 22, halign: 'right', textColor: colGreen }, // Principal
-            4: { cellWidth: 20, halign: 'right', textColor: colGreen }, // Interest
-            5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }  // Balance
+            0: { cellWidth: 22 }, 
+            1: { cellWidth: 'auto' }, 
+            2: { cellWidth: 22, halign: 'right', textColor: colRed }, 
+            3: { cellWidth: 22, halign: 'right', textColor: colGreen }, 
+            4: { cellWidth: 20, halign: 'right', textColor: colGreen }, 
+            5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }
         },
         didDrawPage: function (data) {
-            // Footer Page Number
             const pageSize = doc.internal.pageSize;
-            const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`Page ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, pageHeight - 10);
+            doc.setFontSize(8); doc.setTextColor(150);
+            doc.text(`Page ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, pageSize.height - 10);
         }
     });
 
-    // === D. COMMUNITY FOOTER (Only for All Members View) ===
+    // === D. COMMUNITY FOOTER (For All Members) ===
     if (isCommunity) {
         let finalY = doc.lastAutoTable.finalY + 10;
         if (finalY > 240) { doc.addPage(); finalY = 20; }
-
         const gStats = calculateGlobalStats();
 
-        // Footer Card Box
-        doc.setDrawColor(...colGold);
-        doc.setLineWidth(0.5);
-        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(...colGold); doc.setLineWidth(0.5); doc.setFillColor(248, 250, 252);
         doc.roundedRect(14, finalY, 182, 45, 3, 3, 'FD');
 
-        // Header Strip inside card
-        doc.setFillColor(...colPrimary);
-        doc.rect(14, finalY, 182, 10, 'F');
-        doc.setTextColor(255);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
+        doc.setFillColor(...colPrimary); doc.rect(14, finalY, 182, 10, 'F');
+        doc.setTextColor(255); doc.setFontSize(10); doc.setFont("helvetica", "bold");
         doc.text("CURRENT COMMUNITY FUND STATUS", 105, finalY + 7, null, null, "center");
 
-        // Stats Row
         const yRow = finalY + 25;
         
-        // Total SIP
         doc.setTextColor(100); doc.setFontSize(9);
         doc.text("Total SIP Fund", 40, yRow, null, null, "center");
         doc.setTextColor(...colPrimary); doc.setFontSize(12); doc.setFont("helvetica", "bold");
         doc.text(formatMoney(gStats.totalSip), 40, yRow + 6, null, null, "center");
 
-        // Active Loans
         doc.setTextColor(100); doc.setFontSize(9); doc.setFont("helvetica", "normal");
         doc.text("Market Loans", 105, yRow, null, null, "center");
         doc.setTextColor(...colRed); doc.setFontSize(12); doc.setFont("helvetica", "bold");
         doc.text(formatMoney(gStats.activeLoansOutstanding), 105, yRow + 6, null, null, "center");
 
-        // Available Balance
         doc.setTextColor(100); doc.setFontSize(9); doc.setFont("helvetica", "normal");
         doc.text("Available Cash", 170, yRow, null, null, "center");
         doc.setTextColor(...colGreen); doc.setFontSize(12); doc.setFont("helvetica", "bold");
@@ -510,6 +507,7 @@ async function generateSmartPDF() {
 
     doc.save(isCommunity ? 'TCF_Community_Report.pdf' : `TCF_${memberId}.pdf`);
 }
+
 
 // --- Utilities ---
 function calculateGlobalStats() {
