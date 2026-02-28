@@ -7,7 +7,7 @@ import { Analytics, promptForDeviceVerification, requestNotificationPermission }
 
 // VAPID Key for Notifications (Keep existing)
 const VAPID_KEY = "BE1NgqUcrYaBxWxd0hRrtW7wES0PJ-orGaxlGVj-oT1UZyJwLaaAk7z6KczQ2ZrSy_XjSwkL6WjpX_gHMpXPp3M";
-const CACHE_KEY = 'tcf_royal_cache_v5'; // Match key with user-data.js
+const CACHE_KEY = 'tcf_royal_cache_v7'; // 🔥 Match key with user-data.js
 
 // 1. UI Listeners Start (IMMEDIATE)
 // This makes the Bottom Nav clickable instantly

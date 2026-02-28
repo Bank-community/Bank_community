@@ -3,7 +3,7 @@
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
-const CACHE_KEY = 'tcf_royal_cache_v6'; // Cache Version Updated
+const CACHE_KEY = 'tcf_royal_cache_v7'; // Cache Version Updated 🔥
 
 export async function fetchAndProcessData(database, onUpdate = null) {
     let cachedDataLoaded = false;
@@ -24,16 +24,17 @@ export async function fetchAndProcessData(database, onUpdate = null) {
 
     try {
         // 2. Fetch Data (Parallel)
-        // 🔥 FIX: Added 'activeLoans' path correctly
-        const [membersSnap, txSnap, adminSnap, penaltySnap, loansSnap, notifSnap, autoSnap, prodSnap] = await Promise.all([
+        // 🔥 FIX: Added 'activeLoans' path correctly and 'lifetimeStats' for Loan Disbursed
+        const [membersSnap, txSnap, adminSnap, penaltySnap, loansSnap, notifSnap, autoSnap, prodSnap, lifetimeSnap] = await Promise.all([
             database.ref('members').once('value'),
             database.ref('transactions').once('value'),
             database.ref('admin').once('value'),
             database.ref('penaltyWallet').once('value'),
-            database.ref('activeLoans').once('value'), // 🔥 FIXED PATH (Was 'loans')
+            database.ref('activeLoans').once('value'), 
             database.ref('notifications').once('value'),
             database.ref('automatedQueue').once('value'),
-            database.ref('products').once('value')
+            database.ref('products').once('value'),
+            database.ref('lifetimeStats').once('value') // 🔥 ADDED THIS
         ]);
 
         const rawData = {
@@ -41,10 +42,11 @@ export async function fetchAndProcessData(database, onUpdate = null) {
             transactions: txSnap.val() || {},
             admin: adminSnap.val() || {},
             penaltyWallet: penaltySnap.val() || {},
-            activeLoans: loansSnap.val() || {}, // 🔥 Correct Data
+            activeLoans: loansSnap.val() || {}, 
             notifications: notifSnap.val() || {},
             automatedQueue: autoSnap.val() || {},
-            products: prodSnap.val() || {}
+            products: prodSnap.val() || {},
+            lifetimeStats: lifetimeSnap.val() || {} // 🔥 ADDED THIS
         };
 
         // 3. Save & Process
@@ -64,8 +66,9 @@ function processRawData(data) {
     const rawLoans = data.activeLoans || {};
     const rawAdmin = data.admin || {};
     const rawPenalty = data.penaltyWallet || {};
+    const rawLifetime = data.lifetimeStats || {}; // 🔥 ADDED THIS
 
-       // Convert Transactions to Array (🔥 FIX: Missing amount calculation for Loans)
+       // Convert Transactions to Array
     const allTransactions = Object.values(rawTx).map(tx => {
         // Agar amount field missing hai (jaise Loan Payment me), to principal aur interest ko jodein
         if (tx.amount === undefined && (tx.principalPaid !== undefined || tx.interestPaid !== undefined)) {
@@ -141,7 +144,7 @@ function processRawData(data) {
         netReturnAmount: parseFloat(rawAdmin.balanceStats?.totalReturn || 0),
         availableCommunityBalance: parseFloat(rawAdmin.balanceStats?.availableBalance || 0),
         totalPenaltyBalance: parseFloat(rawPenalty.availableBalance || 0),
-        totalLoanDisbursed: parseFloat(rawAdmin.lifetimeStats?.totalLoanIssued || 0)
+        totalLoanDisbursed: parseFloat(rawLifetime.totalLoanIssued || 0) // 🔥 FIXED THIS PATH
     };
 
     return {
@@ -149,7 +152,7 @@ function processRawData(data) {
         allTransactions,
         penaltyWalletData: rawPenalty,
         communityStats: stats,
-        rawActiveLoans: rawLoans, // Sending fixed loans to UI
+        rawActiveLoans: rawLoans, 
         manualNotifications: data.notifications?.manual || {},
         automatedQueue: data.automatedQueue || {},
         allProducts: data.products || {},
