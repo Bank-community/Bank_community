@@ -202,7 +202,7 @@ function renderHistoryTab() {
     });
 }
 
-// --- Render Profile Gatekeeper ---
+// --- Render Profile Gatekeeper (Updated for 6 Cards) ---
 function renderProfileGatekeeper() {
     const myId = localStorage.getItem('verifiedMemberId');
 
@@ -220,6 +220,7 @@ function renderProfileGatekeeper() {
         if (found) member = found;
     }
 
+    // 1. Basic Info
     const imgEl = document.getElementById('gkProfileImg');
     if (imgEl) imgEl.src = member.displayImageUrl;
     setTextContent('gkProfileName', member.name);
@@ -229,6 +230,7 @@ function renderProfileGatekeeper() {
         roleEl.style.display = member.isPrime ? 'inline-block' : 'none';
     }
 
+    // 2. Journey Days
     let daysText = '-- Days';
     if (member.joiningDate && member.joiningDate !== '--') {
         const joinDate = new Date(member.joiningDate);
@@ -239,26 +241,56 @@ function renderProfileGatekeeper() {
     }
     setTextContent('gkTotalDays', daysText);
 
+    // 3. Wallet Balance
     const balEl = document.getElementById('gkBalance');
     if(balEl) {
         balEl.textContent = '₹' + formatNumberWithCommas(member.balance);
         balEl.className = `stat-value ${member.balance >= 0 ? 'text-green' : 'text-red'}`;
     }
 
+    // --- NEW CALCULATIONS (Total SIP & Interest) ---
     let activeLoanAmt = 0;
-    if (member.id && globalData.activeLoans) {
-        Object.values(globalData.activeLoans).forEach(l => {
-            if (l.memberId === member.id && l.status === 'Active') {
-                activeLoanAmt += parseFloat(l.outstandingAmount || l.amount || 0);
-            }
-        });
+    let lifetimeSip = 0;
+    let totalInterestPaid = 0;
+
+    if (member.id) {
+        // Active Loan Calc
+        if (globalData.activeLoans) {
+            Object.values(globalData.activeLoans).forEach(l => {
+                if (l.memberId === member.id && l.status === 'Active') {
+                    activeLoanAmt += parseFloat(l.outstandingAmount || l.amount || 0);
+                }
+            });
+        }
+
+        // Lifetime SIP & Interest Calc from Transactions
+        if (globalData.transactions) {
+            globalData.transactions.forEach(tx => {
+                if (tx.memberId === member.id) {
+                    // SIP Total
+                    if (tx.type === 'SIP') {
+                        lifetimeSip += parseFloat(tx.amount || 0);
+                    }
+                    // Interest Total
+                    if (tx.type === 'Loan Payment') {
+                        totalInterestPaid += parseFloat(tx.interestPaid || 0);
+                    }
+                }
+            });
+        }
     }
+
+    // 4. Update UI for New Stats
+    setTextContent('gkLifetimeSip', '₹' + formatNumberWithCommas(lifetimeSip));
+    setTextContent('gkTotalInterest', '₹' + formatNumberWithCommas(totalInterestPaid));
+
     const loanEl = document.getElementById('gkActiveLoan');
     if (loanEl) {
         loanEl.textContent = '₹' + formatNumberWithCommas(activeLoanAmt);
         loanEl.style.color = activeLoanAmt > 0 ? '#dc3545' : '#28a745';
     }
 
+    // 5. Monthly SIP Status
     const sipEl = document.getElementById('gkSipStatus');
     if (sipEl) {
         const isPaid = member.sipStatus?.paid;
@@ -271,6 +303,7 @@ function renderProfileGatekeeper() {
         elements.gkSubmitBtn.dataset.memberId = myId || '';
     }
 }
+
 
 function setTextContent(id, text) {
     const el = document.getElementById(id);
