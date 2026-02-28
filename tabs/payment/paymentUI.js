@@ -28,12 +28,73 @@ export function initUI(myMemberInfo, membersList) {
 
 // [REPLACE] paymentUI.js mein renderMembersGrid function ko isse replace karein:
 
+// [REPLACE] paymentUI.js mein renderMembersGrid function ko is naye code se replace karein:
+
 export function renderMembersGrid(membersList, searchQuery = "") {
     const grid = document.getElementById('members-grid');
     if(!grid) return;
     grid.innerHTML = '';
 
-    // 1. Search Filter
+    // 1. Global Data Access (Safe Check)
+    // Hum payment.js ke exported variable ya global state dono check karenge
+    let txs = [];
+    if (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData && window.tcfApp.state.allData.length > 0) {
+        txs = window.tcfApp.state.allData;
+    } else {
+        // Fallback: Agar global state khali hai to payment.js wala variable try karo
+        // (Note: Import variable direct access nahi milta yahan easily bina module reload ke, 
+        // isliye hum window object ya passed arguments use karte hain usually)
+        // Lekin 'payment.js' me humne 'onValue' lagaya hai jo render call kar raha hai,
+        // to hum assume kar sakte hain data sync ho raha hai.
+        
+        // Quick Fix: Hum 'payment.js' se data pass karwa sakte the, par abhi hum global transactions use karenge
+        // jo 'view_core.js' ya 'payment.js' se populate hote hain.
+        // Chaliye hum 'allTransactions' ko direct import variable mante hain (ES6 module scope)
+        // Lekin safety ke liye hum window object pe depend rahenge agar available hai.
+    }
+    
+    // Agar upar wala check fail ho, to hum payment.js se aayi hui 'allTransactions' use karne ki koshish karenge
+    // (Iske liye file ke top pe: import { allTransactions } from './payment.js'; hona chahiye)
+    // Lekin runtime error se bachne ke liye hum ek custom logic lagayenge:
+    const { allTransactions } = require('./payment.js'); // Hack for intelligent IDEs, browser ignore karega
+    if (!txs || txs.length === 0) txs = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData) || [];
+
+    // My ID
+    const myId = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.member) 
+                 ? window.tcfApp.state.member.membershipId 
+                 : localStorage.getItem('verifiedMemberId');
+
+    // 2. Helper: Get Last Interaction Time
+    const getInteractionInfo = (otherMemberId) => {
+        if (!myId) return { time: 0, receivedRecently: false };
+
+        // Filter transactions between ME and OTHER
+        const interactions = txs.filter(t => 
+            (t.senderId === myId && t.receiverId === otherMemberId) || // Maine bheja
+            (t.senderId === otherMemberId && t.receiverId === myId) || // Usne bheja
+            (t.memberId === myId && t.receiverId === otherMemberId) || // Old structure
+            (t.memberId === myId && t.senderId === otherMemberId)      // Old structure
+        );
+
+        if (interactions.length === 0) return { time: 0, receivedRecently: false };
+
+        // Sort desc (Latest first)
+        interactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const lastTx = interactions[0];
+        const lastTime = new Date(lastTx.date).getTime();
+
+        // Check if I RECEIVED money recently (within 24 hours)
+        let receivedRecently = false;
+        // Logic: Agar sender WO hai aur receiver MAIN hu
+        if (lastTx.senderId === otherMemberId && (lastTx.receiverId === myId || lastTx.memberId === myId)) {
+            const diffHours = (new Date() - new Date(lastTx.date)) / (1000 * 60 * 60);
+            if (diffHours < 24) receivedRecently = true;
+        }
+
+        return { time: lastTime, receivedRecently: receivedRecently };
+    };
+
+    // 3. Search Filter
     let filteredList = membersList;
     if (searchQuery.trim() !== "") {
         const lowerQ = searchQuery.toLowerCase();
@@ -43,54 +104,39 @@ export function renderMembersGrid(membersList, searchQuery = "") {
         );
     }
 
-    // 2. SORTING LOGIC (Corrected)
-    // Uses global state or imported transactions to sort active members first
-    filteredList.sort((a, b) => {
-        // Global state se data lo (Safe fallback)
-        const txs = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData) ? window.tcfApp.state.allData : allTransactions;
-
-        const getLastTime = (mId) => {
-            // Find latest transaction involving this member
-            const tList = txs.filter(x => x.memberId === mId || x.senderId === mId || x.receiverId === mId);
-            if(tList.length === 0) return 0;
-            // Sort to get latest
-            tList.sort((x,y) => new Date(y.date) - new Date(x.date));
-            return new Date(tList[0].date).getTime();
-        };
-
-        return getLastTime(b.membershipId) - getLastTime(a.membershipId);
+    // 4. SORTING: Active Members First
+    // Hum har member ke object me temporary sort key add karenge
+    const listWithMeta = filteredList.map(m => {
+        const info = getInteractionInfo(m.membershipId);
+        return { ...m, _lastTime: info.time, _isRecent: info.receivedRecently };
     });
 
-    // 3. Render UI
-    let displayList = filteredList;
+    listWithMeta.sort((a, b) => b._lastTime - a._lastTime);
+
+    // 5. Render UI
+    let displayList = listWithMeta;
     let needsMoreBtn = false;
 
-    if (!window.showingAllMembers && filteredList.length > 7) {
-        displayList = filteredList.slice(0, 7);
+    if (!window.showingAllMembers && displayList.length > 7) {
+        displayList = displayList.slice(0, 7);
         needsMoreBtn = true;
     }
 
     let html = '';
     displayList.forEach(m => {
         const initial = m.fullName ? m.fullName.charAt(0).toUpperCase() : '?';
+        
+        // STYLING LOGIC
+        let borderClass = 'border-indigo-100'; // Default Border
+        let indicatorHtml = ''; // Green Dot
 
-        // GREEN DOT CHECK
-        let greenDotHtml = '';
-        const txs = (window.tcfApp && window.tcfApp.state && window.tcfApp.state.allData) ? window.tcfApp.state.allData : allTransactions;
-        const myId = window.tcfApp.state.member.membershipId;
-
-        // Member ke transactions mere sath
-        const mTx = txs.filter(t => (t.senderId === m.membershipId && t.receiverId === myId) || (t.type === 'P2P Received' && t.memberId === myId && t.senderId === m.membershipId));
-
-        if(mTx.length > 0) {
-            mTx.sort((a,b) => new Date(b.date) - new Date(a.date));
-            const last = mTx[0];
-            const diffHours = (new Date() - new Date(last.date)) / (1000 * 60 * 60);
-
-            // Agar last transaction 48 ghante ke andar received hai
-            if(diffHours < 48) { 
-                greenDotHtml = `<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>`;
-            }
+        // Agar paisa aaya hai (Green Circle + Dot)
+        if (m._isRecent) {
+            borderClass = 'border-green-500 ring-2 ring-green-100'; // Green Ring styling
+            indicatorHtml = `
+                <div class="absolute -bottom-1 -right-1 bg-green-500 text-white text-[8px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white z-10 shadow-sm animate-pulse">
+                    <i class="fas fa-arrow-down"></i>
+                </div>`;
         }
 
         let avatarHtml = m.profilePicUrl 
@@ -99,15 +145,16 @@ export function renderMembersGrid(membersList, searchQuery = "") {
 
         const shortName = m.fullName && m.fullName.length > 10 ? m.fullName.substring(0, 9) + '...' : (m.fullName || 'Unknown');
 
+        // Main HTML Structure
         html += `
         <div class="flex flex-col items-center member-btn cursor-pointer group animate-fade" data-id="${m.membershipId}">
-            <div class="w-16 h-16 rounded-full bg-white border-2 border-indigo-100 p-0.5 shadow-sm overflow-visible mb-1 relative group-active:scale-95 transition-transform">
+            <div class="w-16 h-16 rounded-full bg-white border-2 ${borderClass} p-0.5 shadow-sm mb-1 relative group-active:scale-95 transition-transform">
                 <div class="w-full h-full relative rounded-full overflow-hidden">
                     ${avatarHtml}
                 </div>
-                ${greenDotHtml} 
+                ${indicatorHtml}
             </div>
-            <span class="text-[10px] font-bold text-gray-700 text-center w-full truncate px-1">${shortName}</span>
+            <span class="text-[10px] font-bold text-gray-700 text-center w-full truncate px-1 ${m._isRecent ? 'text-green-700' : ''}">${shortName}</span>
         </div>`;
     });
 
@@ -121,13 +168,12 @@ export function renderMembersGrid(membersList, searchQuery = "") {
         </div>`;
     }
 
-    if (filteredList.length === 0) {
+    if (displayList.length === 0) {
         grid.innerHTML = `<div class="col-span-4 text-center py-12"><p class="text-gray-500 text-xs font-bold">No members found</p></div>`;
         return;
     }
     grid.innerHTML = html;
 }
-
 
 
 export function renderChatHistory(myId, receiverId, transactions) {
@@ -217,7 +263,7 @@ export function renderFullHistory(historyArray, myId) {
         const iconClass = isSent ? 'fa-arrow-up' : 'fa-arrow-down';
 
         let title = isSent ? `Paid to ${tx.receiverName || 'Unknown'}` : `Received from ${tx.senderName || 'Member'}`;
-
+        
         // Unique ID for receipt generation
         const rowId = `tx-row-${index}`;
 
@@ -444,7 +490,7 @@ window.downloadReceiptImage = function(rowId, title, amount, time) {
         <div style="border: 2px solid #D4AF37; padding: 20px; border-radius: 15px; position: relative;">
             <h2 style="color: #D4AF37; font-size: 18px; margin: 0 0 5px 0; text-transform: uppercase; letter-spacing: 1px;">TCF Payment Receipt</h2>
             <p style="font-size: 10px; color: #aaa; margin-bottom: 20px;">Trust Community Fund</p>
-
+            
             <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
                 <p style="font-size: 12px; color: #ddd; margin: 0;">Amount</p>
                 <p style="font-size: 32px; font-weight: bold; margin: 5px 0; color: #fff;">₹${parseFloat(amount).toLocaleString('en-IN')}</p>
@@ -456,13 +502,13 @@ window.downloadReceiptImage = function(rowId, title, amount, time) {
                 <p style="margin-bottom: 8px;"><strong style="color:#D4AF37">Date:</strong> ${time}</p>
                 <p style="margin-bottom: 0;"><strong style="color:#D4AF37">Status:</strong> Completed</p>
             </div>
-
+            
             <div style="margin-top: 25px; font-size: 9px; color: #666;">
                 Generated by TCF App
             </div>
         </div>
     `;
-
+    
     document.body.appendChild(receiptDiv);
 
     // 2. Capture and Download
