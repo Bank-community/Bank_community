@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#001540">
+    <title>Direct Member Access - TCF</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Royal CSS Styles --- */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #001540 0%, #002366 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.98);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 2px solid #D4AF37; /* Gold Border */
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative Top Strip */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 6px;
+            background: linear-gradient(to right, #D4AF37, #FDCB58, #D4AF37);
+        }
+
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            background: #f4f6f9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            border: 2px solid #D4AF37;
+            color: #002366;
+        }
+
+        h2 {
+            color: #002366;
+            margin: 0 0 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        p.subtitle {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+
+        /* Form Elements */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        select:focus, input:focus {
+            border-color: #002366;
+            box-shadow: 0 0 0 4px rgba(0, 35, 102, 0.1);
+        }
+
+        /* Submit Button */
+        .btn-access {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, #002366, #001540);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 35, 102, 0.3);
+        }
+
+        .btn-access:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 35, 102, 0.4);
+        }
+
+        .btn-access:active {
+            transform: scale(0.98);
+        }
+
+        /* Loading State */
+        .loading-text {
+            color: #888;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 25px;
+            font-size: 0.75em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="icon-circle">
+            <i data-feather="users" style="width: 40px; height: 40px;"></i>
+        </div>
+
+        <h2>Member Access</h2>
+        <p class="subtitle">Select account to view dashboard</p>
+
+        <div id="loadingMessage" class="loading-text">Loading members list...</div>
+
+        <form id="accessForm" style="display: none;">
+            <div class="input-group">
+                <label>Select Member</label>
+                <select id="memberSelect" required>
+                    <option value="">-- Choose Name --</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Enter Password</label>
+                <input type="number" id="passwordInput" placeholder="Member's Password" required>
+            </div>
+
+            <button type="submit" class="btn-access">
+                Open Dashboard <i data-feather="arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="footer">
+            TCF Secure Admin System © 2026
+        </div>
+    </div>
+
+    <script>
+        // --- 1. FIREBASE SETUP ---
+        async function initApp() {
+            try {
+                // Config Load
+                const response = await fetch('/api/firebase-config');
+                const config = await response.json();
+                
+                if (!firebase.apps.length) firebase.initializeApp(config);
+                const db = firebase.database();
+
+                // Fetch Members
+                loadMembers(db);
+
+            } catch (error) {
+                document.getElementById('loadingMessage').innerHTML = `<span style="color:red">Error loading system. Check internet.</span>`;
+                console.error(error);
+            }
+        }
+
+        // --- 2. LOAD MEMBERS INTO DROPDOWN ---
+        function loadMembers(db) {
+            db.ref('members').once('value').then(snapshot => {
+                const members = snapshot.val() || {};
+                const select = document.getElementById('memberSelect');
+                
+                // Sort Alphabetically
+                const sortedMembers = Object.values(members).sort((a, b) => 
+                    (a.name || a.fullName).localeCompare(b.name || b.fullName)
+                );
+
+                // Store passwords in memory for quick check (Client Side Logic)
+                window.memberData = {}; 
+
+                sortedMembers.forEach(m => {
+                    const name = m.name || m.fullName || "Unknown";
+                    const id = m.id || m.membershipId; // Fallback IDs
+                    
+                    if(id && m.password) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = name;
+                        select.appendChild(option);
+                        
+                        // Store minimal data for validation
+                        window.memberData[id] = {
+                            pass: String(m.password).trim()
+                        };
+                    }
+                });
+
+                // Show Form
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('accessForm').style.display = 'block';
+                feather.replace();
+
+            }).catch(err => {
+                document.getElementById('loadingMessage').textContent = "Failed to load members.";
+            });
+        }
+
+        // --- 3. HANDLE LOGIN ---
+        document.getElementById('accessForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const memberId = document.getElementById('memberSelect').value;
+            const enteredPass = document.getElementById('passwordInput').value.trim();
+
+            if(!memberId) {
+                alert("Please select a member first.");
+                return;
+            }
+
+            const actualPass = window.memberData[memberId]?.pass;
+
+            if (enteredPass === actualPass) {
+                // ✅ SUCCESS: Redirect to View Page
+                // Also set this ID in localStorage so index.html treats user as verified if they go back
+                localStorage.setItem('verifiedMemberId', memberId);
+                
+                window.location.href = `view.html?memberId=${memberId}`;
+            } else {
+                // ❌ FAIL
+                alert("Incorrect Password! Please try again.");
+                document.getElementById('passwordInput').value = '';
+            }
+        });
+
+        // Start
+        initApp();
+        feather.replace();
+    </script>
+
+</body>
+</html>
