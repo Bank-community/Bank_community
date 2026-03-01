@@ -603,24 +603,28 @@
     border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
-/* --- 2. Stats Grid (Time & Money) --- */
+/* --- 2. Stats Grid (3 Columns Square Style) --- */
 .profile-stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    grid-template-columns: repeat(3, 1fr); /* 3 cards per row */
+    gap: 10px; /* Space between cards */
+    margin-bottom: 20px;
 }
 
 .stat-box {
     background: #fff;
-    border-radius: 16px;
-    padding: 15px;
+    border-radius: 12px;
+    padding: 10px 5px; /* Compact padding */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     border: 1px solid #f0f0f0;
     transition: transform 0.2s ease;
+    aspect-ratio: 1 / 1; /* Forces perfectly square shape */
+    height: auto;
 }
 
 .stat-box:hover {
@@ -629,13 +633,17 @@
 }
 
 .stat-icon-circle {
-    width: 45px;
-    height: 45px;
+    width: 35px; /* Smaller icon circle */
+    height: 35px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+}
+.stat-icon-circle i {
+    width: 18px; /* Smaller icon size */
+    height: 18px;
 }
 
 .time-icon {
@@ -648,21 +656,32 @@
     color: #28a745;
 }
 
+.stat-info {
+    width: 100%;
+    overflow: hidden;
+}
+
 .stat-label {
-    font-size: 0.75em;
+    font-size: 0.65em; /* Smaller label text */
     color: #888;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 2px;
+    display: block;
+    white-space: nowrap; /* Prevent breaking line */
 }
 
 .stat-value {
-    font-size: 1.1em;
+    font-size: 0.9em; /* Adjusted value size */
     font-weight: 800;
     color: #333;
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 
 /* --- 3. Security Card --- */
 .security-card {
