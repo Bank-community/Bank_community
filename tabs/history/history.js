@@ -9,7 +9,7 @@ export function init(app) {
     // 2. Initial Render (Show All Transactions)
     renderHistoryList('all', state);
 
-    // 3. Setup Smart Filter Buttons (100% Color Bug Fixed)
+    // 3. Setup Smart Filter Buttons
     const filterContainer = document.getElementById('history-filters');
     if(filterContainer) {
         if (filterContainer._clickListener) filterContainer.removeEventListener('click', filterContainer._clickListener);
@@ -17,13 +17,13 @@ export function init(app) {
         filterContainer._clickListener = (e) => {
             const btn = e.target.closest('.filter-btn');
             if(btn) {
-                // Reset all buttons to default (Transparent bg, Gray text)
+                // Reset all buttons to default
                 document.querySelectorAll('.filter-btn').forEach(b => {
                     b.classList.remove('bg-[#001540]', 'text-white', 'shadow-md');
                     b.classList.add('bg-transparent', 'text-gray-400');
                 });
 
-                // Active clicked button (Dark Blue bg, White text)
+                // Active clicked button
                 btn.classList.remove('bg-transparent', 'text-gray-400');
                 btn.classList.add('bg-[#001540]', 'text-white', 'shadow-md');
 
@@ -42,6 +42,10 @@ function renderTopCard(state) {
 
     const totalSip = memberTxs.reduce((sum, tx) => sum + (tx.sipPayment || 0), 0);
 
+    // 🚀 UPDATE: Calculate Total P2P Sent and Received
+    const totalP2pSent = memberTxs.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalP2pReceived = memberTxs.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+
     let activeLoanDue = 0;
     if (state.activeLoans) {
         Object.values(state.activeLoans).forEach(loan => {
@@ -51,7 +55,8 @@ function renderTopCard(state) {
         });
     }
 
-    const netBalance = totalSip - activeLoanDue;
+    // 🚀 UPDATE: Net Balance logic properly adds received and subtracts sent P2P amount
+    const netBalance = (totalSip + totalP2pReceived) - totalP2pSent - activeLoanDue;
 
     document.getElementById('history-net-balance').textContent = `₹${netBalance.toLocaleString('en-IN')}`;
     document.getElementById('history-total-sip').textContent = `₹${totalSip.toLocaleString('en-IN')}`;
@@ -65,15 +70,17 @@ function renderHistoryList(filterType, state) {
 
     const memberId = state.member.membershipId;
 
+    // 🚀 UPDATE: Included P2P transactions in relevantTxs
     const relevantTxs = state.allData.filter(tx => 
         tx.memberId === memberId && 
-        (tx.sipPayment > 0 || tx.loan > 0 || tx.payment > 0)
+        (tx.sipPayment > 0 || tx.loan > 0 || tx.payment > 0 || tx.p2pSent > 0 || tx.p2pReceived > 0)
     );
 
     let filteredData = relevantTxs;
     if (filterType === 'loan') filteredData = relevantTxs.filter(tx => tx.loan > 0);
     else if (filterType === 'payment') filteredData = relevantTxs.filter(tx => tx.payment > 0);
     else if (filterType === 'sip') filteredData = relevantTxs.filter(tx => tx.sipPayment > 0);
+    else if (filterType === 'p2p') filteredData = relevantTxs.filter(tx => tx.p2pSent > 0 || tx.p2pReceived > 0);
 
     filteredData.sort((a, b) => b.date - a.date);
 
@@ -122,17 +129,38 @@ function renderHistoryList(filterType, state) {
             amountClass = 'text-[#4caf50]'; 
             iconBgClass = 'bg-green-50 text-[#4caf50]';
             displayPrefix = '+';
+        } 
+        // 🚀 UPDATE: Added P2P Sent UI rendering
+        else if (tx.p2pSent > 0) {
+            icon = 'fa-arrow-up';
+            title = 'P2P SENT';
+            subText = `To ${tx.otherPartyName || 'Member'} • ${tx.date.toLocaleDateString('en-GB')}`;
+            amount = tx.p2pSent;
+            amountClass = 'text-[#e53935]'; // Minus will show in red
+            iconBgClass = 'bg-gray-100 text-gray-500';
+            displayPrefix = '-';
+        } 
+        // 🚀 UPDATE: Added P2P Received UI rendering
+        else if (tx.p2pReceived > 0) {
+            icon = 'fa-arrow-down';
+            title = 'P2P RECEIVED';
+            subText = `From ${tx.otherPartyName || 'Member'} • ${tx.date.toLocaleDateString('en-GB')}`;
+            amount = tx.p2pReceived;
+            amountClass = 'text-[#4caf50]'; // Plus will show in green
+            iconBgClass = 'bg-green-50 text-[#4caf50]';
+            displayPrefix = '+';
         }
 
         html += `
         <div class="bg-white p-4 rounded-[1rem] border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-full ${iconBgClass} flex items-center justify-center text-lg">
+                <div class="w-11 h-11 rounded-full ${iconBgClass} flex items-center justify-center text-lg shadow-inner">
                     <i class="fas ${icon}"></i>
                 </div>
                 <div>
                     <p class="font-extrabold text-[13px] text-[#001540] uppercase tracking-wide leading-tight">${title}</p>
                     <p class="text-[10px] text-gray-400 font-medium mt-0.5">${subText}</p>
+                    ${tx.p2pNote ? `<p class="text-[9px] text-gray-500 italic mt-0.5 truncate max-w-[150px]">"${tx.p2pNote}"</p>` : ''}
                 </div>
             </div>
             <div class="text-right">

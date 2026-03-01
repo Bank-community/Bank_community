@@ -76,17 +76,28 @@ function processCoreData(memberId, members, transactions, activeLoans) {
         const mInfo = state.memberMap.get(tx.memberId);
         if (!mInfo) continue;
 
+        // 🚀 UPDATE: Added p2pSent, p2pReceived, p2pNote, otherPartyName, and txType
         let record = {
             id: idCounter++, date: new Date(tx.date), name: mInfo.name, memberId: tx.memberId,
-            loan: 0, payment: 0, sipPayment: 0, returnAmount: 0, extraBalance: 0, extraWithdraw: 0, loanType: null
+            loan: 0, payment: 0, sipPayment: 0, returnAmount: 0, extraBalance: 0, extraWithdraw: 0, loanType: null,
+            p2pSent: 0, p2pReceived: 0, p2pNote: tx.p2pNote || '', otherPartyName: null, txType: tx.type 
         };
 
+        // 🚀 UPDATE: Added 'P2P Sent' and 'P2P Received' cases in switch
         switch (tx.type) {
             case 'SIP': record.sipPayment = tx.amount || 0; break;
             case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
             case 'Loan Payment': record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0); record.returnAmount = tx.interestPaid || 0; break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+            case 'P2P Sent': 
+                record.p2pSent = tx.amount || 0; 
+                record.otherPartyName = tx.receiverName || 'Member';
+                break;
+            case 'P2P Received': 
+                record.p2pReceived = tx.amount || 0; 
+                record.otherPartyName = tx.senderName || 'Member';
+                break;
             default: continue;
         }
         state.allData.push(record);
