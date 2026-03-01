@@ -136,56 +136,44 @@ export function calculateLimits() {
     const receiver = selectedReceiver;
 
     const currentMonth = new Date().toISOString().substring(0, 7);
-    
     let senderSentThisMonth = 0; 
-    let senderReceivedThisMonth = 0;
-    let receiverSentThisMonth = 0;
     let receiverReceivedThisMonth = 0;
 
-    // 1. Calculate all P2P activities of the current month
     allTransactions.forEach(tx => {
         if (tx && tx.date && tx.date.startsWith(currentMonth)) {
-            // Sender's P2P Activity
             if (tx.type === 'P2P Sent' && tx.memberId === sender.membershipId) senderSentThisMonth += (tx.amount || 0);
-            if (tx.type === 'P2P Received' && tx.memberId === sender.membershipId) senderReceivedThisMonth += (tx.amount || 0);
-            
-            // Receiver's P2P Activity
-            if (tx.type === 'P2P Sent' && tx.memberId === receiver.membershipId) receiverSentThisMonth += (tx.amount || 0);
             if (tx.type === 'P2P Received' && tx.memberId === receiver.membershipId) receiverReceivedThisMonth += (tx.amount || 0);
         }
     });
 
-    // 🚀 FIX: Reverse current month P2P to get the TRUE Base Balance
-    const senderBaseBalance = parseFloat(sender.accountBalance || 0) + senderSentThisMonth - senderReceivedThisMonth;
-    const receiverBaseBalance = parseFloat(receiver.accountBalance || 0) + receiverSentThisMonth - receiverReceivedThisMonth;
+    const senderTotalSip = parseFloat(sender.accountBalance || 0);
+    const receiverTotalSip = parseFloat(receiver.accountBalance || 0);
 
     let senderMaxLimit = 0;
     let receiverMaxLimit = 0;
 
-    // 2. Calculate 25% limit on the fixed Base Balance
-    if (senderBaseBalance > 0) {
-        senderMaxLimit = Math.max(0, (senderBaseBalance * 0.25) - senderSentThisMonth);
+    if (senderTotalSip > 0) {
+        senderMaxLimit = Math.max(0, (senderTotalSip * 0.25) - senderSentThisMonth);
     }
 
-    if (receiverBaseBalance > 0) {
-        receiverMaxLimit = Math.max(0, (receiverBaseBalance * 0.25) - receiverReceivedThisMonth);
+    if (receiverTotalSip > 0) {
+        receiverMaxLimit = Math.max(0, (receiverTotalSip * 0.25) - receiverReceivedThisMonth);
     }
 
     finalAllowedLimit = Math.min(senderMaxLimit, receiverMaxLimit);
 
-    // 3. Update the UI
     const senderLimitEl = document.getElementById('limit-sender');
     const receiverLimitEl = document.getElementById('limit-receiver');
     const warningEl = document.getElementById('limit-warning');
 
     if(senderLimitEl && receiverLimitEl) {
-        if (senderBaseBalance <= 0) {
+        if (senderTotalSip <= 0) {
             senderLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
         } else {
             senderLimitEl.textContent = `₹${Math.floor(senderMaxLimit).toLocaleString('en-IN')}`;
         }
 
-        if (receiverBaseBalance <= 0) {
+        if (receiverTotalSip <= 0) {
             receiverLimitEl.innerHTML = `<span class="text-red-500 font-bold">Negative Balance</span>`;
         } else {
             receiverLimitEl.textContent = `₹${Math.floor(receiverMaxLimit).toLocaleString('en-IN')}`;
@@ -201,7 +189,6 @@ export function calculateLimits() {
         }
     }
 }
-
 
 export function validateAmount(val) {
     const btn = document.getElementById('proceed-pay-btn');
