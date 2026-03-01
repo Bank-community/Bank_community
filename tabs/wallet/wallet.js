@@ -173,19 +173,26 @@ function setupListeners(state) {
     container._walletListener = async (e) => {
         const target = e.target;
 
-        // 1. Chart Filters
+               // 1. Chart Filters
         const filterBtn = target.closest('.chart-filter-btn');
         if (filterBtn) {
-            // UI Toggle
+            // UI Toggle (Fixed Logic)
             document.querySelectorAll('.chart-filter-btn').forEach(b => {
-                b.classList.remove('bg-white', 'text-[#D4AF37]', 'shadow-sm', 'border-gray-100', 'active-filter');
+                // Remove Active Classes
+                b.classList.remove('bg-white', 'text-[#D4AF37]', 'shadow-sm', 'border', 'border-gray-100', 'active-filter');
+                // Add Inactive Default Classes back
+                b.classList.add('text-gray-500', 'hover:text-[#001540]');
             });
-            filterBtn.classList.add('bg-white', 'text-[#D4AF37]', 'shadow-sm', 'border-gray-100', 'active-filter');
+            
+            // Apply Active Classes to the clicked button
+            filterBtn.classList.remove('text-gray-500', 'hover:text-[#001540]');
+            filterBtn.classList.add('bg-white', 'text-[#D4AF37]', 'shadow-sm', 'border', 'border-gray-100', 'active-filter');
 
             // Re-render chart
             const filterValue = filterBtn.getAttribute('data-filter');
             renderChart(filterValue);
         }
+
 
         // 2. Modals Open
         if (target.closest('#withdraw-btn')) {
