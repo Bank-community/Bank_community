@@ -331,7 +331,7 @@ export async function verifyAndPay(enteredPin) {
             receiverName: selectedReceiver.fullName
         });
 
-        const container = document.getElementById('chat-bubbles');
+                const container = document.getElementById('chat-bubbles');
         const time = new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
 
         if(container.innerHTML.includes('No previous transactions')) {
