@@ -104,27 +104,24 @@ function renderChart(filter) {
     const labels = filteredData.map(d => d.date.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'}));
     const dataPoints = filteredData.map(d => d.balance);
 
-    // 🔥 FIX 1: Filter ke hisaab se CURRENT VALUE set karna
     const currentBalanceEl = document.getElementById('chart-current-balance');
     const defaultBalance = dataPoints.length > 0 ? dataPoints[dataPoints.length - 1] : 0;
     
-    // Decimal points theek karne ke liye format update
+    // Formatting: Fixes to 2 decimal places for a cleaner look
     const formatCurrency = (val) => '₹' + parseFloat(val).toLocaleString('en-IN', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 3
+        maximumFractionDigits: 2 // 503.922 ki jagah 503.92 dikhayega
     });
     
     currentBalanceEl.textContent = formatCurrency(defaultBalance);
 
-    // Destroy old chart before re-drawing
     if(walletChartInstance) {
         walletChartInstance.destroy();
     }
 
-    // Create Premium Gold Gradient
     let gradient = ctx.createLinearGradient(0, 0, 0, 150);
-    gradient.addColorStop(0, 'rgba(212, 175, 55, 0.4)'); // Gold transparent at top
-    gradient.addColorStop(1, 'rgba(212, 175, 55, 0.0)'); // Fades out at bottom
+    gradient.addColorStop(0, 'rgba(212, 175, 55, 0.4)'); 
+    gradient.addColorStop(1, 'rgba(212, 175, 55, 0.0)'); 
 
     walletChartInstance = new Chart(ctx, {
         type: 'line',
@@ -133,29 +130,21 @@ function renderChart(filter) {
             datasets: [{
                 label: 'Available Balance',
                 data: dataPoints,
-                borderColor: '#D4AF37', // Solid Gold Line
+                borderColor: '#D4AF37',
                 backgroundColor: gradient,
                 borderWidth: 3,
-                pointRadius: 0, // Hide dots normally
-                pointHoverRadius: 6, // Show big dot on hover
+                pointRadius: 0,
+                pointHoverRadius: 6,
                 pointBackgroundColor: '#001540',
                 pointBorderColor: '#D4AF37',
                 pointBorderWidth: 2,
                 fill: true,
-                tension: 0.4 // Makes the line smooth/curvy
+                tension: 0.4 
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // 🔥 FIX 2: Graph par touch karne par CURRENT VALUE badalna
-            onHover: (event, activeElements) => {
-                if (activeElements.length > 0) {
-                    const hoverIndex = activeElements[0].index;
-                    const hoverValue = dataPoints[hoverIndex];
-                    currentBalanceEl.textContent = formatCurrency(hoverValue);
-                }
-            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -168,12 +157,25 @@ function renderChart(filter) {
                         label: function(context) {
                             return formatCurrency(context.parsed.y);
                         }
+                    },
+                    // 🔥 PERFECT FIX: Tooltip aur Top Value ka 100% Synchronization
+                    external: function(context) {
+                        const tooltipModel = context.tooltip;
+                        if (tooltipModel.opacity === 0) {
+                            // Jab tooltip gayab hoga, top value bhi turant default par aa jayegi
+                            currentBalanceEl.textContent = formatCurrency(defaultBalance);
+                        } else {
+                            // Jab tak tooltip screen par hai, top value wahi match karegi
+                            if (tooltipModel.dataPoints && tooltipModel.dataPoints.length > 0) {
+                                currentBalanceEl.textContent = formatCurrency(tooltipModel.dataPoints[0].parsed.y);
+                            }
+                        }
                     }
                 }
             },
             scales: {
-                x: { display: false }, // Hides bottom dates for a clean look
-                y: { display: false, beginAtZero: true } // Hides side numbers
+                x: { display: false }, 
+                y: { display: false, beginAtZero: true } 
             },
             interaction: {
                 mode: 'index',
@@ -181,20 +183,8 @@ function renderChart(filter) {
             }
         }
     });
-
-    // 🔥 FIX 3: Jab touch/mouse hat jaye toh wapas original value dikhana
-    const resetBalanceText = () => {
-        currentBalanceEl.textContent = formatCurrency(defaultBalance);
-    };
-    
-    // Desktop ke liye
-    canvas.addEventListener('mouseleave', resetBalanceText);
-    
-    // Mobile ke liye (touch hatne ke 1.5 seconds baad wapas normal hoga)
-    canvas.addEventListener('touchend', () => {
-        setTimeout(resetBalanceText, 1500);
-    });
 }
+
 
 
 
