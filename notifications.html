@@ -442,16 +442,43 @@
             } catch(e) { console.warn("Using offline mode/cache", e); }
         }
 
-        function processData(data) {
+                function processData(data) {
             membersData = data.members || {};
             const txObj = data.transactions || {};
-            
-            allTransactions = Object.values(txObj).map(t => ({
-                ...t,
-                dateObj: parseDate(t.date || t.timestamp)
+            const p2pObj = data.p2p_transfers || {}; // P2P Node se data liya
+
+            // 1. Normal Transactions (Filter out old P2P entries to avoid duplicate)
+            // P2P Sent/Received wale purane data ko hate denge
+            let normalTx = Object.values(txObj)
+                .filter(t => t.type !== 'P2P Sent' && t.type !== 'P2P Received')
+                .map(t => ({
+                    ...t,
+                    dateObj: parseDate(t.date || t.timestamp),
+                    isP2P: false
+                }));
+
+            // 2. P2P Transfers (Create Single Entry)
+            // P2P Node se naya data banayenge
+            let p2pTx = Object.values(p2pObj).map(p => ({
+                ...p,
+                transactionId: p.id || p.transactionId,
+                type: 'P2P Transfer', // Internal Type
+                dateObj: parseDate(p.date || p.timestamp),
+                isP2P: true,
+                amount: p.amount,
+                senderId: p.senderId,
+                senderName: p.senderName,
+                receiverId: p.receiverId,
+                receiverName: p.receiverName,
+                note: 'P2P SIP Transfer' // Fixed Subtitle
             }));
+
+            // 3. Merge & Sort (Dono ko jodkar date wise lagayenge)
+            allTransactions = [...normalTx, ...p2pTx].sort((a, b) => b.dateObj - a.dateObj);
+
             renderUI();
         }
+
 
         // 2. MAIN RENDERER
         function renderUI() {
@@ -536,7 +563,8 @@
             return { available, totalSip, totalActiveLoans };
         }
 
-                function renderList(list) {
+                
+        function renderList(list) {
             const container = document.getElementById('transactionList');
             container.innerHTML = '';
 
@@ -545,10 +573,11 @@
                 return;
             }
 
-            const today = new Date(); // To check 'Today'
+            const today = new Date();
+            // Member ID check karenge taaki "You" logic laga sakein
+            const myId = localStorage.getItem('verifiedMemberId'); 
 
             list.forEach(t => {
-                const memberName = membersData[t.memberId]?.fullName || membersData[t.memberId]?.name || 'Unknown';
                 const day = t.dateObj.getDate();
                 const monthShort = t.dateObj.toLocaleString('default', { month: 'short' });
                 
@@ -560,19 +589,46 @@
                 const cardClass = isToday ? 'tx-card today' : 'tx-card';
                 const todayBadgeHtml = isToday ? `<span class="tx-today-badge">TODAY</span>` : '';
 
-                let typeHtml = '', amountClass = '', amountSign = '+';
+                let typeHtml = '', amountClass = '', amountSign = '+', displayTitle = '';
                 let displayAmt = getTxAmount(t);
 
-                if (t.type === 'SIP' || t.type === 'Extra Payment') {
-                    typeHtml = `<span class="tx-type color-green"><i data-feather="arrow-down-left" style="width:12px;"></i> SIP</span>`;
-                    amountClass = 'color-green';
-                } else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
-                    typeHtml = `<span class="tx-type color-red"><i data-feather="arrow-up-right" style="width:12px;"></i> LOAN</span>`;
-                    amountClass = 'color-red';
-                    amountSign = '-';
-                } else if (t.type === 'Loan Payment') {
-                    typeHtml = `<span class="tx-type color-blue"><i data-feather="check-circle" style="width:12px;"></i> REPAY</span>`;
-                    amountClass = 'color-blue';
+                // --- P2P LOGIC (New Update) ---
+                if (t.isP2P) {
+                    if (myId === t.senderId) {
+                        // Agar main bhej raha hu (Sender)
+                        displayTitle = `Sent to ${t.receiverName}`;
+                        amountClass = 'color-red';
+                        amountSign = '-';
+                        typeHtml = `<span class="tx-type color-red"><i data-feather="arrow-up-right" style="width:12px;"></i> P2P SIP Transfer</span>`;
+                    } else if (myId === t.receiverId) {
+                        // Agar mujhe mil raha hai (Receiver)
+                        displayTitle = `Received from ${t.senderName}`;
+                        amountClass = 'color-green';
+                        amountSign = '+';
+                        typeHtml = `<span class="tx-type color-green"><i data-feather="arrow-down-left" style="width:12px;"></i> P2P SIP Transfer</span>`;
+                    } else {
+                        // Agar main third person hu (Admin View)
+                        displayTitle = `${t.senderName} ➝ ${t.receiverName}`;
+                        amountClass = 'text-dark'; // Neutral color
+                        amountSign = '';
+                        typeHtml = `<span class="tx-type" style="color:#666"><i data-feather="repeat" style="width:12px;"></i> P2P SIP Transfer</span>`;
+                    }
+                } 
+                // --- EXISTING LOGIC (SIP/Loan) ---
+                else {
+                    displayTitle = membersData[t.memberId]?.fullName || membersData[t.memberId]?.name || 'Unknown';
+
+                    if (t.type === 'SIP' || t.type === 'Extra Payment') {
+                        typeHtml = `<span class="tx-type color-green"><i data-feather="arrow-down-left" style="width:12px;"></i> SIP</span>`;
+                        amountClass = 'color-green';
+                    } else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
+                        typeHtml = `<span class="tx-type color-red"><i data-feather="arrow-up-right" style="width:12px;"></i> LOAN</span>`;
+                        amountClass = 'color-red';
+                        amountSign = '-';
+                    } else if (t.type === 'Loan Payment') {
+                        typeHtml = `<span class="tx-type color-blue"><i data-feather="check-circle" style="width:12px;"></i> REPAY</span>`;
+                        amountClass = 'color-blue';
+                    }
                 }
 
                 container.innerHTML += `
@@ -582,7 +638,7 @@
                             <span class="tx-day">${day}</span>
                         </div>
                         <div class="tx-info">
-                            <h4 class="tx-name">${memberName} ${todayBadgeHtml}</h4>
+                            <h4 class="tx-name">${displayTitle} ${todayBadgeHtml}</h4>
                             ${typeHtml}
                         </div>
                         <div class="tx-amount ${amountClass}">
@@ -593,6 +649,7 @@
             });
             feather.replace();
         }
+
 
 
         // 3. PDF GENERATION (UPDATED WITH FOOTER SNAPSHOT)
