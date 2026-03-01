@@ -104,6 +104,18 @@ function renderChart(filter) {
     const labels = filteredData.map(d => d.date.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'}));
     const dataPoints = filteredData.map(d => d.balance);
 
+    // 🔥 FIX 1: Filter ke hisaab se CURRENT VALUE set karna
+    const currentBalanceEl = document.getElementById('chart-current-balance');
+    const defaultBalance = dataPoints.length > 0 ? dataPoints[dataPoints.length - 1] : 0;
+    
+    // Decimal points theek karne ke liye format update
+    const formatCurrency = (val) => '₹' + parseFloat(val).toLocaleString('en-IN', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 3
+    });
+    
+    currentBalanceEl.textContent = formatCurrency(defaultBalance);
+
     // Destroy old chart before re-drawing
     if(walletChartInstance) {
         walletChartInstance.destroy();
@@ -136,6 +148,14 @@ function renderChart(filter) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // 🔥 FIX 2: Graph par touch karne par CURRENT VALUE badalna
+            onHover: (event, activeElements) => {
+                if (activeElements.length > 0) {
+                    const hoverIndex = activeElements[0].index;
+                    const hoverValue = dataPoints[hoverIndex];
+                    currentBalanceEl.textContent = formatCurrency(hoverValue);
+                }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -146,7 +166,7 @@ function renderChart(filter) {
                     padding: 10,
                     callbacks: {
                         label: function(context) {
-                            return '₹ ' + context.parsed.y.toLocaleString('en-IN');
+                            return formatCurrency(context.parsed.y);
                         }
                     }
                 }
@@ -161,7 +181,23 @@ function renderChart(filter) {
             }
         }
     });
+
+    // 🔥 FIX 3: Jab touch/mouse hat jaye toh wapas original value dikhana
+    const resetBalanceText = () => {
+        currentBalanceEl.textContent = formatCurrency(defaultBalance);
+    };
+    
+    // Desktop ke liye
+    canvas.addEventListener('mouseleave', resetBalanceText);
+    
+    // Mobile ke liye (touch hatne ke 1.5 seconds baad wapas normal hoga)
+    canvas.addEventListener('touchend', () => {
+        setTimeout(resetBalanceText, 1500);
+    });
 }
+
+
+
 
 // --- EVENTS ---
 function setupListeners(state) {
