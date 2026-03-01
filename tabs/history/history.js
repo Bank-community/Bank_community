@@ -17,17 +17,14 @@ export function init(app) {
         filterContainer._clickListener = (e) => {
             const btn = e.target.closest('.filter-btn');
             if(btn) {
-                // Reset all buttons to default
                 document.querySelectorAll('.filter-btn').forEach(b => {
                     b.classList.remove('bg-[#001540]', 'text-white', 'shadow-md');
                     b.classList.add('bg-transparent', 'text-gray-400');
                 });
 
-                // Active clicked button
                 btn.classList.remove('bg-transparent', 'text-gray-400');
                 btn.classList.add('bg-[#001540]', 'text-white', 'shadow-md');
 
-                // Render List based on filter
                 const filterType = btn.getAttribute('data-filter');
                 renderHistoryList(filterType, state);
             }
@@ -42,7 +39,6 @@ function renderTopCard(state) {
 
     const totalSip = memberTxs.reduce((sum, tx) => sum + (tx.sipPayment || 0), 0);
 
-    // 🚀 UPDATE: Calculate Total P2P Sent and Received
     const totalP2pSent = memberTxs.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
     const totalP2pReceived = memberTxs.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
 
@@ -55,7 +51,6 @@ function renderTopCard(state) {
         });
     }
 
-    // 🚀 UPDATE: Net Balance logic properly adds received and subtracts sent P2P amount
     const netBalance = (totalSip + totalP2pReceived) - totalP2pSent - activeLoanDue;
 
     document.getElementById('history-net-balance').textContent = `₹${netBalance.toLocaleString('en-IN')}`;
@@ -70,7 +65,6 @@ function renderHistoryList(filterType, state) {
 
     const memberId = state.member.membershipId;
 
-    // 🚀 UPDATE: Included P2P transactions in relevantTxs
     const relevantTxs = state.allData.filter(tx => 
         tx.memberId === memberId && 
         (tx.sipPayment > 0 || tx.loan > 0 || tx.payment > 0 || tx.p2pSent > 0 || tx.p2pReceived > 0)
@@ -107,8 +101,18 @@ function renderHistoryList(filterType, state) {
 
         if (tx.loan > 0) {
             icon = 'fa-hand-holding-usd';
-            title = 'LOAN';
-            subText = tx.date.toLocaleDateString('en-GB'); 
+
+            // 🚀 UPDATE: Using loanType from data, uppercase format
+            title = tx.loanType ? tx.loanType.toUpperCase() : 'LOAN';
+
+            // 🚀 UPDATE: Joining Category, Months and Date dynamically
+            let extraInfo = [];
+            if (tx.loanCategory) extraInfo.push(tx.loanCategory);
+            if (tx.tenureMonths) extraInfo.push(`${tx.tenureMonths} Months`);
+            extraInfo.push(tx.date.toLocaleDateString('en-GB'));
+
+            subText = extraInfo.join(' • '); // Output example: Small Value • 6 Months • 27/02/2026
+
             amount = tx.loan;
             amountClass = 'text-[#e53935]'; 
             iconBgClass = 'bg-red-50 text-[#e53935]';
@@ -129,24 +133,20 @@ function renderHistoryList(filterType, state) {
             amountClass = 'text-[#4caf50]'; 
             iconBgClass = 'bg-green-50 text-[#4caf50]';
             displayPrefix = '+';
-        } 
-        // 🚀 UPDATE: Added P2P Sent UI rendering
-        else if (tx.p2pSent > 0) {
+        } else if (tx.p2pSent > 0) {
             icon = 'fa-arrow-up';
             title = 'P2P SENT';
             subText = `To ${tx.otherPartyName || 'Member'} • ${tx.date.toLocaleDateString('en-GB')}`;
             amount = tx.p2pSent;
-            amountClass = 'text-[#e53935]'; // Minus will show in red
+            amountClass = 'text-[#e53935]'; 
             iconBgClass = 'bg-gray-100 text-gray-500';
             displayPrefix = '-';
-        } 
-        // 🚀 UPDATE: Added P2P Received UI rendering
-        else if (tx.p2pReceived > 0) {
+        } else if (tx.p2pReceived > 0) {
             icon = 'fa-arrow-down';
             title = 'P2P RECEIVED';
             subText = `From ${tx.otherPartyName || 'Member'} • ${tx.date.toLocaleDateString('en-GB')}`;
             amount = tx.p2pReceived;
-            amountClass = 'text-[#4caf50]'; // Plus will show in green
+            amountClass = 'text-[#4caf50]'; 
             iconBgClass = 'bg-green-50 text-[#4caf50]';
             displayPrefix = '+';
         }

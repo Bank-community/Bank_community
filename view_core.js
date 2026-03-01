@@ -4,7 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-// Global App Object - यह डेटा सभी टैब्स इस्तेमाल करेंगे
+// Global App Object
 window.tcfApp = {
     db: null,
     state: { member: {}, memberMap: new Map(), allData: [], activeLoans: {}, balanceHistory: [], score: null },
@@ -43,11 +43,9 @@ async function fetchFirebaseData() {
 
         processCoreData(id, mSnap.val(), tSnap.exists() ? tSnap.val() : {}, lSnap.exists() ? lSnap.val() : {});
 
-        // Hide Loader
         const loader = document.getElementById('loader-container');
         if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 500); }
 
-        // Start App by loading Profile Tab first
         window.loadTab('profile');
 
     } catch (e) { 
@@ -55,7 +53,7 @@ async function fetchFirebaseData() {
     }
 }
 
-// --- CORE LOGIC (100% Synced mathematical logic) ---
+// --- CORE LOGIC ---
 function processCoreData(memberId, members, transactions, activeLoans) {
     const state = window.tcfApp.state;
     state.member = members[memberId];
@@ -76,17 +74,23 @@ function processCoreData(memberId, members, transactions, activeLoans) {
         const mInfo = state.memberMap.get(tx.memberId);
         if (!mInfo) continue;
 
-        // 🚀 UPDATE: Added p2pSent, p2pReceived, p2pNote, otherPartyName, and txType
+        // 🚀 UPDATE: Added loanCategory and tenureMonths here
         let record = {
             id: idCounter++, date: new Date(tx.date), name: mInfo.name, memberId: tx.memberId,
-            loan: 0, payment: 0, sipPayment: 0, returnAmount: 0, extraBalance: 0, extraWithdraw: 0, loanType: null,
+            loan: 0, payment: 0, sipPayment: 0, returnAmount: 0, extraBalance: 0, extraWithdraw: 0, 
+            loanType: null, loanCategory: '', tenureMonths: 0,
             p2pSent: 0, p2pReceived: 0, p2pNote: tx.p2pNote || '', otherPartyName: null, txType: tx.type 
         };
 
-        // 🚀 UPDATE: Added 'P2P Sent' and 'P2P Received' cases in switch
         switch (tx.type) {
             case 'SIP': record.sipPayment = tx.amount || 0; break;
-            case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
+            // 🚀 UPDATE: Saving detailed loan info
+            case 'Loan Taken': 
+                record.loan = tx.amount || 0; 
+                record.loanType = tx.loanType || 'Loan'; 
+                record.loanCategory = tx.loanCategory || ''; 
+                record.tenureMonths = tx.tenureMonths || 0; 
+                break;
             case 'Loan Payment': record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0); record.returnAmount = tx.interestPaid || 0; break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
@@ -200,12 +204,10 @@ function calculateTotalProfitForMember(memberName) {
     }, 0); 
 }
 
-// --- TAB ROUTING SYSTEM (The Magic) ---
 window.loadTab = async function(tabName) {
     if(window.tcfApp.currentTab === tabName) return;
     window.tcfApp.currentTab = tabName;
 
-    // Update Bottom Nav Styling
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
     const activeBtn = document.querySelector(`.nav-btn[data-target="${tabName}"]`);
     if(activeBtn) activeBtn.classList.add('nav-active');
@@ -214,15 +216,13 @@ window.loadTab = async function(tabName) {
     contentDiv.innerHTML = '<div class="text-center mt-32 text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>';
 
     try {
-        // 1. Fetch Tab HTML
         const response = await fetch(`tabs/${tabName}/${tabName}.html`);
         if(!response.ok) throw new Error("Page not found");
         const html = await response.text();
         contentDiv.innerHTML = html;
 
-        // 2. Load Tab Specific JS Dynamically
         import(`./tabs/${tabName}/${tabName}.js`).then(module => {
-            if(module.init) module.init(window.tcfApp); // Pass the global app context
+            if(module.init) module.init(window.tcfApp);
         }).catch(err => console.log(`No JS file found for ${tabName} or error in JS:`, err));
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
