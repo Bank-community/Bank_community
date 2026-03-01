@@ -96,12 +96,20 @@ function calculateCapitalScore(memberName, untilDate, allData) {
     
     // RULE: Skip First SIP & Check 18 Months
     const validSips = allSips.slice(1).filter(r => r.date >= reviewStartDate);
-    
     const totalSip = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
     
-    // Formula: (Total / 50,000) * 100
-    return Math.min(100, Math.max(0, (totalSip / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
+    // 🚀 NEW LOGIC: Calculate P2P Equity (Received - Sent)
+    const validP2p = memberData.filter(r => r.date >= reviewStartDate);
+    const totalP2pReceived = validP2p.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = validP2p.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    
+    // NET CAPITAL (Actual Balance)
+    const netCapital = totalSip + totalP2pReceived - totalP2pSent;
+    
+    // Formula: (Net Capital / 50,000) * 100
+    return Math.min(100, Math.max(0, (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
 }
+
 
 // ==========================================
 // 3. CONSISTENCY SCORE LOGIC (NEW: Ratio + Tenure)
@@ -396,14 +404,23 @@ function calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate) {
 }
 
 
+
 // ==========================================
 // 7. LOAN ELIGIBILITY FUNCTION
 // ==========================================
 function getLoanEligibility(memberName, totalSipAmount, allData) {
     const memberData = allData.filter(r => r.name === memberName);
     
-    // 1. Check Outstanding Balance
+    // 🚀 NEW LOGIC: Calculate P2P Adjustments
+    const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    
+    // Net Base Capital (SIP + Received - Sent)
+    const netBaseCapital = totalSipAmount + totalP2pReceived - totalP2pSent;
+    
+    // 1. Check Outstanding Balance (Including P2P)
     let totalCapital = memberData.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
+    totalCapital = totalCapital + totalP2pReceived - totalP2pSent;
     if (totalCapital < 0) return { eligible: false, reason: 'Outstanding Loan' };
     
     // 2. Check Membership Age
@@ -415,18 +432,21 @@ function getLoanEligibility(memberName, totalSipAmount, allData) {
         return { eligible: false, reason: `${Math.ceil(60 - daysSinceJoin)} days left` };
     }
 
-    // 3. New Slab Logic
+    // 3. New Slab Logic (Based on Net Capital)
     let multiplier = ENGINE_CONFIG.MULTIPLIER_LOW; // 1.5x
-    if (totalSipAmount >= ENGINE_CONFIG.SIP_SLAB) {
+    if (netBaseCapital >= ENGINE_CONFIG.SIP_SLAB) {
         multiplier = ENGINE_CONFIG.MULTIPLIER_HIGH; // 2.0x
     }
 
-    // 4. Calculate & Cap
-    let limit = totalSipAmount * multiplier;
+    // 4. Calculate & Cap based on Net Capital
+    let limit = netBaseCapital * multiplier;
     if (limit > ENGINE_CONFIG.MAX_LOAN_CAP) limit = ENGINE_CONFIG.MAX_LOAN_CAP;
 
     return { eligible: true, maxAmount: limit };
 }
+
+
+
 
 // --- UTILITY: Month Difference ---
 function monthDiff(d1, d2) {
