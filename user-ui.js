@@ -2,16 +2,21 @@
 // RESPONSIBILITY: Main UI Controller, Tab Router & Data Renderer
 
 import { 
-    displayHeaderButtons, 
-    displayMembers, 
-    renderProducts,
-    displayAllRankedMembers, 
-    displayCustomCards, 
-    displayCommunityLetters, 
-    buildInfoSlider, 
-    startHeaderDisplayRotator,
-    updateInfoCards 
-} from './ui-components.js';
+    Analytics, // <--- YAHAN ANALYTICS ADD KIYA HAI 🔥
+    processAndShowNotifications, 
+    promptForDeviceVerification, 
+    requestNotificationPermission, 
+    showSipStatusModal, 
+    showPenaltyWalletModal, 
+    showAllMembersModal, 
+    showMemberProfileModal, 
+    showBalanceModal, 
+    showEmiModal, 
+    showFullImage, 
+    handlePasswordCheck, 
+    observeElements 
+} from './ui-helpers.js';
+
 
 import { 
     processAndShowNotifications, 
