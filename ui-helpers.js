@@ -3,16 +3,17 @@
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-// --- 🌟 ANALYTICS ENGINE ---
+// --- 🌟 ANALYTICS ENGINE (SAFE & CRASH-PROOF) ---
 export const Analytics = {
     sessionStart: Date.now(),
     activityLog: [],
     memberId: 'Guest',
+    dbRef: null,
 
     init: function(database) {
+        if (database) this.dbRef = database;
         const storedId = localStorage.getItem('verifiedMemberId');
         if (storedId) this.memberId = storedId;
-        // console.log("Analytics Started for:", this.memberId);
     },
 
     identifyUser: function(id) {
@@ -22,11 +23,42 @@ export const Analytics = {
         }
     },
 
-    logAction: function(action) {
-        // console.log(`[Action]: ${action}`);
-        this.activityLog.push({ time: Date.now(), action: action });
+    logAction: function(action, details = {}) {
+        const now = new Date();
+        const dateStr = now.getFullYear() + '-' + 
+                       String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(now.getDate()).padStart(2, '0');
+        const timeStr = now.toTimeString().split(' ')[0];
+
+        const logData = {
+            memberId: this.memberId,
+            action: action,
+            details: details,
+            time: timeStr,
+            timestamp: Date.now()
+        };
+
+        this.activityLog.push(logData);
+
+        // 🔥 FIREBASE SAFE SAVE LOGIC (App crash nahi hoga)
+        try {
+            let activeDb = this.dbRef;
+
+            // SAFE CHECK: Ensure Firebase is fully initialized before calling database()
+            if (!activeDb && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                activeDb = firebase.database(); 
+            }
+
+            if (activeDb) {
+                activeDb.ref(`activity_logs/${dateStr}`).push(logData);
+            }
+        } catch (error) {
+            // Error ko silently ignore karenge taaki website na atke
+            console.warn("Activity Save Deferred:", error.message);
+        }
     }
 };
+
 
 // --- 🔔 NOTIFICATIONS ---
 export function processAndShowNotifications(globalData, container) {
