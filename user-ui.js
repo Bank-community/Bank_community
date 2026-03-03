@@ -2,21 +2,16 @@
 // RESPONSIBILITY: Main UI Controller, Tab Router & Data Renderer
 
 import { 
-    Analytics, // <--- YAHAN ANALYTICS ADD KIYA HAI 🔥
-    processAndShowNotifications, 
-    promptForDeviceVerification, 
-    requestNotificationPermission, 
-    showSipStatusModal, 
-    showPenaltyWalletModal, 
-    showAllMembersModal, 
-    showMemberProfileModal, 
-    showBalanceModal, 
-    showEmiModal, 
-    showFullImage, 
-    handlePasswordCheck, 
-    observeElements 
-} from './ui-helpers.js';
-
+    displayHeaderButtons, 
+    displayMembers, 
+    renderProducts,
+    displayAllRankedMembers, 
+    displayCustomCards, 
+    displayCommunityLetters, 
+    buildInfoSlider, 
+    startHeaderDisplayRotator,
+    updateInfoCards 
+} from './ui-components.js';
 
 import { 
     processAndShowNotifications, 
@@ -145,20 +140,15 @@ function setupBottomNav() {
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-                       // 2. Show Target Tab
+            // 2. Show Target Tab
             tabs.forEach(tab => {
                 tab.classList.remove('active-tab');
                 if (tab.id === targetId) {
                     tab.classList.add('active-tab');
-
-                    // 🔥 FIREBASE TRACKING: Tab Changed
-                    Analytics.logAction("Tab Changed", { tabName: targetId });
-
                     if (targetId === 'tab-history') renderHistoryTab();
                     if (targetId === 'tab-profile') renderProfileGatekeeper();
                 }
             });
-
 
             if(typeof feather !== 'undefined') feather.replace();
             window.scrollTo(0, 0);
@@ -499,14 +489,10 @@ function setupEventListeners(database) {
             const amountEl = elements.tcfAvailableFunds;
             const iconEl = elements.tcfEyeIcon;
 
-                       if (amountEl.classList.contains('masked')) {
+            if (amountEl.classList.contains('masked')) {
                 amountEl.classList.remove('masked');
                 iconEl.setAttribute('data-feather', 'eye');
                 balanceClickSound.play().catch(console.warn);
-
-                // 🔥 FIREBASE TRACKING: Balance Unmasked
-                Analytics.logAction("Balance Unmasked", { location: "TCF Premium Card", amount_shown: amountEl.dataset.value });
-
 
                 const targetValueStr = amountEl.dataset.value || '0';
                 const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
@@ -532,50 +518,21 @@ function setupEventListeners(database) {
             if(typeof feather !== 'undefined') feather.replace();
         }
 
-                if (target.closest('#btnQr')) {
-            Analytics.logAction("Clicked Quick Action", { button: "QR Code" });
-            window.location.href = 'qr.html';
-        }
-        if (target.closest('#btnSip')) {
-            Analytics.logAction("Clicked Quick Action", { button: "SIP Status" });
-            showSipStatusModal(globalData.members);
-        }
-        if (target.closest('#btnLoan')) {
-            Analytics.logAction("Clicked Quick Action", { button: "Loan Dashboard" });
-            window.location.href = 'loan_dashbord.html';
-        }
+        if (target.closest('#btnQr')) window.location.href = 'qr.html';
+        if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
+        if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
 
         if (target.closest('#btnHistory')) {
-             Analytics.logAction("Clicked Quick Action", { button: "Transaction History" });
              document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
 
         if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
-            // Tracking showBalanceModal function ke andar hi ho rahi hai
             showBalanceModal(globalData.stats);
         }
 
-        if (target.closest('#viewPenaltyWalletBtn')) {
-            // Tracking showPenaltyWalletModal ke andar ho rahi hai
-            showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
-        }
-
-        if (target.closest('#notificationBtn')) {
-            Analytics.logAction("Opened Notifications Page");
-            window.location.href = 'notifications.html';
-        }
-
-
-        // 🔥 FIREBASE TRACKING: All standard anchor link clicks (like Profit Dashboard, Rules, etc.)
-        const linkElement = target.closest('a');
-        if (linkElement && linkElement.href) {
-            // Hum sirf un links ko track karenge jo quick actions ya important elements mein hain
-            if (target.closest('.compact-card') || target.closest('.product-actions')) {
-                Analytics.logAction("Clicked Page Link", { destination: linkElement.getAttribute('href') });
-            }
-        }
-
+        if (target.closest('#viewPenaltyWalletBtn')) showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
+        if (target.closest('#notificationBtn')) window.location.href = 'notifications.html';
 
         // --- NEW: View All Ranked Members Button Logic ---
         if (target.closest('#viewAllRankedBtn')) {
