@@ -3,16 +3,17 @@
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-// --- 🌟 ANALYTICS ENGINE ---
+// --- 🌟 ANALYTICS ENGINE (UPDATED FOR FIREBASE & AUTO-DELETE STRUCTURE) ---
 export const Analytics = {
     sessionStart: Date.now(),
     activityLog: [],
     memberId: 'Guest',
+    dbRef: null, // 🔥 Firebase DB reference store karne ke liye
 
     init: function(database) {
+        if (database) this.dbRef = database;
         const storedId = localStorage.getItem('verifiedMemberId');
         if (storedId) this.memberId = storedId;
-        // console.log("Analytics Started for:", this.memberId);
     },
 
     identifyUser: function(id) {
@@ -22,9 +23,41 @@ export const Analytics = {
         }
     },
 
-    logAction: function(action) {
-        // console.log(`[Action]: ${action}`);
-        this.activityLog.push({ time: Date.now(), action: action });
+    logAction: function(action, details = {}) {
+        const now = new Date();
+        // Format Date as YYYY-MM-DD for Auto-Delete Logic
+        const dateStr = now.getFullYear() + '-' + 
+                       String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(now.getDate()).padStart(2, '0');
+
+        // Format Time as HH:MM:SS
+        const timeStr = now.toTimeString().split(' ')[0];
+
+        const logData = {
+            memberId: this.memberId,
+            action: action,
+            details: details,
+            time: timeStr,
+            timestamp: Date.now()
+        };
+
+        // Local array mein bhi save rakhenge (Backup ke liye)
+        this.activityLog.push(logData);
+
+        // 🔥 FIREBASE SAVE LOGIC
+        let activeDb = this.dbRef;
+        if (!activeDb && typeof firebase !== 'undefined' && firebase.database) {
+            activeDb = firebase.database(); // Fallback agar init se pehle call ho jaye
+        }
+
+        if (activeDb) {
+            try {
+                // Save in format: activity_logs/2026-03-03/{pushId}
+                activeDb.ref(`activity_logs/${dateStr}`).push(logData);
+            } catch (error) {
+                console.error("Activity Save Error:", error);
+            }
+        }
     }
 };
 
@@ -130,7 +163,7 @@ export function showMemberProfileModal(memberId, allMembers) {
     const member = allMembers.find(m => m.id === memberId);
     if (!member) return;
 
-    Analytics.logAction(`Opened Profile: ${member.name}`);
+    Analytics.logAction("Opened Profile", { targetMember: member.name, targetId: member.id });
 
     setTextContent('profileModalName', member.name);
     setTextContent('profileModalJoiningDate', formatDate(member.joiningDate));
@@ -161,7 +194,7 @@ export function showMemberProfileModal(memberId, allMembers) {
 }
 
 export function showSipStatusModal(members) {
-    Analytics.logAction("Opened SIP Status List");
+    Analytics.logAction("Viewed SIP Status List");
     const container = document.getElementById('sipStatusListContainer');
     if (!container) return;
     container.innerHTML = '';
@@ -179,7 +212,7 @@ export function showSipStatusModal(members) {
 }
 
 export function showPenaltyWalletModal(penaltyData, currentBalance) {
-    Analytics.logAction("Opened Penalty Wallet");
+    Analytics.logAction("Opened Penalty Wallet", { currentPenaltyBalance: currentBalance });
     setTextContent('penaltyBalance', formatCurrency(currentBalance));
     const list = document.getElementById('penaltyHistoryList');
     if (!list) return;
@@ -222,7 +255,11 @@ export function showAllMembersModal(members, onItemClick, onZoomClick) {
 }
 
 export function showBalanceModal(stats) {
-    Analytics.logAction("Viewed Community Balance");
+    Analytics.logAction("Viewed Community Balance", { 
+        availableBalance: stats.availableCommunityBalance, 
+        totalSIP: stats.totalSipAmount 
+    });
+
     if(!stats) return;
     openModalById('balanceModal');
     animateValue('totalSipAmountDisplay', stats.totalSipAmount);
@@ -245,7 +282,7 @@ export async function handlePasswordCheck(database, memberId) {
     try {
         const snap = await dbInstance.ref(`members/${memberId}/password`).once('value');
         if (String(input.value).trim() === String(snap.val()).trim()) {
-            Analytics.logAction("Password Verified for Full View");
+            Analytics.logAction("Password Verified for Full View", { targetMemberId: memberId });
             window.location.href = `view.html?memberId=${memberId}`;
         } else { 
             alert('Wrong Password!'); 
@@ -300,12 +337,12 @@ export function showFullImage(src, alt) {
         img.src = src; 
         img.alt = alt || 'Image'; 
         modal.classList.add('show'); 
-        Analytics.logAction("Zoomed Image"); 
+        Analytics.logAction("Zoomed Image", { imageName: alt }); 
     }
 }
 
 export function showEmiModal(emi, name, price, modalElement) {
-    Analytics.logAction(`Viewed EMI: ${name}`);
+    Analytics.logAction("Viewed EMI", { productName: name, productPrice: price });
     if(!modalElement) return;
     document.getElementById('emiModalTitle').textContent = `EMI: ${name}`;
     const list = document.getElementById('emiDetailsList');
