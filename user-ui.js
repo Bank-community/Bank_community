@@ -436,6 +436,7 @@ function setupEventListeners(database) {
         }
 
                // 🔥 NAYA CODE: Tracking for Quick Actions (.compact-card)
+             // 🔥 1. QUICK ACTIONS ANALYTICS
         if (target.closest('.compact-card')) {
             const card = target.closest('.compact-card');
             const span = card.querySelector('span');
@@ -445,14 +446,79 @@ function setupEventListeners(database) {
             }
         }
 
+        // 🔥 2. SIP DEPOSIT BUTTON (FIXED)
+        if (target.closest('#quickActionSip') || target.closest('#btnSip')) {
+            Analytics.logAction("Opened SIP Option");
+            showSipStatusModal(globalData.members);
+        }
+
+        // 🔥 3. CLOSE MODAL / X BUTTON (FIXED)
+        if (target.matches('.close') || target.matches('.close *') || target.classList.contains('modal')) {
+            const modal = target.closest('.modal') || target;
+            closeModal(modal);
+        }
+
+        // 🔥 4. PENALTY WALLET & HISTORY BUTTONS (FIXED)
+        if (target.closest('#viewPenaltyWalletBtn')) {
+            Analytics.logAction("Opened Penalty Wallet");
+            showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
+        }
+
+        if (target.closest('#viewHistoryBtn')) {
+            const list = document.getElementById('penaltyHistoryList');
+            const btn = target.closest('#viewHistoryBtn');
+            const isHidden = list.style.display === 'none' || list.style.display === '';
+            list.style.display = isHidden ? 'block' : 'none';
+            btn.textContent = isHidden ? 'Hide History' : 'View History';
+        }
+
+        // --- 5. OTHER EXISTING BUTTONS ---
+        if (target.closest('#fullViewBtn')) swapModals(elements.profileModal, elements.passwordModal);
+
+        if (target.closest('#profileModalHeader')) {
+            const img = document.getElementById('profileModalImage');
+            const name = document.getElementById('profileModalName');
+            if (img && name) showFullImage(img.src, name.textContent);
+        }
+
+        if (target.closest('#submitPasswordBtn')) handlePasswordCheck(database, currentMemberForFullView);
+
+        if (target.closest('#tcfBalanceToggleBtn')) {
+            const amountEl = elements.tcfAvailableFunds;
+            const iconEl = elements.tcfEyeIcon;
+
+            if (amountEl.classList.contains('masked')) {
+                amountEl.classList.remove('masked');
+                iconEl.setAttribute('data-feather', 'eye');
+                balanceClickSound.play().catch(console.warn);
+                Analytics.logAction("Checked Main Wallet Balance");
+                // Animation code (same as before)
+                const targetValueStr = amountEl.dataset.value || '0';
+                const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
+                const duration = 1000;
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const currentVal = Math.floor(progress * endValue);
+                    amountEl.textContent = currentVal.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+                    if (progress < 1) window.requestAnimationFrame(step);
+                    else amountEl.textContent = targetValueStr; 
+                };
+                window.requestAnimationFrame(step);
+            } else {
+                amountEl.classList.add('masked');
+                amountEl.textContent = '••••••';
+                iconEl.setAttribute('data-feather', 'eye-off');
+            }
+            if(typeof feather !== 'undefined') feather.replace();
+        }
+
         if (target.closest('#btnQr')) {
             Analytics.logAction("Opened QR Page");
             window.location.href = 'qr.html';
         }
-        if (target.closest('#btnSip')) {
-            Analytics.logAction("Opened SIP Option");
-            showSipStatusModal(globalData.members);
-        }
+
         if (target.closest('#btnLoan')) {
             Analytics.logAction("Opened Loan Dashboard");
             window.location.href = 'loan_dashbord.html';
@@ -465,16 +531,14 @@ function setupEventListeners(database) {
 
         if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
-            // viewBalanceBtn ka tracking helper file mein already hai
             showBalanceModal(globalData.stats);
         }
-
-        if (target.closest('#viewPenaltyWalletBtn')) showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
 
         if (target.closest('#notificationBtn')) {
             Analytics.logAction("Opened Notifications Page");
             window.location.href = 'notifications.html';
         }
+
 
         // --- NEW: View All Ranked Members Button Logic ---
         if (target.closest('#viewAllRankedBtn')) {
