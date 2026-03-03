@@ -1,19 +1,47 @@
-// ui-helpers.js - FINAL FULL VERSION (Helper Functions)
-// RESPONSIBILITY: Modals, Formatters, Analytics & Verification Logic
+// ui-helpers.js - ADVANCED ANALYTICS VERSION
+// RESPONSIBILITY: Modals, Formatters, Analytics (with Battery/Device info) & Verification Logic
 
 const DEFAULT_IMAGE = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 
-// --- 🌟 ANALYTICS ENGINE (SAFE & CRASH-PROOF) ---
+// --- 🌟 ADVANCED ANALYTICS ENGINE (COUNT SYSTEM, BATTERY & DEVICE INFO) ---
 export const Analytics = {
     sessionStart: Date.now(),
-    activityLog: [],
     memberId: 'Guest',
     dbRef: null,
+    deviceInfo: {},
+    batteryLevel: 'Unknown',
 
     init: function(database) {
         if (database) this.dbRef = database;
         const storedId = localStorage.getItem('verifiedMemberId');
         if (storedId) this.memberId = storedId;
+
+        // Setup Device and Battery Info
+        this.gatherSystemInfo();
+    },
+
+    gatherSystemInfo: async function() {
+        // Get Device/Browser Info
+        this.deviceInfo = {
+            userAgent: navigator.userAgent,
+            screen: `${window.screen.width}x${window.screen.height}`,
+            platform: navigator.platform || 'Unknown'
+        };
+
+        // Get Battery Status
+        if ('getBattery' in navigator) {
+            try {
+                const battery = await navigator.getBattery();
+                this.batteryLevel = Math.round(battery.level * 100) + '%';
+
+                // Optional: Update battery level if it changes while user is active
+                battery.addEventListener('levelchange', () => {
+                    this.batteryLevel = Math.round(battery.level * 100) + '%';
+                });
+            } catch (e) {
+                console.warn("Battery API error:", e);
+            }
+        }
     },
 
     identifyUser: function(id) {
@@ -23,37 +51,48 @@ export const Analytics = {
         }
     },
 
-    logAction: function(action, details = {}) {
+    logAction: function(action, customDetails = {}) {
         const now = new Date();
         const dateStr = now.getFullYear() + '-' + 
                        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
                        String(now.getDate()).padStart(2, '0');
         const timeStr = now.toTimeString().split(' ')[0];
 
-        const logData = {
-            memberId: this.memberId,
-            action: action,
-            details: details,
-            time: timeStr,
-            timestamp: Date.now()
+        // 🔥 FIREBASE SAFE KEY (Remove characters that Firebase doesn't allow in keys)
+        const safeActionKey = action.replace(/[.#$/\[\]]/g, '_');
+
+        // Calculate active session duration in seconds
+        const sessionDurationSeconds = Math.floor((Date.now() - this.sessionStart) / 1000);
+
+        // Merge User details with Device, Battery, and Session Info
+        const details = {
+            ...customDetails,
+            deviceInfo: this.deviceInfo,
+            battery: this.batteryLevel,
+            sessionDurationSec: sessionDurationSeconds
         };
 
-        this.activityLog.push(logData);
-
-        // 🔥 FIREBASE SAFE SAVE LOGIC (App crash nahi hoga)
+        // 🔥 FIREBASE SAFE SAVE LOGIC (Uses Update & Increment)
         try {
             let activeDb = this.dbRef;
 
-            // SAFE CHECK: Ensure Firebase is fully initialized before calling database()
             if (!activeDb && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                 activeDb = firebase.database(); 
             }
 
             if (activeDb) {
-                activeDb.ref(`activity_logs/${dateStr}`).push(logData);
+                const logRef = activeDb.ref(`activity_logs/${dateStr}/${this.memberId}/${safeActionKey}`);
+
+                // Set data to update (increment count by 1)
+                logRef.update({
+                    action: action,
+                    count: firebase.database.ServerValue.increment(1),
+                    lastTime: timeStr,
+                    lastTimestamp: Date.now(),
+                    details: details // Yeh hamesha latest battery aur details ko update karega
+                });
             }
         } catch (error) {
-            // Error ko silently ignore karenge taaki website na atke
             console.warn("Activity Save Deferred:", error.message);
         }
     }
@@ -130,7 +169,10 @@ function showPopupNotification(container, type, data, member) {
     popup.onclick = () => {
         // Use the new tab router if available
         const historyTabBtn = document.querySelector('.nav-item[data-target="tab-history"]');
-        if(historyTabBtn) historyTabBtn.click();
+        if(historyTabBtn) {
+            historyTabBtn.click();
+            Analytics.logAction("Opened Notifications Tab from Popup");
+        }
         else window.location.href = 'notifications.html';
     };
 
@@ -242,11 +284,18 @@ export function showAllMembersModal(members, onItemClick, onZoomClick) {
     [...members].sort((a, b) => a.name.localeCompare(b.name)).forEach(m => {
         const div = document.createElement('div');
         div.className = 'small-member-card';
-        div.onclick = () => onItemClick(m.id);
+        div.onclick = () => {
+            Analytics.logAction(`Clicked Member from Grid: ${m.name}`);
+            onItemClick(m.id);
+        };
         const img = document.createElement('img');
         img.src = m.displayImageUrl;
         img.onerror = function(){ this.src = DEFAULT_IMAGE };
-        img.onclick = (e) => { e.stopPropagation(); onZoomClick(m.displayImageUrl, m.name); };
+        img.onclick = (e) => { 
+            e.stopPropagation(); 
+            Analytics.logAction(`Zoomed Member Image: ${m.name}`);
+            onZoomClick(m.displayImageUrl, m.name); 
+        };
         div.append(img, Object.assign(document.createElement('span'), { textContent: m.name }));
         container.appendChild(div);
     });
@@ -280,11 +329,13 @@ export async function handlePasswordCheck(database, memberId) {
             Analytics.logAction("Password Verified for Full View");
             window.location.href = `view.html?memberId=${memberId}`;
         } else { 
+            Analytics.logAction("Failed Verification", { reason: "Wrong Password" });
             alert('Wrong Password!'); 
             input.value = ''; 
         }
     } catch (e) { 
         console.error(e);
+        Analytics.logAction("Error in Verification", { errorMsg: e.message });
         alert('Verification failed. Check internet.'); 
     }
 }
@@ -332,7 +383,7 @@ export function showFullImage(src, alt) {
         img.src = src; 
         img.alt = alt || 'Image'; 
         modal.classList.add('show'); 
-        Analytics.logAction("Zoomed Image"); 
+        Analytics.logAction("Zoomed Image", { imageName: alt }); 
     }
 }
 

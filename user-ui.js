@@ -141,7 +141,7 @@ function setupBottomNav() {
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
-            // 2. Show Target Tab
+                       // 2. Show Target Tab
             tabs.forEach(tab => {
                 tab.classList.remove('active-tab');
                 if (tab.id === targetId) {
@@ -151,8 +151,18 @@ function setupBottomNav() {
                 }
             });
 
+            // 🔥 NAYA CODE: Analytics Tracking for Tabs
+            const tabNames = {
+                'tab-home': 'Home Tab',
+                'tab-loan': 'Loan Tab',
+                'tab-history': 'History Tab',
+                'tab-profile': 'Profile Tab'
+            };
+            Analytics.logAction(`Opened Tab: ${tabNames[targetId] || targetId}`);
+
             if(typeof feather !== 'undefined') feather.replace();
             window.scrollTo(0, 0);
+
         });
     });
 }
@@ -389,104 +399,7 @@ function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
 
-        if (target.closest('#verifySubmitBtn')) {
-            const select = document.getElementById('verifyNameSelect');
-            const input = document.getElementById('verifyPasswordInput');
-
-            const memberId = select ? select.value : null;
-            const password = input ? input.value : null;
-
-            if (!memberId) { alert("Please select your name first."); return; }
-            if (!password) { alert("Please enter password."); return; }
-
-            const member = globalData.members.find(m => m.id === memberId);
-
-            if (member && String(member.password).trim() === String(password).trim()) {
-                localStorage.setItem('verifiedMemberId', memberId);
-                const modal = document.getElementById('deviceVerificationModal');
-                if(modal) modal.classList.remove('show');
-                alert(`Welcome, ${member.name}! Verification Successful.`);
-                if (typeof renderProfileGatekeeper === 'function') renderProfileGatekeeper();
-            } else {
-                alert("Incorrect Password! Please try again.");
-                if(input) input.value = ''; 
-            }
-        }
-
-        if (target.closest('.profile-image-container') || target.closest('#gkProfileImg')) {
-            const img = document.getElementById('gkProfileImg');
-            const name = document.getElementById('gkProfileName');
-            if (img && name) showFullImage(img.src, name.textContent);
-        }
-
-        if (target.closest('#verifyForgotBtn')) {
-            const select = document.getElementById('verifyNameSelect');
-            const memberId = select ? select.value : null;
-            if (!memberId) {
-                alert("Please select your name from the list first, then click Forgot Password.");
-                return;
-            }
-            const member = globalData.members.find(m => m.id === memberId);
-            if (member) {
-                const phone = "7903698180"; 
-                const text = `*TCF Password Recovery*\n\n*Name:* ${member.name}\n*Issue:* I have forgotten my password.\n*Request:* Please provide me with my login password. 🔑`;
-                window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-            }
-        }
-
-        if (target.closest('#gkSubmitBtn')) {
-            const btn = document.getElementById('gkSubmitBtn');
-            const input = document.getElementById('gkPasswordInput');
-            const memberId = btn.dataset.memberId;
-
-            if (!memberId || memberId === 'null') {
-                alert("Please select your identity first (Click on your photo in Home List)");
-                promptForDeviceVerification(globalData.members).then(id => {
-                    if(id) {
-                        localStorage.setItem('verifiedMemberId', id);
-                        renderProfileGatekeeper();
-                    }
-                });
-                return;
-            }
-
-            const member = globalData.members.find(m => m.id === memberId);
-            if (member && String(member.password).trim() === String(input.value).trim()) {
-                window.location.href = `view.html?memberId=${memberId}`;
-            } else {
-                alert("Incorrect Password!");
-                input.value = '';
-            }
-        }
-
-        if (target.closest('#quickActionSip')) showSipStatusModal(globalData.members);
-
-        if (target.matches('.close') || target.matches('.close *') || target.classList.contains('modal')) {
-            const modal = target.closest('.modal') || target;
-            closeModal(modal);
-        }
-
-
-
-        if (target.closest('#fullViewBtn')) swapModals(elements.profileModal, elements.passwordModal);
-
-        if (target.closest('#viewHistoryBtn')) {
-            const list = document.getElementById('penaltyHistoryList');
-            const btn = target.closest('#viewHistoryBtn');
-            const isHidden = list.style.display === 'none' || list.style.display === '';
-            list.style.display = isHidden ? 'block' : 'none';
-            btn.textContent = isHidden ? 'Hide History' : 'View History';
-        }
-
-        if (target.closest('#profileModalHeader')) {
-            const img = document.getElementById('profileModalImage');
-            const name = document.getElementById('profileModalName');
-            if (img && name) showFullImage(img.src, name.textContent);
-        }
-
-        if (target.closest('#submitPasswordBtn')) handlePasswordCheck(database, currentMemberForFullView);
-
-        if (target.closest('#tcfBalanceToggleBtn')) {
+                if (target.closest('#tcfBalanceToggleBtn')) {
             const amountEl = elements.tcfAvailableFunds;
             const iconEl = elements.tcfEyeIcon;
 
@@ -494,6 +407,9 @@ function setupEventListeners(database) {
                 amountEl.classList.remove('masked');
                 iconEl.setAttribute('data-feather', 'eye');
                 balanceClickSound.play().catch(console.warn);
+
+                // 🔥 NAYA CODE: Analytics Tracking for Balance Check
+                Analytics.logAction("Checked Main Wallet Balance");
 
                 const targetValueStr = amountEl.dataset.value || '0';
                 const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
@@ -519,21 +435,46 @@ function setupEventListeners(database) {
             if(typeof feather !== 'undefined') feather.replace();
         }
 
-        if (target.closest('#btnQr')) window.location.href = 'qr.html';
-        if (target.closest('#btnSip')) showSipStatusModal(globalData.members);
-        if (target.closest('#btnLoan')) window.location.href = 'loan_dashbord.html';
+               // 🔥 NAYA CODE: Tracking for Quick Actions (.compact-card)
+        if (target.closest('.compact-card')) {
+            const card = target.closest('.compact-card');
+            const span = card.querySelector('span');
+            if (span) {
+                const actionName = span.innerText.replace(/\n/g, ' ');
+                Analytics.logAction(`Clicked Quick Action: ${actionName}`);
+            }
+        }
+
+        if (target.closest('#btnQr')) {
+            Analytics.logAction("Opened QR Page");
+            window.location.href = 'qr.html';
+        }
+        if (target.closest('#btnSip')) {
+            Analytics.logAction("Opened SIP Option");
+            showSipStatusModal(globalData.members);
+        }
+        if (target.closest('#btnLoan')) {
+            Analytics.logAction("Opened Loan Dashboard");
+            window.location.href = 'loan_dashbord.html';
+        }
 
         if (target.closest('#btnHistory')) {
+             Analytics.logAction("Opened History Option");
              document.querySelector('.nav-item[data-target="tab-history"]').click();
         }
 
         if (target.closest('#viewBalanceBtn')) {
             balanceClickSound.play().catch(console.warn);
+            // viewBalanceBtn ka tracking helper file mein already hai
             showBalanceModal(globalData.stats);
         }
 
         if (target.closest('#viewPenaltyWalletBtn')) showPenaltyWalletModal(globalData.penalty, globalData.stats.totalPenaltyBalance);
-        if (target.closest('#notificationBtn')) window.location.href = 'notifications.html';
+
+        if (target.closest('#notificationBtn')) {
+            Analytics.logAction("Opened Notifications Page");
+            window.location.href = 'notifications.html';
+        }
 
         // --- NEW: View All Ranked Members Button Logic ---
         if (target.closest('#viewAllRankedBtn')) {
