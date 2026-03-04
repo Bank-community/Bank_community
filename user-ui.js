@@ -539,6 +539,62 @@ function setupEventListeners(database) {
             window.location.href = 'notifications.html';
         }
 
+        // 🔥 NAYA CODE: LOGIN & VERIFY BUTTON LOGIC
+        if (target.closest('#verifySubmitBtn')) {
+            const selectEl = document.getElementById('verifyNameSelect');
+            const passEl = document.getElementById('verifyPasswordInput');
+            
+            const memberId = selectEl.value;
+            const password = passEl.value;
+
+            if (!memberId) {
+                alert('Please select your name.');
+                return;
+            }
+            if (!password) {
+                alert('Please enter your password.');
+                return;
+            }
+
+            const btn = target.closest('#verifySubmitBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = 'Verifying...';
+            btn.disabled = true;
+
+            let dbInstance = database;
+            if (!dbInstance && typeof firebase !== 'undefined') {
+                dbInstance = firebase.database();
+            }
+
+            // Firebase se password check karna
+            dbInstance.ref(`members/${memberId}/password`).once('value')
+                .then(snap => {
+                    if (String(snap.val()).trim() === String(password).trim()) {
+                        // Password Sahi Hai!
+                        localStorage.setItem('verifiedMemberId', memberId);
+                        Analytics.identifyUser(memberId);
+                        
+                        // Modal band karein
+                        document.getElementById('deviceVerificationModal').classList.remove('show');
+                        
+                        // Pura data naye user ke hisaab se load karne ke liye page refresh karna best hai
+                        window.location.reload(); 
+                    } else {
+                        // Password Galat Hai
+                        alert('Wrong Password! Kripya sahi password darj karein.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Verification failed. Check your internet connection.');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    if(typeof feather !== 'undefined') feather.replace();
+                });
+        }
+
 
         // --- NEW: View All Ranked Members Button Logic ---
         if (target.closest('#viewAllRankedBtn')) {
