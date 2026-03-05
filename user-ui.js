@@ -473,15 +473,32 @@ function setupEventListeners(database) {
         }
 
         // --- 5. OTHER EXISTING BUTTONS ---
+
         if (target.closest('#fullViewBtn')) swapModals(elements.profileModal, elements.passwordModal);
 
+        // पुराना इमेज ज़ूम कोड
         if (target.closest('#profileModalHeader')) {
             const img = document.getElementById('profileModalImage');
             const name = document.getElementById('profileModalName');
             if (img && name) showFullImage(img.src, name.textContent);
         }
 
+        // 🔥 नया कोड: मॉडर्न प्रोफाइल पिक्चर ज़ूम करने के लिए
+        if (target.closest('.profile-image-container')) {
+            const img = document.getElementById('gkProfileImg');
+            const name = document.getElementById('gkProfileName');
+            if (img && name) showFullImage(img.src, name.textContent);
+        }
+
+        // पुराना पासवर्ड सबमिट बटन
         if (target.closest('#submitPasswordBtn')) handlePasswordCheck(database, currentMemberForFullView);
+
+        // 🔥 नया कोड: मॉडर्न प्रोफाइल "Open Dashboard" बटन के लिए
+        if (target.closest('#gkSubmitBtn')) {
+            const memberId = target.closest('#gkSubmitBtn').dataset.memberId || localStorage.getItem('verifiedMemberId');
+            handlePasswordCheck(database, memberId, 'gkPasswordInput'); 
+        }
+
 
         if (target.closest('#tcfBalanceToggleBtn')) {
             const amountEl = elements.tcfAvailableFunds;
@@ -543,7 +560,7 @@ function setupEventListeners(database) {
         if (target.closest('#verifySubmitBtn')) {
             const selectEl = document.getElementById('verifyNameSelect');
             const passEl = document.getElementById('verifyPasswordInput');
-            
+
             const memberId = selectEl.value;
             const password = passEl.value;
 
@@ -573,10 +590,10 @@ function setupEventListeners(database) {
                         // Password Sahi Hai!
                         localStorage.setItem('verifiedMemberId', memberId);
                         Analytics.identifyUser(memberId);
-                        
+
                         // Modal band karein
                         document.getElementById('deviceVerificationModal').classList.remove('show');
-                        
+
                         // Pura data naye user ke hisaab se load karne ke liye page refresh karna best hai
                         window.location.reload(); 
                     } else {

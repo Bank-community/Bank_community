@@ -313,8 +313,9 @@ export function showBalanceModal(stats) {
 }
 
 // --- PASSWORD & VERIFICATION ---
-export async function handlePasswordCheck(database, memberId) {
-    const input = document.getElementById('passwordInput');
+// 🔥 नया अपडेटेड कोड: यह पुरानी और नई दोनों ID को सपोर्ट करेगा
+export async function handlePasswordCheck(database, memberId, inputId = 'passwordInput') {
+    const input = document.getElementById(inputId);
     if (!input || !input.value) return alert('Please enter password.');
 
     // Auto-Connect if DB missing
@@ -339,6 +340,7 @@ export async function handlePasswordCheck(database, memberId) {
         alert('Verification failed. Check internet.'); 
     }
 }
+
 
 // --- DEVICE VERIFICATION (UPDATED FOR GATEKEEPER) ---
 export function promptForDeviceVerification(members) {
