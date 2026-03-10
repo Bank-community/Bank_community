@@ -29,11 +29,13 @@ function renderAnalyticsTab(state) {
     if(list) {
         let html = '';
 
-                // 1. Capital Breakdown Math (UPDATED LOGIC)
-        const capTotal = state.member.totalSip || 0;
+                        // 1. Capital Breakdown Math
+        const sipTotal = state.member.totalSip || 0;
         
-        // 🔥 NAYA LOGIC: UI में दिखाने के लिए Active Loan अमाउंट निकालें
+        // 🔥 NAYA: UI में दिखाने के लिए P2P और Loan निकालें
         let activeLoanAmt = 0;
+        let p2pNet = 0; // P2P Received - P2P Sent
+
         if (state.activeLoans) {
             Object.values(state.activeLoans).forEach(loan => {
                 if (loan.memberId === state.member.membershipId && loan.status === 'Active') {
@@ -41,12 +43,22 @@ function renderAnalyticsTab(state) {
                 }
             });
         }
+
+        if (state.allData) {
+            state.allData.forEach(tx => {
+                if (tx.p2pReceived) p2pNet += tx.p2pReceived;
+                if (tx.p2pSent) p2pNet -= tx.p2pSent;
+            });
+        }
         
-        let netCap = capTotal - activeLoanAmt;
+        // Net Capital calculation
+        let netCap = sipTotal + p2pNet - activeLoanAmt;
         if (netCap < 0) netCap = 0;
 
-        // अब UI पर साफ़-साफ़ दिखेगा कि SIP में से लोन माइनस हुआ है
-        let capMath = `[जमा: ₹${capTotal.toLocaleString()} - लोन: ₹${activeLoanAmt.toLocaleString()}] ÷ 50k × 100 = <span class="text-green-600 font-bold">${s.originalCapitalScore.toFixed(0)}</span>`;
+        // UI Text Create करना (प्लस या माइनस साइन के साथ P2P दिखाना)
+        let p2pText = p2pNet >= 0 ? `+ P2P: ₹${p2pNet.toLocaleString()}` : `- P2P: ₹${Math.abs(p2pNet).toLocaleString()}`;
+        
+        let capMath = `[जमा: ₹${sipTotal.toLocaleString()} ${p2pNet !== 0 ? p2pText : ''} - लोन: ₹${activeLoanAmt.toLocaleString()}] ÷ 50k × 100 = <span class="text-green-600 font-bold">${s.originalCapitalScore.toFixed(0)}</span>`;
         
         if (netCap >= 50000) {
             capMath = `टारगेट (₹50,000) पूरा हुआ = <span class="text-green-600 font-bold">100</span>`;
