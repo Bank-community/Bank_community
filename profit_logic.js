@@ -131,30 +131,42 @@ async function checkAuthAndInit() {
     }
 }
 
-// --- SMART DATA LOADING (CACHE FIRST) ---
+// --- SMART DATA LOADING (CACHE FIRST WITH EXPIRY) ---
 async function initDataLoad() {
     // 1. Try Local Storage First
     const cached = localStorage.getItem(CACHE_KEY);
     
     if (cached) {
-        console.log("⚡ Loading from Local Cache...");
         const data = JSON.parse(cached);
         
-        // Restore Variables
-        rawMembers = data.members || {};
-        rawTransactions = data.transactions || {};
-        rawActiveLoans = data.activeLoans || {};
-        rawPenaltyWallet = data.penaltyWallet || {};
-        rawAdmin = data.admin || {};
+        // 🔥 NAYA LOGIC: 5 मिनट का टाइमर (5 * 60 * 1000 = 300000 milliseconds)
+        const CACHE_EXPIRY_MS = 5 * 60 * 1000; 
+        const now = Date.now();
         
-        // Process UI
-        startProcessing();
-    } else {
-        // 2. If No Cache, Fetch Fresh
-        console.log("🌐 No Cache Found. Fetching from Firebase...");
-        fetchFreshData();
-    }
+        // चेक करें कि क्या कैशे 5 मिनट के अंदर का है?
+        if (data.timestamp && (now - data.timestamp < CACHE_EXPIRY_MS)) {
+            console.log("⚡ Loading from Local Cache (Still Fresh)...");
+            
+            // Restore Variables
+            rawMembers = data.members || {};
+            rawTransactions = data.transactions || {};
+            rawActiveLoans = data.activeLoans || {};
+            rawPenaltyWallet = data.penaltyWallet || {};
+            rawAdmin = data.admin || {};
+            
+            // Process UI
+            startProcessing();
+            return; // अगर कैशे यूज़ कर लिया तो यहीं से फंक्शन रोक दें
+        } else {
+            console.log("⏳ Cache Expired! Purana data mila.");
+        }
+    } 
+
+    // 2. If No Cache or Cache is Expired, Fetch Fresh
+    console.log("🌐 Fetching Fresh Data from Firebase...");
+    fetchFreshData();
 }
+
 
 async function fetchFreshData() {
     try {
