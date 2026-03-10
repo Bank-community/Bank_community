@@ -29,10 +29,28 @@ function renderAnalyticsTab(state) {
     if(list) {
         let html = '';
 
-        // 1. Capital Breakdown Math
+                // 1. Capital Breakdown Math (UPDATED LOGIC)
         const capTotal = state.member.totalSip || 0;
-        let capMath = `[कुल जमा: ₹${capTotal.toLocaleString()}] ÷ [टारगेट: ₹50,000] × 100 = <span class="text-green-600 font-bold">${s.originalCapitalScore.toFixed(0)}</span>`;
-        if (capTotal >= 50000) capMath = `टारगेट (₹50,000) पूरा हुआ = <span class="text-green-600 font-bold">100</span>`;
+        
+        // 🔥 NAYA LOGIC: UI में दिखाने के लिए Active Loan अमाउंट निकालें
+        let activeLoanAmt = 0;
+        if (state.activeLoans) {
+            Object.values(state.activeLoans).forEach(loan => {
+                if (loan.memberId === state.member.membershipId && loan.status === 'Active') {
+                    activeLoanAmt += parseFloat(loan.outstandingAmount || loan.originalAmount || 0);
+                }
+            });
+        }
+        
+        let netCap = capTotal - activeLoanAmt;
+        if (netCap < 0) netCap = 0;
+
+        // अब UI पर साफ़-साफ़ दिखेगा कि SIP में से लोन माइनस हुआ है
+        let capMath = `[जमा: ₹${capTotal.toLocaleString()} - लोन: ₹${activeLoanAmt.toLocaleString()}] ÷ 50k × 100 = <span class="text-green-600 font-bold">${s.originalCapitalScore.toFixed(0)}</span>`;
+        
+        if (netCap >= 50000) {
+            capMath = `टारगेट (₹50,000) पूरा हुआ = <span class="text-green-600 font-bold">100</span>`;
+        }
 
         html += scoreAccordion('capital', 'Capital', s.originalCapitalScore, 0.40, 'fas fa-coins', capMath, s.isNewMemberRuleApplied);
 
@@ -52,6 +70,7 @@ function renderAnalyticsTab(state) {
         list.innerHTML = html;
     }
 }
+
 
 function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
 
