@@ -87,28 +87,41 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
 // ==========================================
 // 2. CAPITAL SCORE LOGIC
 // ==========================================
-function calculateCapitalScore(memberName, untilDate, allData) {
+function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) {
     const reviewStartDate = new Date(untilDate);
     reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
     
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
-    const allSips = memberData.filter(r => r.sipPayment > 0);
     
-    // RULE: Skip First SIP & Check 18 Months
-    const validSips = allSips.slice(1).filter(r => r.date >= reviewStartDate);
+    // SIP Calculation
+    const validSips = memberData.filter(r => r.sipPayment > 0).slice(1).filter(r => r.date >= reviewStartDate);
     const totalSip = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
     
-    // 🚀 NEW LOGIC: Calculate P2P Equity (Received - Sent)
+    // P2P Calculation
     const validP2p = memberData.filter(r => r.date >= reviewStartDate);
     const totalP2pReceived = validP2p.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
     const totalP2pSent = validP2p.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
     
-    // NET CAPITAL (Actual Balance)
-    const netCapital = totalSip + totalP2pReceived - totalP2pSent;
+    // 🔥 NAYA LOGIC: Active Loan को माइनस करना
+    let totalActiveLoan = 0;
+    const memberId = memberData.length > 0 ? memberData[0].memberId : null;
     
-    // Formula: (Net Capital / 50,000) * 100
+    if (memberId && activeLoansData) {
+        Object.values(activeLoansData).forEach(loan => {
+            if (loan.memberId === memberId && loan.status === 'Active') {
+                // Outstanding Amount या फिर Original Amount लेगा
+                totalActiveLoan += parseFloat(loan.outstandingAmount || loan.originalAmount || 0);
+            }
+        });
+    }
+    
+    // NET CAPITAL (Actual Balance)
+    const netCapital = totalSip + totalP2pReceived - totalP2pSent - totalActiveLoan;
+    
+    // Formula: (Net Capital / 50,000) * 100 (Score 0 से नीचे नहीं जाएगा)
     return Math.min(100, Math.max(0, (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
 }
+
 
 
 // ==========================================
@@ -221,7 +234,7 @@ function calculateNoLoanScore(memberData, untilDate) {
     let score = (15 - avgDay) * 5 + 40;
 
     // GRAVITY CAP: Max 75 if no loan taken
-    return Math.min(75, Math.max(0, score));
+    return Math.min(90, Math.max(0, score));
 }
 
 // ==========================================
