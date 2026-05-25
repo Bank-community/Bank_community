@@ -330,16 +330,30 @@ function startLiveQueue(memberIds) {
         document.getElementById('scanner-count').textContent = `${index + 1}/${total}`;
         document.getElementById('scanner-bar').style.width = `${((index + 1) / total) * 100}%`;
 
-        setTimeout(() => {
+                setTimeout(() => {
             try {
                 const memberTx = transactionsByMember[id] || [];
-                const totalSip = memberTx.reduce((sum, t) => sum + t.sipPayment, 0);
                 
-                // 🔥 NAYA LOGIC: Exact Available Balance nikalna (SIP + Extra In - Withdrawals)
-                const totalExtraIn = memberTx.reduce((sum, t) => sum + (t.extraBalance || 0), 0);
-                const totalExtraOut = memberTx.reduce((sum, t) => sum + (t.extraWithdraw || 0), 0);
-                const totalSipOut = memberTx.reduce((sum, t) => sum + (t.sipWithdraw || 0), 0);
-                const availableBalance = totalSip + totalExtraIn - totalExtraOut - totalSipOut;
+                // 🔥 NAYA LOGIC BY PRINCE: Exact Available Balance Calculation
+                const totalSip = memberTx.reduce((sum, t) => sum + (t.sipPayment || 0), 0);
+                const totalSipWithdraw = memberTx.reduce((sum, t) => sum + (t.sipWithdraw || 0), 0);
+                
+                // P2P In aur Out (Agar 'Extra Payment' se manual add hua ho, toh usko bhi In me gina jayega)
+                const totalP2pIn = memberTx.reduce((sum, t) => sum + (t.p2pReceived || 0) + (t.extraBalance || 0), 0);
+                const totalP2pOut = memberTx.reduce((sum, t) => sum + (t.p2pSent || 0), 0);
+                
+                // Active Loan
+                let activeLoanAmount = 0;
+                if (rawActiveLoans) {
+                    Object.values(rawActiveLoans).forEach(loan => {
+                        if (loan.memberId === id && loan.status === 'Active') {
+                            activeLoanAmount += parseFloat(loan.outstandingAmount || loan.originalAmount || 0);
+                        }
+                    });
+                }
+
+                // 🔥 EXACT FORMULA: SIP + P2P In - Active Loan - SIP Withdrawal - P2P Out
+                const availableBalance = totalSip + totalP2pIn - activeLoanAmount - totalSipWithdraw - totalP2pOut;
 
                 const walletData = calculateTotalExtraBalance(id, m.fullName);
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
