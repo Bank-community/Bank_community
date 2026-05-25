@@ -617,17 +617,24 @@
                 // --- EXISTING LOGIC (SIP/Loan) ---
                 else {
                     displayTitle = membersData[t.memberId]?.fullName || membersData[t.memberId]?.name || 'Unknown';
+                    
+                    // Database se direct type le kar usko uppercase mein format karenge
+                    const displayType = t.type ? t.type.toUpperCase() : 'UNKNOWN';
 
                     if (t.type === 'SIP' || t.type === 'Extra Payment') {
-                        typeHtml = `<span class="tx-type color-green"><i data-feather="arrow-down-left" style="width:12px;"></i> SIP</span>`;
+                        typeHtml = `<span class="tx-type color-green"><i data-feather="arrow-down-left" style="width:12px;"></i> ${displayType}</span>`;
                         amountClass = 'color-green';
                     } else if (t.type === 'Loan Taken' || t.type.includes('Withdraw')) {
-                        typeHtml = `<span class="tx-type color-red"><i data-feather="arrow-up-right" style="width:12px;"></i> LOAN</span>`;
+                        typeHtml = `<span class="tx-type color-red"><i data-feather="arrow-up-right" style="width:12px;"></i> ${displayType}</span>`;
                         amountClass = 'color-red';
                         amountSign = '-';
                     } else if (t.type === 'Loan Payment') {
-                        typeHtml = `<span class="tx-type color-blue"><i data-feather="check-circle" style="width:12px;"></i> REPAY</span>`;
+                        typeHtml = `<span class="tx-type color-blue"><i data-feather="check-circle" style="width:12px;"></i> ${displayType}</span>`;
                         amountClass = 'color-blue';
+                    } else {
+                        // Agar future mein koi naya type aata hai jo upar match nahi kiya
+                        typeHtml = `<span class="tx-type text-dark"><i data-feather="info" style="width:12px;"></i> ${displayType}</span>`;
+                        amountClass = 'text-dark';
                     }
                 }
 
