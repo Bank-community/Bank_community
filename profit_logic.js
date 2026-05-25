@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", setupSecuritySystem);
 // ==========================================
 function setupSecuritySystem() {
     console.log("🔒 Security Level: High (10 Taps)");
-    
+
     const overlay = document.getElementById('loader-overlay');
     const inputBox = document.getElementById('security-input-box');
     const passInput = document.getElementById('security-pass');
@@ -102,7 +102,7 @@ async function checkAuthAndInit() {
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
-        
+
         const app = initializeApp(config);
         auth = getAuth(app);
         db = getDatabase(app);
@@ -110,7 +110,7 @@ async function checkAuthAndInit() {
         // Sorting & Refresh Listeners
         const sortSelect = document.getElementById('sort-select');
         if(sortSelect) sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
-        
+
         const refreshBtn = document.getElementById('force-refresh-btn');
         if(refreshBtn) refreshBtn.addEventListener('click', () => {
             if(confirm("Refresh data from server?")) {
@@ -135,25 +135,25 @@ async function checkAuthAndInit() {
 async function initDataLoad() {
     // 1. Try Local Storage First
     const cached = localStorage.getItem(CACHE_KEY);
-    
+
     if (cached) {
         const data = JSON.parse(cached);
-        
+
         // 🔥 NAYA LOGIC: 5 मिनट का टाइमर (5 * 60 * 1000 = 300000 milliseconds)
         const CACHE_EXPIRY_MS = 5 * 60 * 1000; 
         const now = Date.now();
-        
+
         // चेक करें कि क्या कैशे 5 मिनट के अंदर का है?
         if (data.timestamp && (now - data.timestamp < CACHE_EXPIRY_MS)) {
             console.log("⚡ Loading from Local Cache (Still Fresh)...");
-            
+
             // Restore Variables
             rawMembers = data.members || {};
             rawTransactions = data.transactions || {};
             rawActiveLoans = data.activeLoans || {};
             rawPenaltyWallet = data.penaltyWallet || {};
             rawAdmin = data.admin || {};
-            
+
             // Process UI
             startProcessing();
             return; // अगर कैशे यूज़ कर लिया तो यहीं से फंक्शन रोक दें
@@ -210,7 +210,7 @@ async function fetchFreshData() {
 function startProcessing() {
     // 1. Get Source of Truth
     adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
-    
+
     // 2. Check Sync Status
     analyzeWalletHistory();
 
@@ -284,7 +284,9 @@ function prepareAndStartQueue() {
                 record.returnAmount = tx.interestPaid || 0;
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
-            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+            case 'Extra Withdraw': 
+            case 'SIP Withdrawal': // 🔥 NAYA LOGIC: SIP Withdrawal ko bhi extraWithdraw mein gina jayega
+                record.extraWithdraw = tx.amount || 0; break;
             default: continue;
         }
         allTransactionsList.push(record);
@@ -293,11 +295,11 @@ function prepareAndStartQueue() {
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
-    
+
     // Hide overlay AFTER logic is ready (if needed visually)
     // Note: Overlay is already hidden by password check, but this ensures safety
     // document.getElementById('loader-overlay').classList.add('hidden'); 
-    
+
     injectScannerUI(memberIdsToProcess.length);
     startLiveQueue(memberIdsToProcess);
 }
@@ -333,10 +335,10 @@ function startLiveQueue(memberIds) {
             try {
                 const memberTx = transactionsByMember[id] || [];
                 const totalSip = memberTx.reduce((sum, t) => sum + t.sipPayment, 0);
-                
+
                 const walletData = calculateTotalExtraBalance(id, m.fullName);
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
-                
+
                 currentlyDistributed += lifetimeProfit;
 
                 let scoreObj = { totalScore: 0 };
@@ -357,7 +359,7 @@ function startLiveQueue(memberIds) {
                 communityStats.totalSip += totalSip;
                 communityStats.totalProfitDistributed += lifetimeProfit;
                 communityStats.totalWalletLiability += walletData.total;
-                
+
                 updateSummaryUI(communityStats);
 
             } catch (err) { console.error(err); }
@@ -373,7 +375,7 @@ function startLiveQueue(memberIds) {
 function calculateAndShowSyncUI() {
     target90Percent = adminTotalReturn * 0.90;
     totalLifetimeGap = target90Percent - currentlyDistributed;
-    
+
     let pendingToAdd = totalLifetimeGap - totalInactiveSentToWallet;
     pendingToAdd = Math.floor(pendingToAdd); 
     if (pendingToAdd < 0) pendingToAdd = 0;
@@ -435,7 +437,7 @@ async function performWalletSync(amount) {
     try {
         const walletRef = ref(db, 'penaltyWallet');
         const reasonString = `${currentMonthTag} : ${amount}`;
-        
+
         const newTxRef = push(child(walletRef, 'incomes'));
         await update(newTxRef, {
             amount: amount,
@@ -598,7 +600,7 @@ function appendMemberCard(m) {
         <button onclick="showLocalHistory('${m.id}')" class="mt-4 w-full py-2 rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 hover:bg-[#002366] hover:text-white transition-colors uppercase tracking-wide">
             View History
         </button>`;
-    
+
     window[`history_${m.id}`] = m.walletHistory;
     grid.appendChild(card);
 }

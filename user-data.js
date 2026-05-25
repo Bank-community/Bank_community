@@ -11,7 +11,7 @@ const CACHE_TIME_KEY = 'tcf_cache_timestamp';
 const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 Minutes
 
 export async function fetchAndProcessData(database, onUpdate = null) {
-    
+
     // 1. Pata lagana ki user ne khud Refresh kiya hai ya navigation se aaya hai
     let isManualRefresh = false;
     if (window.performance) {
@@ -74,7 +74,7 @@ export async function fetchAndProcessData(database, onUpdate = null) {
         // 4. Save Raw Data & New Timestamp
         localStorage.setItem(CACHE_KEY_RAW, JSON.stringify(rawData));
         localStorage.setItem(CACHE_TIME_KEY, Date.now().toString()); 
-        
+
         const processed = processRawData(rawData);
         if (onUpdate) onUpdate(processed);
 
@@ -114,7 +114,8 @@ function processRawData(data) {
 
         if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
             memberBalances[tx.memberId] += amt;
-        } else if (tx.type === 'Extra Withdraw') {
+        } else if (tx.type === 'Extra Withdraw' || tx.type === 'SIP Withdrawal') {
+            // 🔥 NAYA LOGIC: Dono tarah ke withdrawals minus honge
             memberBalances[tx.memberId] -= amt;
         }
     });

@@ -33,18 +33,15 @@ async function fetchFirebaseData() {
     if (!id) return showError("Member ID Missing");
 
     try {
-        // 🔥 NAYA UPDATE: p2p_transfers ko bhi fetch kiya ja raha hai
-        const [mSnap, tSnap, lSnap, p2pSnap] = await Promise.all([
+        const [mSnap, tSnap, lSnap] = await Promise.all([
             get(ref(window.tcfApp.db, 'members')),
             get(ref(window.tcfApp.db, 'transactions')),
-            get(ref(window.tcfApp.db, 'activeLoans')),
-            get(ref(window.tcfApp.db, 'p2p_transfers'))
+            get(ref(window.tcfApp.db, 'activeLoans'))
         ]);
 
         if (!mSnap.exists() || !mSnap.val()[id]) throw new Error("Data not found");
 
-        // 🔥 NAYA UPDATE: p2pSnap.val() ko bhi processCoreData mein bheja ja raha hai
-        processCoreData(id, mSnap.val(), tSnap.exists() ? tSnap.val() : {}, lSnap.exists() ? lSnap.val() : {}, p2pSnap.exists() ? p2pSnap.val() : {});
+        processCoreData(id, mSnap.val(), tSnap.exists() ? tSnap.val() : {}, lSnap.exists() ? lSnap.val() : {});
 
         // Hide Loader
         const loader = document.getElementById('loader-container');
@@ -58,9 +55,8 @@ async function fetchFirebaseData() {
     }
 }
 
-
 // --- CORE LOGIC (100% Synced mathematical logic) ---
-function processCoreData(memberId, members, transactions, activeLoans, p2pTransfers) {
+function processCoreData(memberId, members, transactions, activeLoans) {
     const state = window.tcfApp.state;
     state.member = members[memberId];
     state.member.membershipId = memberId;
@@ -90,34 +86,13 @@ function processCoreData(memberId, members, transactions, activeLoans, p2pTransf
             case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
             case 'Loan Payment': record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0); record.returnAmount = tx.interestPaid || 0; break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
-            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+            case 'Extra Withdraw': 
+            case 'SIP Withdrawal': // 🔥 NAYA LOGIC: User Panel mein bhi SIP Withdrawal extraWithdraw mein add hoga
+                record.extraWithdraw = tx.amount || 0; break;
             default: continue;
         }
         state.allData.push(record);
     }
-
-    // 🔥 NAYA LOGIC: P2P Transfers ko 'allData' array mein jodna
-    if (p2pTransfers) {
-        for (const p2pId in p2pTransfers) {
-            const p2p = p2pTransfers[p2pId];
-            if (p2p.senderId === memberId) {
-                // Agar user ne bheja hai (Sent)
-                state.allData.push({
-                    id: idCounter++, date: new Date(p2p.date), name: state.member.fullName, memberId: memberId,
-                    p2pSent: parseFloat(p2p.amount || 0), type: 'P2P Sent'
-                });
-            }
-            if (p2p.receiverId === memberId) {
-                // Agar user ko mila hai (Received)
-                state.allData.push({
-                    id: idCounter++, date: new Date(p2p.date), name: state.member.fullName, memberId: memberId,
-                    p2pReceived: parseFloat(p2p.amount || 0), type: 'P2P Received'
-                });
-            }
-        }
-    }
-
-    // Data ko date ke hisaab se sort karein
     state.allData.sort((a, b) => a.date - b.date || a.id - b.id);
 
     const walletData = calculateTotalExtraBalance(memberId, state.member.fullName);
@@ -125,14 +100,13 @@ function processCoreData(memberId, members, transactions, activeLoans, p2pTransf
     state.member.extraBalance = walletData.total;
 
     const memberTxs = state.allData.filter(t => t.memberId === memberId);
-    state.member.totalSip = memberTxs.reduce((s, t) => s + (t.sipPayment || 0), 0);
+    state.member.totalSip = memberTxs.reduce((s, t) => s + t.sipPayment, 0);
     state.member.lifetimeProfit = calculateTotalProfitForMember(state.member.fullName);
 
     if (typeof calculatePerformanceScore === 'function') {
         state.score = calculatePerformanceScore(state.member.fullName, new Date(), state.allData, state.activeLoans);
     }
 }
-
 
 function calculateTotalExtraBalance(memberId, memberFullName) {
     const state = window.tcfApp.state;
