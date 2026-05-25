@@ -285,7 +285,7 @@ function prepareAndStartQueue() {
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': 
-            case 'SIP Withdrawal': // 🔥 NAYA LOGIC: SIP Withdrawal ko bhi extraWithdraw mein gina jayega
+            case 'SIP Withdrawal': // 🔥 Dono Withdrawals ab 'extraWithdraw' variable mein jayenge
                 record.extraWithdraw = tx.amount || 0; break;
             default: continue;
         }

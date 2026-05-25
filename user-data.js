@@ -115,7 +115,7 @@ function processRawData(data) {
         if (tx.type === 'SIP' || tx.type === 'Extra Payment') {
             memberBalances[tx.memberId] += amt;
         } else if (tx.type === 'Extra Withdraw' || tx.type === 'SIP Withdrawal') {
-            // 🔥 NAYA LOGIC: Dono tarah ke withdrawals minus honge
+            // 🔥 Dono type ke withdrawals exact available balance nikalne ke liye minus honge
             memberBalances[tx.memberId] -= amt;
         }
     });

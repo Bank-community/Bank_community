@@ -93,33 +93,31 @@ function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) 
 
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
 
-    // SIP Calculation
-    const validSips = memberData.filter(r => r.sipPayment > 0).slice(1).filter(r => r.date >= reviewStartDate);
+     // SIP Calculation (18-month logic rakha gaya hai, par slice(1) hata diya taaki pehli SIP bhi count ho)
+    const validSips = memberData.filter(r => r.sipPayment > 0).filter(r => r.date >= reviewStartDate);
     const totalSip = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
 
-    // P2P Calculation
-    const validP2p = memberData.filter(r => r.date >= reviewStartDate);
-    const totalP2pReceived = validP2p.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
-    const totalP2pSent = validP2p.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    // P2P, Extra Payments aur Withdrawals (In sab par bhi 18-month ka filter lagaya hai)
+    const validData = memberData.filter(r => r.date >= reviewStartDate);
+    const totalP2pReceived = validData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = validData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalExtraPayment = validData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
+    const totalWithdraw = validData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0), 0); // Isme SIP Withdrawal count hoga
 
-    // 🔥 NAYA LOGIC: Withdrawals ko Minus Karna (SIP Withdrawal & Extra Withdraw)
-    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0), 0);
-
-    // 🔥 NAYA LOGIC: Active Loan को माइनस करना
+    // 🔥 Active Loan को माइनस करना
     let totalActiveLoan = 0;
     const memberId = memberData.length > 0 ? memberData[0].memberId : null;
 
     if (memberId && activeLoansData) {
         Object.values(activeLoansData).forEach(loan => {
             if (loan.memberId === memberId && loan.status === 'Active') {
-                // Outstanding Amount या फिर Original Amount लेगा
                 totalActiveLoan += parseFloat(loan.outstandingAmount || loan.originalAmount || 0);
             }
         });
     }
 
-    // NET CAPITAL (Actual Balance = SIP + P2P In - P2P Out - Active Loan - Withdrawals)
-    const netCapital = totalSip + totalP2pReceived - totalP2pSent - totalActiveLoan - totalWithdraw;
+    // NET CAPITAL = (SIP + Extra In + P2P In) - (P2P Out + Withdrawals + Active Loan)
+    const netCapital = totalSip + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw - totalActiveLoan;
 
     // Formula: (Net Capital / 50,000) * 100 (Score 0 से नीचे नहीं जाएगा)
     return Math.min(100, Math.max(0, (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
@@ -430,14 +428,15 @@ function getLoanEligibility(memberName, totalSipAmount, allData) {
     // 🚀 NEW LOGIC: Calculate P2P Adjustments & Withdrawals
     const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
     const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalExtraPayment = memberData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
     const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0), 0);
 
-    // Net Base Capital (SIP + Received - Sent - Withdrawals)
-    const netBaseCapital = totalSipAmount + totalP2pReceived - totalP2pSent - totalWithdraw;
+    // Net Base Capital (SIP + Extra In + Received - Sent - Withdrawals)
+    const netBaseCapital = totalSipAmount + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw;
 
     // 1. Check Outstanding Balance (Including P2P & Withdrawals)
     let totalCapital = memberData.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
-    totalCapital = totalCapital + totalP2pReceived - totalP2pSent - totalWithdraw;
+    totalCapital = totalCapital + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw;
     if (totalCapital < 0) return { eligible: false, reason: 'Outstanding Loan' };
 
     // 2. Check Membership Age

@@ -87,7 +87,7 @@ function processCoreData(memberId, members, transactions, activeLoans) {
             case 'Loan Payment': record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0); record.returnAmount = tx.interestPaid || 0; break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': 
-            case 'SIP Withdrawal': // 🔥 NAYA LOGIC: User Panel mein bhi SIP Withdrawal extraWithdraw mein add hoga
+            case 'SIP Withdrawal': // 🔥 User Panel ke liye bhi same
                 record.extraWithdraw = tx.amount || 0; break;
             default: continue;
         }
