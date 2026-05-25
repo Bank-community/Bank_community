@@ -86,9 +86,8 @@ function processCoreData(memberId, members, transactions, activeLoans) {
             case 'Loan Taken': record.loan = tx.amount || 0; record.loanType = 'Loan'; break;
             case 'Loan Payment': record.payment = (tx.principalPaid || 0) + (tx.interestPaid || 0); record.returnAmount = tx.interestPaid || 0; break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
-            case 'Extra Withdraw': 
-            case 'SIP Withdrawal': // 🔥 User Panel ke liye bhi same
-                record.extraWithdraw = tx.amount || 0; break;
+            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break; // Sirf profit (wallet) withdrawal
+            case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break; // 🔥 SIP (capital) withdrawal alag kiya
             default: continue;
         }
         state.allData.push(record);

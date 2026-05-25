@@ -102,7 +102,8 @@ function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) 
     const totalP2pReceived = validData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
     const totalP2pSent = validData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
     const totalExtraPayment = validData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
-    const totalWithdraw = validData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0), 0); // Isme SIP Withdrawal count hoga
+    // 🔥 SCORE ENGINE mein dono withdrawal minus hongi (Profit withdraw + SIP withdraw)
+    const totalWithdraw = validData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
 
     // 🔥 Active Loan को माइनस करना
     let totalActiveLoan = 0;
@@ -429,7 +430,8 @@ function getLoanEligibility(memberName, totalSipAmount, allData) {
     const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
     const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
     const totalExtraPayment = memberData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
-    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0), 0);
+    // 🔥 ELIGIBILITY mein bhi dono withdrawal minus hongi
+    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
 
     // Net Base Capital (SIP + Extra In + Received - Sent - Withdrawals)
     const netBaseCapital = totalSipAmount + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw;

@@ -284,9 +284,8 @@ function prepareAndStartQueue() {
                 record.returnAmount = tx.interestPaid || 0;
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
-            case 'Extra Withdraw': 
-            case 'SIP Withdrawal': // 🔥 Dono Withdrawals ab 'extraWithdraw' variable mein jayenge
-                record.extraWithdraw = tx.amount || 0; break;
+            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break; // Sirf profit (wallet) withdrawal
+            case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break; // 🔥 SIP (capital) withdrawal alag kiya taaki wallet minus na kare
             default: continue;
         }
         allTransactionsList.push(record);
