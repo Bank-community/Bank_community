@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         count: document.getElementById('count-val'),
         amt: document.getElementById('amount-val'),
         search: document.getElementById('search-input'),
-        
+
         // Filters
         btnAll: document.getElementById('filter-all'),
         btnPersonal: document.getElementById('filter-personal'),
@@ -41,13 +41,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         setupFilters(); // Setup Click Listeners
         setupAdminModal(); // Setup Generator Logic
         loadFromCache();
-        
+
         const res = await fetch(PRELOAD_CONFIG_URL);
         if(res.ok) {
             const config = await res.json();
             if (!firebase.apps.length) firebase.initializeApp(config);
         }
-        
+
         firebase.auth().onAuthStateChanged(u => {
             if(u) loadData(); 
             else window.location.href = `/login.html?redirect=${window.location.pathname}`;
@@ -61,13 +61,13 @@ function setupFilters() {
 
     const setFilter = (type, btn) => {
         state.currentFilter = type;
-        
+
         // Update Buttons Visual State
         [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => {
             if(b) b.classList.remove('active');
         });
         if(btn) btn.classList.add('active');
-        
+
         // Re-render
         renderLoans();
     };
@@ -115,13 +115,13 @@ async function loadData() {
         const membersVal = mSnap.val() || {};
         const loansVal = lSnap.val() || {};
         state.members = membersVal;
-        
+
         localStorage.setItem(CACHE_KEY, JSON.stringify({
             members: membersVal,
             rawLoans: loansVal,
             timestamp: Date.now()
         }));
-        
+
         state.activeLoans = processLoanData(loansVal, state.members);
         renderLoans();
         fillDropdown();
@@ -169,10 +169,10 @@ function renderLoans() {
         const amount = parseFloat(l.outstandingAmount || 0);
         const dateObj = new Date(l.loanDate);
         const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-        
+
         const diffTime = Math.abs(new Date() - dateObj);
         const daysActive = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        
+
         let providerOrProduct = 'N/A';
         let emiAmount = null;
         let tenureMonths = l.tenureMonths || 0; 
@@ -202,7 +202,7 @@ function renderLoans() {
                 cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
             }
         }
-        
+
         const wrapper = document.createElement('div');
         wrapper.innerHTML = cardHTML;
         container.appendChild(wrapper);
@@ -214,7 +214,7 @@ function renderLoans() {
 // === HELPER: ALERT LOGIC (New 90/365 Rule) ===
 function getAlertStatus(amount, days) {
     let threshold = 90; // Default 90 days for small loans
-    
+
     // For Big Loans (> 25000), limit is 1 year (365 days)
     if (amount > 25000) {
         threshold = 365;
@@ -226,14 +226,11 @@ function getAlertStatus(amount, days) {
     };
 }
 
-// Helper: Pay Now Button (Supports CSS Updates)
+// Helper: Pay Now Button (Removed to fix UI and Download overlap)
 function getPayButtonHTML(loan, amount) {
-    const payLink = `qr.html?amount=${amount}&type=loan&id=${loan.loanId}`;
-    return `
-    <a href="${payLink}" class="btn-pay-now">
-        PAY NOW <i data-feather="chevron-right"></i>
-    </a>`;
+    return ''; // Returns empty string so button is completely hidden
 }
+
 
 // Helper: Warning Symbol Injection
 function getWarningSymbol(isCritical) {
@@ -247,7 +244,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     const loanId = `card-${loan.loanId}`;
     const showEmi = (tenureMonths > 3) || (emi && emi > 0);
     const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
-    
+
     const alertState = getAlertStatus(amount, daysActive);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
@@ -256,7 +253,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     <div class="premium-card-wrapper card-premium ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
         ${getWarningSymbol(alertState.isCritical)}
-        
+
         <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
@@ -308,7 +305,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
     <div class="premium-card-wrapper card-platinum ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
         ${getWarningSymbol(alertState.isCritical)}
-        
+
         <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
@@ -371,7 +368,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
     <div class="premium-card-wrapper ${cardClass} ${wrapperClass}" id="${loanId}">
         <div class="pc-texture"></div>
         ${getWarningSymbol(alertState.isCritical)}
-        
+
         <div class="pc-days-circle ${alertClass}">
             <span class="day-num">${daysActive}</span>
             <span class="day-label">DAYS</span>
@@ -414,11 +411,11 @@ if(state.els.search) {
     state.els.search.addEventListener('input', () => renderLoans());
 }
 
-// --- HIGH QUALITY DOWNLOAD FIX (Text Shift Solved) ---
+// --- HIGH QUALITY DOWNLOAD FIX ---
 window.dlCard = (id) => {
     const el = document.getElementById(id);
     const btn = el.querySelector('.pc-download');
-    
+
     // Hide Download Icon
     btn.style.opacity = '0';
 
@@ -430,30 +427,20 @@ window.dlCard = (id) => {
         logging: false,
         onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(id);
-            const clonedPayBtn = clonedEl.querySelector('.btn-pay-now');
-            
-            // 🔥 1. Fix Text Shift Issue
-            clonedEl.style.transform = "none"; 
-            const titles = clonedEl.querySelectorAll('.pc-title, .pc-amount');
-            titles.forEach(t => {
-                t.style.marginTop = "-5px"; // Pull text up slightly for screenshot
-                t.style.lineHeight = "1";
-            });
 
-            // 2. Ensure Button is Visible in Download
-            if(clonedPayBtn) {
-                clonedPayBtn.style.display = 'flex';
-                clonedPayBtn.style.boxShadow = 'none'; 
-                clonedPayBtn.style.border = '1px solid #D4AF37';
-            }
+            // Clean transform to prevent canvas clipping
+            clonedEl.style.transform = "none"; 
+
+            // Faltu margin-top hacks hata diye gaye hain jo text overlap kar rahe the
         }
     })
+
     .then(c => {
         const a = document.createElement('a');
         a.download = `LoanCard_${id}.png`;
         a.href = c.toDataURL('image/png');
         a.click();
-        
+
         // Restore
         btn.style.opacity = '1';
     });
@@ -486,7 +473,7 @@ function setupAdminModal() {
         if(!mId) return alert('Select Member');
         const amt = parseFloat(state.els.amtInput.value);
         if(!amt) return alert('Enter Amount');
-        
+
         const name = state.els.mSelect.options[state.els.mSelect.selectedIndex].text;
         const pic = state.els.mSelect.options[state.els.mSelect.selectedIndex].dataset.pic;
         const typeKey = state.els.tSelect.value;
