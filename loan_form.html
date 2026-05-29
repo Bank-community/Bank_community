@@ -264,7 +264,7 @@
                   <p id="loanRequestText" class="text-center italic text-brand-teal text-sm font-medium mb-8">"I request approval for this application."</p>
                   <div class="flex justify-between items-end px-10 pb-4 border-t border-gray-100 pt-4">
                       <div class="text-center">
-                           <img src="https://ik.imagekit.io/nsyr92pse/1771753348091.png" crossorigin="anonymous" class="w-28 opacity-80" style="mix-blend-mode: multiply;">
+                           <img src="https://ik.imagekit.io/kdtvm0r78/20251206_210616.png" crossorigin="anonymous" class="w-28 opacity-80" style="mix-blend-mode: multiply;">
                            <p class="text-[10px] text-gray-500 uppercase font-bold mt-1">Community Stamp</p>
                       </div>
                       <div class="text-center">
@@ -279,10 +279,17 @@
   </div>
 
 <script>
+
     // --- GLOBAL STATE ---
     let membersData = {};
+    let allTransactions = []; 
+    let top3VipIds = []; // VIP Rank Store karne ke liye
+    let memberRealBalances = {}; 
     let currentMember = null;
     let currentMaxLimit = 0;
+    let currentRealBalance = 0; 
+    let isCurrentMonthSipPaid = false; 
+    let currentVipRank = 0; 
 
     // --- 1. INITIALIZE & FETCH DATA ---
     async function initApp() {
@@ -303,8 +310,32 @@
     }
 
     function loadMembers() {
-        firebase.database().ref('members').once('value').then(snap => {
-            membersData = snap.val() || {};
+        const db = firebase.database();
+        Promise.all([
+            db.ref('members').once('value'),
+            db.ref('transactions').once('value')
+        ]).then(([memSnap, txSnap]) => {
+            membersData = memSnap.val() || {};
+            allTransactions = Object.values(txSnap.val() || {});
+            
+            // 1. Calculate Real Balances from Transactions
+            memberRealBalances = {};
+            allTransactions.forEach(tx => {
+                if (!memberRealBalances[tx.memberId]) memberRealBalances[tx.memberId] = 0;
+                const amt = parseFloat(tx.amount || 0);
+                if (tx.type === 'SIP' || tx.type === 'Extra Payment') memberRealBalances[tx.memberId] += amt;
+                else if (tx.type === 'Extra Withdraw' || tx.type === 'SIP Withdrawal') memberRealBalances[tx.memberId] -= amt;
+            });
+
+            // 2. Find Top 3 VIP Rankers (Balance >= 25000)
+            const rankedMembers = Object.keys(membersData)
+                .filter(id => membersData[id].status === 'Approved')
+                .map(id => ({ id, balance: memberRealBalances[id] || parseFloat(membersData[id].accountBalance || 0) }))
+                .sort((a, b) => b.balance - a.balance);
+            
+            top3VipIds = rankedMembers.filter(m => m.balance >= 25000).slice(0, 3).map(m => m.id);
+
+            // 3. Populate Dropdown
             const select = document.getElementById('nameSelect');
             select.innerHTML = '<option value="" disabled selected>Select Member</option>';
             
@@ -320,6 +351,7 @@
             select.addEventListener('change', handleMemberChange);
         });
     }
+
 
     // --- 2. LOGIC HANDLERS ---
     function setMode(mode) {
@@ -352,86 +384,71 @@
         if (currentMember) handleMemberChange();
     }
 
-    function handleMemberChange() {
+        function handleMemberChange() {
         const id = document.getElementById('nameSelect').value;
         currentMember = membersData[id];
         if (!currentMember) return;
 
-        const balance = parseFloat(currentMember.accountBalance) || 0;
-        document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
+        // 🔥 SET REAL BALANCE & CHECK VIP STATUS
+        currentRealBalance = memberRealBalances[id] || parseFloat(currentMember.accountBalance || 0);
+        document.getElementById('displayWalletBalance').innerText = currentRealBalance.toLocaleString('en-IN');
         
-        // 1. Pehle KYC Validate karo (Ye Button Disable karega agar document missing hai)
+        // 🔥 CHECK CURRENT MONTH SIP
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        isCurrentMonthSipPaid = false;
+        if (currentMember.sipHistory && currentMember.sipHistory[currentMonth]) {
+            isCurrentMonthSipPaid = true;
+        } else {
+            isCurrentMonthSipPaid = allTransactions.some(t => t.memberId === id && (t.type === 'SIP' || t.type === 'Extra Payment') && t.date && t.date.startsWith(currentMonth));
+        }
+
+        // 🔥 SET VIP RANK (0, 1, 2, 3)
+        currentVipRank = top3VipIds.indexOf(id) + 1; // 1st = 1, 2nd = 2, 3rd = 3, Not VIP = 0
+
+        // 1. Pehle KYC Validate karo
         validateKYC(currentMember);
         
         // 2. Limit Calculate karo
         const mode = document.getElementById('appMode').value;
         let limit = 0;
         if (mode === 'loan') {
-            if (balance < 0) limit = 0;
-            else if (balance < 25000) limit = balance * 1.5;
-            else limit = balance * 2.0;
+            if (currentRealBalance < 0) limit = 0;
+            else if (currentRealBalance < 25000) limit = currentRealBalance * 1.5;
+            else limit = currentRealBalance * 2.0;
             if (limit > 50000) limit = 50000;
         } else {
-            limit = balance > 0 ? balance * 0.5 : 0;
+            limit = currentRealBalance > 0 ? currentRealBalance * 0.5 : 0;
         }
         currentMaxLimit = Math.floor(limit);
         document.getElementById('displayEligibleLimit').innerText = currentMaxLimit.toLocaleString('en-IN');
         document.getElementById('walletInfo').classList.remove('hidden');
         
-        // 3. Amount Field check karo (Ye bhi button ko control karta hai)
+        // 3. Amount Field check karo
         validateAmount();
     }
 
-    // 🔥 STRICT KYC VERIFICATION LOGIC (UPDATED)
+    // 🔥 STRICT KYC VERIFICATION LOGIC
     function validateKYC(member) {
         const missing = [];
-
-        // Check 1: Profile Photo
-        if(!member.profilePicUrl || member.profilePicUrl.length < 5) {
-            missing.push("Photo");
-        }
-
-        // Check 2: Front Document (Aadhaar Front)
+        if(!member.profilePicUrl || member.profilePicUrl.length < 5) missing.push("Photo");
         const front = member.documentFrontUrl || member.documentUrl;
-        if(!front || front.length < 5) {
-            missing.push("ID Proof (Front)");
-        }
-
-        // Check 3: Back Document (Aadhaar Back) - 🔥 FIXED HERE
-        if(!member.documentBackUrl || member.documentBackUrl.length < 5) {
-            missing.push("Address Proof (Back)");
-        }
-
-        // Check 4: Signature - 🔥 FIXED HERE
-        if(!member.signatureUrl || member.signatureUrl.length < 5) {
-            missing.push("Signature");
-        }
-
-        // Check 5: Email
-        if(!member.email || !member.email.includes('@')) {
-            missing.push("Email");
-        }
+        if(!front || front.length < 5) missing.push("ID Proof (Front)");
+        if(!member.documentBackUrl || member.documentBackUrl.length < 5) missing.push("Address Proof (Back)");
+        if(!member.signatureUrl || member.signatureUrl.length < 5) missing.push("Signature");
+        if(!member.email || !member.email.includes('@')) missing.push("Email");
 
         const container = document.getElementById('kycStatusContainer');
         const btn = document.getElementById('generateBtn');
-        
-        // Purane classes hatao
         container.classList.remove('hidden', 'bg-red-50', 'bg-green-50', 'border-red-200', 'border-green-200', 'text-red-700', 'text-green-700');
 
         if (missing.length === 0) {
-            // ALL OK
             container.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
             container.innerHTML = `<i class="fas fa-check-circle"></i> KYC Verified (All Docs OK)`;
-            btn.disabled = false; 
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
-            // MISSING DOCUMENTS
             container.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
             container.innerHTML = `<div class="font-bold flex items-center"><i class="fas fa-times-circle mr-2"></i> Verification Failed</div><div class="text-[10px] mt-1 ml-5">Missing: ${missing.join(', ')}</div>`;
-            
-            // Force Disable Button
-            btn.disabled = true; 
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
     }
 
@@ -441,13 +458,9 @@
         const mode = document.getElementById('appMode').value;
         const btn = document.getElementById('generateBtn');
         
-        // Sabse pehle check karo ki KYC fail to nahi hai?
-        // Agar KYC fail hai, to amount sahi hone par bhi button enable nahi hona chahiye.
         const kycFailed = document.getElementById('kycStatusContainer').innerHTML.includes('Missing');
         if (kycFailed) {
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            return; // Yahin ruk jao
+            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); return; 
         }
 
         if (amt > 0) {
@@ -455,14 +468,17 @@
             if (amt > currentMaxLimit) {
                 msg.innerText = `Exceeds Limit (Max: ${currentMaxLimit})`;
                 msg.className = "text-xs mt-1 font-semibold text-red-600";
-                btn.disabled = true; 
-                btn.classList.add('opacity-50', 'cursor-not-allowed'); 
+                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); 
             } else {
-                msg.innerText = "Amount is within limit.";
-                msg.className = "text-xs mt-1 font-semibold text-green-600";
-                // Button enable karo kyunki KYC pass hai aur Amount bhi limit me hai
-                btn.disabled = false; 
-                btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
+                // Show VIP Eligibility Message if Applicable
+                if (mode === 'loan' && currentVipRank > 0 && isCurrentMonthSipPaid && amt <= currentRealBalance) {
+                    msg.innerHTML = `<i class="fas fa-crown text-brand-gold"></i> VIP Benefit Unlocked! Amount within SIP Limit.`;
+                    msg.className = "text-xs mt-1 font-bold text-brand-gold";
+                } else {
+                    msg.innerText = "Amount is within limit.";
+                    msg.className = "text-xs mt-1 font-semibold text-green-600";
+                }
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
             }
             if(mode === 'loan') populateDuration(amt);
         } else {
@@ -472,19 +488,40 @@
     
     document.getElementById('amount').addEventListener('input', validateAmount);
 
+    // 🔥 DYNAMIC INTEREST RATE POPULATION (VIP SYSTEM ADDED)
     function populateDuration(amt) {
         const sel = document.getElementById('durationRateSelect');
         sel.innerHTML = '';
         let opts = [];
         
-        if (amt < 25000) {
+        // VIP Check: Amount <= Balance AND Rank 1,2,3 AND SIP Paid
+        const isEligibleForVip = (currentVipRank > 0 && isCurrentMonthSipPaid && amt <= currentRealBalance);
+
+        if (isEligibleForVip) {
+            // 🔥 VIP Special Rates for 1, 2, 3 Months
+            const vipRates = { 1: 0, 2: 0.10, 3: 0.25 }; // Rank wise rates
+            const currentRate = vipRates[currentVipRank];
+            
+            opts.push({val: `1-${currentRate}`, txt: `1 Month (VIP ${currentVipRank} Rank - ${currentRate}% Monthly)`});
+            opts.push({val: `2-${currentRate}`, txt: `2 Months (VIP ${currentVipRank} Rank - ${currentRate}% Monthly)`}); 
+            opts.push({val: `3-${currentRate}`, txt: `3 Months (VIP ${currentVipRank} Rank - ${currentRate}% Monthly)`});
+            
+            // Beyond 3 months, normal rates apply
+            for(let i = 4; i <= 12; i++) {
+                opts.push({val: `${i}-0.7`, txt: `${i} Months (Normal Rate - 0.7% Monthly)`});
+            }
+        } 
+        else if (amt < 25000) {
+            // Normal Logic for Amount < 25000
             opts.push({val: '1-1.0', txt: '1 Month (1% Total)'});
             opts.push({val: '2-1.5', txt: '2 Months (3% Total)'}); 
             opts.push({val: '3-1.666666667', txt: '3 Months (5% Total)'});
             for(let i = 4; i <= 12; i++) {
                 opts.push({val: `${i}-1.0`, txt: `${i} Months (1% Monthly)`});
             }
-        } else {
+        } 
+        else {
+            // Normal Logic for Amount >= 25000
             opts.push({val: '6-0.7', txt: '6 Months (0.7% Monthly)'});
             opts.push({val: '9-0.7', txt: '9 Months (0.7% Monthly)'});
             opts.push({val: '12-0.7', txt: '12 Months (0.7% Monthly)'});
@@ -495,6 +532,7 @@
             el.value = o.val; el.innerText = o.txt; sel.appendChild(el);
         });
     }
+
 
     function checkDate() {
         const today = new Date();
