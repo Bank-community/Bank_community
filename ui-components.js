@@ -82,13 +82,24 @@ export function displayMembers(members, adminSettings, container, onProfileClick
     members.forEach((member, index) => {
         const card = document.createElement('div');
 
-        if (index < 3) {
+                     if (index < 3) {
             // Top 3 Ranking Cards
             const rankType = ['gold', 'silver', 'bronze'][index];
-            card.className = `framed-card-wrapper ${rankType}-card animate-on-scroll`;
+            const isVip = member.balance >= 25000;
+            const vipGlowClass = isVip ? 'vip-glow' : '';
+
+            // 🔥 Progress Logic Calculate (Max 100%)
+            const progressPercent = Math.min(100, ((member.balance || 0) / 25000) * 100).toFixed(0);
+
+            card.className = `framed-card-wrapper ${rankType}-card ${vipGlowClass} animate-on-scroll`;
+            card.style.setProperty('--vip-progress', `${progressPercent}%`); // CSS Variable Set
 
             card.innerHTML = `
                 <div class="framed-card-content">
+                    ${isVip 
+                        ? '<div class="vip-trust-badge">VIP TRUST</div>' 
+                        : `<div class="vip-progress-text"><span>${progressPercent}%</span> to VIP</div><div class="vip-progress-border"></div>`
+                    }
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="framed-member-photo" loading="lazy" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}';">
                     <img src="${rankFrames[rankType]}" alt="${rankType} frame" class="card-frame-image">
                     <div class="framed-info-container">
@@ -100,6 +111,8 @@ export function displayMembers(members, adminSettings, container, onProfileClick
                     ${member.isPrime ? '<div class="framed-prime-tag">Prime</div>' : ''}
                 </div>`;
         } else {
+
+
             // Normal Cards
             card.className = 'normal-framed-card-wrapper animate-on-scroll';
             const rankText = getRankText(index + 1);
@@ -163,12 +176,24 @@ export function displayAllRankedMembers(members, adminSettings, container, onIma
         // Card par click karne se member ki full photo dikhegi
         card.onclick = () => onImageClick(member.displayImageUrl, member.name);
 
-        if (index < 3) {
+                  if (index < 3) {
             // Top 3 Ranking Cards (Gold, Silver, Bronze)
             const rankType = ['gold', 'silver', 'bronze'][index];
-            card.className = `framed-card-wrapper ${rankType}-card`;
+            const isVip = member.balance >= 25000;
+            const vipGlowClass = isVip ? 'vip-glow' : '';
+
+            // 🔥 Progress Logic Calculate (Max 100%)
+            const progressPercent = Math.min(100, ((member.balance || 0) / 25000) * 100).toFixed(0);
+
+            card.className = `framed-card-wrapper ${rankType}-card ${vipGlowClass}`;
+            card.style.setProperty('--vip-progress', `${progressPercent}%`); // CSS Variable Set
+
             card.innerHTML = `
                 <div class="framed-card-content">
+                    ${isVip 
+                        ? '<div class="vip-trust-badge">VIP TRUST</div>' 
+                        : `<div class="vip-progress-text"><span>${progressPercent}%</span> to VIP</div><div class="vip-progress-border"></div>`
+                    }
                     <img src="${member.displayImageUrl}" alt="${member.name}" class="framed-member-photo" loading="lazy" onerror="this.onerror=null; this.src='https://i.ibb.co/HTNrbJxD/20250716-222246.png';">
                     <img src="${rankFrames[rankType]}" alt="${rankType} frame" class="card-frame-image">
                     <div class="framed-info-container">
@@ -178,6 +203,8 @@ export function displayAllRankedMembers(members, adminSettings, container, onIma
                     ${member.isPrime ? '<div class="framed-prime-tag">Prime</div>' : ''}
                 </div>`;
         } else {
+
+
             // Normal Cards (4th rank onwards)
             card.className = 'normal-framed-card-wrapper';
             const rankText = getRankText(index + 1);

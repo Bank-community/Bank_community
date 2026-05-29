@@ -406,6 +406,83 @@
 
 .framed-prime-tag { position: absolute; top: 60%; right: 11%; background-color: var(--prime-color); color: var(--text-color); padding: 1px 3px; border-radius: 4px; font-size: 0.4em; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 4; border: 1px solid #fff; }
 
+/* === VIP TRUST BENEFIT MAGIC GLOW & BADGE === */
+@keyframes vipMagicGlow {
+    0% { filter: drop-shadow(0 8px 15px rgba(0,0,0,0.2)) drop-shadow(0 0 10px rgba(212, 175, 55, 0.4)); }
+    50% { filter: drop-shadow(0 12px 20px rgba(212, 175, 55, 0.6)) drop-shadow(0 0 25px rgba(255, 215, 0, 1)); }
+    100% { filter: drop-shadow(0 8px 15px rgba(0,0,0,0.2)) drop-shadow(0 0 10px rgba(212, 175, 55, 0.4)); }
+}
+
+@keyframes vipBadgePulse {
+    0% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.5); }
+    50% { transform: scale(1.08); box-shadow: 0 4px 15px rgba(0,0,0,0.6), 0 0 20px rgba(255, 215, 0, 0.9); }
+    100% { transform: scale(1); box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.5); }
+}
+
+.vip-glow {
+    animation: vipMagicGlow 2s infinite alternate ease-in-out !important;
+    z-index: 5 !important;
+}
+
+.vip-trust-badge {
+    position: absolute;
+    top: -12px;
+    right: -10px;
+    background: linear-gradient(135deg, #001233 0%, #002366 100%);
+    color: #FFD700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.65em;
+    font-weight: 900;
+    border: 2px solid #D4AF37;
+    z-index: 10;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    animation: vipBadgePulse 2s infinite ease-in-out;
+}
+
+.vip-trust-badge::before {
+    content: '👑';
+    font-size: 1.2em;
+    margin-right: 2px;
+}
+
+/* 🔥 VIP PROGRESS BAR STYLES 🔥 */
+.vip-progress-border {
+    position: absolute;
+    top: 3%; left: 3%; right: 3%; bottom: 3%;
+    border-radius: 12px;
+    padding: 4px;
+    background: conic-gradient(from 0deg, #D4AF37 var(--vip-progress), rgba(255, 255, 255, 0.1) 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: inset 0 0 5px rgba(212, 175, 55, 0.3);
+}
+
+.vip-progress-text {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background: linear-gradient(135deg, #001233 0%, #002366 100%);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 15px;
+    font-size: 0.55em;
+    font-weight: 900;
+    border: 1px solid #D4AF37;
+    z-index: 10;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    letter-spacing: 0.5px;
+}
+.vip-progress-text span { color: #FFD700; }
+
+
 
 /* NORMAL CARDS */
 .normal-framed-card-wrapper { 
