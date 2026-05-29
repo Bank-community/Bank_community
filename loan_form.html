@@ -384,7 +384,7 @@
         if (currentMember) handleMemberChange();
     }
 
-        function handleMemberChange() {
+            function handleMemberChange() {
         const id = document.getElementById('nameSelect').value;
         currentMember = membersData[id];
         if (!currentMember) return;
@@ -393,17 +393,28 @@
         currentRealBalance = memberRealBalances[id] || parseFloat(currentMember.accountBalance || 0);
         document.getElementById('displayWalletBalance').innerText = currentRealBalance.toLocaleString('en-IN');
         
-        // 🔥 CHECK CURRENT MONTH SIP
-        const currentMonth = new Date().toISOString().slice(0, 7);
+        // 🔥 SUPER ROBUST CHECK FOR CURRENT MONTH SIP
+        const today = new Date();
+        const curMStr = String(today.getMonth() + 1).padStart(2, '0');
+        const curYStr = String(today.getFullYear());
+        const isoMonth = `${curYStr}-${curMStr}`; // Format: 2026-05
+        const slashMonth = `${curMStr}/${curYStr}`; // Format: 05/2026
+
         isCurrentMonthSipPaid = false;
-        if (currentMember.sipHistory && currentMember.sipHistory[currentMonth]) {
+        if (currentMember.sipHistory && currentMember.sipHistory[isoMonth]) {
             isCurrentMonthSipPaid = true;
         } else {
-            isCurrentMonthSipPaid = allTransactions.some(t => t.memberId === id && (t.type === 'SIP' || t.type === 'Extra Payment') && t.date && t.date.startsWith(currentMonth));
+            isCurrentMonthSipPaid = allTransactions.some(t => {
+                if (t.memberId !== id) return false;
+                if (t.type !== 'SIP' && t.type !== 'Extra Payment') return false;
+                if (!t.date) return false;
+                // Dono format me se koi bhi match ho jaye to SIP pass!
+                return t.date.includes(isoMonth) || t.date.includes(slashMonth);
+            });
         }
 
-        // 🔥 SET VIP RANK (0, 1, 2, 3)
-        currentVipRank = top3VipIds.indexOf(id) + 1; // 1st = 1, 2nd = 2, 3rd = 3, Not VIP = 0
+        // 🔥 SET VIP RANK (1, 2, 3, or 0)
+        currentVipRank = top3VipIds.indexOf(id) + 1;
 
         // 1. Pehle KYC Validate karo
         validateKYC(currentMember);
@@ -472,8 +483,8 @@
             } else {
                 // Show VIP Eligibility Message if Applicable
                 if (mode === 'loan' && currentVipRank > 0 && isCurrentMonthSipPaid && amt <= currentRealBalance) {
-                    msg.innerHTML = `<i class="fas fa-crown text-brand-gold"></i> VIP Benefit Unlocked! Amount within SIP Limit.`;
-                    msg.className = "text-xs mt-1 font-bold text-brand-gold";
+                    msg.innerHTML = `<i class="fas fa-crown"></i> VIP Benefit Unlocked!`;
+                    msg.className = "text-xs mt-1 font-bold text-yellow-600";
                 } else {
                     msg.innerText = "Amount is within limit.";
                     msg.className = "text-xs mt-1 font-semibold text-green-600";
@@ -501,10 +512,15 @@
             // 🔥 VIP Special Rates for 1, 2, 3 Months
             const vipRates = { 1: 0, 2: 0.10, 3: 0.25 }; // Rank wise rates
             const currentRate = vipRates[currentVipRank];
+            let vipName = '';
+            if (currentVipRank === 1) vipName = 'VIP 1st';
+            else if (currentVipRank === 2) vipName = 'VIP 2nd';
+            else if (currentVipRank === 3) vipName = 'VIP 3rd';
             
-            opts.push({val: `1-${currentRate}`, txt: `1 Month (VIP ${currentVipRank} Rank - ${currentRate}% Monthly)`});
-            opts.push({val: `2-${currentRate}`, txt: `2 Months (VIP ${currentVipRank} Rank - ${currentRate}% Monthly)`}); 
-            opts.push({val: `3-${currentRate}`, txt: `3 Months (VIP ${currentVipRank} Rank - ${currentRate}% Monthly)`});
+            // Value format: "Months-Rate-VipText"
+            opts.push({val: `1-${currentRate}-${vipName}`, txt: `1 Month (${vipName} - ${currentRate}% Monthly)`});
+            opts.push({val: `2-${currentRate}-${vipName}`, txt: `2 Months (${vipName} - ${currentRate}% Monthly)`}); 
+            opts.push({val: `3-${currentRate}-${vipName}`, txt: `3 Months (${vipName} - ${currentRate}% Monthly)`});
             
             // Beyond 3 months, normal rates apply
             for(let i = 4; i <= 12; i++) {
@@ -532,6 +548,7 @@
             el.value = o.val; el.innerText = o.txt; sel.appendChild(el);
         });
     }
+
 
 
     function checkDate() {
@@ -616,13 +633,18 @@
             document.getElementById('withdrawFields').classList.add('hidden');
             document.getElementById('withdrawNotice').classList.add('hidden');
             
-            if(currentMember.guarantorName) {
+                      if(currentMember.guarantorName) {
                 document.getElementById('displayGuarantor').innerText = currentMember.guarantorName;
                 document.getElementById('guarantorRow').classList.remove('hidden');
                 document.getElementById('guarantorRow').style.display = 'flex';
             }
 
-            const [months, rate] = dur.split('-');
+            // 🔥 EXTRACT VIP TEXT IF PRESENT
+            const durParts = dur.split('-');
+            const months = durParts[0];
+            const rate = durParts[1];
+            const vipText = durParts[2]; // Sirf VIP ke case me text aayega
+
             const mRate = parseFloat(rate);
             const mCount = parseInt(months);
             
@@ -633,7 +655,13 @@
             const endDate = new Date();
             endDate.setMonth(endDate.getMonth() + mCount);
             
-            document.getElementById('displayRate').innerText = `${mRate.toFixed(1)}% Monthly (${mCount} Months)`;
+            // 🔥 DISPLAY VIP TEXT ONLY (No Rate)
+            if (vipText) {
+                document.getElementById('displayRate').innerHTML = `<span style="color:#d97706; font-weight:bold; font-size:1.1em;"><i class="fas fa-crown"></i> ${vipText}</span>`;
+            } else {
+                document.getElementById('displayRate').innerText = `${mRate.toFixed(1)}% Monthly (${mCount} Months)`;
+            }
+            
             document.getElementById('displayEMI').innerText = emi.toFixed(0);
             document.getElementById('displayTotal').innerText = total.toFixed(0);
             document.getElementById('repaymentDate').innerText = endDate.toLocaleDateString('en-GB');
