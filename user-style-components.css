@@ -931,3 +931,125 @@
         height: 160px;
     }
 }
+
+/* ==========================================================================
+   TCF AI ASSISTANT STYLES (SWIPE BANNER & FLOATING BUTTON)
+   ========================================================================== */
+
+/* --- 1. Right Side Floating Button --- */
+.tcf-ai-floating-btn {
+    position: fixed;
+    bottom: 80px; 
+    right: -150px; /* Initially hidden screen ke bahar */
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #001233 0%, #002366 100%);
+    border: 2px solid #D4AF37;
+    border-radius: 50px;
+    padding: 5px 12px 5px 5px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 15px rgba(212, 175, 55, 0.4);
+    z-index: 1000;
+    transition: right 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
+    text-decoration: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tcf-ai-floating-btn.show {
+    right: 15px; /* Ander aa jayega */
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.tcf-ai-floating-btn img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #fff;
+    padding: 2px;
+    animation: aiFloat 3s ease-in-out infinite;
+}
+
+.ai-floating-tooltip {
+    color: #fff;
+    font-size: 0.8em;
+    font-weight: 700;
+    margin-left: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.ai-floating-typing-text {
+    border-right: 2px solid #D4AF37;
+    padding-right: 2px;
+    animation: blinkCursor 0.7s infinite;
+}
+
+@keyframes aiFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+@keyframes blinkCursor {
+    50% { border-color: transparent; }
+}
+
+/* --- 2. AI Swipe Banner (Quick Actions ke niche) --- */
+.ai-swipe-banner-container {
+    margin: 15px auto 5px;
+    width: 95%;
+    max-width: 400px;
+    background: linear-gradient(145deg, #1c2b4a, #0b1528);
+    border-radius: 30px;
+    padding: 6px;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.05), 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.ai-swipe-track {
+    position: relative;
+    width: 100%;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.ai-swipe-text-wrapper {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+    color: #D4AF37;
+    font-size: 0.9em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.ai-swipe-thumb {
+    position: absolute;
+    left: 5px;
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #D4AF37, #FFD700);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #001233;
+    cursor: grab;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 2;
+    transition: transform 0.1s;
+}
+
+.ai-swipe-thumb:active {
+    cursor: grabbing;
+}
+
+.ai-swipe-thumb i {
+    width: 18px;
+    height: 18px;
+}

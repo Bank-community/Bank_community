@@ -116,14 +116,124 @@ export function initUI(database) {
     if (elements.year) elements.year.textContent = new Date().getFullYear();
 
     // Back Button Handling
-    window.onpopstate = function(event) {
-        if (currentOpenModal) {
-            currentOpenModal.classList.remove('show');
-            document.body.style.overflow = '';
-            currentOpenModal = null;
+            window.onpopstate = function(event) {
+            if (currentOpenModal) {
+                currentOpenModal.classList.remove('show');
+                document.body.style.overflow = '';
+                currentOpenModal = null;
+            }
+        };
+
+        // Initialize AI Assistant Features
+        initAIAssistant();
+    }
+
+    // --- TCF AI Assistant Logic ---
+    function initAIAssistant() {
+        const GPT_LINK = "https://chatgpt.com/g/g-69ffe8b9bfb48191960cc9262c517cdb-tcf-gpt";
+
+        // 1. Typing Effect Helper Function
+        function typeText(element, text, speed = 50, callback) {
+            if (!element) return;
+            element.textContent = '';
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                    if (callback) callback();
+                }
+            }, speed);
         }
-    };
-}
+
+        // 2. Floating Button Logic (Right Side)
+        const floatingBtn = document.getElementById('tcfAiFloatingBtn');
+        const floatingTextEl = document.querySelector('.ai-floating-typing-text');
+
+        if (floatingBtn && floatingTextEl) {
+            // Page load hone ke 2 second baad button show hoga
+            setTimeout(() => {
+                floatingBtn.classList.add('show');
+                typeText(floatingTextEl, "Hi, I am TCF AI Assistant", 60);
+
+                // Show hone ke theek 10 seconds baad hide ho jayega
+                setTimeout(() => {
+                    floatingBtn.classList.remove('show');
+                }, 10000);
+            }, 2000); 
+        }
+
+        // 3. Swipe Banner Logic (Quick Actions ke niche)
+        const swipeThumb = document.getElementById('aiSwipeThumb');
+        const swipeTrack = document.querySelector('.ai-swipe-track');
+        const swipeTextEl = document.querySelector('.ai-typing-text');
+
+        if (swipeThumb && swipeTrack && swipeTextEl) {
+            // Banner mein continuous typing effect loop
+            const startBannerTyping = () => {
+                typeText(swipeTextEl, "Swipe to ask TCF AI...", 80, () => {
+                    setTimeout(startBannerTyping, 4000); // 4 seconds baad wapas type karega
+                });
+            };
+            startBannerTyping();
+
+            let isDragging = false;
+            let startX = 0;
+            let currentX = 0;
+
+            const startDrag = (e) => {
+                isDragging = true;
+                startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+                swipeThumb.style.transition = 'none';
+            };
+
+            const doDrag = (e) => {
+                if (!isDragging) return;
+                const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+                const maxDrag = swipeTrack.offsetWidth - swipeThumb.offsetWidth - 10; // padding adjust
+                currentX = Math.min(Math.max(0, x - startX), maxDrag);
+                swipeThumb.style.transform = `translateX(${currentX}px)`;
+            };
+
+            const endDrag = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                swipeThumb.style.transition = 'transform 0.3s ease';
+                const maxDrag = swipeTrack.offsetWidth - swipeThumb.offsetWidth - 10;
+
+                // Agar 80% se zyada drag kiya hai, toh link open karo
+                if (currentX >= maxDrag * 0.8) {
+                    swipeThumb.style.transform = `translateX(${maxDrag}px)`;
+                    window.open(GPT_LINK, '_blank');
+
+                    // Reset position after 1 second
+                    setTimeout(() => {
+                        swipeThumb.style.transform = `translateX(0px)`;
+                        currentX = 0;
+                    }, 1000);
+                } else {
+                    // Wapas normal position par chhod do
+                    swipeThumb.style.transform = `translateX(0px)`;
+                    currentX = 0;
+                }
+            };
+
+            // Mouse Events (PC)
+            swipeThumb.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', endDrag);
+
+            // Touch Events (Mobile)
+            swipeThumb.addEventListener('touchstart', startDrag, { passive: true });
+            document.addEventListener('touchmove', doDrag, { passive: true });
+            document.addEventListener('touchend', endDrag);
+        }
+    }
+
+    // --- Bottom Navigation Router Logic ---
+
 
 // --- Bottom Navigation Router Logic ---
 function setupBottomNav() {
