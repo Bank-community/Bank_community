@@ -153,6 +153,11 @@ export function initUI(database) {
         const floatingTextEl = document.querySelector('.ai-floating-typing-text');
 
         if (floatingBtn && floatingTextEl) {
+            // Click karne par In-App Browser mein khulna
+            floatingBtn.addEventListener('click', () => {
+                window.open(GPT_LINK, '_blank');
+            });
+
             // Page load hone ke 2 second baad button show hoga
             setTimeout(() => {
                 floatingBtn.classList.add('show');
