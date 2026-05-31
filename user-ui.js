@@ -173,7 +173,7 @@ export function initUI(database) {
         if (swipeThumb && swipeTrack && swipeTextEl) {
             // Banner mein continuous typing effect loop
             const startBannerTyping = () => {
-                typeText(swipeTextEl, "Swipe to ask TCF AI...", 80, () => {
+                typeText(swipeTextEl, "Swipe to ask TCF AI Assistant...", 80, () => {
                     setTimeout(startBannerTyping, 4000); // 4 seconds baad wapas type karega
                 });
             };
