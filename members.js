@@ -185,6 +185,7 @@ function updateProfileCard(memberId) {
         
         myTxns.forEach(t => {
             if(t.type === 'SIP') sip += parseFloat(t.amount || 0);
+            if(t.type === 'SIP Withdrawal') sip -= parseFloat(t.amount || 0);
             if(t.type === 'Loan Taken') loanTaken += parseFloat(t.amount || 0);
             if(t.type === 'Loan Payment') intPaid += parseFloat(t.interestPaid || 0);
         });
@@ -267,6 +268,11 @@ function getProcessedData(memberId, type) {
             principal = amt;
             runningBalance += amt;
         } 
+        else if (tx.type === 'SIP Withdrawal') {
+            desc = 'SIP Withdrawal';
+            debit = amt;
+            runningBalance -= amt;
+        }
         else if (tx.type === 'Loan Taken') {
             desc = `Loan Disbursed (${tx.loanType || 'Personal'})`;
             debit = amt;
@@ -513,6 +519,7 @@ function calculateGlobalStats() {
     allTransactions.forEach(t => {
         const amt = parseFloat(t.amount || 0);
         if(t.type === 'SIP') totalSip += amt;
+        if(t.type === 'SIP Withdrawal') totalSip -= amt;
         if(t.type === 'Loan Taken') totalLoanGiven += amt;
         if(t.type === 'Loan Payment') {
             totalRepay += parseFloat(t.principalPaid || 0);
