@@ -181,18 +181,30 @@ function updateProfileCard(memberId) {
         els.join.textContent = new Date(member.joiningDate || Date.now()).toLocaleDateString('en-GB');
 
         const myTxns = allTransactions.filter(t => t.memberId === memberId);
-        let sip = 0, loanTaken = 0, intPaid = 0;
+        let sip = 0, loanTaken = 0, intPaid = 0, netBal = 0;
         
         myTxns.forEach(t => {
-            if(t.type === 'SIP') sip += parseFloat(t.amount || 0);
-            if(t.type === 'SIP Withdrawal') sip -= parseFloat(t.amount || 0);
-            if(t.type === 'Loan Taken') loanTaken += parseFloat(t.amount || 0);
-            if(t.type === 'Loan Payment') intPaid += parseFloat(t.interestPaid || 0);
+            const amt = parseFloat(t.amount || 0);
+            if(t.type === 'SIP') { 
+                sip += amt; 
+                netBal += amt; 
+            }
+            if(t.type === 'SIP Withdrawal') { 
+                sip -= amt; 
+                netBal -= amt; 
+            }
+            if(t.type === 'Loan Taken') { 
+                loanTaken += amt; 
+                netBal -= amt; 
+            }
+            if(t.type === 'Loan Payment') { 
+                intPaid += parseFloat(t.interestPaid || 0); 
+                netBal += parseFloat(t.principalPaid || 0); 
+            }
         });
 
         const myLoans = allActiveLoans.filter(l => l.memberId === memberId && l.status === 'Active');
         const due = myLoans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount||0), 0);
-        const netBal = sip - due;
 
         els.sip.textContent = formatMoney(sip);
         els.loan.textContent = formatMoney(loanTaken);
