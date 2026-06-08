@@ -193,6 +193,14 @@ function updateProfileCard(memberId) {
                 sip -= amt; 
                 netBal -= amt; 
             }
+            if(t.type === 'P2P Sent') { 
+                sip -= amt; 
+                netBal -= amt; 
+            }
+            if(t.type === 'P2P Received') { 
+                sip += amt; 
+                netBal += amt; 
+            }
             if(t.type === 'Loan Taken') { 
                 loanTaken += amt; 
                 netBal -= amt; 
@@ -284,6 +292,16 @@ function getProcessedData(memberId, type) {
             desc = 'SIP Withdrawal';
             debit = amt;
             runningBalance -= amt;
+        }
+        else if (tx.type === 'P2P Sent') {
+            desc = `P2P Transfer to ${tx.receiverName || 'Member'}`;
+            debit = amt;
+            runningBalance -= amt;
+        }
+        else if (tx.type === 'P2P Received') {
+            desc = `P2P Received from ${tx.senderName || 'Member'}`;
+            principal = amt;
+            runningBalance += amt;
         }
         else if (tx.type === 'Loan Taken') {
             desc = `Loan Disbursed (${tx.loanType || 'Personal'})`;
