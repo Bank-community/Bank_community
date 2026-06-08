@@ -102,6 +102,19 @@ async function fetchDashboardData() {
 }
 
 // --- 3. UI Rendering ---
+// Helper function from Sip.html
+function calculateMonthsDifference(startDateStr) {
+    if (!startDateStr) return 0;
+    const startDate = new Date(startDateStr);
+    const today = new Date();
+    if (isNaN(startDate)) return 0;
+    let months = (today.getFullYear() - startDate.getFullYear()) * 12;
+    months -= startDate.getMonth();
+    months += today.getMonth();
+    if (today.getDate() < startDate.getDate()) { months--; }
+    return months <= 0 ? 0 : months;
+}
+
 function initUI() {
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('dashboardContent').classList.remove('hidden');
@@ -110,6 +123,62 @@ function initUI() {
     
     document.getElementById('memberFilter').addEventListener('change', updateView);
     document.getElementById('typeFilter').addEventListener('change', updateView);
+
+    // SIP Status Button Logic
+    document.getElementById('sipStatusButton').addEventListener('click', () => {
+        const memberId = document.getElementById('memberFilter').value;
+        const modalList = document.getElementById('sipStatusList');
+        const modalTitle = document.querySelector('#sipStatusModal h2');
+        
+        if (memberId === 'all') {
+            modalTitle.textContent = "Community Info";
+            modalList.innerHTML = "<p style='text-align:center; padding: 20px; color:#666;'>Please select a specific member from the dropdown to view their detailed SIP status.</p>";
+        } else {
+            const member = Object.values(allMembers).find(m => m.membershipId === memberId);
+            if(!member) return;
+            
+            modalTitle.textContent = `${member.fullName.split(' ')[0]}'s SIP Status`;
+            const months = calculateMonthsDifference(member.joiningDate);
+            
+            const myTxns = allTransactions.filter(t => t.memberId === memberId);
+            let totalSip = 0, totalWithdrawn = 0;
+            
+            myTxns.forEach(t => {
+                const amt = parseFloat(t.amount || 0);
+                if(t.type === 'SIP' || t.type === 'P2P Received') totalSip += amt;
+                if(t.type === 'SIP Withdrawal' || t.type === 'P2P Sent') totalWithdrawn += amt;
+            });
+            
+            const availableBalance = totalSip - totalWithdrawn;
+            
+            modalList.innerHTML = `
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 10px; font-size: 0.95em;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 10px;">
+                        <span style="font-weight:600; color:#555;">Joining Date:</span> 
+                        <span>${new Date(member.joiningDate || Date.now()).toLocaleDateString('en-GB')}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 10px;">
+                        <span style="font-weight:600; color:#555;">Months Completed:</span> 
+                        <span style="color:var(--primary-color); font-weight:bold; background:#e0e7ff; padding:2px 8px; border-radius:4px;">${months} Months</span>
+                    </div>
+                    <hr style="border:0; border-top:1px dashed #ccc; margin: 12px 0;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                        <span style="font-weight:600; color:#555;">Total SIP Deposited:</span> 
+                        <span style="color:var(--success-color); font-weight:bold;">₹${totalSip.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                        <span style="font-weight:600; color:#555;">Total Withdrawn:</span> 
+                        <span style="color:var(--danger-color); font-weight:bold;">- ₹${totalWithdrawn.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top: 15px; padding-top: 12px; border-top: 2px solid var(--accent-gold);">
+                        <span style="font-weight:bold; color:var(--primary-color); font-size: 1.1em;">Available Balance:</span> 
+                        <span style="color:var(--primary-color); font-weight:bold; font-size: 1.1em;">₹${availableBalance.toLocaleString('en-IN')}</span>
+                    </div>
+                </div>
+            `;
+        }
+        openModal('sipStatusModal');
+    });
 
     updateView();
     
