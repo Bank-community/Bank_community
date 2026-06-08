@@ -141,15 +141,30 @@ function initUI() {
             const months = calculateMonthsDifference(member.joiningDate);
             
             const myTxns = allTransactions.filter(t => t.memberId === memberId);
-            let totalSip = 0, totalWithdrawn = 0;
+            let totalSip = 0, totalWithdrawn = 0, exactNetBalance = 0;
             
+            // Dashboard Net Balance Calculation Formula
             myTxns.forEach(t => {
                 const amt = parseFloat(t.amount || 0);
-                if(t.type === 'SIP' || t.type === 'P2P Received') totalSip += amt;
-                if(t.type === 'SIP Withdrawal' || t.type === 'P2P Sent') totalWithdrawn += amt;
+                if(t.type === 'SIP' || t.type === 'P2P Received') {
+                    totalSip += amt;
+                    exactNetBalance += amt;
+                }
+                if(t.type === 'SIP Withdrawal' || t.type === 'P2P Sent') {
+                    totalWithdrawn += amt;
+                    exactNetBalance -= amt;
+                }
+                if(t.type === 'Loan Taken') { 
+                    exactNetBalance -= amt; 
+                }
+                if(t.type === 'Loan Payment') { 
+                    exactNetBalance += parseFloat(t.principalPaid || 0); 
+                }
             });
             
-            const availableBalance = totalSip - totalWithdrawn;
+            // Getting active loan due for clear display in popup
+            const myLoans = allActiveLoans.filter(l => l.memberId === memberId && l.status === 'Active');
+            const totalLoanDue = myLoans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount||0), 0);
             
             modalList.innerHTML = `
                 <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 10px; font-size: 0.95em;">
@@ -170,9 +185,15 @@ function initUI() {
                         <span style="font-weight:600; color:#555;">Total Withdrawn:</span> 
                         <span style="color:var(--danger-color); font-weight:bold;">- ₹${totalWithdrawn.toLocaleString('en-IN')}</span>
                     </div>
+                    ${totalLoanDue > 0 ? `
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                        <span style="font-weight:600; color:#555;">Active Loan Due:</span> 
+                        <span style="color:var(--danger-color); font-weight:bold;">- ₹${totalLoanDue.toLocaleString('en-IN')}</span>
+                    </div>
+                    ` : ''}
                     <div style="display:flex; justify-content:space-between; margin-top: 15px; padding-top: 12px; border-top: 2px solid var(--accent-gold);">
                         <span style="font-weight:bold; color:var(--primary-color); font-size: 1.1em;">Available Balance:</span> 
-                        <span style="color:var(--primary-color); font-weight:bold; font-size: 1.1em;">₹${availableBalance.toLocaleString('en-IN')}</span>
+                        <span style="color:var(--primary-color); font-weight:bold; font-size: 1.1em;">₹${exactNetBalance.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
             `;
