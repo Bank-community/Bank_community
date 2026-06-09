@@ -84,6 +84,7 @@ function loadFromCache() {
         try {
             const data = JSON.parse(cached);
             state.members = data.members || {};
+            state.transactions = data.transactions || []; // Added transactions cache
             state.activeLoans = processLoanData(data.rawLoans || {}, state.members);
             if (state.activeLoans.length > 0) {
                 renderLoans();
@@ -108,17 +109,23 @@ function processLoanData(rawLoans, members) {
 async function loadData() {
     try {
         const db = firebase.database();
-        const [lSnap, mSnap] = await Promise.all([
+        // Fetch transactions alongside activeLoans and members
+        const [lSnap, mSnap, tSnap] = await Promise.all([
             db.ref('activeLoans').once('value'),
-            db.ref('members').once('value')
+            db.ref('members').once('value'),
+            db.ref('transactions').once('value') // Fetching transactions
         ]);
         const membersVal = mSnap.val() || {};
         const loansVal = lSnap.val() || {};
+        const txnsVal = tSnap.val() || {};
+
         state.members = membersVal;
+        state.transactions = Object.values(txnsVal);
 
         localStorage.setItem(CACHE_KEY, JSON.stringify({
             members: membersVal,
             rawLoans: loansVal,
+            transactions: state.transactions,
             timestamp: Date.now()
         }));
 
@@ -211,27 +218,42 @@ function renderLoans() {
     if(typeof feather !== 'undefined') feather.replace();
 }
 
-// === HELPER: ALERT LOGIC (Dynamic Tenure Rule) ===
+// === HELPER: ALERT LOGIC (Exact EMI & Month Rule) ===
 function getAlertStatus(amount, days, loan, tenureMonths = 0) {
     let threshold = 90; 
+    let isCritical = days > threshold;
 
     if (loan.loanType === '10 Days Credit') {
         threshold = 10;
+        isCritical = days > threshold;
     } else if (loan.loanType === 'Recharge') {
-        threshold = 30; // रिचार्ज के लिए 1 महीना
+        // EXACT MONTH TRACKING LOGIC
+        let loanDate = new Date(loan.loanDate);
+        let today = new Date();
+        let monthsPassed = (today.getFullYear() - loanDate.getFullYear()) * 12 + (today.getMonth() - loanDate.getMonth());
+
+        let paidCount = 0;
+        if (state.transactions) {
+            paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+        }
+
+        // Warning is ON if current month is reached but not paid yet
+        isCritical = (monthsPassed > paidCount);
+        threshold = 30; // Just for visual UI in the circle
     } else if (tenureMonths > 0) {
-        // टाइम पीरियड के हिसाब से दिन कैलकुलेट (1 Month = ~30 Days)
         threshold = tenureMonths === 12 ? 365 : tenureMonths * 30; 
+        isCritical = days > threshold;
     } else {
-        // बैकअप रूल अगर टाइम सेट न हो
         threshold = amount > 25000 ? 365 : 90;
+        isCritical = days > threshold;
     }
 
     return {
-        isCritical: days > threshold,
+        isCritical: isCritical,
         threshold: threshold
     };
 }
+
 
 // Helper: Pay Now Button (Removed to fix UI and Download overlap)
 function getPayButtonHTML(loan, amount) {
@@ -373,33 +395,34 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
         footer = `Operator: ${providerInfo}`;
         if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
 
-        // --- SMART EMI TRACKER LOGIC ---
-        let originalAmt = parseFloat(loan.amount || amount);
-        let currentAmt = parseFloat(amount);
-        let emiAmt = parseFloat(emi || (originalAmt / 3));
-        let paidCount = Math.floor((originalAmt - currentAmt + 5) / emiAmt); // +5 for minor decimal tolerance
-        if (paidCount < 0) paidCount = 0;
+        // --- DATABASE SYNCED EMI TRACKER LOGIC ---
+        let paidCount = 0;
+        if (state.transactions) {
+            paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+        }
 
         let startDate = new Date(loan.loanDate);
         let today = new Date();
+        let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+
         let hasSkipped = false;
         let boxesHtml = '';
 
         for (let i = 1; i <= 4; i++) {
             let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-            let monthName = mDate.toLocaleString('en-GB', { month: 'short' });
-            let deadline = new Date(mDate.getFullYear(), mDate.getMonth(), 10, 23, 59, 59); // 10th is deadline
+            let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
 
-            let bgClass = 'tracker-pending';
+            let bgClass = 'tracker-pending'; // White (Pending)
+
             if (i <= paidCount) {
-                bgClass = 'tracker-paid';
-            } else if (today > deadline) {
-                bgClass = 'tracker-skipped';
+                bgClass = 'tracker-paid'; // Green (Paid)
+            } else if (i <= monthsPassed - 1) {
+                bgClass = 'tracker-skipped'; // Red (Skipped)
                 hasSkipped = true;
             }
 
-            // Show 4th box ONLY if a previous one was skipped
-            if (i === 4 && !hasSkipped) continue;
+            // Only show the 4th box if there's a skipped month, otherwise keep it to 3
+            if (i === 4 && !hasSkipped && paidCount < 4) continue;
 
             boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
         }
