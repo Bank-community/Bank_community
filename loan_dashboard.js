@@ -211,13 +211,20 @@ function renderLoans() {
     if(typeof feather !== 'undefined') feather.replace();
 }
 
-// === HELPER: ALERT LOGIC (New 90/365 Rule) ===
-function getAlertStatus(amount, days) {
-    let threshold = 90; // Default 90 days for small loans
+// === HELPER: ALERT LOGIC (Dynamic Tenure Rule) ===
+function getAlertStatus(amount, days, loan, tenureMonths = 0) {
+    let threshold = 90; 
 
-    // For Big Loans (> 25000), limit is 1 year (365 days)
-    if (amount > 25000) {
-        threshold = 365;
+    if (loan.loanType === '10 Days Credit') {
+        threshold = 10;
+    } else if (loan.loanType === 'Recharge') {
+        threshold = 30; // रिचार्ज के लिए 1 महीना
+    } else if (tenureMonths > 0) {
+        // टाइम पीरियड के हिसाब से दिन कैलकुलेट (1 Month = ~30 Days)
+        threshold = tenureMonths === 12 ? 365 : tenureMonths * 30; 
+    } else {
+        // बैकअप रूल अगर टाइम सेट न हो
+        threshold = amount > 25000 ? 365 : 90;
     }
 
     return {
@@ -242,10 +249,13 @@ function getWarningSymbol(isCritical) {
 function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-    const showEmi = (tenureMonths > 3) || (emi && emi > 0);
-    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
 
-    const alertState = getAlertStatus(amount, daysActive);
+    // 1, 2, 3 महीने के लिए EMI छुपाना है, 4 से ऊपर के लिए दिखाना है
+    const parsedTenure = parseInt(tenureMonths) || 12;
+    const showEmi = parsedTenure > 3;
+    const emiDisplay = showEmi && emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+
+    const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
 
@@ -294,10 +304,13 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-    const showEmi = (tenureMonths > 3) || (emi && emi > 0);
-    const emiDisplay = showEmi && emi ? `EMI: ₹${emi.toLocaleString('en-IN')}` : '';
 
-    const alertState = getAlertStatus(amount, daysActive);
+    // 1, 2, 3 महीने के लिए EMI छुपाना है, 4 से ऊपर के लिए दिखाना है
+    const parsedTenure = parseInt(tenureMonths) || 6;
+    const showEmi = parsedTenure > 3;
+    const emiDisplay = showEmi && emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+
+    const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
 
@@ -352,15 +365,48 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
     let title = '10 DAYS CREDIT';
     let footer = 'No Interest if paid within 10 Days.';
     let emiHtml = '';
+    let trackerHtml = '';
 
     if(type === 'Recharge') {
         cardClass = 'card-recharge';
         title = 'RECHARGE CARD';
         footer = `Operator: ${providerInfo}`;
         if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
+
+        // --- SMART EMI TRACKER LOGIC ---
+        let originalAmt = parseFloat(loan.amount || amount);
+        let currentAmt = parseFloat(amount);
+        let emiAmt = parseFloat(emi || (originalAmt / 3));
+        let paidCount = Math.floor((originalAmt - currentAmt + 5) / emiAmt); // +5 for minor decimal tolerance
+        if (paidCount < 0) paidCount = 0;
+
+        let startDate = new Date(loan.loanDate);
+        let today = new Date();
+        let hasSkipped = false;
+        let boxesHtml = '';
+
+        for (let i = 1; i <= 4; i++) {
+            let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+            let monthName = mDate.toLocaleString('en-GB', { month: 'short' });
+            let deadline = new Date(mDate.getFullYear(), mDate.getMonth(), 10, 23, 59, 59); // 10th is deadline
+
+            let bgClass = 'tracker-pending';
+            if (i <= paidCount) {
+                bgClass = 'tracker-paid';
+            } else if (today > deadline) {
+                bgClass = 'tracker-skipped';
+                hasSkipped = true;
+            }
+
+            // Show 4th box ONLY if a previous one was skipped
+            if (i === 4 && !hasSkipped) continue;
+
+            boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
+        }
+        trackerHtml = `<div class="recharge-tracker">${boxesHtml}</div>`;
     }
 
-    const alertState = getAlertStatus(amount, daysActive);
+    const alertState = getAlertStatus(amount, daysActive, loan, 0);
     const alertClass = alertState.isCritical ? 'critical' : '';
     const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
 
@@ -389,7 +435,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
 
         ${getPayButtonHTML(loan, amount)}
 
-        <div class="pc-bottom">
+        <div class="pc-bottom" style="padding-bottom: 50px;">
             <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" crossorigin="anonymous" style="border-color:#fff;">
                 <div class="pc-name">${loan.memberName}</div>
@@ -399,6 +445,8 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
                 <div class="pc-amount">₹${amount.toLocaleString('en-IN')}</div>
             </div>
         </div>
+
+        ${trackerHtml}
 
         <div class="pc-footer" style="background:rgba(0,0,0,0.1);">
             ${footer}
