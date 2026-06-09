@@ -118,7 +118,7 @@ async function loadData() {
         const membersVal = mSnap.val() || {};
         const loansVal = lSnap.val() || {};
         const txnsVal = tSnap.val() || {};
-
+        
         state.members = membersVal;
         state.transactions = Object.values(txnsVal);
 
@@ -222,7 +222,7 @@ function renderLoans() {
 function getAlertStatus(amount, days, loan, tenureMonths = 0) {
     let threshold = 90; 
     let isCritical = days > threshold;
-
+    
     if (loan.loanType === '10 Days Credit') {
         threshold = 10;
         isCritical = days > threshold;
@@ -231,12 +231,12 @@ function getAlertStatus(amount, days, loan, tenureMonths = 0) {
         let loanDate = new Date(loan.loanDate);
         let today = new Date();
         let monthsPassed = (today.getFullYear() - loanDate.getFullYear()) * 12 + (today.getMonth() - loanDate.getMonth());
-
+        
         let paidCount = 0;
         if (state.transactions) {
             paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
         }
-
+        
         // Warning is ON if current month is reached but not paid yet
         isCritical = (monthsPassed > paidCount);
         threshold = 30; // Just for visual UI in the circle
@@ -271,11 +271,24 @@ function getWarningSymbol(isCritical) {
 function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-
-    // 1, 2, 3 महीने के लिए EMI छुपाना है, 4 से ऊपर के लिए दिखाना है
+    
     const parsedTenure = parseInt(tenureMonths) || 12;
-    const showEmi = parsedTenure > 3;
-    const emiDisplay = showEmi && emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+    let emiDisplay = '';
+
+    if (parsedTenure <= 3) {
+        // 1, 2, 3 महीने के लिए इंटरेस्ट कैलकुलेशन और टोटल अमाउंट दिखाना
+        let rate = 0, rateStr = '';
+        if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
+        else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
+        else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+        
+        const baseAmt = parseFloat(loan.originalAmount || amount);
+        const totalPayable = baseAmt + (baseAmt * rate);
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
+    } else {
+        // 4+ महीने के लिए EMI दिखाना
+        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+    }
 
     const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
     const alertClass = alertState.isCritical ? 'critical' : '';
@@ -326,11 +339,24 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-
-    // 1, 2, 3 महीने के लिए EMI छुपाना है, 4 से ऊपर के लिए दिखाना है
+    
     const parsedTenure = parseInt(tenureMonths) || 6;
-    const showEmi = parsedTenure > 3;
-    const emiDisplay = showEmi && emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+    let emiDisplay = '';
+
+    if (parsedTenure <= 3) {
+        // 1, 2, 3 महीने के लिए इंटरेस्ट कैलकुलेशन और टोटल अमाउंट दिखाना
+        let rate = 0, rateStr = '';
+        if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
+        else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
+        else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+        
+        const baseAmt = parseFloat(loan.originalAmount || amount);
+        const totalPayable = baseAmt + (baseAmt * rate);
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
+    } else {
+        // 4+ महीने के लिए EMI दिखाना
+        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+    }
 
     const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
     const alertClass = alertState.isCritical ? 'critical' : '';
@@ -404,16 +430,16 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
         let startDate = new Date(loan.loanDate);
         let today = new Date();
         let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
-
+        
         let hasSkipped = false;
         let boxesHtml = '';
 
         for (let i = 1; i <= 4; i++) {
             let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
             let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
-
+            
             let bgClass = 'tracker-pending'; // White (Pending)
-
+            
             if (i <= paidCount) {
                 bgClass = 'tracker-paid'; // Green (Paid)
             } else if (i <= monthsPassed - 1) {
