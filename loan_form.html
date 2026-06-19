@@ -281,6 +281,7 @@
 <script>
     // --- GLOBAL STATE ---
     let membersData = {};
+    let transactionsData = [];
     let currentMember = null;
     let currentMaxLimit = 0;
 
@@ -302,9 +303,17 @@
         }
     }
 
-    function loadMembers() {
-        firebase.database().ref('members').once('value').then(snap => {
-            membersData = snap.val() || {};
+    async function loadMembers() {
+        try {
+            const db = firebase.database();
+            const [membersSnap, txSnap] = await Promise.all([
+                db.ref('members').once('value'),
+                db.ref('transactions').once('value')
+            ]);
+            
+            membersData = membersSnap.val() || {};
+            transactionsData = Object.values(txSnap.val() || {});
+
             const select = document.getElementById('nameSelect');
             select.innerHTML = '<option value="" disabled selected>Select Member</option>';
             
@@ -318,7 +327,9 @@
                 });
             
             select.addEventListener('change', handleMemberChange);
-        });
+        } catch (error) {
+            console.error("Data Load Error: ", error);
+        }
     }
 
     // --- 2. LOGIC HANDLERS ---
@@ -357,7 +368,32 @@
         currentMember = membersData[id];
         if (!currentMember) return;
 
-        const balance = parseFloat(currentMember.accountBalance) || 0;
+        // 🔥 Dynamic Balance Calculation (Ignoring Future Months) 🔥
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // Jan = 0, Jun = 5
+
+        let calculatedBalance = 0;
+        const myTxns = transactionsData.filter(t => t.memberId === id);
+
+        myTxns.forEach(t => {
+            const txDate = new Date(t.date || 0);
+            
+            // अगर ट्रांजैक्शन फ्यूचर (आने वाले महीने या साल) का है, तो उसे इग्नोर करें
+            if (txDate.getFullYear() > currentYear || (txDate.getFullYear() === currentYear && txDate.getMonth() > currentMonth)) {
+                return; 
+            }
+
+            const amt = parseFloat(t.amount || 0);
+            if(t.type === 'SIP') { calculatedBalance += amt; }
+            if(t.type === 'SIP Withdrawal') { calculatedBalance -= amt; }
+            if(t.type === 'P2P Sent') { calculatedBalance -= amt; }
+            if(t.type === 'P2P Received') { calculatedBalance += amt; }
+            if(t.type === 'Loan Taken') { calculatedBalance -= amt; }
+            if(t.type === 'Loan Payment') { calculatedBalance += parseFloat(t.principalPaid || 0); }
+        });
+
+        const balance = calculatedBalance;
         document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
         
         // 1. Pehle KYC Validate karo (Ye Button Disable karega agar document missing hai)
