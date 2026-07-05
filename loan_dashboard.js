@@ -118,7 +118,7 @@ async function loadData() {
         const membersVal = mSnap.val() || {};
         const loansVal = lSnap.val() || {};
         const txnsVal = tSnap.val() || {};
-        
+
         state.members = membersVal;
         state.transactions = Object.values(txnsVal);
 
@@ -202,6 +202,10 @@ function renderLoans() {
         else if (l.loanType === 'Recharge') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
+        else if (l.loanCategory === 'VIP Phase Loan') {
+            // 🔥 NEW: Check for VIP Loan
+            cardHTML = getVIPCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+        }
         else {
             if (amount >= 25000) {
                 cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
@@ -222,7 +226,7 @@ function renderLoans() {
 function getAlertStatus(amount, days, loan, tenureMonths = 0) {
     let threshold = 90; 
     let isCritical = days > threshold;
-    
+
     if (loan.loanType === '10 Days Credit') {
         threshold = 10;
         isCritical = days > threshold;
@@ -231,12 +235,12 @@ function getAlertStatus(amount, days, loan, tenureMonths = 0) {
         let loanDate = new Date(loan.loanDate);
         let today = new Date();
         let monthsPassed = (today.getFullYear() - loanDate.getFullYear()) * 12 + (today.getMonth() - loanDate.getMonth());
-        
+
         let paidCount = 0;
         if (state.transactions) {
             paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
         }
-        
+
         // Warning is ON if current month is reached but not paid yet
         isCritical = (monthsPassed > paidCount);
         threshold = 30; // Just for visual UI in the circle
@@ -267,11 +271,86 @@ function getWarningSymbol(isCritical) {
     return `<div class="overdue-watermark">⚠️</div>`;
 }
 
+// --- 🔥 VIP PREMIUM CARD 🔥 ---
+function getVIPCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const loanId = `card-${loan.loanId}`;
+    const parsedTenure = parseInt(tenureMonths) || 1;
+
+    // Check VIP Rank based on rate
+    const rate = loan.interestDetails?.rate || 0;
+    let vipBadge = '';
+    let emiDisplay = '';
+
+    if (rate === 0) {
+        vipBadge = '👑 1ST VIP (0%)';
+        emiDisplay = `TOTAL: ₹${amount.toLocaleString('en-IN')} (0% INT)`;
+    } else if (rate === 0.001) {
+        vipBadge = '👑 2ND VIP (0.10%)';
+        const totalPayable = amount + (amount * (0.001 * parsedTenure));
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (0.10% INT)`;
+    } else if (rate === 0.0025) {
+        vipBadge = '👑 3RD VIP (0.25%)';
+        const totalPayable = amount + (amount * (0.0025 * parsedTenure));
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (0.25% INT)`;
+    } else {
+        vipBadge = '👑 VIP MEMBER';
+    }
+
+    // Use EMI if duration is long
+    if (parsedTenure > 3 && emi) {
+        emiDisplay = `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}`;
+    }
+
+    const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
+    return `
+    <div class="premium-card-wrapper card-vip ${wrapperClass}" id="${loanId}">
+        <div class="pc-texture"></div>
+        <div class="vip-badge-tag">${vipBadge}</div>
+        ${getWarningSymbol(alertState.isCritical)}
+
+        <div class="pc-days-circle ${alertClass}">
+            <span class="day-num">${daysActive}</span>
+            <span class="day-label">DAYS</span>
+        </div>
+
+        <div class="pc-top">
+            <div class="pc-bank">TRUST COMMUNITY FUND</div>
+            <div class="pc-download" onclick="window.dlCard('${loanId}')" style="border-color:#FFD700; color:#FFD700; margin-right: 60px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+        </div>
+
+        <div class="pc-middle">
+            <div class="pc-date">${dateStr}</div>
+            <h1 class="pc-title gold-text">VIP TRUST LOAN</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#FFD700;">Exclusive Benefit</div>
+        </div>
+
+        <div class="pc-bottom">
+            <div class="pc-profile-group">
+                <img src="${pic}" class="pc-pic" style="border: 2px solid #FFD700;" crossorigin="anonymous">
+                <div class="pc-name">${loan.memberName}</div>
+            </div>
+            <div class="pc-amount-group">
+                <span class="pc-emi-label" style="color:#FFD700;">${emiDisplay}</span>
+                <div class="pc-amount gold-text">₹${amount.toLocaleString('en-IN')}</div>
+            </div>
+        </div>
+
+        <div class="loan-tenure-tag" style="color:#FFD700;">Time: ${parsedTenure} Month</div>
+        <div class="pc-footer">VIP BENEFIT - MAINTAIN TRUST SCORE & DISCIPLINE</div>
+    </div>`;
+}
+
 // --- 1. LUXURY CARD (>25k) ---
 function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-    
+
     const parsedTenure = parseInt(tenureMonths) || 12;
     let emiDisplay = '';
 
@@ -281,7 +360,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
         if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
         else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
         else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
-        
+
         const baseAmt = parseFloat(loan.originalAmount || amount);
         const totalPayable = baseAmt + (baseAmt * rate);
         emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
@@ -339,7 +418,7 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
     const loanId = `card-${loan.loanId}`;
-    
+
     const parsedTenure = parseInt(tenureMonths) || 6;
     let emiDisplay = '';
 
@@ -349,7 +428,7 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
         else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
         else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
-        
+
         const baseAmt = parseFloat(loan.originalAmount || amount);
         const totalPayable = baseAmt + (baseAmt * rate);
         emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
@@ -430,16 +509,16 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
         let startDate = new Date(loan.loanDate);
         let today = new Date();
         let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
-        
+
         let hasSkipped = false;
         let boxesHtml = '';
 
         for (let i = 1; i <= 4; i++) {
             let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
             let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
-            
+
             let bgClass = 'tracker-pending'; // White (Pending)
-            
+
             if (i <= paidCount) {
                 bgClass = 'tracker-paid'; // Green (Paid)
             } else if (i <= monthsPassed - 1) {
