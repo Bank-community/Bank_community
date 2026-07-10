@@ -240,99 +240,92 @@ function calculateNoLoanScore(memberData, untilDate) {
 }
 
 // ==========================================
-// 5. NEW LOGIC (POST FEB 15, 2026)
+// 5. NEW LOGIC (POST FEB 15, 2026) - TENURE BASED
 // ==========================================
 function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate) {
     let points = 0;
     const loanDate = loanTx.date;
     const loanAmount = loanTx.loan;
 
-    // Determine Tenure & Type
-    // If recharge, default 3 months. If details missing, assume short term.
-    const tenure = loanDetails ? (loanDetails.tenureMonths || 0) : 0;
-    const isRecharge = loanDetails?.loanType === 'Recharge';
-    const isLongTerm = tenure >= 4 || isRecharge; // Recharge follows EMI rules
+    // टेन्यूर निकालें (अगर न हो तो डिफ़ॉल्ट 1 महीना)
+    const effectiveTenure = loanDetails ? (parseInt(loanDetails.tenureMonths) || 1) : 1;
+    
+    // 3 महीने से ज्यादा है तो EMI सिस्टम लागू होगा
+    const isEmiSystem = effectiveTenure > 3; 
 
-    // --- SCENARIO 1: RECHARGE OR LONG TERM LOAN (EMI SYSTEM) ---
-    if (isLongTerm) {
-        // Effective Tenure for Recharge is 3 Months
-        const effectiveTenure = isRecharge ? ENGINE_CONFIG.RECHARGE_DEFAULT_TENURE : tenure;
-
-        // Calculate months passed since loan start
-        const monthsPassed = monthDiff(loanDate, untilDate);
-
-        // Loop through each month to check EMI
-        for (let i = 1; i <= monthsPassed; i++) {
-            // We only check up to the tenure length (plus buffer if active)
-            if (i > effectiveTenure && loanDetails?.status === 'Paid') break;
-
-            // Target: 1st to 10th of the Next Month
-            const targetMonthDate = new Date(loanDate);
-            targetMonthDate.setMonth(loanDate.getMonth() + i);
-
-            // Check if ANY payment received between 1st and 10th of that month
-            const paidOnTime = memberData.some(tx => {
-                const tDate = tx.date;
-                return tDate.getFullYear() === targetMonthDate.getFullYear() &&
-                       tDate.getMonth() === targetMonthDate.getMonth() &&
-                       tDate.getDate() >= ENGINE_CONFIG.EMI_START_DAY &&
-                       tDate.getDate() <= ENGINE_CONFIG.EMI_END_DAY &&
-                       (tx.payment > 0 || tx.sipPayment > 0); // SIP counts as payment intent
-            });
-
-            if (paidOnTime) {
-                points += 5; // Good EMI Behavior
-            } else {
-                points -= 15; // Missed/Late EMI (Gravity)
-            }
-        }
-
-        // Extra Penalty: If Recharge > 3 months and not paid
-        if (isRecharge && monthsPassed > 3 && loanDetails?.status !== 'Paid') {
-            points -= 20;
-        }
-    } 
-
-    // --- SCENARIO 2: SHORT TERM LOAN (< 4 MONTHS) ---
-    else {
-        // Rule: Must be paid within 90 Days
+    // --- SCENARIO 1: SHORT TERM LOAN (<= 3 MONTHS) ---
+    if (!isEmiSystem) {
+        const limitDays = effectiveTenure * 31; // हर महीने के लिए औसतन 31 दिन का ग्रेस
         const daysPassed = (untilDate - loanDate) / (1000 * 3600 * 24);
 
         if (loanDetails && loanDetails.status === 'Paid') {
-            // Find when it was fully repaid
             const repaymentTx = memberData.filter(r => r.date > loanDate && r.payment > 0);
             let repaidDate = null; 
             let paidSum = 0;
 
             for (const p of repaymentTx) { 
                 paidSum += p.payment; 
-                if (paidSum >= loanAmount) { 
-                    repaidDate = p.date; 
-                    break; 
-                } 
+                if (paidSum >= loanAmount) { repaidDate = p.date; break; } 
             }
 
-            // Calculate Days took to repay
             const daysToRepay = repaidDate ? (repaidDate - loanDate) / (1000 * 3600 * 24) : daysPassed;
 
-            if (daysToRepay <= ENGINE_CONFIG.SHORT_TERM_LIMIT_DAYS) {
-                points += 25; // Clean Repayment
+            if (daysToRepay <= limitDays) {
+                points += 25; // सही समय पर चुकाया (Clean Repayment)
             } else {
-                points -= 20; // Late (After 90 days)
+                points -= 30; // हार्ड पेनल्टी: समय सीमा पार करने के बाद चुकाया
             }
         } else {
-            // Not Paid Yet
-            if (daysPassed > ENGINE_CONFIG.SHORT_TERM_LIMIT_DAYS) {
-                points -= 50; // Heavy Penalty (90+ Days Overdue)
+            // अभी तक भुगतान नहीं हुआ है
+            if (daysPassed > limitDays) {
+                points -= 40; // हार्ड पेनल्टी: समय पार हो चुका है और लोन एक्टिव है
             } else {
-                // Still within 90 days, no points yet (Neutral)
-                points += 0; 
+                points += 0; // न्यूट्रल: अभी समय सीमा के अंदर है
             }
+        }
+    } 
+    // --- SCENARIO 2: EMI SYSTEM (> 3 MONTHS) ---
+    else {
+        const monthsPassed = monthDiff(loanDate, untilDate);
+
+        // हर महीने की EMI चेक करें
+        for (let i = 1; i <= monthsPassed; i++) {
+            if (i > effectiveTenure && loanDetails?.status === 'Paid') break;
+
+            const targetMonthDate = new Date(loanDate);
+            targetMonthDate.setMonth(loanDate.getMonth() + i);
+
+            const validEmiPaid = memberData.some(tx => {
+                const tDate = tx.date;
+                const isTargetMonth = tDate.getFullYear() === targetMonthDate.getFullYear() && tDate.getMonth() === targetMonthDate.getMonth();
+                const isOnTime = tDate.getDate() >= ENGINE_CONFIG.EMI_START_DAY && tDate.getDate() <= ENGINE_CONFIG.EMI_END_DAY;
+                
+                // सिर्फ इंटरेस्ट दिया है या प्रिंसिपल भी? 
+                const principalPaid = tx.payment - tx.returnAmount;
+                const expectedEmi = loanDetails ? (loanDetails.monthlyEmi || 0) : 0;
+                
+                // वैलिड EMI तब मानी जाएगी जब प्रिंसिपल अमाउंट दिया हो, या पूरा EMI अमाउंट चुकाया हो
+                const isProperEmi = (principalPaid > 0) || (tx.payment >= expectedEmi);
+
+                return isTargetMonth && isOnTime && isProperEmi;
+            });
+
+            if (validEmiPaid) {
+                points += 5; // सही समय पर EMI
+            } else {
+                points -= 10; // सॉफ्ट पेनल्टी: EMI मिस की या सिर्फ ब्याज दिया
+            }
+        }
+
+        // एक्स्ट्रा पेनल्टी: अगर पूरा टेन्यूर (जैसे 12 महीने) पार हो गया और फिर भी लोन 'Paid' नहीं है
+        if (monthsPassed > effectiveTenure && loanDetails?.status !== 'Paid') {
+            points -= 30; 
         }
     }
 
     return points;
 }
+
 
 // ==========================================
 // 6. OLD LOGIC (PRE FEB 15, 2026) - UPDATED
