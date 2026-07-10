@@ -240,47 +240,47 @@ function calculateNoLoanScore(memberData, untilDate) {
 }
 
 // ==========================================
-// 5. NEW LOGIC (POST FEB 15, 2026) - TENURE BASED
+// 5. NEW LOGIC (POST FEB 15, 2026) - LOW PENALTY & RECOVERY
 // ==========================================
-function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate) {
-    let points = 0;
+function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, penaltyLogs) {
+    let rewardPoints = 0;
+    let penaltyPoints = 0;
     const loanDate = loanTx.date;
     const loanAmount = loanTx.loan;
-
-    // टेन्यूर निकालें (अगर न हो तो डिफ़ॉल्ट 1 महीना)
     const effectiveTenure = loanDetails ? (parseInt(loanDetails.tenureMonths) || 1) : 1;
-    
-    // 3 महीने से ज्यादा है तो EMI सिस्टम लागू होगा
     const isEmiSystem = effectiveTenure > 3; 
+
+    let repaidDate = null;
+    let isFullyPaid = loanDetails && loanDetails.status === 'Paid';
+
+    // अगर पेड है, तो फुल रीपेमेंट डेट निकालें
+    if (isFullyPaid) {
+        const repaymentTx = memberData.filter(r => r.date > loanDate && r.payment > 0);
+        let paidSum = 0;
+        for (const p of repaymentTx) { 
+            paidSum += p.payment; 
+            if (paidSum >= loanAmount) { repaidDate = p.date; break; } 
+        }
+    }
 
     // --- SCENARIO 1: SHORT TERM LOAN (<= 3 MONTHS) ---
     if (!isEmiSystem) {
-        const limitDays = effectiveTenure * 31; // हर महीने के लिए औसतन 31 दिन का ग्रेस
+        const limitDays = effectiveTenure * 31; 
         const daysPassed = (untilDate - loanDate) / (1000 * 3600 * 24);
 
-        if (loanDetails && loanDetails.status === 'Paid') {
-            const repaymentTx = memberData.filter(r => r.date > loanDate && r.payment > 0);
-            let repaidDate = null; 
-            let paidSum = 0;
-
-            for (const p of repaymentTx) { 
-                paidSum += p.payment; 
-                if (paidSum >= loanAmount) { repaidDate = p.date; break; } 
-            }
-
+        if (isFullyPaid) {
             const daysToRepay = repaidDate ? (repaidDate - loanDate) / (1000 * 3600 * 24) : daysPassed;
 
             if (daysToRepay <= limitDays) {
-                points += 25; // सही समय पर चुकाया (Clean Repayment)
+                rewardPoints += 25; // समय पर चुकाया
             } else {
-                points -= 30; // हार्ड पेनल्टी: समय सीमा पार करने के बाद चुकाया
+                penaltyPoints -= 10; // थोड़ी लेट पेमेंट
+                if (penaltyLogs) penaltyLogs.push(`Late Repayment: ${effectiveTenure} माह का लोन लेट चुकाया (-10 Points)`);
             }
         } else {
-            // अभी तक भुगतान नहीं हुआ है
             if (daysPassed > limitDays) {
-                points -= 40; // हार्ड पेनल्टी: समय पार हो चुका है और लोन एक्टिव है
-            } else {
-                points += 0; // न्यूट्रल: अभी समय सीमा के अंदर है
+                penaltyPoints -= 15; // एक्टिव और समय सीमा पार
+                if (penaltyLogs) penaltyLogs.push(`Overdue Loan: लोन समय सीमा से बाहर है (-15 Points)`);
             }
         }
     } 
@@ -288,9 +288,8 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate) {
     else {
         const monthsPassed = monthDiff(loanDate, untilDate);
 
-        // हर महीने की EMI चेक करें
         for (let i = 1; i <= monthsPassed; i++) {
-            if (i > effectiveTenure && loanDetails?.status === 'Paid') break;
+            if (i > effectiveTenure && isFullyPaid) break;
 
             const targetMonthDate = new Date(loanDate);
             targetMonthDate.setMonth(loanDate.getMonth() + i);
@@ -299,32 +298,55 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate) {
                 const tDate = tx.date;
                 const isTargetMonth = tDate.getFullYear() === targetMonthDate.getFullYear() && tDate.getMonth() === targetMonthDate.getMonth();
                 const isOnTime = tDate.getDate() >= ENGINE_CONFIG.EMI_START_DAY && tDate.getDate() <= ENGINE_CONFIG.EMI_END_DAY;
-                
-                // सिर्फ इंटरेस्ट दिया है या प्रिंसिपल भी? 
                 const principalPaid = tx.payment - tx.returnAmount;
                 const expectedEmi = loanDetails ? (loanDetails.monthlyEmi || 0) : 0;
-                
-                // वैलिड EMI तब मानी जाएगी जब प्रिंसिपल अमाउंट दिया हो, या पूरा EMI अमाउंट चुकाया हो
                 const isProperEmi = (principalPaid > 0) || (tx.payment >= expectedEmi);
 
                 return isTargetMonth && isOnTime && isProperEmi;
             });
 
             if (validEmiPaid) {
-                points += 5; // सही समय पर EMI
+                rewardPoints += 5; // सही EMI
             } else {
-                points -= 10; // सॉफ्ट पेनल्टी: EMI मिस की या सिर्फ ब्याज दिया
+                penaltyPoints -= 5; // EMI मिस या सिर्फ ब्याज
+                if (penaltyLogs) penaltyLogs.push(`Missed EMI: माह ${i} की EMI मिस हुई/सिर्फ ब्याज आया (-5 Points)`);
             }
         }
 
-        // एक्स्ट्रा पेनल्टी: अगर पूरा टेन्यूर (जैसे 12 महीने) पार हो गया और फिर भी लोन 'Paid' नहीं है
-        if (monthsPassed > effectiveTenure && loanDetails?.status !== 'Paid') {
-            points -= 30; 
+        if (monthsPassed > effectiveTenure && !isFullyPaid) {
+            penaltyPoints -= 10; // टेन्योर पार होने के बाद भी एक्टिव
+            if (penaltyLogs) penaltyLogs.push(`Tenure Exceeded: समय सीमा पार हो चुकी है (-10 Points)`);
         }
     }
 
-    return points;
+    // 🔥 नियम: मैक्सिमम पेनल्टी कैप (Maximum -20 Points)
+    if (penaltyPoints < -20) {
+        if (penaltyLogs) penaltyLogs.push(`Penalty Capped: अधिकतम -20 पॉइंट्स से ज्यादा नहीं काटे गए।`);
+        penaltyPoints = -20;
+    }
+
+    // 🔥 नियम: ऑटो रिकवरी (Auto-Recovery After 3 Months)
+    if (isFullyPaid && repaidDate && penaltyPoints < 0) {
+        const daysSincePaid = (untilDate - repaidDate) / (1000 * 3600 * 24);
+        
+        // 90 दिन (3 महीने) के बाद रिकवरी शुरू होगी
+        if (daysSincePaid > 90) {
+            // धीरे-धीरे रिकवर होना (अगले 90 दिनों में पूरी तरह 0 हो जाएगा)
+            let recoveryFactor = 1 - ((daysSincePaid - 90) / 90); 
+            if (recoveryFactor < 0) recoveryFactor = 0; // 6 महीने बाद पूरा 0
+            
+            const originalPenalty = penaltyPoints;
+            penaltyPoints = Math.round(penaltyPoints * recoveryFactor);
+            
+            if (penaltyPoints > originalPenalty && penaltyLogs) {
+                penaltyLogs.push(`Auto-Recovery: 3 महीने बाद स्कोर सुधर रहा है (${originalPenalty} से ${penaltyPoints} हुआ)`);
+            }
+        }
+    }
+
+    return rewardPoints + penaltyPoints;
 }
+
 
 
 // ==========================================
