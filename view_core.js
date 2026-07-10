@@ -88,6 +88,8 @@ function processCoreData(memberId, members, transactions, activeLoans) {
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
             case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break; // Sirf profit (wallet) withdrawal
             case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break; // 🔥 SIP (capital) withdrawal alag kiya
+            case 'P2P Received': record.p2pReceived = tx.amount || 0; break; // 🔥 P2P IN
+            case 'P2P Sent': record.p2pSent = tx.amount || 0; break; // 🔥 P2P OUT
             default: continue;
         }
         state.allData.push(record);
