@@ -294,6 +294,9 @@ function getEmiTrackerHTML(loan, tenureMonths) {
     // Safety cap between 1 and 24 months for card display
     totalBoxes = Math.max(1, Math.min(24, totalBoxes));
 
+    // Compact mode for 10+ months (single row, tighter layout)
+    const isCompact = totalBoxes >= 10;
+
     let paidCount = 0;
     if (state.transactions) {
         paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
@@ -312,6 +315,11 @@ function getEmiTrackerHTML(loan, tenureMonths) {
         let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
         let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
 
+        // For compact mode (10+ months), use ultra-short 3-char names
+        if (isCompact && monthName.length > 3) {
+            monthName = monthName.substring(0, 3);
+        }
+
         let bgClass = 'tracker-pending';
 
         if (i <= paidCount) {
@@ -323,7 +331,8 @@ function getEmiTrackerHTML(loan, tenureMonths) {
         boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
     }
 
-    return `<div class="emi-month-tracker">${boxesHtml}</div>`;
+    const compactClass = isCompact ? ' emi-tracker-compact' : '';
+    return `<div class="emi-month-tracker${compactClass}">${boxesHtml}</div>`;
 }
 
 // === 🔥 DUAL AMOUNT GENERATOR (ORIGINAL LOAN vs REMAINING DUE) 🔥 ===

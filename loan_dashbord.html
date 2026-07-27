@@ -194,16 +194,27 @@
         /* 3. STANDARD THEMES (Recharge/Credit) */
         .card-10days { background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C); color: #2a2a2a; }
         .card-recharge { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); color: white; }
-           /* === UNIVERSAL DYNAMIC EMI MONTH TRACKER === */
+           /* === UNIVERSAL DYNAMIC EMI MONTH TRACKER (SINGLE ROW - NEVER WRAPS) === */
         .emi-month-tracker, .recharge-tracker {
             position: absolute; bottom: 35px; left: 14px; right: 14px;
-            display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; z-index: 4;
+            display: flex; flex-wrap: nowrap; gap: 5px; justify-content: center; z-index: 4;
+            overflow: hidden;
         }
         .tracker-box {
-            flex: 1; min-width: 30px; max-width: 62px; padding: 4px 2px; border-radius: 5px; text-align: center;
-            font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            flex: 1 1 0%; min-width: 0; padding: 4px 3px; border-radius: 5px; text-align: center;
+            font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px;
             border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            transition: all 0.2s ease;
+            transition: all 0.2s ease; white-space: nowrap; overflow: hidden; text-overflow: clip;
+        }
+        /* Compact mode for 10+ month timelines */
+        .emi-tracker-compact {
+            gap: 3px !important;
+        }
+        .emi-tracker-compact .tracker-box {
+            font-size: 7px !important;
+            padding: 4px 1px !important;
+            letter-spacing: 0px !important;
+            border-radius: 4px !important;
         }
         .tracker-paid { background: #28a745 !important; color: white !important; border-color: #28a745 !important; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.45) !important; }
         .tracker-skipped { background: #dc3545 !important; color: white !important; border-color: #dc3545 !important; box-shadow: 0 2px 8px rgba(220, 53, 69, 0.45) !important; }
