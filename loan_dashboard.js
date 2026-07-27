@@ -1,0 +1,699 @@
+// loan_dashboard.js - FINAL UPDATED VERSION
+// FIXES: Filters Working, Text Shift on Download Solved, Compact Button Support
+
+const CACHE_KEY = 'tcf_loan_dashboard_cache_v11'; 
+const PRELOAD_CONFIG_URL = '/api/firebase-config'; 
+
+const state = {
+    activeLoans: [],
+    members: {},
+    currentFilter: 'all', // 'all', 'personal', 'recharge'
+    els: {} // Will be populated after DOM Load
+};
+
+// --- INITIALIZATION ---
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Initialize Elements Cache
+    state.els = {
+        container: document.getElementById('outstanding-loans-container'),
+        loader: document.getElementById('loader'),
+        count: document.getElementById('count-val'),
+        amt: document.getElementById('amount-val'),
+        search: document.getElementById('search-input'),
+
+        // Filters
+        btnAll: document.getElementById('filter-all'),
+        btnPersonal: document.getElementById('filter-personal'),
+        btnRecharge: document.getElementById('filter-recharge'),
+
+        // Admin Modal Els
+        modal: document.getElementById('gen-modal'),
+        mSelect: document.getElementById('m-select'),
+        tSelect: document.getElementById('t-select'),
+        amtInput: document.getElementById('amt-input'),
+        provSelect: document.getElementById('prov-select'),
+        provGroup: document.getElementById('prov-group'),
+        btnCreate: document.getElementById('btn-create'),
+        genResult: document.getElementById('gen-result')
+    };
+
+    try {
+        setupFilters(); // Setup Click Listeners
+        setupAdminModal(); // Setup Generator Logic
+        loadFromCache();
+
+        const res = await fetch(PRELOAD_CONFIG_URL);
+        if(res.ok) {
+            const config = await res.json();
+            if (!firebase.apps.length) firebase.initializeApp(config);
+        }
+
+        firebase.auth().onAuthStateChanged(u => {
+            if(u) loadData(); 
+            else window.location.href = `/login.html?redirect=${window.location.pathname}`;
+        });
+    } catch(e) { console.error("Init Error:", e); }
+});
+
+// --- FILTER LOGIC (FIXED) ---
+function setupFilters() {
+    if(!state.els.btnAll) return; // Safety check
+
+    const setFilter = (type, btn) => {
+        state.currentFilter = type;
+
+        // Update Buttons Visual State
+        [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => {
+            if(b) b.classList.remove('active');
+        });
+        if(btn) btn.classList.add('active');
+
+        // Re-render
+        renderLoans();
+    };
+
+    state.els.btnAll.onclick = () => setFilter('all', state.els.btnAll);
+    state.els.btnPersonal.onclick = () => setFilter('personal', state.els.btnPersonal);
+    state.els.btnRecharge.onclick = () => setFilter('recharge', state.els.btnRecharge);
+}
+
+// --- DATA HANDLING ---
+function loadFromCache() {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            state.members = data.members || {};
+            state.transactions = data.transactions || []; // Added transactions cache
+            state.activeLoans = processLoanData(data.rawLoans || {}, state.members);
+            if (state.activeLoans.length > 0) {
+                renderLoans();
+                fillDropdown();
+                if(state.els.loader) state.els.loader.classList.add('hidden');
+            }
+        } catch (e) { console.error(e); }
+    }
+}
+
+function processLoanData(rawLoans, members) {
+    return Object.values(rawLoans)
+        .filter(l => l.status && l.status.trim() === 'Active') 
+        .map(l => ({
+            ...l,
+            memberName: members[l.memberId]?.fullName || 'Unknown',
+            pic: members[l.memberId]?.profilePicUrl || ''
+        }))
+        .sort((a,b) => new Date(a.loanDate) - new Date(b.loanDate));
+}
+
+async function loadData() {
+    try {
+        const db = firebase.database();
+        // Fetch transactions alongside activeLoans and members
+        const [lSnap, mSnap, tSnap] = await Promise.all([
+            db.ref('activeLoans').once('value'),
+            db.ref('members').once('value'),
+            db.ref('transactions').once('value') // Fetching transactions
+        ]);
+        const membersVal = mSnap.val() || {};
+        const loansVal = lSnap.val() || {};
+        const txnsVal = tSnap.val() || {};
+
+        state.members = membersVal;
+        state.transactions = Object.values(txnsVal);
+
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            members: membersVal,
+            rawLoans: loansVal,
+            transactions: state.transactions,
+            timestamp: Date.now()
+        }));
+
+        state.activeLoans = processLoanData(loansVal, state.members);
+        renderLoans();
+        fillDropdown();
+        if(state.els.loader) state.els.loader.classList.add('hidden');
+    } catch(e) {
+        console.error(e);
+        if(state.els.loader) state.els.loader.classList.add('hidden');
+    }
+}
+
+// --- MAIN RENDERER ---
+function renderLoans() {
+    const container = state.els.container;
+    if(!container) return;
+    container.innerHTML = '';
+
+    // 1. Filter Data
+    let filtered = state.activeLoans;
+    if (state.currentFilter === 'personal') {
+        filtered = filtered.filter(l => l.loanType === 'Personal Loan' || parseFloat(l.amount) >= 10000);
+    } else if (state.currentFilter === 'recharge') {
+        filtered = filtered.filter(l => l.loanType === 'Recharge' || l.loanType === '10 Days Credit');
+    }
+
+    // 2. Search Filter
+    if(state.els.search) {
+        const term = state.els.search.value.toLowerCase();
+        if(term) {
+            filtered = filtered.filter(l => l.memberName.toLowerCase().includes(term));
+        }
+    }
+
+    // 3. Update Stats
+    const totalDue = filtered.reduce((sum, l) => sum + parseFloat(l.outstandingAmount || 0), 0);
+    if(state.els.count) state.els.count.textContent = filtered.length;
+    if(state.els.amt) state.els.amt.textContent = `₹${totalDue.toLocaleString('en-IN')}`;
+
+    if(filtered.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:#999; font-weight:600;">No loans found.</div>';
+        return;
+    }
+
+    // 4. Generate Cards
+    filtered.forEach(l => {
+        const amount = parseFloat(l.outstandingAmount || 0);
+        const dateObj = new Date(l.loanDate);
+        const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+
+        const diffTime = Math.abs(new Date() - dateObj);
+        const daysActive = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+        let providerOrProduct = 'N/A';
+        let emiAmount = null;
+        let tenureMonths = l.tenureMonths || 0; 
+
+        if (l.rechargeDetails) {
+            providerOrProduct = l.rechargeDetails.operator;
+            emiAmount = l.rechargeDetails.rechargeEmi;
+        }
+        if (l.loanType === 'Product on EMI' && l.productDetails) {
+            providerOrProduct = l.productDetails.name;
+            emiAmount = l.productDetails.monthlyEmi;
+        }
+        if (l.monthlyEmi) emiAmount = l.monthlyEmi;
+
+        // Card Type Selection
+        let cardHTML = '';
+        if (l.loanType === '10 Days Credit') {
+            cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
+        }
+        else if (l.loanType === 'Recharge') {
+            cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
+        }
+        else if (l.loanCategory === 'VIP Phase Loan') {
+            // 🔥 NEW: Check for VIP Loan
+            cardHTML = getVIPCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+        }
+        else {
+            if (amount >= 25000) {
+                cardHTML = getLuxuryCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+            } else {
+                cardHTML = getPlatinumCardHTML(l, amount, dateStr, daysActive, tenureMonths, emiAmount);
+            }
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = cardHTML;
+        container.appendChild(wrapper);
+    });
+
+    if(typeof feather !== 'undefined') feather.replace();
+}
+
+// === HELPER: ALERT LOGIC (Exact EMI & Month Rule) ===
+function getAlertStatus(amount, days, loan, tenureMonths = 0) {
+    let threshold = 90; 
+    let isCritical = days > threshold;
+
+    if (loan.loanType === '10 Days Credit') {
+        threshold = 10;
+        isCritical = days > threshold;
+    } else if (loan.loanType === 'Recharge') {
+        // EXACT MONTH TRACKING LOGIC
+        let loanDate = new Date(loan.loanDate);
+        let today = new Date();
+        let monthsPassed = (today.getFullYear() - loanDate.getFullYear()) * 12 + (today.getMonth() - loanDate.getMonth());
+
+        let paidCount = 0;
+        if (state.transactions) {
+            paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+        }
+
+        // Warning is ON if current month is reached but not paid yet
+        isCritical = (monthsPassed > paidCount);
+        threshold = 30; // Just for visual UI in the circle
+    } else if (tenureMonths > 0) {
+        threshold = tenureMonths === 12 ? 365 : tenureMonths * 30; 
+        isCritical = days > threshold;
+    } else {
+        threshold = amount > 25000 ? 365 : 90;
+        isCritical = days > threshold;
+    }
+
+    return {
+        isCritical: isCritical,
+        threshold: threshold
+    };
+}
+
+
+// Helper: Pay Now Button (Removed to fix UI and Download overlap)
+function getPayButtonHTML(loan, amount) {
+    return ''; // Returns empty string so button is completely hidden
+}
+
+
+// Helper: Warning Symbol Injection
+function getWarningSymbol(isCritical) {
+    if (!isCritical) return '';
+    return `<div class="overdue-watermark">⚠️</div>`;
+}
+
+// --- 🔥 VIP PREMIUM CARD 🔥 ---
+function getVIPCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const loanId = `card-${loan.loanId}`;
+    const parsedTenure = parseInt(tenureMonths) || 1;
+
+    // Check VIP Rank based on rate
+    const rate = loan.interestDetails?.rate || 0;
+    let vipBadge = '';
+    let emiDisplay = '';
+
+    if (rate === 0) {
+        vipBadge = '👑 1ST VIP (0%)';
+        emiDisplay = `TOTAL: ₹${amount.toLocaleString('en-IN')} (0% INT)`;
+    } else if (rate === 0.001) {
+        vipBadge = '👑 2ND VIP (0.10%)';
+        const totalPayable = amount + (amount * (0.001 * parsedTenure));
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (0.10% INT)`;
+    } else if (rate === 0.0025) {
+        vipBadge = '👑 3RD VIP (0.25%)';
+        const totalPayable = amount + (amount * (0.0025 * parsedTenure));
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (0.25% INT)`;
+    } else {
+        vipBadge = '👑 VIP MEMBER';
+    }
+
+    // Use EMI if duration is long
+    if (parsedTenure > 3 && emi) {
+        emiDisplay = `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}`;
+    }
+
+    const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
+    return `
+    <div class="premium-card-wrapper card-vip ${wrapperClass}" id="${loanId}">
+        <div class="pc-texture"></div>
+        <div class="vip-badge-tag">${vipBadge}</div>
+        ${getWarningSymbol(alertState.isCritical)}
+
+        <div class="pc-days-circle ${alertClass}">
+            <span class="day-num">${daysActive}</span>
+            <span class="day-label">DAYS</span>
+        </div>
+
+        <div class="pc-top">
+            <div class="pc-bank">TRUST COMMUNITY FUND</div>
+            <div class="pc-download" onclick="window.dlCard('${loanId}')" style="border-color:#FFD700; color:#FFD700; margin-right: 60px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+        </div>
+
+        <div class="pc-middle">
+            <div class="pc-date">${dateStr}</div>
+            <h1 class="pc-title gold-text">VIP TRUST LOAN</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#FFD700;">Exclusive Benefit</div>
+        </div>
+
+        <div class="pc-bottom">
+            <div class="pc-profile-group">
+                <img src="${pic}" class="pc-pic" style="border: 2px solid #FFD700;" crossorigin="anonymous">
+                <div class="pc-name">${loan.memberName}</div>
+            </div>
+            <div class="pc-amount-group">
+                <span class="pc-emi-label" style="color:#FFD700;">${emiDisplay}</span>
+                <div class="pc-amount gold-text">₹${amount.toLocaleString('en-IN')}</div>
+            </div>
+        </div>
+
+        <div class="loan-tenure-tag" style="color:#FFD700;">Time: ${parsedTenure} Month</div>
+        <div class="pc-footer">VIP BENEFIT - MAINTAIN TRUST SCORE & DISCIPLINE</div>
+    </div>`;
+}
+
+// --- 1. LUXURY CARD (>25k) ---
+function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const loanId = `card-${loan.loanId}`;
+
+    const parsedTenure = parseInt(tenureMonths) || 12;
+    let emiDisplay = '';
+
+    if (parsedTenure <= 3) {
+        // 1, 2, 3 महीने के लिए इंटरेस्ट कैलकुलेशन और टोटल अमाउंट दिखाना
+        let rate = 0, rateStr = '';
+        if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
+        else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
+        else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+
+        const baseAmt = parseFloat(loan.originalAmount || amount);
+        const totalPayable = baseAmt + (baseAmt * rate);
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
+    } else {
+        // 4+ महीने के लिए EMI दिखाना
+        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+    }
+
+    const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
+    return `
+    <div class="premium-card-wrapper card-premium ${wrapperClass}" id="${loanId}">
+        <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
+
+        <div class="pc-days-circle ${alertClass}">
+            <span class="day-num">${daysActive}</span>
+            <span class="day-label">DAYS</span>
+        </div>
+
+        <div class="pc-top">
+            <div class="pc-bank" style="color:#D4AF37;">TRUST COMMUNITY FUND</div>
+            <div class="pc-download" onclick="window.dlCard('${loanId}')" style="border-color:#D4AF37; color:#D4AF37;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+        </div>
+
+        <div class="pc-middle">
+            <div class="pc-date">${dateStr}</div>
+            <h1 class="pc-title gold-text">PERSONAL LOAN</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#D4AF37;">HIGH VALUE</div>
+        </div>
+
+        ${getPayButtonHTML(loan, amount)}
+
+        <div class="pc-bottom">
+            <div class="pc-profile-group">
+                <img src="${pic}" class="pc-pic" crossorigin="anonymous">
+                <div class="pc-name">${loan.memberName}</div>
+            </div>
+            <div class="pc-amount-group">
+                <span class="pc-emi-label" style="color:#D4AF37;">${emiDisplay}</span>
+                <div class="pc-amount gold-text">₹${amount.toLocaleString('en-IN')}</div>
+            </div>
+        </div>
+
+        <div class="loan-tenure-tag">Time: ${tenureMonths || 12} Month</div>
+        <div class="pc-footer">⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY</div>
+    </div>`;
+}
+
+// --- 2. PLATINUM CARD (<25k) ---
+function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const loanId = `card-${loan.loanId}`;
+
+    const parsedTenure = parseInt(tenureMonths) || 6;
+    let emiDisplay = '';
+
+    if (parsedTenure <= 3) {
+        // 1, 2, 3 महीने के लिए इंटरेस्ट कैलकुलेशन और टोटल अमाउंट दिखाना
+        let rate = 0, rateStr = '';
+        if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
+        else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
+        else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+
+        const baseAmt = parseFloat(loan.originalAmount || amount);
+        const totalPayable = baseAmt + (baseAmt * rate);
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
+    } else {
+        // 4+ महीने के लिए EMI दिखाना
+        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+    }
+
+    const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
+    return `
+    <div class="premium-card-wrapper card-platinum ${wrapperClass}" id="${loanId}">
+        <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
+
+        <div class="pc-days-circle ${alertClass}">
+            <span class="day-num">${daysActive}</span>
+            <span class="day-label">DAYS</span>
+        </div>
+
+        <div class="pc-top">
+            <div class="pc-bank">TCF PERSONAL</div>
+            <div class="pc-download" onclick="window.dlCard('${loanId}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+        </div>
+
+        <div class="pc-middle">
+            <span class="pc-date">${dateStr}</span>
+            <h1 class="pc-title">PERSONAL LOAN</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">Standard</div>
+        </div>
+
+        ${getPayButtonHTML(loan, amount)}
+
+        <div class="pc-bottom">
+            <div class="pc-profile-group">
+                <img src="${pic}" class="pc-pic" crossorigin="anonymous">
+                <div class="pc-name">${loan.memberName}</div>
+            </div>
+            <div class="pc-amount-group">
+                <span class="pc-emi-label">${emiDisplay}</span>
+                <div class="pc-amount">₹${amount.toLocaleString('en-IN')}</div>
+            </div>
+        </div>
+
+        <div class="loan-tenure-tag">Time: ${tenureMonths || 6} Month</div>
+        <div class="pc-footer">Standard terms apply. Pay on time.</div>
+    </div>`;
+}
+
+// --- 3. STANDARD CARD (Recharge/Credit) ---
+function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, emi) {
+    const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const loanId = `card-${loan.loanId}`;
+    const type = loan.loanType;
+
+    let cardClass = 'card-10days'; 
+    let title = '10 DAYS CREDIT';
+    let footer = 'No Interest if paid within 10 Days.';
+    let emiHtml = '';
+    let trackerHtml = '';
+
+    if(type === 'Recharge') {
+        cardClass = 'card-recharge';
+        title = 'RECHARGE CARD';
+        footer = `Operator: ${providerInfo}`;
+        if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
+
+        // --- DATABASE SYNCED EMI TRACKER LOGIC ---
+        let paidCount = 0;
+        if (state.transactions) {
+            paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+        }
+
+        let startDate = new Date(loan.loanDate);
+        let today = new Date();
+        let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+
+        let hasSkipped = false;
+        let boxesHtml = '';
+
+        for (let i = 1; i <= 4; i++) {
+            let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+            let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+
+            let bgClass = 'tracker-pending'; // White (Pending)
+
+            if (i <= paidCount) {
+                bgClass = 'tracker-paid'; // Green (Paid)
+            } else if (i <= monthsPassed - 1) {
+                bgClass = 'tracker-skipped'; // Red (Skipped)
+                hasSkipped = true;
+            }
+
+            // Only show the 4th box if there's a skipped month, otherwise keep it to 3
+            if (i === 4 && !hasSkipped && paidCount < 4) continue;
+
+            boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
+        }
+        trackerHtml = `<div class="recharge-tracker">${boxesHtml}</div>`;
+    }
+
+    const alertState = getAlertStatus(amount, daysActive, loan, 0);
+    const alertClass = alertState.isCritical ? 'critical' : '';
+    const wrapperClass = alertState.isCritical ? 'overdue-active' : '';
+
+    return `
+    <div class="premium-card-wrapper ${cardClass} ${wrapperClass}" id="${loanId}">
+        <div class="pc-texture"></div>
+        ${getWarningSymbol(alertState.isCritical)}
+
+        <div class="pc-days-circle ${alertClass}">
+            <span class="day-num">${daysActive}</span>
+            <span class="day-label">DAYS</span>
+        </div>
+
+        <div class="pc-top">
+            <div class="pc-bank">TCF CREDIT</div>
+            <div class="pc-download" onclick="window.dlCard('${loanId}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+        </div>
+
+        <div class="pc-middle">
+            <span class="pc-date" style="color:inherit; opacity:0.8;">${dateStr}</span>
+            <h1 class="pc-title" style="font-size:18px;">${title}</h1>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
+        </div>
+
+        ${getPayButtonHTML(loan, amount)}
+
+        <div class="pc-bottom" style="padding-bottom: 50px;">
+            <div class="pc-profile-group">
+                <img src="${pic}" class="pc-pic" crossorigin="anonymous" style="border-color:#fff;">
+                <div class="pc-name">${loan.memberName}</div>
+            </div>
+            <div class="pc-amount-group">
+                ${emiHtml}
+                <div class="pc-amount">₹${amount.toLocaleString('en-IN')}</div>
+            </div>
+        </div>
+
+        ${trackerHtml}
+
+        <div class="pc-footer" style="background:rgba(0,0,0,0.1);">
+            ${footer}
+        </div>
+    </div>`;
+}
+
+// --- SEARCH ---
+if(state.els.search) {
+    state.els.search.addEventListener('input', () => renderLoans());
+}
+
+// --- HIGH QUALITY DOWNLOAD FIX ---
+window.dlCard = (id) => {
+    const el = document.getElementById(id);
+    const btn = el.querySelector('.pc-download');
+
+    // Hide Download Icon
+    btn.style.opacity = '0';
+
+    // 🔥 1 Second (1000ms) delay for perfect layout setup
+    setTimeout(() => {
+        html2canvas(el, { 
+            scale: 3, 
+            useCORS: true, 
+            allowTaint: true, 
+            backgroundColor: null,
+            scrollY: -window.scrollY, // FIX 1: Prevents coordinate shifting when user scrolls down
+            logging: false,
+            onclone: (clonedDoc) => {
+                const clonedEl = clonedDoc.getElementById(id);
+                clonedEl.style.transform = "none"; 
+
+                // FIX 2: Stop Overdue Watermark from creating grey box artifacts
+                const watermark = clonedEl.querySelector('.overdue-watermark');
+                if(watermark) {
+                    watermark.style.animation = 'none'; // Stop blinking
+                    watermark.style.filter = 'none'; // 🔥 REMOVES GREY RECTANGLE BUG
+                }
+
+                // FIX 3: Remove Gradient Text for Canvas (Stops the Gold Box bug)
+                const goldTexts = clonedEl.querySelectorAll('.gold-text');
+                goldTexts.forEach(txt => {
+                    txt.style.background = 'none';
+                    txt.style.webkitBackgroundClip = 'initial';
+                    txt.style.webkitTextFillColor = 'initial';
+                    txt.style.color = '#D4AF37'; // Solid Gold Fallback
+                    txt.style.textShadow = 'none';
+                });
+
+                // FIX 4: Explicitly enforce spacing in canvas backup
+                const pcBottom = clonedEl.querySelector('.pc-bottom');
+                if(pcBottom) {
+                    pcBottom.style.paddingBottom = '45px';
+                }
+            }
+        })
+        .then(c => {
+            const a = document.createElement('a');
+            a.download = `LoanCard_${id}.png`;
+            a.href = c.toDataURL('image/png');
+            a.click();
+
+            // Restore Icon
+            btn.style.opacity = '1';
+        }).catch(err => {
+            console.error("Download Failed:", err);
+            btn.style.opacity = '1';
+        });
+    }, 1000); 
+};
+
+
+// --- ADMIN GENERATOR ---
+function setupAdminModal() {
+    if(!state.els.btnCreate) return;
+
+    document.getElementById('generate-credit-btn').onclick = () => {
+        state.els.modal.style.visibility = 'visible';
+        state.els.modal.style.opacity = '1';
+        state.els.genResult.innerHTML = '';
+        fillDropdown();
+    };
+    document.querySelector('.close-modal').onclick = () => {
+        state.els.modal.style.visibility = 'hidden';
+        state.els.modal.style.opacity = '0';
+    };
+
+    state.els.mSelect.onchange = () => {
+        state.els.amtInput.disabled = !state.els.mSelect.value;
+        if(state.els.mSelect.value) state.els.amtInput.focus();
+    };
+    state.els.tSelect.onchange = () => {
+        state.els.provGroup.style.display = (state.els.tSelect.value === 'recharge') ? 'block' : 'none';
+    };
+    state.els.btnCreate.onclick = () => {
+        const mId = state.els.mSelect.value;
+        if(!mId) return alert('Select Member');
+        const amt = parseFloat(state.els.amtInput.value);
+        if(!amt) return alert('Enter Amount');
+
+        const name = state.els.mSelect.options[state.els.mSelect.selectedIndex].text;
+        const pic = state.els.mSelect.options[state.els.mSelect.selectedIndex].dataset.pic;
+        const typeKey = state.els.tSelect.value;
+        const dateStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+
+        const mockLoan = { loanId: 'preview', memberName: name, pic: pic, loanType: typeKey === 'credit' ? '10 Days Credit' : 'Recharge', tenureMonths: 0 };
+        let providerInfo = (typeKey === 'recharge') ? state.els.provSelect.value : '';
+        state.els.genResult.innerHTML = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
+    };
+}
+
+function fillDropdown() {
+    state.els.mSelect.innerHTML = '<option value="">-- Select --</option>';
+    Object.values(state.members).sort((a,b)=>a.fullName.localeCompare(b.fullName)).forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id; 
+        opt.text = m.fullName;
+        opt.dataset.pic = m.profilePicUrl;
+        state.els.mSelect.appendChild(opt);
+    });
+}

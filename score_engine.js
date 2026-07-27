@@ -1,0 +1,491 @@
+// ==========================================
+// TCF SCORING ENGINE (v2.0)
+// Shared Logic for User Panel & Profit Dashboard
+// ==========================================
+
+// --- ENGINE CONFIGURATION ---
+const ENGINE_CONFIG = {
+    // Dates & Timeframes
+    NEW_LOGIC_START_DATE: new Date('2026-02-15T00:00:00'), // Strict Cutoff
+    REVIEW_PERIOD_DAYS: 540, // 18 Months
+
+    // Scoring Weights
+    CAPITAL_TARGET: 50000,
+    WEIGHT_CAPITAL: 0.40,
+    WEIGHT_CONSISTENCY: 0.30,
+    WEIGHT_CREDIT: 0.30,
+
+    // Loan Eligibility
+    SIP_SLAB: 25000,
+    MULTIPLIER_LOW: 1.5,
+    MULTIPLIER_HIGH: 2.0,
+    MAX_LOAN_CAP: 50000,
+
+    // Payment Rules
+    EMI_START_DAY: 1,
+    EMI_END_DAY: 10,
+    RECHARGE_DEFAULT_TENURE: 3, // Months
+    SHORT_TERM_LIMIT_DAYS: 90
+};
+
+// ==========================================
+// 1. MASTER SCORING FUNCTION
+// ==========================================
+function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
+    // Filter data for member up to current date
+    const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
+
+    if (memberData.length === 0) {
+        return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
+    }
+
+    // --- 1. CAPITAL SCORE (18 Months + Skip 1st SIP) ---
+    let capitalScore = calculateCapitalScore(memberName, untilDate, allData);
+
+    // --- 2. CONSISTENCY SCORE (18 Months + Skip 1st SIP) ---
+    let consistencyScore = calculateConsistencyScore(memberData, untilDate);
+
+    // --- 3. CREDIT BEHAVIOR (The Hybrid Logic) ---
+    let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData);
+
+    // Store Originals before applying penalty
+    const originals = {
+        capital: capitalScore,
+        consistency: consistencyScore,
+        credit: creditScore
+    };
+
+    // --- PROBATION CHECK (New Member Rule) ---
+    // First 180 Days = 50% Score
+    const firstTx = memberData[0]?.date;
+    const daysSinceJoin = firstTx ? (untilDate - firstTx) / (1000 * 3600 * 24) : 0;
+    const isProbation = daysSinceJoin < 180;
+
+    if (isProbation) {
+        capitalScore *= 0.50;
+        consistencyScore *= 0.50;
+        creditScore *= 0.50;
+    }
+
+    // Final Weighted Calculation
+    const totalScore = (capitalScore * ENGINE_CONFIG.WEIGHT_CAPITAL) + 
+                       (consistencyScore * ENGINE_CONFIG.WEIGHT_CONSISTENCY) + 
+                       (creditScore * ENGINE_CONFIG.WEIGHT_CREDIT);
+
+    return {
+        totalScore,
+        capitalScore,
+        consistencyScore,
+        creditScore,
+        isNewMemberRuleApplied: isProbation,
+        originalCapitalScore: originals.capital,
+        originalConsistencyScore: originals.consistency,
+        originalCreditScore: originals.credit
+    };
+}
+
+// ==========================================
+// 2. CAPITAL SCORE LOGIC
+// ==========================================
+function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) {
+    const reviewStartDate = new Date(untilDate);
+    reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
+
+    const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
+
+     // SIP Calculation (18-month logic rakha gaya hai, par slice(1) hata diya taaki pehli SIP bhi count ho)
+    const validSips = memberData.filter(r => r.sipPayment > 0).filter(r => r.date >= reviewStartDate);
+    const totalSip = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
+
+    // P2P, Extra Payments aur Withdrawals (In sab par bhi 18-month ka filter lagaya hai)
+    const validData = memberData.filter(r => r.date >= reviewStartDate);
+    const totalP2pReceived = validData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = validData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalExtraPayment = validData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
+    // 🔥 SCORE ENGINE mein dono withdrawal minus hongi (Profit withdraw + SIP withdraw)
+    const totalWithdraw = validData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
+
+    // 🔥 Active Loan को माइनस करना
+    let totalActiveLoan = 0;
+    const memberId = memberData.length > 0 ? memberData[0].memberId : null;
+
+    if (memberId && activeLoansData) {
+        Object.values(activeLoansData).forEach(loan => {
+            if (loan.memberId === memberId && loan.status === 'Active') {
+                totalActiveLoan += parseFloat(loan.outstandingAmount || loan.originalAmount || 0);
+            }
+        });
+    }
+
+    // NET CAPITAL = (SIP + Extra In + P2P In) - (P2P Out + Withdrawals + Active Loan)
+    const netCapital = totalSip + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw - totalActiveLoan;
+
+    // Formula: (Net Capital / 50,000) * 100 (Score 0 से नीचे नहीं जाएगा)
+    return Math.min(100, Math.max(0, (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
+}
+
+
+
+// ==========================================
+// 3. CONSISTENCY SCORE LOGIC (NEW: Ratio + Tenure)
+// ==========================================
+function calculateConsistencyScore(memberData, untilDate) {
+    const allSips = memberData.filter(r => r.sipPayment > 0);
+
+    // SIP ही नहीं है तो स्कोर 0
+    if (allSips.length === 0) return 0;
+
+    // --- STEP 1: ACTIVE MONTHS (Tenure Denominator) ---
+    // पहला SIP कब दिया था?
+    const firstSipDate = new Date(allSips[0].date);
+
+    // आज तक कितने महीने हुए?
+    let activeMonths = monthDiff(firstSipDate, untilDate);
+    // अगर उसी महीने जॉइन किया है तो कम से कम 1 महीना मानो
+    if (activeMonths < 1) activeMonths = 1;
+
+    // --- STEP 2: PAYMENT RATIO (70% Weight) ---
+    // कितने महीने समय पर (1-10 तारीख) payment किया?
+    const onTimeSips = allSips.filter(r => r.date.getDate() <= 10).length;
+
+    // Ratio = OnTime / ActiveMonths
+    // (Example: 6/6 = 1, 10/12 = 0.83)
+    let paymentRatio = onTimeSips / activeMonths;
+    if (paymentRatio > 1) paymentRatio = 1; // 100% से ज्यादा नहीं हो सकता
+
+    // --- STEP 3: TENURE FACTOR (30% Weight) ---
+    // 18 महीने का बेंचमार्क
+    let tenureFactor = activeMonths / 18;
+    if (tenureFactor > 1) tenureFactor = 1; // 18 महीने के बाद फुल मार्क्स
+
+    // --- STEP 4: FINAL CALCULATION ---
+    // Formula: (0.7 * Ratio) + (0.3 * Tenure)
+    const score = (70 * paymentRatio) + (30 * tenureFactor);
+
+    return Math.min(100, Math.max(0, score));
+}
+
+
+// ==========================================
+// 4. CREDIT BEHAVIOR SCORE (CORE LOGIC)
+// ==========================================
+function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData) {
+    // 18 Months Window
+    const reviewStartDate = new Date(untilDate);
+    reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
+
+    const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
+
+    // Identify Loans taken in the window
+    const loansInWindow = memberData.filter(r => 
+        r.loan > 0 && 
+        r.loanType === 'Loan' && 
+        r.date >= reviewStartDate
+    );
+
+    // --- CASE A: NO LOANS (Inactivity Gravity) ---
+    if (loansInWindow.length === 0) {
+        return calculateNoLoanScore(memberData, untilDate);
+    }
+
+    // --- CASE B: ACTIVE LOAN HISTORY ---
+    let totalLoanPoints = 0;
+    let loansCounted = 0;
+
+    for (const loanTx of loansInWindow) {
+        loansCounted++;
+
+        // Find matching loan details in ActiveLoans DB
+        // Matching Logic: MemberID + Original Amount + Approx Date
+        const loanDetails = Object.values(activeLoansData).find(l => 
+            l.memberId === loanTx.memberId && 
+            l.originalAmount === loanTx.loan &&
+            Math.abs(new Date(l.loanDate) - loanTx.date) < 86400000 // Within 24 hours
+        );
+
+        const loanDate = loanTx.date;
+
+        // SPLIT LOGIC: CHECK DATE
+        if (loanDate >= ENGINE_CONFIG.NEW_LOGIC_START_DATE) {
+            // >>> NEW LOGIC (Post Feb 15 2026)
+            totalLoanPoints += calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate);
+        } else {
+            // >>> OLD LOGIC (Pre Feb 15 2026)
+            totalLoanPoints += calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate);
+        }
+    }
+
+    // Average the points
+    return Math.min(100, Math.max(0, (totalLoanPoints / (loansCounted * 25)) * 100));
+}
+
+// --- HELPER: NO LOAN SCORE (CAPPED AT 75) ---
+function calculateNoLoanScore(memberData, untilDate) {
+    const sipData = memberData.filter(r => r.sipPayment > 0);
+
+    // Need at least 2 SIPs (First is skipped)
+    if (sipData.length < 2) return 60; // Base score
+
+    // Calculate Average SIP Date
+    const validSips = sipData.slice(1);
+    const totalDays = validSips.reduce((sum, r) => sum + r.date.getDate(), 0);
+    const avgDay = totalDays / validSips.length;
+
+    // Formula: Better Score for early SIPs
+    // 15 - AvgDay: (e.g., 15 - 5 = 10 * 5 = 50 + 40 = 90)
+    let score = (15 - avgDay) * 5 + 40;
+
+    // GRAVITY CAP: Max 75 if no loan taken
+    return Math.min(90, Math.max(0, score));
+}
+
+// ==========================================
+// 5. NEW LOGIC (POST FEB 15, 2026) - LOW PENALTY & RECOVERY
+// ==========================================
+function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, penaltyLogs) {
+    let rewardPoints = 0;
+    let penaltyPoints = 0;
+    const loanDate = loanTx.date;
+    const loanAmount = loanTx.loan;
+    const effectiveTenure = loanDetails ? (parseInt(loanDetails.tenureMonths) || 1) : 1;
+    const isEmiSystem = effectiveTenure > 3; 
+
+    let repaidDate = null;
+    let isFullyPaid = loanDetails && loanDetails.status === 'Paid';
+
+    // अगर पेड है, तो फुल रीपेमेंट डेट निकालें
+    if (isFullyPaid) {
+        const repaymentTx = memberData.filter(r => r.date > loanDate && r.payment > 0);
+        let paidSum = 0;
+        for (const p of repaymentTx) { 
+            paidSum += p.payment; 
+            if (paidSum >= loanAmount) { repaidDate = p.date; break; } 
+        }
+    }
+
+    // --- SCENARIO 1: SHORT TERM LOAN (<= 3 MONTHS) ---
+    if (!isEmiSystem) {
+        const limitDays = effectiveTenure * 31; 
+        const daysPassed = (untilDate - loanDate) / (1000 * 3600 * 24);
+
+        if (isFullyPaid) {
+            const daysToRepay = repaidDate ? (repaidDate - loanDate) / (1000 * 3600 * 24) : daysPassed;
+
+            if (daysToRepay <= limitDays) {
+                rewardPoints += 25; // समय पर चुकाया
+            } else {
+                penaltyPoints -= 10; // थोड़ी लेट पेमेंट
+                if (penaltyLogs) penaltyLogs.push(`Late Repayment: ${effectiveTenure} माह का लोन लेट चुकाया (-10 Points)`);
+            }
+        } else {
+            if (daysPassed > limitDays) {
+                penaltyPoints -= 15; // एक्टिव और समय सीमा पार
+                if (penaltyLogs) penaltyLogs.push(`Overdue Loan: लोन समय सीमा से बाहर है (-15 Points)`);
+            }
+        }
+    } 
+    // --- SCENARIO 2: EMI SYSTEM (> 3 MONTHS) ---
+    else {
+        const monthsPassed = monthDiff(loanDate, untilDate);
+
+        for (let i = 1; i <= monthsPassed; i++) {
+            if (i > effectiveTenure && isFullyPaid) break;
+
+            const targetMonthDate = new Date(loanDate);
+            targetMonthDate.setMonth(loanDate.getMonth() + i);
+
+            const validEmiPaid = memberData.some(tx => {
+                const tDate = tx.date;
+                const isTargetMonth = tDate.getFullYear() === targetMonthDate.getFullYear() && tDate.getMonth() === targetMonthDate.getMonth();
+                const isOnTime = tDate.getDate() >= ENGINE_CONFIG.EMI_START_DAY && tDate.getDate() <= ENGINE_CONFIG.EMI_END_DAY;
+                const principalPaid = tx.payment - tx.returnAmount;
+                const expectedEmi = loanDetails ? (loanDetails.monthlyEmi || 0) : 0;
+                const isProperEmi = (principalPaid > 0) || (tx.payment >= expectedEmi);
+
+                return isTargetMonth && isOnTime && isProperEmi;
+            });
+
+            if (validEmiPaid) {
+                rewardPoints += 5; // सही EMI
+            } else {
+                penaltyPoints -= 5; // EMI मिस या सिर्फ ब्याज
+                if (penaltyLogs) penaltyLogs.push(`Missed EMI: माह ${i} की EMI मिस हुई/सिर्फ ब्याज आया (-5 Points)`);
+            }
+        }
+
+        if (monthsPassed > effectiveTenure && !isFullyPaid) {
+            penaltyPoints -= 10; // टेन्योर पार होने के बाद भी एक्टिव
+            if (penaltyLogs) penaltyLogs.push(`Tenure Exceeded: समय सीमा पार हो चुकी है (-10 Points)`);
+        }
+    }
+
+    // 🔥 नियम: मैक्सिमम पेनल्टी कैप (Maximum -20 Points)
+    if (penaltyPoints < -20) {
+        if (penaltyLogs) penaltyLogs.push(`Penalty Capped: अधिकतम -20 पॉइंट्स से ज्यादा नहीं काटे गए।`);
+        penaltyPoints = -20;
+    }
+
+    // 🔥 नियम: ऑटो रिकवरी (Auto-Recovery After 3 Months)
+    if (isFullyPaid && repaidDate && penaltyPoints < 0) {
+        const daysSincePaid = (untilDate - repaidDate) / (1000 * 3600 * 24);
+        
+        // 90 दिन (3 महीने) के बाद रिकवरी शुरू होगी
+        if (daysSincePaid > 90) {
+            // धीरे-धीरे रिकवर होना (अगले 90 दिनों में पूरी तरह 0 हो जाएगा)
+            let recoveryFactor = 1 - ((daysSincePaid - 90) / 90); 
+            if (recoveryFactor < 0) recoveryFactor = 0; // 6 महीने बाद पूरा 0
+            
+            const originalPenalty = penaltyPoints;
+            penaltyPoints = Math.round(penaltyPoints * recoveryFactor);
+            
+            if (penaltyPoints > originalPenalty && penaltyLogs) {
+                penaltyLogs.push(`Auto-Recovery: 3 महीने बाद स्कोर सुधर रहा है (${originalPenalty} से ${penaltyPoints} हुआ)`);
+            }
+        }
+    }
+
+    return rewardPoints + penaltyPoints;
+}
+
+
+
+// ==========================================
+// 6. OLD LOGIC (PRE FEB 15, 2026) - UPDATED
+// ==========================================
+function calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate) {
+    let points = 0;
+    const loanAmount = loanTx.loan;
+    const loanDate = loanTx.date;
+
+    if (loanDetails && loanDetails.loanType === 'Business Loan') {
+        const loanStartDate = new Date(loanDetails.loanDate);
+        const monthsPassed = monthDiff(loanStartDate, untilDate);
+
+        // Check Monthly Interest
+        for (let i = 1; i <= monthsPassed; i++) {
+            const checkDate = new Date(loanStartDate);
+            checkDate.setMonth(checkDate.getMonth() + i);
+
+            const interestPaid = memberData.some(tx => 
+                tx.returnAmount > 0 && 
+                tx.date.getMonth() === checkDate.getMonth() &&
+                tx.date.getFullYear() === checkDate.getFullYear()
+            );
+
+            if (interestPaid) points += 5; else points -= 10;
+        }
+
+        // Check Duration Limit (1 Year)
+        const daysOpen = (untilDate - loanStartDate) / (1000 * 3600 * 24);
+        if (daysOpen > 365 && loanDetails.status === 'Active') points -= 50;
+    } 
+    // --- UPDATED 10 DAYS CREDIT LOGIC START ---
+    else if (loanDetails && loanDetails.loanType === '10 Days Credit') {
+        if (loanDetails.status === 'Paid') {
+            // Find Repayment Date
+            const repaymentTx = memberData.filter(r => r.date > loanDate && r.payment > 0);
+            let paidSum = 0; let repaidDate = null;
+            for (const p of repaymentTx) {
+                paidSum += p.payment;
+                if (paidSum >= loanAmount) { repaidDate = p.date; break; }
+            }
+
+            const daysTaken = repaidDate ? (repaidDate - loanDate) / (1000 * 3600 * 24) : 999;
+
+            // New Rules:
+            if (daysTaken <= 10) {
+                points += 1;  // Paid within 10 days
+            } else if (daysTaken <= 30) {
+                points += 5;  // Paid within 30 days (converted to short term)
+            } else {
+                points -= 20; // Late Payment (> 30 days)
+            }
+        } else {
+            // Not Paid Yet (Active Loan)
+            const daysOpen = (untilDate - loanDate) / (1000 * 3600 * 24);
+
+            if (daysOpen > 30) {
+                points -= 20; // Overdue (> 30 days unpaid)
+            }
+            // Note: If <= 30 days active, no points deducted yet (Neutral)
+        }
+    } 
+    // --- UPDATED 10 DAYS CREDIT LOGIC END ---
+    else {
+        // Standard Old Loan
+        const repaymentTx = memberData.filter(r => r.date > loanDate && (r.payment > 0 || r.sipPayment > 0));
+        let paidSum = 0; let repaidDate = null;
+        for (const p of repaymentTx) {
+            paidSum += (p.payment + p.sipPayment);
+            if (paidSum >= loanAmount) { repaidDate = p.date; break; }
+        }
+
+        if (repaidDate) {
+            const days = (repaidDate - loanDate) / (1000 * 3600 * 24);
+            if (days <= 30) points += 25;
+            else if (days <= 60) points += 20;
+            else if (days <= 90) points += 15;
+            else points -= 20;
+        } else {
+            points -= 40;
+        }
+    }
+    return points;
+}
+
+
+
+// ==========================================
+// 7. LOAN ELIGIBILITY FUNCTION
+// ==========================================
+function getLoanEligibility(memberName, totalSipAmount, allData) {
+    const memberData = allData.filter(r => r.name === memberName);
+
+    // 🚀 NEW LOGIC: Calculate P2P Adjustments & Withdrawals
+    const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalExtraPayment = memberData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
+    // 🔥 ELIGIBILITY mein bhi dono withdrawal minus hongi
+    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
+
+    // Net Base Capital (SIP + Extra In + Received - Sent - Withdrawals)
+    const netBaseCapital = totalSipAmount + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw;
+
+    // 1. Check Outstanding Balance (Including P2P & Withdrawals)
+    let totalCapital = memberData.reduce((sum, r) => sum + r.sipPayment + r.payment - r.loan, 0);
+    totalCapital = totalCapital + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw;
+    if (totalCapital < 0) return { eligible: false, reason: 'Outstanding Loan' };
+
+    // 2. Check Membership Age
+    const firstSip = memberData.find(r => r.sipPayment > 0);
+    if (!firstSip) return { eligible: false, reason: 'No SIP Found' };
+
+    const daysSinceJoin = (new Date() - firstSip.date) / (1000 * 3600 * 24);
+    if (daysSinceJoin < 60) {
+        return { eligible: false, reason: `${Math.ceil(60 - daysSinceJoin)} days left` };
+    }
+
+    // 3. New Slab Logic (Based on Net Capital)
+    let multiplier = ENGINE_CONFIG.MULTIPLIER_LOW; // 1.5x
+    if (netBaseCapital >= ENGINE_CONFIG.SIP_SLAB) {
+        multiplier = ENGINE_CONFIG.MULTIPLIER_HIGH; // 2.0x
+    }
+
+    // 4. Calculate & Cap based on Net Capital
+    let limit = netBaseCapital * multiplier;
+    if (limit > ENGINE_CONFIG.MAX_LOAN_CAP) limit = ENGINE_CONFIG.MAX_LOAN_CAP;
+
+    return { eligible: true, maxAmount: limit };
+}
+
+
+
+
+// --- UTILITY: Month Difference ---
+function monthDiff(d1, d2) {
+    let months;
+    months = (d2.getFullYear() - d1.getFullYear()) * 12;
+    months -= d1.getMonth();
+    months += d2.getMonth();
+    return months <= 0 ? 0 : months;
+}
