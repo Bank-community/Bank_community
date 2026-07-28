@@ -107,9 +107,12 @@ async function checkAuthAndInit() {
         auth = getAuth(app);
         db = getDatabase(app);
 
-        // Sorting & Refresh Listeners
+        // Sorting, Search & Refresh Listeners
         const sortSelect = document.getElementById('sort-select');
-        if(sortSelect) sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
+        if(sortSelect) sortSelect.addEventListener('change', applyFilters);
+        
+        const searchInput = document.getElementById('search-input');
+        if(searchInput) searchInput.addEventListener('input', applyFilters);
         
         const refreshBtn = document.getElementById('force-refresh-btn');
         if(refreshBtn) refreshBtn.addEventListener('click', () => {
@@ -572,18 +575,27 @@ function updateSummaryUI(s) {
 }
 function formatCurrency(n) { return `₹${Math.floor(n).toLocaleString('en-IN')}`; }
 
-function handleSort(criteria) {
+function applyFilters() {
     if (!renderedMembersCache || renderedMembersCache.length === 0) return;
     const grid = document.getElementById('members-grid');
-    grid.innerHTML = '';
-    let sortedData = [...renderedMembersCache];
+    if (grid) grid.innerHTML = '';
+    
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-select');
+    
+    const query = searchInput ? searchInput.value.toLowerCase() : '';
+    const criteria = sortSelect ? sortSelect.value : 'name';
+    
+    let filteredData = renderedMembersCache.filter(m => m.name.toLowerCase().includes(query));
+    
     switch (criteria) {
-        case 'profit': sortedData.sort((a, b) => b.profit - a.profit); break;
-        case 'score': sortedData.sort((a, b) => b.score - a.score); break;
-        case 'balance': sortedData.sort((a, b) => b.walletBalance - a.walletBalance); break;
-        case 'name': default: sortedData.sort((a, b) => a.name.localeCompare(b.name)); break;
+        case 'profit': filteredData.sort((a, b) => b.profit - a.profit); break;
+        case 'score': filteredData.sort((a, b) => b.score - a.score); break;
+        case 'balance': filteredData.sort((a, b) => b.walletBalance - a.walletBalance); break;
+        case 'name': default: filteredData.sort((a, b) => a.name.localeCompare(b.name)); break;
     }
-    sortedData.forEach(member => appendMemberCard(member));
+    
+    filteredData.forEach(member => appendMemberCard(member));
 }
 
 function injectScannerUI(totalCount) {
@@ -687,4 +699,31 @@ window.getAllMembersForAI = function() {
 window.getMemberDataForAI = function(memberId) {
     if (!renderedMembersCache) return null;
     return renderedMembersCache.find(m => m.id === memberId);
+};
+
+// 🔥 NEW: Build formatted summary of ALL members for AI System Prompt
+window.getMembersSummaryForAI = function() {
+    if (!renderedMembersCache || renderedMembersCache.length === 0) return '';
+    
+    const fc = (n) => `₹${Math.floor(n).toLocaleString('en-IN')}`;
+    
+    let summary = `Total Members: ${renderedMembersCache.length}\n`;
+    summary += `Community Total SIP: ${fc(communityStats.totalSip)}\n`;
+    summary += `Community Total Profit Distributed: ${fc(communityStats.totalProfitDistributed)}\n`;
+    summary += `Community Total Wallet Liability: ${fc(communityStats.totalWalletLiability)}\n`;
+    summary += `\n--- INDIVIDUAL MEMBER DATA ---\n`;
+    
+    // Sort by name for consistency
+    const sorted = [...renderedMembersCache].sort((a, b) => a.name.localeCompare(b.name));
+    
+    sorted.forEach((m, i) => {
+        summary += `\n${i + 1}. ${m.name}`;
+        summary += ` | SIP: ${fc(m.sip)}`;
+        summary += ` | Available Bal: ${fc(m.availBalance)}`;
+        summary += ` | Profit: ${fc(m.profit)}`;
+        summary += ` | Wallet: ${fc(m.walletBalance)}`;
+        summary += ` | Score: ${m.score?.toFixed(1) || '0'}/100`;
+    });
+    
+    return summary;
 };
