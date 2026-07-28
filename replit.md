@@ -1,29 +1,45 @@
-# Trust Community Fund
+# [Project name]
 
-## Overview
-A web application for managing a community fund/trust. Originally designed for Vercel deployment, adapted to run on Replit with Express.js serving static files and API routes.
+_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
 
-## Project Architecture
-- **Frontend**: Static HTML/CSS/JS files in the project root
-- **Backend**: Express.js server (`server.js`) handling API routes that were originally Vercel serverless functions
-- **API Routes**:
-  - `GET /api/config` - Returns Firebase and ImgBB configuration
-  - `GET /api/firebase-config` - Returns Firebase configuration
-  - `POST /api/send-notification` - Sends push notifications via Firebase Cloud Messaging
-- **Database**: Firebase Realtime Database (external)
-- **Port**: 5000 (frontend + API)
+## Run & Operate
 
-## Key Files
-- `server.js` - Express server (entry point)
-- `index.html` - Main landing page
-- `api/` - Original Vercel serverless functions (preserved for reference)
-- `*.html` - Various app pages (login, registration, calculator, etc.)
-- `user-*.js/css` - Shared frontend utilities and styles
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- Required env: `DATABASE_URL` — Postgres connection string
 
-## Environment Variables Required
-- `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_DATABASE_URL`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, `FIREBASE_MEASUREMENT_ID`
-- `FIREBASE_SERVICE_ACCOUNT_KEY` (JSON string for admin SDK)
-- `IMGBB_API_KEY`, `IMGBB_API_KEY_FORM`
+## Stack
 
-## Recent Changes
-- 2026-02-11: Adapted from Vercel deployment to Replit. Created Express server to serve static files and handle API routes.
+- pnpm workspaces, Node.js 24, TypeScript 5.9
+- API: Express 5
+- DB: PostgreSQL + Drizzle ORM
+- Validation: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec)
+- Build: esbuild (CJS bundle)
+
+## Where things live
+
+_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+
+## Architecture decisions
+
+_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+
+## Product
+
+_Describe the high-level user-facing capabilities of this app once they exist._
+
+## User preferences
+
+_Populate as you build — explicit user instructions worth remembering across sessions._
+
+## Gotchas
+
+_Populate as you build — sharp edges, "always run X before Y" rules._
+
+## Pointers
+
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
