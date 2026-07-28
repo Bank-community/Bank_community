@@ -133,6 +133,9 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
     return { total, history };
 }
 
+// 🔥 v3.0: Capital-Weighted Profit Distribution (Option D)
+// Formula: memberWeight = (score × 0.60) + (capitalFactor × 0.40)
+// IDENTICAL to profit_logic.js — ensures same ₹ amounts in both systems
 function calculateProfitDistribution(paymentRecord) { 
     const state = window.tcfApp.state;
     const totalInterest = paymentRecord.returnAmount; 
@@ -153,20 +156,25 @@ function calculateProfitDistribution(paymentRecord) {
 
     const loanDate = userLoansBefore.pop().date; 
     const snapshotScores = {}; 
-    let totalScore = 0; 
+    let totalWeightedScore = 0; 
 
     [...new Set(state.allData.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return; 
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, state.allData, state.activeLoans) : { totalScore: 0 };
         if (scoreObj.totalScore > 0) { 
-            snapshotScores[name] = scoreObj; 
-            totalScore += scoreObj.totalScore; 
+            // 🔥 Option D: Capital Factor nikalo
+            const capitalFactor = (typeof getCapitalFactor === 'function') ? getCapitalFactor(name, loanDate, state.allData, state.activeLoans) : 0;
+            // 🔥 Combined Weight = (Score × 0.60) + (Capital × 0.40)
+            const combinedWeight = (scoreObj.totalScore * ENGINE_CONFIG.PROFIT_SCORE_WEIGHT) + (capitalFactor * ENGINE_CONFIG.PROFIT_CAPITAL_WEIGHT);
+            snapshotScores[name] = { ...scoreObj, capitalFactor, combinedWeight }; 
+            totalWeightedScore += combinedWeight; 
         } 
     }); 
 
-    if (totalScore > 0) {
+    if (totalWeightedScore > 0) {
         for (const name in snapshotScores) { 
-            let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
+            // 🔥 Option D: Combined Weight se share calculate karo (score + capital dono matter karte hain)
+            let share = (snapshotScores[name].combinedWeight / totalWeightedScore) * communityPool; 
             const lastLoan = state.allData.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
             const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
 

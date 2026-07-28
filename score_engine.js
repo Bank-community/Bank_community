@@ -1,6 +1,7 @@
 // ==========================================
-// TCF SCORING ENGINE (v2.0)
+// TCF SCORING ENGINE (v3.0 - CAPITAL PRIORITY)
 // Shared Logic for User Panel & Profit Dashboard
+// Options: A (Weight 50%) + B (Target ₹35K) + C (Tiered Bonus) + D (Capital-Weighted Profit)
 // ==========================================
 
 // --- ENGINE CONFIGURATION ---
@@ -10,10 +11,22 @@ const ENGINE_CONFIG = {
     REVIEW_PERIOD_DAYS: 540, // 18 Months
 
     // Scoring Weights
-    CAPITAL_TARGET: 50000,
-    WEIGHT_CAPITAL: 0.60,
-    WEIGHT_CONSISTENCY: 0.20,
-    WEIGHT_CREDIT: 0.20,
+    CAPITAL_TARGET: 35000,       // 🔥 Option B: ₹50K → ₹35K (ज्यादा members 100% पा सकें)
+    WEIGHT_CAPITAL: 0.50,        // 🔥 Option A: 40% → 50% (Capital सबसे important)
+    WEIGHT_CONSISTENCY: 0.25,    // 🔥 Option A: 30% → 25%
+    WEIGHT_CREDIT: 0.25,         // 🔥 Option A: 30% → 25%
+
+    // 🔥 Option C: Tiered Capital Bonus Thresholds
+    CAPITAL_TIER_1: 50000,       // ₹50K+ → +5 bonus
+    CAPITAL_TIER_2: 75000,       // ₹75K+ → +10 bonus
+    CAPITAL_TIER_3: 100000,      // ₹1L+ → +15 bonus
+    CAPITAL_BONUS_1: 5,
+    CAPITAL_BONUS_2: 10,
+    CAPITAL_BONUS_3: 15,
+
+    // 🔥 Option D: Capital Weight in Profit Distribution
+    PROFIT_SCORE_WEIGHT: 0.60,   // Score ka 60% role in profit split
+    PROFIT_CAPITAL_WEIGHT: 0.40, // Capital ka 40% direct role in profit split
 
     // Loan Eligibility
     SIP_SLAB: 25000,
@@ -39,8 +52,8 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
         return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
     }
 
-    // --- 1. CAPITAL SCORE (18 Months + Skip 1st SIP) ---
-    let capitalScore = calculateCapitalScore(memberName, untilDate, allData);
+    // --- 1. CAPITAL SCORE (18 Months + Tiered Bonus) ---
+    let capitalScore = calculateCapitalScore(memberName, untilDate, allData, activeLoansData);
 
     // --- 2. CONSISTENCY SCORE (18 Months + Skip 1st SIP) ---
     let consistencyScore = calculateConsistencyScore(memberData, untilDate);
@@ -120,8 +133,16 @@ function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) 
     // NET CAPITAL = (SIP + Extra In + P2P In) - (P2P Out + Withdrawals + Active Loan)
     const netCapital = totalSip + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw - totalActiveLoan;
 
-    // Formula: (Net Capital / 50,000) * 100 (Score 0 से नीचे नहीं जाएगा)
-    return Math.min(100, Math.max(0, (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
+    // Base Score: (Net Capital / ₹35,000) × 100
+    const baseScore = (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100;
+
+    // 🔥 Option C: Tiered Capital Bonus (ज्यादा जमा = extra points)
+    let bonus = 0;
+    if (netCapital >= ENGINE_CONFIG.CAPITAL_TIER_3) bonus = ENGINE_CONFIG.CAPITAL_BONUS_3;       // ₹1L+ → +15
+    else if (netCapital >= ENGINE_CONFIG.CAPITAL_TIER_2) bonus = ENGINE_CONFIG.CAPITAL_BONUS_2;  // ₹75K+ → +10
+    else if (netCapital >= ENGINE_CONFIG.CAPITAL_TIER_1) bonus = ENGINE_CONFIG.CAPITAL_BONUS_1;  // ₹50K+ → +5
+
+    return Math.min(100, Math.max(0, baseScore + bonus));
 }
 
 
@@ -328,16 +349,16 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, pen
     // 🔥 नियम: ऑटो रिकवरी (Auto-Recovery After 3 Months)
     if (isFullyPaid && repaidDate && penaltyPoints < 0) {
         const daysSincePaid = (untilDate - repaidDate) / (1000 * 3600 * 24);
-        
+
         // 90 दिन (3 महीने) के बाद रिकवरी शुरू होगी
         if (daysSincePaid > 90) {
             // धीरे-धीरे रिकवर होना (अगले 90 दिनों में पूरी तरह 0 हो जाएगा)
             let recoveryFactor = 1 - ((daysSincePaid - 90) / 90); 
             if (recoveryFactor < 0) recoveryFactor = 0; // 6 महीने बाद पूरा 0
-            
+
             const originalPenalty = penaltyPoints;
             penaltyPoints = Math.round(penaltyPoints * recoveryFactor);
-            
+
             if (penaltyPoints > originalPenalty && penaltyLogs) {
                 penaltyLogs.push(`Auto-Recovery: 3 महीने बाद स्कोर सुधर रहा है (${originalPenalty} से ${penaltyPoints} हुआ)`);
             }
@@ -479,6 +500,16 @@ function getLoanEligibility(memberName, totalSipAmount, allData) {
 }
 
 
+
+
+// ==========================================
+// 8. CAPITAL FACTOR FOR PROFIT DISTRIBUTION (Option D)
+// ==========================================
+// 🔥 This function is used by BOTH profit_logic.js AND view_core.js
+// to ensure identical profit calculations across systems.
+function getCapitalFactor(memberName, untilDate, allData, activeLoansData) {
+    return calculateCapitalScore(memberName, untilDate, allData, activeLoansData);
+}
 
 
 // --- UTILITY: Month Difference ---

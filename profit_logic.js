@@ -1,5 +1,5 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v13.0 - CACHING + 10-TAP SECURITY)
+// MASTER PROFIT LOGIC (v14.0 - CAPITAL PRIORITY + P2P SYNC)
 // Features: 
 // 1. 10-Tap Security Lock (Stronger)
 // 2. Local Storage Caching (Reduces DB Reads)
@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", setupSecuritySystem);
 // ==========================================
 function setupSecuritySystem() {
     console.log("🔒 Security Level: High (10 Taps)");
-    
+
     const overlay = document.getElementById('loader-overlay');
     const inputBox = document.getElementById('security-input-box');
     const passInput = document.getElementById('security-pass');
@@ -102,7 +102,7 @@ async function checkAuthAndInit() {
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
-        
+
         const app = initializeApp(config);
         auth = getAuth(app);
         db = getDatabase(app);
@@ -110,7 +110,7 @@ async function checkAuthAndInit() {
         // Sorting & Refresh Listeners
         const sortSelect = document.getElementById('sort-select');
         if(sortSelect) sortSelect.addEventListener('change', (e) => handleSort(e.target.value));
-        
+
         const refreshBtn = document.getElementById('force-refresh-btn');
         if(refreshBtn) refreshBtn.addEventListener('click', () => {
             if(confirm("Refresh data from server?")) {
@@ -135,25 +135,25 @@ async function checkAuthAndInit() {
 async function initDataLoad() {
     // 1. Try Local Storage First
     const cached = localStorage.getItem(CACHE_KEY);
-    
+
     if (cached) {
         const data = JSON.parse(cached);
-        
+
         // 🔥 NAYA LOGIC: 5 मिनट का टाइमर (5 * 60 * 1000 = 300000 milliseconds)
         const CACHE_EXPIRY_MS = 5 * 60 * 1000; 
         const now = Date.now();
-        
+
         // चेक करें कि क्या कैशे 5 मिनट के अंदर का है?
         if (data.timestamp && (now - data.timestamp < CACHE_EXPIRY_MS)) {
             console.log("⚡ Loading from Local Cache (Still Fresh)...");
-            
+
             // Restore Variables
             rawMembers = data.members || {};
             rawTransactions = data.transactions || {};
             rawActiveLoans = data.activeLoans || {};
             rawPenaltyWallet = data.penaltyWallet || {};
             rawAdmin = data.admin || {};
-            
+
             // Process UI
             startProcessing();
             return; // अगर कैशे यूज़ कर लिया तो यहीं से फंक्शन रोक दें
@@ -210,7 +210,7 @@ async function fetchFreshData() {
 function startProcessing() {
     // 1. Get Source of Truth
     adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
-    
+
     // 2. Check Sync Status
     analyzeWalletHistory();
 
@@ -272,7 +272,8 @@ function prepareAndStartQueue() {
             imageUrl: memberInfo.imageUrl || DEFAULT_IMG,
             memberId: tx.memberId,
             loan: 0, payment: 0, sipPayment: 0, returnAmount: 0,
-            extraBalance: 0, extraWithdraw: 0, loanType: null,
+            extraBalance: 0, extraWithdraw: 0, sipWithdraw: 0,
+            p2pReceived: 0, p2pSent: 0, loanType: null,
             transactionId: txId
         };
 
@@ -284,8 +285,10 @@ function prepareAndStartQueue() {
                 record.returnAmount = tx.interestPaid || 0;
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
-            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break; // Sirf profit (wallet) withdrawal
-            case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break; // 🔥 SIP (capital) withdrawal alag kiya taaki wallet minus na kare
+            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+            case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break;
+            case 'P2P Received': record.p2pReceived = tx.amount || 0; break; // 🔥 P2P IN (Capital badhega)
+            case 'P2P Sent': record.p2pSent = tx.amount || 0; break;         // 🔥 P2P OUT (Capital ghatega)
             default: continue;
         }
         allTransactionsList.push(record);
@@ -294,11 +297,11 @@ function prepareAndStartQueue() {
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
-    
+
     // Hide overlay AFTER logic is ready (if needed visually)
     // Note: Overlay is already hidden by password check, but this ensures safety
     // document.getElementById('loader-overlay').classList.add('hidden'); 
-    
+
     injectScannerUI(memberIdsToProcess.length);
     startLiveQueue(memberIdsToProcess);
 }
@@ -333,15 +336,15 @@ function startLiveQueue(memberIds) {
                 setTimeout(() => {
             try {
                 const memberTx = transactionsByMember[id] || [];
-                
+
                 // 🔥 NAYA LOGIC BY PRINCE: Exact Available Balance Calculation
                 const totalSip = memberTx.reduce((sum, t) => sum + (t.sipPayment || 0), 0);
                 const totalSipWithdraw = memberTx.reduce((sum, t) => sum + (t.sipWithdraw || 0), 0);
-                
+
                 // P2P In aur Out (Agar 'Extra Payment' se manual add hua ho, toh usko bhi In me gina jayega)
                 const totalP2pIn = memberTx.reduce((sum, t) => sum + (t.p2pReceived || 0) + (t.extraBalance || 0), 0);
                 const totalP2pOut = memberTx.reduce((sum, t) => sum + (t.p2pSent || 0), 0);
-                
+
                 // Active Loan
                 let activeLoanAmount = 0;
                 if (rawActiveLoans) {
@@ -357,7 +360,7 @@ function startLiveQueue(memberIds) {
 
                 const walletData = calculateTotalExtraBalance(id, m.fullName);
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
-                
+
                 currentlyDistributed += lifetimeProfit;
 
                 let scoreObj = { totalScore: 0 };
@@ -379,7 +382,7 @@ function startLiveQueue(memberIds) {
                 communityStats.totalSip += totalSip;
                 communityStats.totalProfitDistributed += lifetimeProfit;
                 communityStats.totalWalletLiability += walletData.total;
-                
+
                 updateSummaryUI(communityStats);
 
             } catch (err) { console.error(err); }
@@ -395,7 +398,7 @@ function startLiveQueue(memberIds) {
 function calculateAndShowSyncUI() {
     target90Percent = adminTotalReturn * 0.90;
     totalLifetimeGap = target90Percent - currentlyDistributed;
-    
+
     let pendingToAdd = totalLifetimeGap - totalInactiveSentToWallet;
     pendingToAdd = Math.floor(pendingToAdd); 
     if (pendingToAdd < 0) pendingToAdd = 0;
@@ -457,7 +460,7 @@ async function performWalletSync(amount) {
     try {
         const walletRef = ref(db, 'penaltyWallet');
         const reasonString = `${currentMonthTag} : ${amount}`;
-        
+
         const newTxRef = push(child(walletRef, 'incomes'));
         await update(newTxRef, {
             amount: amount,
@@ -486,6 +489,9 @@ async function performWalletSync(amount) {
 }
 
 // --- UTILS ---
+// 🔥 v14.0: Capital-Weighted Profit Distribution (Option D)
+// Formula: memberWeight = (score × 0.60) + (capitalFactor × 0.40)
+// Ensures: ज्यादा Capital = ज्यादा Profit (direct impact)
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
@@ -498,15 +504,23 @@ function calculateProfitDistribution(paymentRecord) {
     const userLoansBefore = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
     if (userLoansBefore.length === 0) return { distribution };
     const loanDate = userLoansBefore.pop().date; 
-    const snapshotScores = {}; let totalScore = 0; 
+    const snapshotScores = {}; let totalWeightedScore = 0; 
     [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return;
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans) : { totalScore: 0 };
-        if (scoreObj.totalScore > 0) { snapshotScores[name] = scoreObj; totalScore += scoreObj.totalScore; } 
+        if (scoreObj.totalScore > 0) { 
+            // 🔥 Option D: Capital Factor nikalo
+            const capitalFactor = (typeof getCapitalFactor === 'function') ? getCapitalFactor(name, loanDate, allTransactionsList, rawActiveLoans) : 0;
+            // 🔥 Combined Weight = (Score × 0.60) + (Capital × 0.40)
+            const combinedWeight = (scoreObj.totalScore * ENGINE_CONFIG.PROFIT_SCORE_WEIGHT) + (capitalFactor * ENGINE_CONFIG.PROFIT_CAPITAL_WEIGHT);
+            snapshotScores[name] = { ...scoreObj, capitalFactor, combinedWeight }; 
+            totalWeightedScore += combinedWeight; 
+        } 
     }); 
-    if (totalScore > 0) {
+    if (totalWeightedScore > 0) {
         for (const name in snapshotScores) { 
-            let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
+            // 🔥 Option D: Combined Weight se share calculate karo (score + capital dono matter karte hain)
+            let share = (snapshotScores[name].combinedWeight / totalWeightedScore) * communityPool; 
             const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
             const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
             let multiplier = 1.0;
@@ -624,7 +638,7 @@ function appendMemberCard(m) {
         <button onclick="showLocalHistory('${m.id}')" class="mt-4 w-full py-2 rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 hover:bg-[#002366] hover:text-white transition-colors uppercase tracking-wide">
             View History
         </button>`;
-    
+
     window[`history_${m.id}`] = m.walletHistory;
     grid.appendChild(card);
 }
