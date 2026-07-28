@@ -25,8 +25,8 @@ const ENGINE_CONFIG = {
     CAPITAL_BONUS_3: 15,
 
     // 🔥 Option D: Capital Weight in Profit Distribution
-    PROFIT_SCORE_WEIGHT: 0.60,   // Score ka 60% role in profit split
-    PROFIT_CAPITAL_WEIGHT: 0.40, // Capital ka 40% direct role in profit split
+    PROFIT_SCORE_WEIGHT: 1.00,   // 🔥 Profit ab 100% Score par batega
+    PROFIT_CAPITAL_WEIGHT: 0.00, // 🔥 Double capital impact khatam (Score me pehle se 50% hai)
 
     // Loan Eligibility
     SIP_SLAB: 25000,
@@ -110,8 +110,8 @@ function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) 
     const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
     const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
     const totalExtraPayment = memberData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
-    // 🔥 Dono withdrawal minus hongi (Profit withdraw + SIP withdraw)
-    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
+    // 🔥 Sirf SIP Withdraw minus hoga. Profit (extraWithdraw) nikalne par score nahi girega!
+    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.sipWithdraw || 0), 0);
 
     // 🔥 Active Loan को माइनस करना
     let totalActiveLoan = 0;

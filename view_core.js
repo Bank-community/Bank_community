@@ -176,11 +176,14 @@ function calculateProfitDistribution(paymentRecord) {
             // 🔥 Option D: Combined Weight se share calculate karo (score + capital dono matter karte hain)
             let share = (snapshotScores[name].combinedWeight / totalWeightedScore) * communityPool; 
             const lastLoan = state.allData.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
-            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
+
+            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : null; // never taken loan = null
 
             let multiplier = 1.0;
-            if (days > 365) multiplier = 0.75; 
-            else if (days > 180) multiplier = 0.90; 
+            if (days !== null) { // Sirf unki penalty katega jinhone loan liya ho
+                if (days > 365) multiplier = 0.75; 
+                else if (days > 180) multiplier = 0.90; 
+            }
 
             share *= multiplier; 
             if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
