@@ -1,5 +1,5 @@
 // ==========================================
-// MASTER PROFIT LOGIC (v13.0 - CACHING + 10-TAP SECURITY)
+// MASTER PROFIT LOGIC (v14.0 - CAPITAL PRIORITY + P2P SYNC)
 // Features: 
 // 1. 10-Tap Security Lock (Stronger)
 // 2. Local Storage Caching (Reduces DB Reads)
@@ -272,7 +272,8 @@ function prepareAndStartQueue() {
             imageUrl: memberInfo.imageUrl || DEFAULT_IMG,
             memberId: tx.memberId,
             loan: 0, payment: 0, sipPayment: 0, returnAmount: 0,
-            extraBalance: 0, extraWithdraw: 0, loanType: null,
+            extraBalance: 0, extraWithdraw: 0, sipWithdraw: 0,
+            p2pReceived: 0, p2pSent: 0, loanType: null,
             transactionId: txId
         };
 
@@ -284,8 +285,10 @@ function prepareAndStartQueue() {
                 record.returnAmount = tx.interestPaid || 0;
                 break;
             case 'Extra Payment': record.extraBalance = tx.amount || 0; break;
-            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break; // Sirf profit (wallet) withdrawal
-            case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break; // 🔥 SIP (capital) withdrawal alag kiya taaki wallet minus na kare
+            case 'Extra Withdraw': record.extraWithdraw = tx.amount || 0; break;
+            case 'SIP Withdrawal': record.sipWithdraw = tx.amount || 0; break;
+            case 'P2P Received': record.p2pReceived = tx.amount || 0; break; // 🔥 P2P IN (Capital badhega)
+            case 'P2P Sent': record.p2pSent = tx.amount || 0; break;         // 🔥 P2P OUT (Capital ghatega)
             default: continue;
         }
         allTransactionsList.push(record);
@@ -486,6 +489,9 @@ async function performWalletSync(amount) {
 }
 
 // --- UTILS ---
+// 🔥 v14.0: Capital-Weighted Profit Distribution (Option D)
+// Formula: memberWeight = (score × 0.60) + (capitalFactor × 0.40)
+// Ensures: ज्यादा Capital = ज्यादा Profit (direct impact)
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
@@ -498,19 +504,32 @@ function calculateProfitDistribution(paymentRecord) {
     const userLoansBefore = allTransactionsList.filter(r => r.name === paymentRecord.name && r.loan > 0 && r.date < paymentRecord.date && r.loanType === 'Loan'); 
     if (userLoansBefore.length === 0) return { distribution };
     const loanDate = userLoansBefore.pop().date; 
-    const snapshotScores = {}; let totalScore = 0; 
+    const snapshotScores = {}; let totalWeightedScore = 0; 
     [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return;
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans) : { totalScore: 0 };
-        if (scoreObj.totalScore > 0) { snapshotScores[name] = scoreObj; totalScore += scoreObj.totalScore; } 
+        if (scoreObj.totalScore > 0) { 
+            // 🔥 Option D: Capital Factor nikalo
+            const capitalFactor = (typeof getCapitalFactor === 'function') ? getCapitalFactor(name, loanDate, allTransactionsList, rawActiveLoans) : 0;
+            // 🔥 Combined Weight = (Score × 0.60) + (Capital × 0.40)
+            const combinedWeight = (scoreObj.totalScore * ENGINE_CONFIG.PROFIT_SCORE_WEIGHT) + (capitalFactor * ENGINE_CONFIG.PROFIT_CAPITAL_WEIGHT);
+            snapshotScores[name] = { ...scoreObj, capitalFactor, combinedWeight }; 
+            totalWeightedScore += combinedWeight; 
+        } 
     }); 
-    if (totalScore > 0) {
+    if (totalWeightedScore > 0) {
         for (const name in snapshotScores) { 
-            let share = (snapshotScores[name].totalScore / totalScore) * communityPool; 
+            // 🔥 Option D: Combined Weight se share calculate karo (score + capital dono matter karte hain)
+            let share = (snapshotScores[name].combinedWeight / totalWeightedScore) * communityPool; 
             const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
-            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : Infinity; 
+            
+            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : null; // never taken loan = null
             let multiplier = 1.0;
-            if (days > 365) multiplier = 0.75; else if (days > 180) multiplier = 0.90; 
+            if (days !== null) { // Sirf unki penalty katega jinhone loan liya ho
+                if (days > 365) multiplier = 0.75; 
+                else if (days > 180) multiplier = 0.90; 
+            }
+            
             share *= multiplier; 
             if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
         } 
@@ -659,3 +678,13 @@ window.showLocalHistory = function(memberId) {
     document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
     modal.onclick = (e) => { if(e.target === modal) modal.classList.add('hidden'); };
 }
+
+// --- AI ASSISTANT HELPER EXPORTS ---
+window.getAllMembersForAI = function() {
+    return renderedMembersCache || [];
+};
+
+window.getMemberDataForAI = function(memberId) {
+    if (!renderedMembersCache) return null;
+    return renderedMembersCache.find(m => m.id === memberId);
+};

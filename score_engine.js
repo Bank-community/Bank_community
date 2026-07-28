@@ -1,6 +1,7 @@
 // ==========================================
-// TCF SCORING ENGINE (v2.0)
+// TCF SCORING ENGINE (v3.0 - CAPITAL PRIORITY)
 // Shared Logic for User Panel & Profit Dashboard
+// Options: A (Weight 50%) + B (Target ₹35K) + C (Tiered Bonus) + D (Capital-Weighted Profit)
 // ==========================================
 
 // --- ENGINE CONFIGURATION ---
@@ -10,10 +11,22 @@ const ENGINE_CONFIG = {
     REVIEW_PERIOD_DAYS: 540, // 18 Months
 
     // Scoring Weights
-    CAPITAL_TARGET: 50000,
-    WEIGHT_CAPITAL: 0.40,
-    WEIGHT_CONSISTENCY: 0.30,
-    WEIGHT_CREDIT: 0.30,
+    CAPITAL_TARGET: 35000,       // 🔥 Option B: ₹50K → ₹35K (ज्यादा members 100% पा सकें)
+    WEIGHT_CAPITAL: 0.50,        // 🔥 Option A: 40% → 50% (Capital सबसे important)
+    WEIGHT_CONSISTENCY: 0.25,    // 🔥 Option A: 30% → 25%
+    WEIGHT_CREDIT: 0.25,         // 🔥 Option A: 30% → 25%
+
+    // 🔥 Option C: Tiered Capital Bonus Thresholds
+    CAPITAL_TIER_1: 50000,       // ₹50K+ → +5 bonus
+    CAPITAL_TIER_2: 75000,       // ₹75K+ → +10 bonus
+    CAPITAL_TIER_3: 100000,      // ₹1L+ → +15 bonus
+    CAPITAL_BONUS_1: 5,
+    CAPITAL_BONUS_2: 10,
+    CAPITAL_BONUS_3: 15,
+
+    // 🔥 Option D: Capital Weight in Profit Distribution
+    PROFIT_SCORE_WEIGHT: 1.00,   // 🔥 Profit ab 100% Score par batega
+    PROFIT_CAPITAL_WEIGHT: 0.00, // 🔥 Double capital impact khatam (Score me pehle se 50% hai)
 
     // Loan Eligibility
     SIP_SLAB: 25000,
@@ -39,8 +52,8 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
         return { totalScore: 0, capitalScore: 0, consistencyScore: 0, creditScore: 0 };
     }
 
-    // --- 1. CAPITAL SCORE (18 Months + Skip 1st SIP) ---
-    let capitalScore = calculateCapitalScore(memberName, untilDate, allData);
+    // --- 1. CAPITAL SCORE (18 Months + Tiered Bonus) ---
+    let capitalScore = calculateCapitalScore(memberName, untilDate, allData, activeLoansData);
 
     // --- 2. CONSISTENCY SCORE (18 Months + Skip 1st SIP) ---
     let consistencyScore = calculateConsistencyScore(memberData, untilDate);
@@ -85,25 +98,20 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
 }
 
 // ==========================================
-// 2. CAPITAL SCORE LOGIC
+// 2. CAPITAL SCORE LOGIC (ALL TIME — matches Available Balance)
 // ==========================================
 function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) {
-    const reviewStartDate = new Date(untilDate);
-    reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
-
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
 
-     // SIP Calculation (18-month logic rakha gaya hai, par slice(1) hata diya taaki pehli SIP bhi count ho)
-    const validSips = memberData.filter(r => r.sipPayment > 0).filter(r => r.date >= reviewStartDate);
-    const totalSip = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
+    // 🔥 ALL TIME SIP (18-month filter HATAYA — Available Balance se match karega)
+    const totalSip = memberData.filter(r => r.sipPayment > 0).reduce((sum, tx) => sum + tx.sipPayment, 0);
 
-    // P2P, Extra Payments aur Withdrawals (In sab par bhi 18-month ka filter lagaya hai)
-    const validData = memberData.filter(r => r.date >= reviewStartDate);
-    const totalP2pReceived = validData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
-    const totalP2pSent = validData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
-    const totalExtraPayment = validData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
-    // 🔥 SCORE ENGINE mein dono withdrawal minus hongi (Profit withdraw + SIP withdraw)
-    const totalWithdraw = validData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
+    // 🔥 ALL TIME P2P, Extra Payments aur Withdrawals
+    const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalExtraPayment = memberData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
+    // 🔥 Sirf SIP Withdraw minus hoga. Profit (extraWithdraw) nikalne par score nahi girega!
+    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.sipWithdraw || 0), 0);
 
     // 🔥 Active Loan को माइनस करना
     let totalActiveLoan = 0;
@@ -120,8 +128,16 @@ function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) 
     // NET CAPITAL = (SIP + Extra In + P2P In) - (P2P Out + Withdrawals + Active Loan)
     const netCapital = totalSip + totalExtraPayment + totalP2pReceived - totalP2pSent - totalWithdraw - totalActiveLoan;
 
-    // Formula: (Net Capital / 50,000) * 100 (Score 0 से नीचे नहीं जाएगा)
-    return Math.min(100, Math.max(0, (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100));
+    // Base Score: (Net Capital / ₹35,000) × 100
+    const baseScore = (netCapital / ENGINE_CONFIG.CAPITAL_TARGET) * 100;
+
+    // 🔥 Option C: Tiered Capital Bonus (ज्यादा जमा = extra points)
+    let bonus = 0;
+    if (netCapital >= ENGINE_CONFIG.CAPITAL_TIER_3) bonus = ENGINE_CONFIG.CAPITAL_BONUS_3;       // ₹1L+ → +15
+    else if (netCapital >= ENGINE_CONFIG.CAPITAL_TIER_2) bonus = ENGINE_CONFIG.CAPITAL_BONUS_2;  // ₹75K+ → +10
+    else if (netCapital >= ENGINE_CONFIG.CAPITAL_TIER_1) bonus = ENGINE_CONFIG.CAPITAL_BONUS_1;  // ₹50K+ → +5
+
+    return Math.min(100, Math.max(0, baseScore + bonus));
 }
 
 
@@ -479,6 +495,16 @@ function getLoanEligibility(memberName, totalSipAmount, allData) {
 }
 
 
+
+
+// ==========================================
+// 8. CAPITAL FACTOR FOR PROFIT DISTRIBUTION (Option D)
+// ==========================================
+// 🔥 This function is used by BOTH profit_logic.js AND view_core.js
+// to ensure identical profit calculations across systems.
+function getCapitalFactor(memberName, untilDate, allData, activeLoansData) {
+    return calculateCapitalScore(memberName, untilDate, allData, activeLoansData);
+}
 
 
 // --- UTILITY: Month Difference ---

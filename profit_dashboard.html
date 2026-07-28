@@ -239,8 +239,188 @@
         </div>
     </div>
 
+    <!-- 🤖 AI ASSISTANT UI -->
+    <!-- Floating Button -->
+    <button id="ai-fab-btn" onclick="openAIModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl hover:scale-110 transition-transform z-40 border-2 border-white/20">
+        🤖
+    </button>
+
+    <!-- AI Modal -->
+    <div id="ai-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl border-t-4 border-indigo-500 relative overflow-hidden">
+            
+            <!-- Header -->
+            <div class="p-4 border-b flex justify-between items-center bg-gradient-to-r from-indigo-50 to-blue-50 rounded-t-2xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-xl">🤖</div>
+                    <div>
+                        <h3 class="font-bold text-indigo-900 text-lg">TCF AI Assistant</h3>
+                        <p class="text-xs text-indigo-600">Powered by Gemini</p>
+                    </div>
+                </div>
+                <button onclick="closeAIModal()" class="w-8 h-8 rounded-full bg-white hover:bg-red-100 text-gray-600 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm border border-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-5 flex-grow overflow-y-auto flex flex-col gap-4 bg-gray-50/50">
+                
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Select Member to Analyze</label>
+                    <select id="ai-member-select" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 outline-none cursor-pointer">
+                        <option value="">-- Choose Member --</option>
+                    </select>
+                    
+                    <button id="ai-analyze-btn" onclick="askAI()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-colors flex justify-center items-center gap-2">
+                        <i class="fas fa-magic"></i> AI Analysis Start
+                    </button>
+                </div>
+
+                <!-- Result Box -->
+                <div id="ai-result-box" class="hidden bg-white p-5 rounded-xl border border-indigo-100 shadow-sm relative">
+                    <div id="ai-loading" class="hidden flex-col items-center justify-center py-6">
+                        <div class="spinner !border-l-indigo-600 !w-8 !h-8 mb-3"></div>
+                        <p class="text-xs text-indigo-600 font-bold animate-pulse">AI Soch Raha Hai...</p>
+                    </div>
+                    
+                    <div id="ai-output" class="text-sm text-gray-700 leading-relaxed space-y-3 whitespace-pre-wrap font-medium">
+                        <!-- AI Text goes here -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="score_engine.js"></script>
     <script type="module" src="profit_logic.js"></script>
+    
+    <script>
+        // AI UI LOGIC
+        const aiModal = document.getElementById('ai-modal');
+        const aiSelect = document.getElementById('ai-member-select');
+        const aiResultBox = document.getElementById('ai-result-box');
+        const aiLoading = document.getElementById('ai-loading');
+        const aiOutput = document.getElementById('ai-output');
+        const aiBtn = document.getElementById('ai-analyze-btn');
 
+        function openAIModal() {
+            aiModal.classList.remove('hidden');
+            populateMembers();
+        }
+
+        function closeAIModal() {
+            aiModal.classList.add('hidden');
+            aiResultBox.classList.add('hidden');
+            aiOutput.innerHTML = '';
+            aiSelect.value = '';
+        }
+
+        function populateMembers() {
+            // Wait for data to load from profit_logic.js globally
+            if (!window.getAllMembersForAI) return;
+            const members = window.getAllMembersForAI();
+            aiSelect.innerHTML = '<option value="">-- Choose Member --</option>';
+            
+            // Sort alphabetically for easy finding
+            const sorted = [...members].sort((a,b) => a.name.localeCompare(b.name));
+            
+            sorted.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                aiSelect.appendChild(opt);
+            });
+        }
+
+        async function askAI() {
+            const memberId = aiSelect.value;
+            if (!memberId) {
+                alert("Please select a member first!");
+                return;
+            }
+
+            const mData = window.getMemberDataForAI(memberId);
+            if (!mData) {
+                alert("Data not found for this member!");
+                return;
+            }
+
+            // Prepare UI for loading
+            aiResultBox.classList.remove('hidden');
+            aiOutput.classList.add('hidden');
+            aiLoading.classList.remove('hidden');
+            aiBtn.disabled = true;
+            aiBtn.classList.add('opacity-50');
+
+            // Format Currency Helper
+            const fc = (n) => `₹${Math.floor(n).toLocaleString('en-IN')}`;
+
+            // Construct Prompt
+            const prompt = `
+                Tum TCF (The Community Fund) bank ke official AI Assistant ho. Ek logical, clear aur helpful assistant ki tarah response do.
+                Response Language: Hindi (written in English alphabet/Hinglish style ya proper Devanagari, but readable and friendly).
+                
+                Niche [${mData.name}] ka banking data diya gaya hai. Is data ko analyze karo aur use batao ki uska score aisa kyu hai,
+                aur kya achha/bura hai. Use tips do score badhane ki. Make it sound professional yet encouraging. 
+
+                DATA FOR ${mData.name.toUpperCase()}:
+                - Total SIP Fund Deposited: ${fc(mData.sip)}
+                - Total Profit Earned All Time: ${fc(mData.profit)}
+                - Current Available Balance (For scoring): ${fc(mData.availBalance)}
+                - Wallet Balance (Withdrawable): ${fc(mData.walletBalance)}
+                
+                SCORES (Out of 100 max for Capital, 100 for Cons, 100 for Credit):
+                - Capital Score: ${mData.scoreDetails?.capital?.toFixed(2) || 'N/A'} (Weight 50%)
+                - Consistency Score: ${mData.scoreDetails?.consistency?.toFixed(2) || 'N/A'} (Weight 25%)
+                - Credit Score: ${mData.scoreDetails?.credit?.toFixed(2) || 'N/A'} (Weight 25%)
+                - FINAL OVERALL SCORE: ${mData.score?.toFixed(2) || 'N/A'} out of 100.
+                
+                Please explain:
+                1. Greet the user by name.
+                2. Unka current financial standing (SIP & Balance).
+                3. Unke Scores ka kya matlab hai (Capital kyu itna hai, Consistency/Credit kyu waisa hai - infer logically).
+                4. 1-2 Tips do (e.g. agar capital score kam hai to SIP badhaye, agar consistency kam hai to time pe pay kare).
+                Do not make up fake transaction details, use only the metrics provided above. Keep it concise, under 150 words.
+            `;
+
+            try {
+                // Backend Serverless Function ko call karein (Vercel API)
+                const response = await fetch('/api/ai-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ promptText: prompt })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || "Server se error aaya.");
+                }
+
+                const aiResponse = data.reply;
+                
+                // Show Result
+                aiLoading.classList.add('hidden');
+                aiOutput.classList.remove('hidden');
+                
+                // Bold formatting for markdown (basic)
+                let formatted = aiResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                // Format line breaks
+                formatted = formatted.replace(/\n/g, '<br>');
+                aiOutput.innerHTML = formatted;
+                
+            } catch (error) {
+                aiLoading.classList.add('hidden');
+                aiOutput.classList.remove('hidden');
+                aiOutput.innerHTML = `<span class="text-red-500 font-bold"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</span>`;
+            } finally {
+                aiBtn.disabled = false;
+                aiBtn.classList.remove('opacity-50');
+            }
+        }
+    </script>
 </body>
 </html>

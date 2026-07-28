@@ -75,6 +75,11 @@ function setupFilters() {
     state.els.btnAll.onclick = () => setFilter('all', state.els.btnAll);
     state.els.btnPersonal.onclick = () => setFilter('personal', state.els.btnPersonal);
     state.els.btnRecharge.onclick = () => setFilter('recharge', state.els.btnRecharge);
+
+    // Setup Search Listener
+    if (state.els.search) {
+        state.els.search.addEventListener('input', () => renderLoans());
+    }
 }
 
 // --- DATA HANDLING ---
@@ -155,9 +160,15 @@ function renderLoans() {
 
     // 2. Search Filter
     if(state.els.search) {
-        const term = state.els.search.value.toLowerCase();
+        const term = state.els.search.value.trim().toLowerCase();
         if(term) {
-            filtered = filtered.filter(l => l.memberName.toLowerCase().includes(term));
+            filtered = filtered.filter(l => 
+                (l.memberName && l.memberName.toLowerCase().includes(term)) ||
+                (l.loanId && l.loanId.toString().toLowerCase().includes(term)) ||
+                (l.loanType && l.loanType.toLowerCase().includes(term)) ||
+                (l.outstandingAmount && l.outstandingAmount.toString().includes(term)) ||
+                (l.amount && l.amount.toString().includes(term))
+            );
         }
     }
 
@@ -271,6 +282,106 @@ function getWarningSymbol(isCritical) {
     return `<div class="overdue-watermark">⚠️</div>`;
 }
 
+// === UNIVERSAL DYNAMIC EMI MONTH TRACKER GENERATOR ===
+function getEmiTrackerHTML(loan, tenureMonths) {
+    let totalBoxes = parseInt(tenureMonths) || parseInt(loan.tenureMonths) || 0;
+    if (totalBoxes === 0) {
+        if (loan.loanType === '10 Days Credit') totalBoxes = 1;
+        else if (loan.loanType === 'Recharge') totalBoxes = loan.rechargeDetails?.tenure || 3;
+        else if (parseFloat(loan.outstandingAmount || loan.amount || 0) >= 25000) totalBoxes = 12;
+        else totalBoxes = 6;
+    }
+    // Safety cap between 1 and 24 months for card display
+    totalBoxes = Math.max(1, Math.min(24, totalBoxes));
+
+    // Compact mode for 10+ months (single row, tighter layout)
+    const isCompact = totalBoxes >= 10;
+
+    let paidCount = 0;
+    if (state.transactions) {
+        paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+    }
+
+    let startDate = new Date(loan.loanDate);
+    if (isNaN(startDate.getTime())) startDate = new Date();
+    let today = new Date();
+    let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+
+    // If today is past the 10th of the current month, current month EMI is considered due/overdue if unpaid
+    let overdueMonthsThreshold = today.getDate() > 10 ? monthsPassed : Math.max(0, monthsPassed - 1);
+
+    let boxesHtml = '';
+    for (let i = 1; i <= totalBoxes; i++) {
+        let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+        let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+
+        // For compact mode (10+ months), use ultra-short 3-char names
+        if (isCompact && monthName.length > 3) {
+            monthName = monthName.substring(0, 3);
+        }
+
+        let bgClass = 'tracker-pending';
+
+        if (i <= paidCount) {
+            bgClass = 'tracker-paid';
+        } else if (i <= overdueMonthsThreshold) {
+            bgClass = 'tracker-skipped';
+        }
+
+        boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
+    }
+
+    const compactClass = isCompact ? ' emi-tracker-compact' : '';
+    return `<div class="emi-month-tracker${compactClass}">${boxesHtml}</div>`;
+}
+
+// === 🔥 DUAL AMOUNT GENERATOR (ORIGINAL LOAN vs REMAINING DUE) 🔥 ===
+function getOriginalLoanAmount(loan, currentAmount) {
+    if (loan.originalAmount && parseFloat(loan.originalAmount) > 0) {
+        return parseFloat(loan.originalAmount);
+    }
+    if (loan.amount && parseFloat(loan.amount) > parseFloat(currentAmount)) {
+        return parseFloat(loan.amount);
+    }
+    if (state.transactions && state.transactions.length > 0) {
+        const linkedTx = state.transactions.find(t => 
+            (t.linkedLoanId === loan.loanId || t.loanId === loan.loanId || t.key === loan.loanId) && 
+            (t.type === 'Loan Taken' || t.loanType || t.loan > 0)
+        );
+        if (linkedTx && parseFloat(linkedTx.amount || linkedTx.loan || 0) > 0) {
+            return parseFloat(linkedTx.amount || linkedTx.loan);
+        }
+        const memberTx = state.transactions.find(t => 
+            t.memberId === loan.memberId && 
+            (t.type === 'Loan Taken' || t.loanType === 'Loan' || t.loanType === loan.loanType || t.loan > 0) &&
+            parseFloat(t.amount || t.loan || 0) >= parseFloat(currentAmount)
+        );
+        if (memberTx && parseFloat(memberTx.amount || memberTx.loan || 0) > 0) {
+            return parseFloat(memberTx.amount || memberTx.loan);
+        }
+    }
+    return parseFloat(loan.originalAmount || loan.amount || currentAmount || 0);
+}
+
+function getDualAmountHTML(loan, currentAmount, emiDisplay = '') {
+    const origAmt = getOriginalLoanAmount(loan, currentAmount);
+    const takenFormatted = origAmt.toLocaleString('en-IN');
+    const remainingFormatted = currentAmount.toLocaleString('en-IN');
+
+    return `
+    <div class="pc-dual-amount">
+        <div class="amt-block amt-taken">
+            <span class="amt-label">LOAN TAKEN</span>
+            <div class="amt-val amt-val-taken">₹${takenFormatted}</div>
+        </div>
+        <div class="amt-divider"></div>
+        <div class="amt-block amt-remaining">
+            <span class="amt-label">${emiDisplay || 'REMAINING DUE'}</span>
+            <div class="amt-val amt-val-remaining">₹${remainingFormatted}</div>
+        </div>
+    </div>`;
+}
+
 // --- 🔥 VIP PREMIUM CARD 🔥 ---
 function getVIPCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
     const pic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
@@ -327,21 +438,18 @@ function getVIPCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
         <div class="pc-middle">
             <div class="pc-date">${dateStr}</div>
             <h1 class="pc-title gold-text">VIP TRUST LOAN</h1>
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#FFD700;">Exclusive Benefit</div>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:1.5px; opacity:0.9; color:#FFD700; font-weight:700;">Exclusive Benefit • Time: ${parsedTenure} Month</div>
         </div>
 
-        <div class="pc-bottom">
+        <div class="pc-bottom" style="padding-bottom: 72px;">
             <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" style="border: 2px solid #FFD700;" crossorigin="anonymous">
                 <div class="pc-name">${loan.memberName}</div>
             </div>
-            <div class="pc-amount-group">
-                <span class="pc-emi-label" style="color:#FFD700;">${emiDisplay}</span>
-                <div class="pc-amount gold-text">₹${amount.toLocaleString('en-IN')}</div>
-            </div>
+            ${getDualAmountHTML(loan, amount, emiDisplay)}
         </div>
 
-        <div class="loan-tenure-tag" style="color:#FFD700;">Time: ${parsedTenure} Month</div>
+        ${getEmiTrackerHTML(loan, parsedTenure)}
         <div class="pc-footer">VIP BENEFIT - MAINTAIN TRUST SCORE & DISCIPLINE</div>
     </div>`;
 }
@@ -355,17 +463,15 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     let emiDisplay = '';
 
     if (parsedTenure <= 3) {
-        // 1, 2, 3 महीने के लिए इंटरेस्ट कैलकुलेशन और टोटल अमाउंट दिखाना
         let rate = 0, rateStr = '';
         if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
         else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
         else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
 
-        const baseAmt = parseFloat(loan.originalAmount || amount);
+        const baseAmt = getOriginalLoanAmount(loan, amount);
         const totalPayable = baseAmt + (baseAmt * rate);
         emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
     } else {
-        // 4+ महीने के लिए EMI दिखाना
         emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
     }
 
@@ -393,23 +499,20 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
         <div class="pc-middle">
             <div class="pc-date">${dateStr}</div>
             <h1 class="pc-title gold-text">PERSONAL LOAN</h1>
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.8; color:#D4AF37;">HIGH VALUE</div>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:1.5px; opacity:0.9; color:#D4AF37; font-weight:700;">High Value • Time: ${parsedTenure} Month</div>
         </div>
 
         ${getPayButtonHTML(loan, amount)}
 
-        <div class="pc-bottom">
+        <div class="pc-bottom" style="padding-bottom: 72px;">
             <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" crossorigin="anonymous">
                 <div class="pc-name">${loan.memberName}</div>
             </div>
-            <div class="pc-amount-group">
-                <span class="pc-emi-label" style="color:#D4AF37;">${emiDisplay}</span>
-                <div class="pc-amount gold-text">₹${amount.toLocaleString('en-IN')}</div>
-            </div>
+            ${getDualAmountHTML(loan, amount, emiDisplay)}
         </div>
 
-        <div class="loan-tenure-tag">Time: ${tenureMonths || 12} Month</div>
+        ${getEmiTrackerHTML(loan, parsedTenure)}
         <div class="pc-footer">⚠️ PAY EVERY MONTH EMI 1 TO 10 OTHERWISE 0.5% PENALTY</div>
     </div>`;
 }
@@ -423,17 +526,15 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
     let emiDisplay = '';
 
     if (parsedTenure <= 3) {
-        // 1, 2, 3 महीने के लिए इंटरेस्ट कैलकुलेशन और टोटल अमाउंट दिखाना
         let rate = 0, rateStr = '';
         if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
         else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
         else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
 
-        const baseAmt = parseFloat(loan.originalAmount || amount);
+        const baseAmt = getOriginalLoanAmount(loan, amount);
         const totalPayable = baseAmt + (baseAmt * rate);
         emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
     } else {
-        // 4+ महीने के लिए EMI दिखाना
         emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
     }
 
@@ -461,23 +562,20 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         <div class="pc-middle">
             <span class="pc-date">${dateStr}</span>
             <h1 class="pc-title">PERSONAL LOAN</h1>
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.6; color:#4b5563;">Standard</div>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:1.5px; opacity:0.8; color:#4b5563; font-weight:700;">Standard • Time: ${parsedTenure} Month</div>
         </div>
 
         ${getPayButtonHTML(loan, amount)}
 
-        <div class="pc-bottom">
+        <div class="pc-bottom" style="padding-bottom: 72px;">
             <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" crossorigin="anonymous">
                 <div class="pc-name">${loan.memberName}</div>
             </div>
-            <div class="pc-amount-group">
-                <span class="pc-emi-label">${emiDisplay}</span>
-                <div class="pc-amount">₹${amount.toLocaleString('en-IN')}</div>
-            </div>
+            ${getDualAmountHTML(loan, amount, emiDisplay)}
         </div>
 
-        <div class="loan-tenure-tag">Time: ${tenureMonths || 6} Month</div>
+        ${getEmiTrackerHTML(loan, parsedTenure)}
         <div class="pc-footer">Standard terms apply. Pay on time.</div>
     </div>`;
 }
@@ -493,45 +591,18 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
     let footer = 'No Interest if paid within 10 Days.';
     let emiHtml = '';
     let trackerHtml = '';
+    let tenureDisplay = '10 Days Credit Card';
 
     if(type === 'Recharge') {
         cardClass = 'card-recharge';
         title = 'RECHARGE CARD';
         footer = `Operator: ${providerInfo}`;
         if(emi) emiHtml = `<span class="pc-emi-label" style="color:#fff;">EMI: ₹${emi}</span>`;
-
-        // --- DATABASE SYNCED EMI TRACKER LOGIC ---
-        let paidCount = 0;
-        if (state.transactions) {
-            paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
-        }
-
-        let startDate = new Date(loan.loanDate);
-        let today = new Date();
-        let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
-
-        let hasSkipped = false;
-        let boxesHtml = '';
-
-        for (let i = 1; i <= 4; i++) {
-            let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-            let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
-
-            let bgClass = 'tracker-pending'; // White (Pending)
-
-            if (i <= paidCount) {
-                bgClass = 'tracker-paid'; // Green (Paid)
-            } else if (i <= monthsPassed - 1) {
-                bgClass = 'tracker-skipped'; // Red (Skipped)
-                hasSkipped = true;
-            }
-
-            // Only show the 4th box if there's a skipped month, otherwise keep it to 3
-            if (i === 4 && !hasSkipped && paidCount < 4) continue;
-
-            boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
-        }
-        trackerHtml = `<div class="recharge-tracker">${boxesHtml}</div>`;
+        const rTenure = loan.rechargeDetails?.tenure || loan.tenureMonths || 3;
+        tenureDisplay = `Recharge Card • Time: ${rTenure} Months`;
+        trackerHtml = getEmiTrackerHTML(loan, rTenure);
+    } else {
+        trackerHtml = getEmiTrackerHTML(loan, 1);
     }
 
     const alertState = getAlertStatus(amount, daysActive, loan, 0);
@@ -558,20 +629,17 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
         <div class="pc-middle">
             <span class="pc-date" style="color:inherit; opacity:0.8;">${dateStr}</span>
             <h1 class="pc-title" style="font-size:18px;">${title}</h1>
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7;">CARD</div>
+            <div style="font-size:9px; text-transform:uppercase; letter-spacing:1.5px; opacity:0.85; font-weight:700;">${tenureDisplay}</div>
         </div>
 
         ${getPayButtonHTML(loan, amount)}
 
-        <div class="pc-bottom" style="padding-bottom: 50px;">
+        <div class="pc-bottom" style="padding-bottom: 72px;">
             <div class="pc-profile-group">
                 <img src="${pic}" class="pc-pic" crossorigin="anonymous" style="border-color:#fff;">
                 <div class="pc-name">${loan.memberName}</div>
             </div>
-            <div class="pc-amount-group">
-                ${emiHtml}
-                <div class="pc-amount">₹${amount.toLocaleString('en-IN')}</div>
-            </div>
+            ${getDualAmountHTML(loan, amount, emi ? `EMI: ₹${emi}` : '')}
         </div>
 
         ${trackerHtml}
@@ -583,9 +651,7 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
 }
 
 // --- SEARCH ---
-if(state.els.search) {
-    state.els.search.addEventListener('input', () => renderLoans());
-}
+// (Search listener initialized in setupFilters after DOM load)
 
 // --- HIGH QUALITY DOWNLOAD FIX ---
 window.dlCard = (id) => {
@@ -607,7 +673,7 @@ window.dlCard = (id) => {
             onclone: (clonedDoc) => {
                 const clonedEl = clonedDoc.getElementById(id);
                 clonedEl.style.transform = "none"; 
-
+                
                 // FIX 2: Stop Overdue Watermark from creating grey box artifacts
                 const watermark = clonedEl.querySelector('.overdue-watermark');
                 if(watermark) {
@@ -628,8 +694,24 @@ window.dlCard = (id) => {
                 // FIX 4: Explicitly enforce spacing in canvas backup
                 const pcBottom = clonedEl.querySelector('.pc-bottom');
                 if(pcBottom) {
-                    pcBottom.style.paddingBottom = '45px';
+                    pcBottom.style.paddingBottom = '72px';
                 }
+
+                // FIX 5: Ensure tracker boxes keep exact background colors in canvas
+                const trackerBoxes = clonedEl.querySelectorAll('.tracker-box');
+                trackerBoxes.forEach(box => {
+                    if (box.classList.contains('tracker-paid')) {
+                        box.style.backgroundColor = '#28a745';
+                        box.style.color = '#ffffff';
+                        box.style.borderColor = '#28a745';
+                    } else if (box.classList.contains('tracker-skipped')) {
+                        box.style.backgroundColor = '#dc3545';
+                        box.style.color = '#ffffff';
+                        box.style.borderColor = '#dc3545';
+                    } else {
+                        box.style.color = box.closest('.card-platinum') ? '#002366' : '#ffffff';
+                    }
+                });
             }
         })
         .then(c => {

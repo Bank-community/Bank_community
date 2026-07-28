@@ -457,7 +457,6 @@ export function startHeaderDisplayRotator(container, members, stats) {
             <div class="ad-bank-stats-container">
                 <img src="${BANK_LOGO_URL}" class="ad-bank-logo">
                 <ul class="ad-bank-stats">
-                    <li>Established: <strong>23 June 2024</strong></li>
                     <li>Members: <strong>${members.length}</strong></li>
                     <li>Loan Disbursed: <strong>${formatCurrency(stats.totalLoanDisbursed)}</strong></li>
                 </ul>

@@ -2,82 +2,184 @@
    PART 2: TCF PREMIUM CARD (OVERLAP DESIGN) & 4 BOTTOM BUTTONS
    ========================================================================== */
 
-/* --- 1. TCF PREMIUM CARD (COMPACT & OVERLAP) --- */
+/* --- 1. TCF COMPACT WALLET CARD --- */
 .tcf-premium-card-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 15px 20px 15px;
+    padding: 0 15px 15px 15px;
     width: 100%;
     box-sizing: border-box;
-    margin-top: -70px; /* 🔥 OVERLAP MAGIC */
+    margin-top: -35px !important; /* Elegant slight overlap with top banner */
     position: relative;
     z-index: 10;
 }
 
-.tcf-card {
-    background: linear-gradient(135deg, #001f5c 0%, #000c24 100%);
+.tcf-card.compact-wallet-card {
+    background: linear-gradient(135deg, #02112d 0%, #061c47 55%, #010a1a 100%);
     border-radius: 16px;
-    padding: 15px 20px;
+    padding: 18px 22px;
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
     color: #ffffff;
-    box-shadow: 0 15px 35px rgba(0, 12, 36, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 16px 36px rgba(0, 10, 30, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.2);
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(212, 175, 55, 0.4); 
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.tcf-card::before {
+.tcf-card.compact-wallet-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 60%);
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle at 70% 30%, rgba(212, 175, 55, 0.1) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
 }
 
-.tcf-card-top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; margin-bottom: 15px; }
-.tcf-chip { width: 35px; height: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-.tcf-card-brand { text-align: left; }
+.wallet-top-section {
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+    padding-bottom: 4px;
+}
 
-.tcf-brand-title { display: block; color: #FFD700; font-weight: 800; font-size: 1.05em; letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); line-height: 1.1; }
-.tcf-brand-subtitle { display: block; font-size: 0.6em; color: #e0e0e0; font-style: italic; letter-spacing: 0.5px; }
+.wallet-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
 
-.tcf-card-middle { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; position: relative; z-index: 1; }
-.tcf-funds-section { flex: 1; }
-.tcf-funds-label { font-size: 0.65em; color: #b0c4de; letter-spacing: 1px; margin: 0 0 2px 0; text-transform: uppercase; }
-.tcf-funds-value-wrapper { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.tcf-currency { font-size: 1.4em; font-weight: 700; }
-.tcf-amount { font-size: 1.6em; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-.tcf-amount.masked { letter-spacing: 3px; font-size: 1.5em; }
-.tcf-eye-icon { width: 18px; height: 18px; color: #FFD700; opacity: 0.8; }
+.wallet-title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
-/* Stats Section (Left Side Design - Compact Layout Restored) */
-.tcf-stats-section { text-align: left; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 12px; }
-.tcf-stat { margin-bottom: 4px; line-height: 1.1; }
-.tcf-stat span { display: block; font-size: 0.5em; color: #b0c4de; text-transform: uppercase; letter-spacing: 0.5px; }
-.tcf-stat strong { display: block; font-size: 0.8em; font-weight: 700; }
+.wallet-label {
+    font-size: 0.75em;
+    color: #b0c4de;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
 
-/* Funds Section (Right Side Design) */
-.tcf-funds-section { flex: 1; text-align: right; padding-left: 12px; }
-.tcf-funds-label { font-size: 0.65em; color: #b0c4de; letter-spacing: 1px; margin: 0 0 2px 0; text-transform: uppercase; }
-.tcf-funds-value-wrapper { display: flex; align-items: center; justify-content: flex-end; gap: 8px; cursor: pointer; }
-.tcf-currency { font-size: 1.4em; font-weight: 700; }
-.tcf-amount { font-size: 1.6em; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-.tcf-amount.masked { letter-spacing: 3px; font-size: 1.5em; }
-.tcf-eye-icon { width: 18px; height: 18px; color: #FFD700; opacity: 0.8; }
+.tcf-eye-icon {
+    width: 16px;
+    height: 16px;
+    color: #FFD700;
+    opacity: 0.9;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
 
+.wallet-top-section:hover .tcf-eye-icon {
+    transform: scale(1.15);
+    opacity: 1;
+}
 
-.tcf-card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; position: relative; z-index: 1; }
-.tcf-card-number { font-family: 'Courier New', Courier, monospace; font-size: 0.85em; letter-spacing: 2px; color: #d1d5db; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.tcf-mastercard-logo { display: flex; align-items: center; }
-.circle { width: 20px; height: 20px; border-radius: 50%; opacity: 0.85; }
-.circle-red { background-color: #eb001b; z-index: 2; }
-.circle-yellow { background-color: #f79e1b; margin-left: -8px; z-index: 1; }
+.wallet-badge span {
+    font-size: 0.65em;
+    font-weight: 800;
+    color: #FFD700;
+    background: rgba(212, 175, 55, 0.15);
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    letter-spacing: 1px;
+}
+
+.wallet-balance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tcf-funds-value-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.tcf-currency {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #FFD700;
+}
+
+.tcf-amount {
+    font-size: 1.85em;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    line-height: 1.1;
+    color: #ffffff;
+}
+
+.tcf-amount.masked {
+    letter-spacing: 4px;
+    font-size: 1.6em;
+    padding-top: 4px;
+}
+
+.wallet-chip {
+    width: 38px;
+    height: auto;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.4));
+    opacity: 0.95;
+}
+
+.wallet-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 20%, rgba(212, 175, 55, 0.3) 50%, rgba(255, 255, 255, 0.2) 80%, transparent 100%);
+    margin: 14px 0 12px 0;
+    position: relative;
+    z-index: 1;
+}
+
+.wallet-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.wallet-stat {
+    flex: 1;
+    text-align: center;
+}
+
+.wallet-stat:first-child { text-align: left; flex: 1.4; }
+.wallet-stat:last-child { text-align: right; flex: 0.85; }
+
+.stat-lbl {
+    display: block;
+    font-size: 0.55em;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    margin-bottom: 3px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.wallet-stat strong {
+    display: block;
+    font-size: 0.92em;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.stat-line {
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.12);
+}
 
 /* --- 2. OLD BUTTONS (Kept for compatibility, can be hidden) --- */
-.tcf-action-buttons { display: none; /* 🔥 HIDDEN NOW AS REQUESTED TO MOVE TO NAV/QUICK ACTIONS */ }
+.tcf-action-buttons { display: none; }
 
 /* --- 3. QUICK ACTIONS GRID --- */
 .action-cards-section { padding: 0 10px; margin-bottom: 20px; }
@@ -337,7 +439,7 @@
 /* --- MEMBER CARDS SECTION --- */
 .bank-members { 
     background: linear-gradient(to bottom, #eef2f8, #ffffff); 
-    padding: 30px 0; 
+    padding: 0 0 30px 0; 
     width: 100%; 
     border-bottom: 1px solid var(--border-color); 
 }
@@ -1066,4 +1168,186 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     z-index: 1;
     object-fit: cover;
+}
+
+/* ==========================================================================
+   PART 5: PC DESKTOP RESPONSIVE DESIGN (SUPER ATTRACTIVE DASHBOARD GRID)
+   ========================================================================== */
+@media (min-width: 992px) {
+    /* 1. Header Desktop Refinement */
+    header {
+        padding-bottom: 50px !important;
+        box-shadow: 0 10px 30px rgba(0, 18, 51, 0.5) !important;
+    }
+
+    /* 2. 2-Column Command Center Grid Layout */
+    .content-wrapper {
+        display: grid !important;
+        grid-template-columns: 460px 1fr !important;
+        grid-template-rows: auto auto auto !important;
+        gap: 35px !important;
+        max-width: 1300px !important;
+        margin: 0 auto !important;
+        padding: 0 40px 120px 40px !important;
+        align-items: start !important;
+    }
+
+    /* Left Column: Card + Top Rankers */
+    .bank-members {
+        grid-column: 1 / 2 !important;
+        grid-row: 1 / 3 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 25px !important;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Right Column Top: Ecosystem Chart */
+    .ecosystem-section {
+        grid-column: 2 / 3 !important;
+        grid-row: 1 / 2 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Right Column Bottom: Quick Actions + AI Swipe Banner */
+    .action-cards-section {
+        grid-column: 2 / 3 !important;
+        grid-row: 2 / 3 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Bottom Section Spanning Both Columns: Community Info */
+    .info-slider-section {
+        grid-column: 1 / 3 !important;
+        grid-row: 3 / 4 !important;
+        width: 100% !important;
+        margin-top: 25px !important;
+    }
+
+    /* 3. TCF Premium Card Desktop Elevation & Hover Effect */
+    .tcf-premium-card-wrapper {
+        margin-top: -35px !important;
+        padding: 0 !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    .tcf-card, .tcf-card.compact-wallet-card {
+        max-width: 440px !important;
+        padding: 22px 26px !important;
+        border-radius: 20px !important;
+        box-shadow: 0 20px 45px rgba(0, 12, 36, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease !important;
+    }
+
+    .tcf-card:hover, .tcf-card.compact-wallet-card:hover {
+        transform: translateY(-8px) scale(1.02) !important;
+        box-shadow: 0 25px 60px rgba(0, 12, 36, 0.8), 0 0 25px rgba(212, 175, 55, 0.4) !important;
+    }
+
+    /* 4. Ecosystem Chart Desktop Styling (Symmetrical Overlap with TCF Card) */
+    .ecosystem-card {
+        margin-top: -35px !important;
+        border-radius: 20px !important;
+        border: 1px solid rgba(212, 175, 55, 0.35) !important;
+        box-shadow: 0 20px 45px rgba(0, 12, 36, 0.5) !important;
+        padding: 25px 0 !important;
+        margin-bottom: 25px !important;
+        width: 100% !important;
+        background: linear-gradient(145deg, #0b1528, #001f5c) !important;
+    }
+
+    .eco-chart-container {
+        height: 250px !important; /* Larger interactive chart on desktop */
+        margin-bottom: 25px !important;
+    }
+
+    /* 5. Top Rankers Desktop Slider Adjustment */
+    .member-slider {
+        padding: 20px 5px !important;
+        gap: 15px !important;
+        max-width: 100% !important;
+    }
+
+    /* 6. Quick Actions Grid Desktop Enhancement */
+    .action-cards-section h2 {
+        text-align: left !important;
+        font-size: 1.3em !important;
+        margin-bottom: 20px !important;
+        padding-left: 5px !important;
+    }
+
+    .quick-actions-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+
+    .quick-actions-grid .compact-card, #totalMembersCard, #viewPenaltyWalletBtn, #quickActionSip {
+        max-width: 100% !important;
+        aspect-ratio: auto !important;
+        padding: 18px 14px !important;
+        gap: 10px !important;
+        font-size: 0.95em !important;
+        border-radius: 16px !important;
+        min-height: 105px !important;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255, 215, 0, 0.15) !important;
+    }
+
+    .quick-actions-grid .compact-icon {
+        width: 28px !important;
+        height: 28px !important;
+    }
+
+    /* 7. AI Swipe Banner Desktop Integration */
+    .ai-swipe-banner-container {
+        margin-top: 25px !important;
+        max-width: 100% !important;
+    }
+
+    /* 8. Floating Glassmorphism Bottom Pill Dock for Desktop */
+    .bottom-nav-container {
+        width: auto !important;
+        min-width: 550px !important;
+        max-width: 650px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        bottom: 25px !important;
+        border-radius: 50px !important;
+        border: 1px solid rgba(212, 175, 55, 0.4) !important;
+        box-shadow: 0 15px 35px rgba(0, 12, 36, 0.3), 0 0 20px rgba(0,0,0,0.1) !important;
+        padding: 0 30px !important;
+        height: 68px !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(15px) !important;
+    }
+
+    .nav-item:hover {
+        transform: translateY(-4px) !important;
+        color: var(--primary-color) !important;
+    }
+
+    /* 9. Profile, History, & Loan Tabs Desktop Alignment */
+    #tab-loan, #tab-history {
+        max-width: 900px !important;
+        margin: 0 auto !important;
+        padding: 30px !important;
+    }
+
+    .profile-dashboard-wrapper {
+        max-width: 1000px !important;
+        margin: 0 auto !important;
+        padding: 30px 20px 100px 20px !important;
+    }
+
+    .profile-stats-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 20px !important;
+    }
 }

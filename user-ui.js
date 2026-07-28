@@ -514,13 +514,13 @@ function setupEventListeners(database) {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
 
-                if (target.closest('#tcfBalanceToggleBtn')) {
-            const amountEl = elements.tcfAvailableFunds;
-            const iconEl = elements.tcfEyeIcon;
+        if (target.closest('#tcfBalanceToggleBtn')) {
+            const amountEl = document.getElementById('tcfAvailableFunds') || elements.tcfAvailableFunds;
+            const iconEl = document.getElementById('tcfEyeIcon') || elements.tcfEyeIcon;
 
             if (amountEl.classList.contains('masked')) {
                 amountEl.classList.remove('masked');
-                iconEl.setAttribute('data-feather', 'eye');
+                if (iconEl) iconEl.setAttribute('data-feather', 'eye');
                 balanceClickSound.play().catch(console.warn);
 
                 // 🔥 NAYA CODE: Analytics Tracking for Balance Check
@@ -545,9 +545,12 @@ function setupEventListeners(database) {
             } else {
                 amountEl.classList.add('masked');
                 amountEl.textContent = '••••••';
-                iconEl.setAttribute('data-feather', 'eye-off');
+                if (iconEl) iconEl.setAttribute('data-feather', 'eye-off');
             }
-            if(typeof feather !== 'undefined') feather.replace();
+            if(typeof feather !== 'undefined') {
+                feather.replace();
+                if (elements.tcfEyeIcon) elements.tcfEyeIcon = document.getElementById('tcfEyeIcon') || elements.tcfEyeIcon;
+            }
         }
 
                // 🔥 NAYA CODE: Tracking for Quick Actions (.compact-card)
@@ -615,36 +618,7 @@ function setupEventListeners(database) {
         }
 
 
-        if (target.closest('#tcfBalanceToggleBtn')) {
-            const amountEl = elements.tcfAvailableFunds;
-            const iconEl = elements.tcfEyeIcon;
 
-            if (amountEl.classList.contains('masked')) {
-                amountEl.classList.remove('masked');
-                iconEl.setAttribute('data-feather', 'eye');
-                balanceClickSound.play().catch(console.warn);
-                Analytics.logAction("Checked Main Wallet Balance");
-                // Animation code (same as before)
-                const targetValueStr = amountEl.dataset.value || '0';
-                const endValue = parseInt(targetValueStr.replace(/,/g, '')) || 0; 
-                const duration = 1000;
-                let startTimestamp = null;
-                const step = (timestamp) => {
-                    if (!startTimestamp) startTimestamp = timestamp;
-                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                    const currentVal = Math.floor(progress * endValue);
-                    amountEl.textContent = currentVal.toLocaleString('en-IN', { maximumFractionDigits: 0 });
-                    if (progress < 1) window.requestAnimationFrame(step);
-                    else amountEl.textContent = targetValueStr; 
-                };
-                window.requestAnimationFrame(step);
-            } else {
-                amountEl.classList.add('masked');
-                amountEl.textContent = '••••••';
-                iconEl.setAttribute('data-feather', 'eye-off');
-            }
-            if(typeof feather !== 'undefined') feather.replace();
-        }
 
         if (target.closest('#btnQr')) {
             Analytics.logAction("Opened QR Page");
