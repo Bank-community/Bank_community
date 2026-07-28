@@ -16,10 +16,11 @@ module.exports = async function handler(req, res) {
     const MODEL_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
     try {
-        const response = await fetch(`${MODEL_URL}?key=${API_KEY}`, {
+        const response = await fetch(MODEL_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-goog-api-key': API_KEY
             },
             body: JSON.stringify({
                 contents: [
@@ -41,7 +42,8 @@ module.exports = async function handler(req, res) {
         if (!response.ok) {
             const errorData = await response.json();
             console.error("Gemini API Error:", errorData);
-            return res.status(500).json({ error: "Google API se connect nahi ho paya." });
+            const googleError = errorData?.error?.message || "Google API se connect nahi ho paya.";
+            return res.status(500).json({ error: `Google Error: ${googleError}` });
         }
 
         const data = await response.json();
