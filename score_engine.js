@@ -98,25 +98,20 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
 }
 
 // ==========================================
-// 2. CAPITAL SCORE LOGIC
+// 2. CAPITAL SCORE LOGIC (ALL TIME — matches Available Balance)
 // ==========================================
 function calculateCapitalScore(memberName, untilDate, allData, activeLoansData) {
-    const reviewStartDate = new Date(untilDate);
-    reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
-
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
 
-     // SIP Calculation (18-month logic rakha gaya hai, par slice(1) hata diya taaki pehli SIP bhi count ho)
-    const validSips = memberData.filter(r => r.sipPayment > 0).filter(r => r.date >= reviewStartDate);
-    const totalSip = validSips.reduce((sum, tx) => sum + tx.sipPayment, 0);
+    // 🔥 ALL TIME SIP (18-month filter HATAYA — Available Balance se match karega)
+    const totalSip = memberData.filter(r => r.sipPayment > 0).reduce((sum, tx) => sum + tx.sipPayment, 0);
 
-    // P2P, Extra Payments aur Withdrawals (In sab par bhi 18-month ka filter lagaya hai)
-    const validData = memberData.filter(r => r.date >= reviewStartDate);
-    const totalP2pReceived = validData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
-    const totalP2pSent = validData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
-    const totalExtraPayment = validData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
-    // 🔥 SCORE ENGINE mein dono withdrawal minus hongi (Profit withdraw + SIP withdraw)
-    const totalWithdraw = validData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
+    // 🔥 ALL TIME P2P, Extra Payments aur Withdrawals
+    const totalP2pReceived = memberData.reduce((sum, tx) => sum + (tx.p2pReceived || 0), 0);
+    const totalP2pSent = memberData.reduce((sum, tx) => sum + (tx.p2pSent || 0), 0);
+    const totalExtraPayment = memberData.reduce((sum, tx) => sum + (tx.extraBalance || 0), 0);
+    // 🔥 Dono withdrawal minus hongi (Profit withdraw + SIP withdraw)
+    const totalWithdraw = memberData.reduce((sum, tx) => sum + (tx.extraWithdraw || 0) + (tx.sipWithdraw || 0), 0);
 
     // 🔥 Active Loan को माइनस करना
     let totalActiveLoan = 0;
