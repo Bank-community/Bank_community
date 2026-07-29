@@ -77,8 +77,28 @@ function setupFilters() {
     state.els.btnRecharge.onclick = () => setFilter('recharge', state.els.btnRecharge);
 
     // Setup Search Listener
+    const clearBtn = document.getElementById('clear-search');
     if (state.els.search) {
-        state.els.search.addEventListener('input', () => renderLoans());
+        state.els.search.addEventListener('input', () => {
+            if (clearBtn) clearBtn.style.display = state.els.search.value.trim() !== '' ? 'block' : 'none';
+            renderLoans();
+        });
+        
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                state.els.search.value = '';
+                clearBtn.style.display = 'none';
+                renderLoans();
+            });
+        }
+        
+        // Handle URL search parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchParam = urlParams.get('search');
+        if (searchParam) {
+            state.els.search.value = searchParam;
+            if (clearBtn) clearBtn.style.display = 'block';
+        }
     }
 }
 

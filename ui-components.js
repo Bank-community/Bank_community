@@ -459,6 +459,7 @@ export function startHeaderDisplayRotator(container, members, stats) {
                 <ul class="ad-bank-stats">
                     <li>Members: <strong>${members.length}</strong></li>
                     <li>Loan Disbursed: <strong>${formatCurrency(stats.totalLoanDisbursed)}</strong></li>
+                    <li>ESTD: <strong>23 JUNE 2024</strong></li>
                 </ul>
             </div>`);
     }

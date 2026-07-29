@@ -241,43 +241,53 @@ export function initUI(database) {
 
 
 // --- Bottom Navigation Router Logic ---
-function setupBottomNav() {
+window.showPage = function(pageId) {
     const navItems = document.querySelectorAll('.nav-item');
     const tabs = document.querySelectorAll('.app-tab');
 
+    // 1. Hide all pages / Remove active class from all pages
+    navItems.forEach(nav => nav.classList.remove('active'));
+    tabs.forEach(tab => tab.classList.remove('active-tab'));
+
+    // 2. Add active class to corresponding nav item
+    const activeNavItem = document.querySelector(`.nav-item[data-target="${pageId}"]`);
+    if(activeNavItem) activeNavItem.classList.add('active');
+
+    // 3. Show requested page and run any specific renders
+    const targetTab = document.getElementById(pageId);
+    if(targetTab) {
+        targetTab.classList.add('active-tab');
+        if (pageId === 'tab-history') renderHistoryTab();
+        if (pageId === 'tab-profile') renderProfileGatekeeper();
+    }
+
+    // 4. Analytics
+    const tabNames = {
+        'tab-home': 'Home Tab',
+        'tab-loan': 'Loan Tab',
+        'tab-history': 'History Tab',
+        'tab-profile': 'Profile Tab'
+    };
+    if (typeof Analytics !== 'undefined' && Analytics.logAction) {
+        Analytics.logAction(`Opened Tab: ${tabNames[pageId] || pageId}`);
+    }
+
+    // 5. Update bottom navigation icons
+    if(typeof feather !== 'undefined') feather.replace();
+    window.scrollTo(0, 0);
+};
+
+function setupBottomNav() {
+    const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
+            // Apply button has no target, keep its redirect or custom logic
             if (item.querySelector('.nav-center-btn')) return;
 
             const targetId = item.getAttribute('data-target');
             if (!targetId) return;
 
-            // 1. Update Active State
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
-
-                       // 2. Show Target Tab
-            tabs.forEach(tab => {
-                tab.classList.remove('active-tab');
-                if (tab.id === targetId) {
-                    tab.classList.add('active-tab');
-                    if (targetId === 'tab-history') renderHistoryTab();
-                    if (targetId === 'tab-profile') renderProfileGatekeeper();
-                }
-            });
-
-            // 🔥 NAYA CODE: Analytics Tracking for Tabs
-            const tabNames = {
-                'tab-home': 'Home Tab',
-                'tab-loan': 'Loan Tab',
-                'tab-history': 'History Tab',
-                'tab-profile': 'Profile Tab'
-            };
-            Analytics.logAction(`Opened Tab: ${tabNames[targetId] || targetId}`);
-
-            if(typeof feather !== 'undefined') feather.replace();
-            window.scrollTo(0, 0);
-
+            window.showPage(targetId);
         });
     });
 }
@@ -507,7 +517,154 @@ export function renderPage(data) {
             renderProfileGatekeeper();
         }
     }
+
+    renderDashboardStatusCards();
 }
+
+function renderDashboardStatusCards() {
+    const container = document.getElementById('statusCardsContainer');
+    if (!container) return;
+
+    const myId = localStorage.getItem('verifiedMemberId');
+    if (!myId) return;
+
+    const member = globalData.members.find(m => m.id === myId);
+    let sipDay = member?.sipDate || 5; 
+    let today = new Date();
+    today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    let sipDateThisMonth = new Date(today.getFullYear(), today.getMonth(), sipDay);
+    
+    let daysRemaining = Math.ceil((sipDateThisMonth - today) / (1000 * 60 * 60 * 24));
+    
+    let sipStatusText = '';
+    let sipStatusColor = '#718096'; 
+    let todayStr = today.toLocaleString('en-US', { day: '2-digit', month: 'short' });
+    
+    let isSipPaid = member?.sipStatus?.paid === true;
+    
+    if (isSipPaid) {
+        sipStatusText = 'Paid ✅';
+        sipStatusColor = '#10b981'; // Green
+    } else {
+        if (daysRemaining > 1) {
+            sipStatusText = `${daysRemaining} Days Left`;
+        } else if (daysRemaining === 1) {
+            sipStatusText = 'Tomorrow is Last Date';
+            sipStatusColor = '#f59e0b'; // Orange
+        } else if (daysRemaining === 0) {
+            sipStatusText = 'Payment Due Today';
+            sipStatusColor = '#ef4444'; // Red
+        } else {
+            sipStatusText = `Overdue by ${Math.abs(daysRemaining)} Days`;
+            sipStatusColor = '#ef4444'; // Red
+        }
+    }
+
+    let loanAmountDisplay = '₹0';
+    let loanStatusDisplay = 'No Active Loan';
+    let loanStatusColor = '#718096';
+    
+    let emiStatusDisplay = 'No EMI Pending';
+    let emiSubtext = 'On Track';
+    let emiSubtextColor = '#718096';
+
+    const activeLoansArr = globalData.activeLoans ? Object.values(globalData.activeLoans).filter(l => l.memberId === myId && l.status !== 'Closed') : [];
+    
+    if (activeLoansArr.length > 0) {
+        const loan = activeLoansArr[0];
+        let amount = parseFloat(loan.outstandingAmount || loan.amount || 0);
+        loanAmountDisplay = '₹' + amount.toLocaleString('en-IN');
+        loanStatusDisplay = '🟢 Active';
+        loanStatusColor = '#10b981';
+        
+        let totalBoxes = 6;
+        if (loan.duration) totalBoxes = parseInt(loan.duration);
+        else if (loan.loanType === 'Recharge') totalBoxes = loan.rechargeDetails?.tenure || 3;
+        else if (amount >= 25000) totalBoxes = 12;
+        else totalBoxes = 6;
+        
+        let paidCount = 0;
+        if (globalData.transactions) {
+            paidCount = globalData.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+        }
+        
+        if (paidCount >= totalBoxes) {
+            emiStatusDisplay = 'Completed ✅';
+            emiSubtext = 'Loan Completed';
+            emiSubtextColor = '#10b981';
+            loanStatusDisplay = 'Completed';
+            loanAmountDisplay = '₹0';
+        } else {
+            emiStatusDisplay = `${paidCount}/${totalBoxes} Paid`;
+            emiSubtext = 'On Track';
+            emiSubtextColor = '#10b981';
+            
+            let startDate = new Date(loan.loanDate);
+            if (isNaN(startDate.getTime())) startDate = new Date();
+            let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+            let overdueThreshold = today.getDate() > 10 ? monthsPassed : Math.max(0, monthsPassed - 1);
+            if (overdueThreshold > paidCount) {
+                emiSubtext = 'Overdue';
+                emiSubtextColor = '#ef4444';
+            }
+        }
+    }
+
+    const approvedMembers = globalData.members.filter(m => m.status === 'Approved');
+    const totalApproved = approvedMembers.length;
+    const paidMembers = approvedMembers.filter(m => m.sipStatus?.paid).length;
+
+    const searchParam = encodeURIComponent(member?.name || '');
+    container.innerHTML = `
+        <div class="dash-status-row">
+            <div class="dash-status-card">
+                <div class="dsc-header">
+                    <i data-feather="calendar" class="dsc-icon"></i>
+                    <span class="dsc-title">Monthly SIP Date</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <div class="dsc-value" style="font-size: 1.05em;">1st to 10th</div>
+                        <div class="dsc-sub">Today: ${todayStr}</div>
+                    </div>
+                    <div style="text-align: right; padding-bottom: 2px;">
+                        <div style="color: ${sipStatusColor}; font-size: 0.85em; font-weight: 700;">${sipStatusText}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dash-status-card" id="btnSip" style="cursor: pointer;">
+                <div class="dsc-header">
+                    <i data-feather="users" class="dsc-icon" style="color: #3b82f6;"></i>
+                    <span class="dsc-title">Community SIP</span>
+                </div>
+                <div class="dsc-value">${paidMembers}/${totalApproved}</div>
+                <div class="dsc-sub" style="color: #10b981;">Paid this month</div>
+            </div>
+            
+            <div class="dash-status-card" onclick="window.location.href='loan_dashbord.html?search=${searchParam}'" style="cursor: pointer;">
+                <div class="dsc-header">
+                    <i data-feather="briefcase" class="dsc-icon" style="color: #f59e0b;"></i>
+                    <span class="dsc-title">Active Loan</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <div class="dsc-value">${loanAmountDisplay}</div>
+                        <div class="dsc-sub" style="color: ${loanStatusColor}">${loanStatusDisplay}</div>
+                    </div>
+                    <div style="text-align: right; padding-bottom: 2px;">
+                        <div style="font-size: 0.8em; font-weight: 700; color: #fff;">${emiStatusDisplay}</div>
+                        <div style="font-size: 0.6em; color: ${emiSubtextColor};">${emiSubtext}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if(typeof feather !== 'undefined') feather.replace();
+}
+
 
 // --- Event Listeners ---
 function setupEventListeners(database) {
