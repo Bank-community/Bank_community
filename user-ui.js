@@ -539,7 +539,7 @@ function renderDashboardStatusCards() {
 
     let sipStatusText = '';
     let sipStatusColor = '#718096'; 
-       let todayStr = today.toLocaleString('en-US', { day: '2-digit', month: 'short' });
+           let todayStr = today.toLocaleString('en-US', { day: '2-digit', month: 'short' });
     let currentMonthStr = today.toLocaleString('en-US', { month: 'short' });
 
     let isSipPaid = member?.sipStatus?.paid === true;
@@ -625,13 +625,14 @@ function renderDashboardStatusCards() {
                     <span class="dsc-title">Monthly SIP Date</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                    <div>
-                        <div class="dsc-value" style="font-size: 1.05em;">1st to 10th</div>
+                                      <div>
+                        <div class="dsc-value" style="font-size: 0.9em; white-space: nowrap;">1 ${currentMonthStr} to 10 ${currentMonthStr}</div>
                         <div class="dsc-sub">Today: ${todayStr}</div>
                     </div>
                     <div style="text-align: right; padding-bottom: 2px;">
-                        <div style="color: ${sipStatusColor}; font-size: 0.85em; font-weight: 700;">${sipStatusText}</div>
+                        <div style="color: ${sipStatusColor}; font-size: 0.75em; font-weight: 700; white-space: nowrap;">${sipStatusText}</div>
                     </div>
+
                 </div>
             </div>
 
