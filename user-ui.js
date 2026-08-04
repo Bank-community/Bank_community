@@ -770,14 +770,20 @@ function setupEventListeners(database) {
         // पुराना पासवर्ड सबमिट बटन
         if (target.closest('#submitPasswordBtn')) handlePasswordCheck(database, currentMemberForFullView);
 
-        // 🔥 नया कोड: मॉडर्न प्रोफाइल "Open Dashboard" बटन के लिए
+              // 🔥 नया कोड: मॉडर्न प्रोफाइल "Open Dashboard" बटन के लिए
         if (target.closest('#gkSubmitBtn')) {
             const memberId = target.closest('#gkSubmitBtn').dataset.memberId || localStorage.getItem('verifiedMemberId');
             handlePasswordCheck(database, memberId, 'gkPasswordInput'); 
         }
 
-
-
+        // 🔥 नया कोड: लॉग आउट बटन के लिए
+        if (target.closest('#gkLogoutBtn')) {
+            if (confirm("Kya aap sach mein log out karna chahte hain?")) {
+                Analytics.logAction("User Logged Out");
+                localStorage.removeItem('verifiedMemberId');
+                window.location.reload(); 
+            }
+        }
 
         if (target.closest('#btnQr')) {
             Analytics.logAction("Opened QR Page");
