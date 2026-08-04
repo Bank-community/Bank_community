@@ -313,10 +313,13 @@ function getEmiTrackerHTML(loan, tenureMonths) {
     }
     totalBoxes = Math.max(1, Math.min(24, totalBoxes));
 
-    let paidCount = 0;
+    let loanTxns = [];
     if (state.transactions) {
-        paidCount = state.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+        loanTxns = state.transactions
+            .filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment')
+            .sort((a, b) => new Date(a.date || a.timestamp) - new Date(b.date || b.timestamp));
     }
+    let paidCount = loanTxns.length;
 
     let startDate = new Date(loan.loanDate);
     if (isNaN(startDate.getTime())) startDate = new Date();
@@ -368,10 +371,24 @@ function getEmiTrackerHTML(loan, tenureMonths) {
         if (isCompact && monthName.length > 3) monthName = monthName.substring(0, 3);
 
         let bgClass = 'tracker-pending';
-        if (i <= paidCount) bgClass = 'tracker-paid';
-        else if (i <= overdueMonthsThreshold) bgClass = 'tracker-skipped';
+        let boxText = monthName;
 
-        boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
+        if (i <= loanTxns.length) {
+            let tx = loanTxns[i - 1];
+            let pPaid = parseFloat(tx.principalPaid) || 0;
+            let iPaid = parseFloat(tx.interestPaid) || 0;
+
+            if (pPaid === 0 && iPaid > 0) {
+                bgClass = 'tracker-interest-only';
+                boxText = 'SKIP';
+            } else {
+                bgClass = 'tracker-paid';
+            }
+        } else if (i <= overdueMonthsThreshold) {
+            bgClass = 'tracker-skipped';
+        }
+
+        boxesHtml += `<div class="tracker-box ${bgClass}">${boxText}</div>`;
     }
 
     const compactClass = isCompact ? ' emi-tracker-compact' : '';
@@ -752,6 +769,10 @@ window.dlCard = (id) => {
                         box.style.backgroundColor = '#dc3545';
                         box.style.color = '#ffffff';
                         box.style.borderColor = '#dc3545';
+                    } else if (box.classList.contains('tracker-interest-only')) {
+                        box.style.backgroundColor = '#f59e0b';
+                        box.style.color = '#ffffff';
+                        box.style.borderColor = '#f59e0b';
                     } else {
                         box.style.color = box.closest('.card-platinum') ? '#002366' : '#ffffff';
                     }
