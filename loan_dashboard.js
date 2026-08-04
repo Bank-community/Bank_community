@@ -83,7 +83,7 @@ function setupFilters() {
             if (clearBtn) clearBtn.style.display = state.els.search.value.trim() !== '' ? 'block' : 'none';
             renderLoans();
         });
-        
+
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 state.els.search.value = '';
@@ -91,7 +91,7 @@ function setupFilters() {
                 renderLoans();
             });
         }
-        
+
         // Handle URL search parameter
         const urlParams = new URLSearchParams(window.location.search);
         const searchParam = urlParams.get('search');
@@ -304,18 +304,14 @@ function getWarningSymbol(isCritical) {
 
 // === UNIVERSAL DYNAMIC EMI MONTH TRACKER GENERATOR ===
 function getEmiTrackerHTML(loan, tenureMonths) {
-    let totalBoxes = parseInt(tenureMonths) || parseInt(loan.tenureMonths) || 0;
+    let totalBoxes = parseInt(tenureMonths) || parseInt(loan.tenureMonths) || parseInt(loan.duration) || 0;
     if (totalBoxes === 0) {
         if (loan.loanType === '10 Days Credit') totalBoxes = 1;
         else if (loan.loanType === 'Recharge') totalBoxes = loan.rechargeDetails?.tenure || 3;
         else if (parseFloat(loan.outstandingAmount || loan.amount || 0) >= 25000) totalBoxes = 12;
         else totalBoxes = 6;
     }
-    // Safety cap between 1 and 24 months for card display
     totalBoxes = Math.max(1, Math.min(24, totalBoxes));
-
-    // Compact mode for 10+ months (single row, tighter layout)
-    const isCompact = totalBoxes >= 10;
 
     let paidCount = 0;
     if (state.transactions) {
@@ -325,28 +321,55 @@ function getEmiTrackerHTML(loan, tenureMonths) {
     let startDate = new Date(loan.loanDate);
     if (isNaN(startDate.getTime())) startDate = new Date();
     let today = new Date();
-    let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
 
-    // If today is past the 10th of the current month, current month EMI is considered due/overdue if unpaid
+    // 🔥 NEW LOGIC: 1 to 3 Months Personal Loan (Single Progress Bar)
+    if (totalBoxes <= 3 && loan.loanType !== 'Recharge' && loan.loanType !== '10 Days Credit') {
+        let dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + totalBoxes, startDate.getDate());
+
+        let totalDays = (dueDate - startDate) / (1000 * 60 * 60 * 24);
+        let daysElapsed = (today - startDate) / (1000 * 60 * 60 * 24);
+        let percentage = Math.max(0, Math.min(100, (daysElapsed / totalDays) * 100));
+
+        let dueMonthStr = dueDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+
+        let barHtml = '';
+        if (paidCount >= totalBoxes || (paidCount > 0 && parseFloat(loan.outstandingAmount) <= 0)) {
+            barHtml = `
+            <div class="short-loan-progress-wrap">
+                <div class="sl-progress-fill sl-completed" style="width: 100%;"></div>
+                <div class="sl-text-left">COMPLETED ✅</div>
+                <div class="sl-text-right">100%</div>
+            </div>`;
+        } else {
+            let colorClass = 'sl-blue';
+            if (percentage > 40 && percentage <= 75) colorClass = 'sl-green';
+            else if (percentage > 75 && percentage < 100) colorClass = 'sl-orange';
+            else if (percentage >= 100) colorClass = 'sl-red';
+
+            barHtml = `
+            <div class="short-loan-progress-wrap">
+                <div class="sl-progress-fill ${colorClass}" style="width: ${percentage.toFixed(1)}%;"></div>
+                <div class="sl-text-left">ONE-TIME PAY: ${dueMonthStr}</div>
+                <div class="sl-text-right">${percentage.toFixed(0)}%</div>
+            </div>`;
+        }
+        return `<div class="emi-month-tracker" style="width: 100%; left: 0; right: 0; padding: 0 14px; box-sizing: border-box;">${barHtml}</div>`;
+    }
+
+    // ORIGINAL LOGIC FOR OTHERS (Recharge, >3 months, etc)
+    const isCompact = totalBoxes >= 10;
+    let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
     let overdueMonthsThreshold = today.getDate() > 10 ? monthsPassed : Math.max(0, monthsPassed - 1);
 
     let boxesHtml = '';
     for (let i = 1; i <= totalBoxes; i++) {
         let mDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
         let monthName = mDate.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
-
-        // For compact mode (10+ months), use ultra-short 3-char names
-        if (isCompact && monthName.length > 3) {
-            monthName = monthName.substring(0, 3);
-        }
+        if (isCompact && monthName.length > 3) monthName = monthName.substring(0, 3);
 
         let bgClass = 'tracker-pending';
-
-        if (i <= paidCount) {
-            bgClass = 'tracker-paid';
-        } else if (i <= overdueMonthsThreshold) {
-            bgClass = 'tracker-skipped';
-        }
+        if (i <= paidCount) bgClass = 'tracker-paid';
+        else if (i <= overdueMonthsThreshold) bgClass = 'tracker-skipped';
 
         boxesHtml += `<div class="tracker-box ${bgClass}">${monthName}</div>`;
     }
@@ -354,6 +377,7 @@ function getEmiTrackerHTML(loan, tenureMonths) {
     const compactClass = isCompact ? ' emi-tracker-compact' : '';
     return `<div class="emi-month-tracker${compactClass}">${boxesHtml}</div>`;
 }
+
 
 // === 🔥 DUAL AMOUNT GENERATOR (ORIGINAL LOAN vs REMAINING DUE) 🔥 ===
 function getOriginalLoanAmount(loan, currentAmount) {
@@ -693,7 +717,7 @@ window.dlCard = (id) => {
             onclone: (clonedDoc) => {
                 const clonedEl = clonedDoc.getElementById(id);
                 clonedEl.style.transform = "none"; 
-                
+
                 // FIX 2: Stop Overdue Watermark from creating grey box artifacts
                 const watermark = clonedEl.querySelector('.overdue-watermark');
                 if(watermark) {
