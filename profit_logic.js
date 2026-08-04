@@ -724,9 +724,9 @@ window.getDeepMemberProfileForAI = function(memberId) {
     profile += `Wallet Balance: ${fc(member.walletBalance)}\n\n`;
 
     profile += `### SCORE CARD: ${member.score?.toFixed(1) || 0}/100 ###\n`;
-    profile += `- Capital Score: ${scoreData.capitalScore?.toFixed(1) || 0}/100\n`;
-    profile += `- Consistency Score: ${scoreData.consistencyScore?.toFixed(1) || 0}/100\n`;
-    profile += `- Credit Score: ${scoreData.creditScore?.toFixed(1) || 0}/100\n\n`;
+    profile += `- Capital Score (50% Weightage): ${scoreData.capitalScore?.toFixed(1) || 0}/100 (Based on Available Balance vs Target)\n`;
+    profile += `- Consistency Score (25% Weightage): ${scoreData.consistencyScore?.toFixed(1) || 0}/100 (Based on SIP paid between 1st to 10th)\n`;
+    profile += `- Credit Score (25% Weightage): ${scoreData.creditScore?.toFixed(1) || 0}/100 (Based on Loan EMI Repayments)\n\n`;
 
     if (scoreData.isNewMemberRuleApplied) {
         profile += `🚨 RULE APPLIED: Probation Period (Joined < 180 days ago). All scores reduced by 50%.\n\n`;
