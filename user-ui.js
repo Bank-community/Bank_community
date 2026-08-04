@@ -528,21 +528,21 @@ function renderDashboardStatusCards() {
     const myId = localStorage.getItem('verifiedMemberId');
     if (!myId) return;
 
-    const member = globalData.members.find(m => m.id === myId);
-    let sipDay = member?.sipDate || 5; 
+        const member = globalData.members.find(m => m.id === myId);
+    let sipDay = member?.sipDate || 10; 
     let today = new Date();
     today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    
+
     let sipDateThisMonth = new Date(today.getFullYear(), today.getMonth(), sipDay);
-    
+
     let daysRemaining = Math.ceil((sipDateThisMonth - today) / (1000 * 60 * 60 * 24));
-    
+
     let sipStatusText = '';
     let sipStatusColor = '#718096'; 
     let todayStr = today.toLocaleString('en-US', { day: '2-digit', month: 'short' });
-    
+
     let isSipPaid = member?.sipStatus?.paid === true;
-    
+
     if (isSipPaid) {
         sipStatusText = 'Paid ✅';
         sipStatusColor = '#10b981'; // Green
@@ -564,31 +564,31 @@ function renderDashboardStatusCards() {
     let loanAmountDisplay = '₹0';
     let loanStatusDisplay = 'No Active Loan';
     let loanStatusColor = '#718096';
-    
+
     let emiStatusDisplay = 'No EMI Pending';
     let emiSubtext = 'On Track';
     let emiSubtextColor = '#718096';
 
     const activeLoansArr = globalData.activeLoans ? Object.values(globalData.activeLoans).filter(l => l.memberId === myId && l.status !== 'Closed') : [];
-    
+
     if (activeLoansArr.length > 0) {
         const loan = activeLoansArr[0];
         let amount = parseFloat(loan.outstandingAmount || loan.amount || 0);
         loanAmountDisplay = '₹' + amount.toLocaleString('en-IN');
         loanStatusDisplay = '🟢 Active';
         loanStatusColor = '#10b981';
-        
+
         let totalBoxes = 6;
         if (loan.duration) totalBoxes = parseInt(loan.duration);
         else if (loan.loanType === 'Recharge') totalBoxes = loan.rechargeDetails?.tenure || 3;
         else if (amount >= 25000) totalBoxes = 12;
         else totalBoxes = 6;
-        
+
         let paidCount = 0;
         if (globalData.transactions) {
             paidCount = globalData.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
         }
-        
+
         if (paidCount >= totalBoxes) {
             emiStatusDisplay = 'Completed ✅';
             emiSubtext = 'Loan Completed';
@@ -599,7 +599,7 @@ function renderDashboardStatusCards() {
             emiStatusDisplay = `${paidCount}/${totalBoxes} Paid`;
             emiSubtext = 'On Track';
             emiSubtextColor = '#10b981';
-            
+
             let startDate = new Date(loan.loanDate);
             if (isNaN(startDate.getTime())) startDate = new Date();
             let monthsPassed = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
@@ -633,7 +633,7 @@ function renderDashboardStatusCards() {
                     </div>
                 </div>
             </div>
-            
+
             <div class="dash-status-card" id="btnSip" style="cursor: pointer;">
                 <div class="dsc-header">
                     <i data-feather="users" class="dsc-icon" style="color: #3b82f6;"></i>
@@ -642,7 +642,7 @@ function renderDashboardStatusCards() {
                 <div class="dsc-value">${paidMembers}/${totalApproved}</div>
                 <div class="dsc-sub" style="color: #10b981;">Paid this month</div>
             </div>
-            
+
             <div class="dash-status-card" onclick="window.location.href='loan_dashbord.html?search=${searchParam}'" style="cursor: pointer;">
                 <div class="dsc-header">
                     <i data-feather="briefcase" class="dsc-icon" style="color: #f59e0b;"></i>
@@ -661,7 +661,7 @@ function renderDashboardStatusCards() {
             </div>
         </div>
     `;
-    
+
     if(typeof feather !== 'undefined') feather.replace();
 }
 
