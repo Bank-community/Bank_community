@@ -8,8 +8,6 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-    <!-- 🔥 NEW: Markdown Library for ChatGPT-like formatting -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -337,14 +335,7 @@
             border-bottom-left-radius: 4px;
             backdrop-filter: blur(10px);
         }
-        /* 🔥 NEW: Professional Markdown Styles */
-        .bubble-ai p { margin-bottom: 10px; line-height: 1.6; }
-        .bubble-ai p:last-child { margin-bottom: 0; }
-        .bubble-ai strong, .bubble-ai b { color: #a5b4fc; font-weight: 700; }
-        .bubble-ai ul { list-style-type: disc; margin-left: 20px; margin-bottom: 12px; }
-        .bubble-ai ol { list-style-type: decimal; margin-left: 20px; margin-bottom: 12px; }
-        .bubble-ai li { margin-bottom: 6px; }
-        .bubble-ai h3, .bubble-ai h4 { color: #fff; font-weight: bold; margin-top: 14px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
+        .bubble-ai b, .bubble-ai strong { color: #a5b4fc; }
 
         /* Timestamp */
         .chat-time {
@@ -624,8 +615,6 @@
 
             try {
                 const memberData = window.getDeepMemberProfileForAI ? window.getDeepMemberProfileForAI(memberId) : '';
-                // 🔥 NEW: Calculate today's date dynamically
-                const todayDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
                 const response = await fetch('/api/ai-api', {
                     method: 'POST',
@@ -633,8 +622,7 @@
                     body: JSON.stringify({
                         messages: chatHistory,
                         memberData: memberData,
-                        language: language,
-                        currentDate: todayDate // Passing date to AI
+                        language: language
                     })
                 });
 
@@ -678,8 +666,12 @@
             bubble.className = `chat-bubble ${type === 'user' ? 'bubble-user' : 'bubble-ai'}`;
 
             if (type === 'ai') {
-                // 🔥 NEW: Use marked.js library for clean ChatGPT-style rendering
-                bubble.innerHTML = marked.parse(text);
+                // Format: bold, line breaks, lists
+                let formatted = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+                bubble.innerHTML = formatted;
             } else {
                 bubble.textContent = text;
             }
