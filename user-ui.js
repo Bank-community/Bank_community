@@ -539,7 +539,8 @@ function renderDashboardStatusCards() {
 
     let sipStatusText = '';
     let sipStatusColor = '#718096'; 
-    let todayStr = today.toLocaleString('en-US', { day: '2-digit', month: 'short' });
+       let todayStr = today.toLocaleString('en-US', { day: '2-digit', month: 'short' });
+    let currentMonthStr = today.toLocaleString('en-US', { month: 'short' });
 
     let isSipPaid = member?.sipStatus?.paid === true;
 
