@@ -480,33 +480,39 @@
     <!-- Backdrop -->
     <div id="chat-backdrop" class="chat-backdrop" onclick="toggleChat()"></div>
 
-    <!-- Chat Panel -->
+     <!-- Chat Panel -->
     <div id="chat-panel" class="chat-panel">
         <!-- Header -->
-        <div class="chat-header">
-            <div class="flex items-center gap-3">
-                <div class="chat-header-avatar">🤖</div>
-                <div class="chat-header-info">
-                    <h3>TCF AI Assistant</h3>
-                    <p><span class="online-dot"></span> Online • Groq Llama-3</p>
+        <div class="chat-header flex-col items-stretch gap-3">
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-3">
+                    <div class="chat-header-avatar">🤖</div>
+                    <div class="chat-header-info">
+                        <h3>Score Analyst AI</h3>
+                        <p><span class="online-dot"></span> Profit & Penalty Expert</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="ai-language" class="bg-slate-800 text-white text-xs px-2 py-1 rounded border border-slate-600 outline-none">
+                        <option value="hinglish">Hinglish</option>
+                        <option value="hindi">हिंदी</option>
+                    </select>
+                    <button onclick="clearChat()" class="text-slate-400 hover:text-red-400 mx-1"><i class="fas fa-trash-alt"></i></button>
+                    <button onclick="toggleChat()" class="text-slate-400 hover:text-white"><i class="fas fa-chevron-down"></i></button>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <button onclick="clearChat()" title="Clear Chat" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                </button>
-                <button onclick="toggleChat()" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
-                    <i class="fas fa-chevron-down text-sm"></i>
-                </button>
-            </div>
+            <!-- Member Select Dropdown -->
+            <select id="ai-member-select" class="w-full bg-slate-800 text-white text-sm px-3 py-2 rounded-lg border border-slate-600 outline-none focus:border-indigo-500">
+                <option value="">-- Select Member to Analyze --</option>
+            </select>
         </div>
 
         <!-- Messages -->
         <div id="chat-messages" class="chat-messages">
             <div class="welcome-msg">
                 <div class="emoji">🤖</div>
-                <h4>Namaste! Main TCF AI hoon</h4>
-                <p>Aap mujhse kisi bhi member ka data, score, profit, loan status ya banking rules ke baare mein puch sakte hain. Bas type karein!</p>
+                <h4>Namaste! Main Score Analyst hoon</h4>
+                <p>Upar dropdown se kisi bhi member ko select karein aur uske score, loan penalties, ya profit ke baare mein puchein.</p>
             </div>
         </div>
 
@@ -519,13 +525,14 @@
 
         <!-- Suggestion Chips -->
         <div id="suggestion-chips" class="suggestion-chips">
-            <div class="chip" onclick="sendChip(this)">📊 Sabka Score Batao</div>
-            <div class="chip" onclick="sendChip(this)">🏆 Top 5 Members</div>
-            <div class="chip" onclick="sendChip(this)">💰 Total Fund Kitna Hai?</div>
-            <div class="chip" onclick="sendChip(this)">📋 Rules Batao</div>
+            <div class="chip" onclick="sendChip(this)">📉 Score kam kyun hai?</div>
+            <div class="chip" onclick="sendChip(this)">💰 Profit kitna mila?</div>
+            <div class="chip" onclick="sendChip(this)">🚫 Kahan penalty lagi?</div>
+            <div class="chip" onclick="sendChip(this)">📅 Joining date & rules?</div>
         </div>
 
         <!-- Input Area -->
+
         <div class="chat-input-area">
             <input type="text" id="chat-input" class="chat-input" placeholder="Message type karein..." autocomplete="off">
             <button id="chat-send-btn" class="chat-send-btn" onclick="sendMessage()">
@@ -558,13 +565,24 @@
         let isChatOpen = false;
         let isAiThinking = false;
 
-        // --- TOGGLE CHAT PANEL ---
+            // --- TOGGLE CHAT PANEL ---
         function toggleChat() {
             isChatOpen = !isChatOpen;
             chatPanel.classList.toggle('open', isChatOpen);
             chatBackdrop.classList.toggle('active', isChatOpen);
             fab.classList.toggle('hidden-fab', isChatOpen);
+            
             if (isChatOpen) {
+                // Populate Dropdown if empty
+                const select = document.getElementById('ai-member-select');
+                if (select.options.length <= 1 && window.getMembersListForDropdown) {
+                    const list = window.getMembersListForDropdown();
+                    list.sort((a,b) => a.name.localeCompare(b.name)).forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id; opt.textContent = m.name;
+                        select.appendChild(opt);
+                    });
+                }
                 setTimeout(() => chatInput.focus(), 400);
             }
         }
@@ -572,30 +590,41 @@
         // --- SEND MESSAGE ---
         async function sendMessage() {
             const text = chatInput.value.trim();
+            const memberId = document.getElementById('ai-member-select').value;
+            const language = document.getElementById('ai-language').value;
+
             if (!text || isAiThinking) return;
+
+            if (!memberId) {
+                addBubble("⚠️ Kripya upar dropdown se ek Member select karein taaki main unka data analyze kar sakun.", "ai");
+                chatInput.value = '';
+                return;
+            }
 
             // Add user bubble
             addBubble(text, 'user');
             chatInput.value = '';
             
-            // Hide chips after first message
             if (chipsContainer) chipsContainer.style.display = 'none';
-
-            // Add to history
             chatHistory.push({ role: 'user', content: text });
 
-            // Show typing
             isAiThinking = true;
             sendBtn.disabled = true;
             typingIndicator.classList.add('active');
             scrollToBottom();
 
             try {
-                // Get live member data dynamically based on user's input
-                const membersSummary = window.getMembersSummaryForAI ? window.getMembersSummaryForAI(text) : '';
+                const memberData = window.getDeepMemberProfileForAI ? window.getDeepMemberProfileForAI(memberId) : '';
 
                 const response = await fetch('/api/ai-api', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: chatHistory,
+                        memberData: memberData,
+                        language: language
+                    })
+       method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         messages: chatHistory,

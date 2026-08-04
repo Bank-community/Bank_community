@@ -44,7 +44,7 @@ const ENGINE_CONFIG = {
 // ==========================================
 // 1. MASTER SCORING FUNCTION
 // ==========================================
-function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData) {
+function calculatePerformanceScore(memberName, untilDate, allData, activeLoansData, penaltyLogs = []) {
     // Filter data for member up to current date
     const memberData = allData.filter(r => r.name === memberName && r.date <= untilDate);
 
@@ -59,7 +59,7 @@ function calculatePerformanceScore(memberName, untilDate, allData, activeLoansDa
     let consistencyScore = calculateConsistencyScore(memberData, untilDate);
 
     // --- 3. CREDIT BEHAVIOR (The Hybrid Logic) ---
-    let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData);
+    let creditScore = calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData, penaltyLogs);
 
     // Store Originals before applying penalty
     const originals = {
@@ -185,7 +185,7 @@ function calculateConsistencyScore(memberData, untilDate) {
 // ==========================================
 // 4. CREDIT BEHAVIOR SCORE (CORE LOGIC)
 // ==========================================
-function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData) {
+function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoansData, penaltyLogs = []) {
     // 18 Months Window
     const reviewStartDate = new Date(untilDate);
     reviewStartDate.setDate(reviewStartDate.getDate() - ENGINE_CONFIG.REVIEW_PERIOD_DAYS);
@@ -212,11 +212,10 @@ function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoan
         loansCounted++;
 
         // Find matching loan details in ActiveLoans DB
-        // Matching Logic: MemberID + Original Amount + Approx Date
         const loanDetails = Object.values(activeLoansData).find(l => 
             l.memberId === loanTx.memberId && 
             l.originalAmount === loanTx.loan &&
-            Math.abs(new Date(l.loanDate) - loanTx.date) < 86400000 // Within 24 hours
+            Math.abs(new Date(l.loanDate) - loanTx.date) < 86400000 
         );
 
         const loanDate = loanTx.date;
@@ -224,8 +223,9 @@ function calculateCreditBehaviorScore(memberName, untilDate, allData, activeLoan
         // SPLIT LOGIC: CHECK DATE
         if (loanDate >= ENGINE_CONFIG.NEW_LOGIC_START_DATE) {
             // >>> NEW LOGIC (Post Feb 15 2026)
-            totalLoanPoints += calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate);
+            totalLoanPoints += calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, penaltyLogs);
         } else {
+
             // >>> OLD LOGIC (Pre Feb 15 2026)
             totalLoanPoints += calculateOldLogicPoints(loanTx, loanDetails, memberData, untilDate);
         }
@@ -344,16 +344,16 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, pen
     // 🔥 नियम: ऑटो रिकवरी (Auto-Recovery After 3 Months)
     if (isFullyPaid && repaidDate && penaltyPoints < 0) {
         const daysSincePaid = (untilDate - repaidDate) / (1000 * 3600 * 24);
-        
+
         // 90 दिन (3 महीने) के बाद रिकवरी शुरू होगी
         if (daysSincePaid > 90) {
             // धीरे-धीरे रिकवर होना (अगले 90 दिनों में पूरी तरह 0 हो जाएगा)
             let recoveryFactor = 1 - ((daysSincePaid - 90) / 90); 
             if (recoveryFactor < 0) recoveryFactor = 0; // 6 महीने बाद पूरा 0
-            
+
             const originalPenalty = penaltyPoints;
             penaltyPoints = Math.round(penaltyPoints * recoveryFactor);
-            
+
             if (penaltyPoints > originalPenalty && penaltyLogs) {
                 penaltyLogs.push(`Auto-Recovery: 3 महीने बाद स्कोर सुधर रहा है (${originalPenalty} से ${penaltyPoints} हुआ)`);
             }

@@ -701,40 +701,48 @@ window.getMemberDataForAI = function(memberId) {
     return renderedMembersCache.find(m => m.id === memberId);
 };
 
-// 🔥 NEW: Smart RAG System - Only send requested member data to save AI Tokens
-window.getMembersSummaryForAI = function(userQuery) {
+// 🔥 NEW: Deep Analysis Function for Single Member
+window.getDeepMemberProfileForAI = function(memberId) {
     if (!renderedMembersCache || renderedMembersCache.length === 0) return '';
+    const member = renderedMembersCache.find(m => m.id === memberId);
+    if (!member) return 'Member not found.';
 
     const fc = (n) => `₹${Math.floor(n).toLocaleString('en-IN')}`;
-    const query = (userQuery || "").toLowerCase();
+    const txns = allTransactionsList.filter(t => t.name === member.name).sort((a,b) => a.date - b.date);
+    const joinDate = txns.length > 0 ? txns[0].date.toLocaleDateString('en-GB') : "N/A";
 
-    let summary = `Total Members: ${renderedMembersCache.length}\n`;
-    summary += `Community Total SIP: ${fc(communityStats.totalSip)}\n`;
-    summary += `Community Total Profit Distributed: ${fc(communityStats.totalProfitDistributed)}\n`;
-    summary += `Community Total Wallet Liability: ${fc(communityStats.totalWalletLiability)}\n`;
-
-    // RAG Logic: Check if user asked for a specific member
-    const mentionedMembers = renderedMembersCache.filter(m => 
-        query.includes(m.name.toLowerCase().split(' ')[0]) || // Match first name
-        query.includes(m.name.toLowerCase()) // Match full name
-    );
-
-    if (mentionedMembers.length > 0) {
-        summary += `\n--- REQUESTED MEMBER DATA ---\n`;
-        mentionedMembers.forEach((m) => {
-            summary += `Name: ${m.name} | SIP: ${fc(m.sip)} | Available Bal: ${fc(m.availBalance)} | Profit: ${fc(m.profit)} | Wallet: ${fc(m.walletBalance)} | Score: ${m.score?.toFixed(1) || '0'}/100\n`;
-        });
-    } else if (query.includes('top') || query.includes('rank') || query.includes('sabka') || query.includes('score')) {
-        // If asking for top members ranking
-        summary += `\n--- TOP 5 MEMBERS (Score-wise) ---\n`;
-        const sorted = [...renderedMembersCache].sort((a, b) => b.score - a.score).slice(0, 5);
-        sorted.forEach((m, i) => {
-            summary += `${i + 1}. ${m.name} | Score: ${m.score?.toFixed(1) || '0'}/100 | Profit: ${fc(m.profit)}\n`;
-        });
-        summary += `(Note: Showing top 5 to save AI tokens.)`;
-    } else {
-        summary += `\n(Note: Individual member details hidden to save tokens. Ask for a specific name to get their details.)`;
+    // Simulate score again to catch penalty logs
+    let penaltyLogs = [];
+    let scoreData = {};
+    if (typeof calculatePerformanceScore === 'function') {
+        scoreData = calculatePerformanceScore(member.name, new Date(), allTransactionsList, rawActiveLoans, penaltyLogs);
     }
 
-    return summary;
+    let profile = `### MEMBER DEEP ANALYSIS ###\n`;
+    profile += `Name: ${member.name}\nJoining Date: ${joinDate}\n`;
+    profile += `Financials: SIP = ${fc(member.sip)} | Available Balance = ${fc(member.availBalance)} | Total Profit Earned = ${fc(member.profit)}\n`;
+    profile += `Wallet Balance: ${fc(member.walletBalance)}\n\n`;
+
+    profile += `### SCORE CARD: ${member.score?.toFixed(1) || 0}/100 ###\n`;
+    profile += `- Capital Score: ${scoreData.capitalScore?.toFixed(1) || 0}/100\n`;
+    profile += `- Consistency Score: ${scoreData.consistencyScore?.toFixed(1) || 0}/100\n`;
+    profile += `- Credit Score: ${scoreData.creditScore?.toFixed(1) || 0}/100\n\n`;
+
+    if (scoreData.isNewMemberRuleApplied) {
+        profile += `🚨 RULE APPLIED: Probation Period (Joined < 180 days ago). All scores reduced by 50%.\n\n`;
+    }
+
+    if (penaltyLogs.length > 0) {
+        profile += `### CREDIT PENALTY LOGS (REASONS FOR LOW SCORE) ###\n`;
+        penaltyLogs.forEach(log => { profile += `- ${log}\n`; });
+    } else {
+        profile += `Credit Status: Clean (No active penalties found).\n`;
+    }
+
+    return profile;
+};
+
+// Expose members list for dropdown
+window.getMembersListForDropdown = function() {
+    return renderedMembersCache ? renderedMembersCache.map(m => ({ id: m.id, name: m.name })) : [];
 };
