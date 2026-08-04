@@ -579,13 +579,16 @@ function renderDashboardStatusCards() {
         loanStatusDisplay = '🟢 Active';
         loanStatusColor = '#10b981';
 
-        let totalBoxes = 6;
-        if (loan.duration) totalBoxes = parseInt(loan.duration);
-        else if (loan.loanType === 'Recharge') totalBoxes = loan.rechargeDetails?.tenure || 3;
-        else if (amount >= 25000) totalBoxes = 12;
-        else totalBoxes = 6;
+               let totalBoxes = parseInt(loan.tenureMonths) || parseInt(loan.duration) || 0;
+        if (totalBoxes === 0) {
+            if (loan.loanType === '10 Days Credit') totalBoxes = 1;
+            else if (loan.loanType === 'Recharge') totalBoxes = loan.rechargeDetails?.tenure || 3;
+            else if (amount >= 25000) totalBoxes = 12;
+            else totalBoxes = 6;
+        }
 
         let paidCount = 0;
+
         if (globalData.transactions) {
             paidCount = globalData.transactions.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
         }
