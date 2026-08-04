@@ -732,6 +732,16 @@ window.getDeepMemberProfileForAI = function(memberId) {
         profile += `🚨 RULE APPLIED: Probation Period (Joined < 180 days ago). All scores reduced by 50%.\n\n`;
     }
 
+    // 🔥 NEW: Inject Recent Loan History for AI Context
+    const memberLoans = txns.filter(t => t.loan > 0);
+    if (memberLoans.length > 0) {
+        profile += `### PAST & ACTIVE LOANS HISTORY ###\n`;
+        memberLoans.slice(-5).forEach(l => { // Give last 5 loans to save tokens
+            profile += `- Loan Taken: ${fc(l.loan)} on ${l.date.toLocaleDateString('en-GB')}\n`;
+        });
+        profile += `\n`;
+    }
+
     if (penaltyLogs.length > 0) {
         profile += `### CREDIT PENALTY LOGS (REASONS FOR LOW SCORE) ###\n`;
         penaltyLogs.forEach(log => { profile += `- ${log}\n`; });

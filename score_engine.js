@@ -269,7 +269,10 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, pen
     let repaidDate = null;
     let isFullyPaid = loanDetails && loanDetails.status === 'Paid';
 
-    // अगर पेड है, तो फुल रीपेमेंट डेट निकालें
+    // Formatting Date & Amount for AI Context
+    const fDate = loanDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const fAmt = `₹${loanAmount.toLocaleString('en-IN')}`;
+
     if (isFullyPaid) {
         const repaymentTx = memberData.filter(r => r.date > loanDate && r.payment > 0);
         let paidSum = 0;
@@ -288,17 +291,54 @@ function calculateNewLogicPoints(loanTx, loanDetails, memberData, untilDate, pen
             const daysToRepay = repaidDate ? (repaidDate - loanDate) / (1000 * 3600 * 24) : daysPassed;
 
             if (daysToRepay <= limitDays) {
-                rewardPoints += 25; // समय पर चुकाया
+                rewardPoints += 25; 
             } else {
-                penaltyPoints -= 10; // थोड़ी लेट पेमेंट
-                if (penaltyLogs) penaltyLogs.push(`Late Repayment: ${effectiveTenure} माह का लोन लेट चुकाया (-10 Points)`);
+                penaltyPoints -= 10; 
+                if (penaltyLogs) penaltyLogs.push(`Late Repayment: ${fDate} ko liya gaya ${fAmt} ka loan (${effectiveTenure} Month) late chukaya gaya (-10 Points)`);
             }
         } else {
             if (daysPassed > limitDays) {
-                penaltyPoints -= 15; // एक्टिव और समय सीमा पार
-                if (penaltyLogs) penaltyLogs.push(`Overdue Loan: लोन समय सीमा से बाहर है (-15 Points)`);
+                penaltyPoints -= 15; 
+                if (penaltyLogs) penaltyLogs.push(`Overdue Loan: ${fDate} ko liya gaya ${fAmt} ka loan abhi tak pending hai aur samay seema par kar chuka hai (-15 Points)`);
             }
         }
+    } 
+    // --- SCENARIO 2: EMI SYSTEM (> 3 MONTHS) ---
+    else {
+        const monthsPassed = monthDiff(loanDate, untilDate);
+
+        for (let i = 1; i <= monthsPassed; i++) {
+            if (i > effectiveTenure && isFullyPaid) break;
+
+            const targetMonthDate = new Date(loanDate);
+            targetMonthDate.setMonth(loanDate.getMonth() + i);
+            const targetMonthStr = targetMonthDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+
+            const validEmiPaid = memberData.some(tx => {
+                const tDate = tx.date;
+                const isTargetMonth = tDate.getFullYear() === targetMonthDate.getFullYear() && tDate.getMonth() === targetMonthDate.getMonth();
+                const isOnTime = tDate.getDate() >= ENGINE_CONFIG.EMI_START_DAY && tDate.getDate() <= ENGINE_CONFIG.EMI_END_DAY;
+                const principalPaid = tx.payment - tx.returnAmount;
+                const expectedEmi = loanDetails ? (loanDetails.monthlyEmi || 0) : 0;
+                const isProperEmi = (principalPaid > 0) || (tx.payment >= expectedEmi);
+
+                return isTargetMonth && isOnTime && isProperEmi;
+            });
+
+            if (validEmiPaid) {
+                rewardPoints += 5; 
+            } else {
+                penaltyPoints -= 5; 
+                if (penaltyLogs) penaltyLogs.push(`Missed EMI: ${fDate} wale ${fAmt} ke loan ki EMI (Due: 1-10 ${targetMonthStr}) miss hui ya sirf byaj jama hua (-5 Points)`);
+            }
+        }
+
+        if (monthsPassed > effectiveTenure && !isFullyPaid) {
+            penaltyPoints -= 10; 
+            if (penaltyLogs) penaltyLogs.push(`Tenure Exceeded: ${fDate} wale ${fAmt} loan ka time (${effectiveTenure} Months) khatam ho gaya hai par outstanding baki hai (-10 Points)`);
+        }
+    }
+
     } 
     // --- SCENARIO 2: EMI SYSTEM (> 3 MONTHS) ---
     else {
