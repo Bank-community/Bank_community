@@ -624,16 +624,16 @@ function renderDashboardStatusCards() {
                     <i data-feather="calendar" class="dsc-icon"></i>
                     <span class="dsc-title">Monthly SIP Date</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                                      <div>
-                        <div class="dsc-value" style="font-size: 0.9em; white-space: nowrap;">1 ${currentMonthStr} to 10 ${currentMonthStr}</div>
+                               <div style="position: relative; width: 100%;">
+                    <div>
+                        <div class="dsc-value" style="font-size: 0.82em; white-space: nowrap;">1 ${currentMonthStr} to 10 ${currentMonthStr}</div>
                         <div class="dsc-sub">Today: ${todayStr}</div>
                     </div>
-                    <div style="text-align: right; padding-bottom: 2px;">
-                        <div style="color: ${sipStatusColor}; font-size: 0.75em; font-weight: 700; white-space: nowrap;">${sipStatusText}</div>
+                    <div style="position: absolute; right: 2px; bottom: 0px;">
+                        <div style="color: ${sipStatusColor}; font-size: 0.65em; font-weight: 800; white-space: nowrap; letter-spacing: 0.2px;">${sipStatusText}</div>
                     </div>
-
                 </div>
+
             </div>
 
             <div class="dash-status-card" id="btnSip" style="cursor: pointer;">
