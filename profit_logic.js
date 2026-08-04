@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", setupSecuritySystem);
 // ==========================================
 function setupSecuritySystem() {
     console.log("🔒 Security Level: High (10 Taps)");
-    
+
     const overlay = document.getElementById('loader-overlay');
     const inputBox = document.getElementById('security-input-box');
     const passInput = document.getElementById('security-pass');
@@ -102,7 +102,7 @@ async function checkAuthAndInit() {
         const response = await fetch('/api/firebase-config');
         if (!response.ok) throw new Error('Config load failed');
         const config = await response.json();
-        
+
         const app = initializeApp(config);
         auth = getAuth(app);
         db = getDatabase(app);
@@ -110,10 +110,10 @@ async function checkAuthAndInit() {
         // Sorting, Search & Refresh Listeners
         const sortSelect = document.getElementById('sort-select');
         if(sortSelect) sortSelect.addEventListener('change', applyFilters);
-        
+
         const searchInput = document.getElementById('search-input');
         if(searchInput) searchInput.addEventListener('input', applyFilters);
-        
+
         const refreshBtn = document.getElementById('force-refresh-btn');
         if(refreshBtn) refreshBtn.addEventListener('click', () => {
             if(confirm("Refresh data from server?")) {
@@ -138,25 +138,25 @@ async function checkAuthAndInit() {
 async function initDataLoad() {
     // 1. Try Local Storage First
     const cached = localStorage.getItem(CACHE_KEY);
-    
+
     if (cached) {
         const data = JSON.parse(cached);
-        
+
         // 🔥 NAYA LOGIC: 5 मिनट का टाइमर (5 * 60 * 1000 = 300000 milliseconds)
         const CACHE_EXPIRY_MS = 5 * 60 * 1000; 
         const now = Date.now();
-        
+
         // चेक करें कि क्या कैशे 5 मिनट के अंदर का है?
         if (data.timestamp && (now - data.timestamp < CACHE_EXPIRY_MS)) {
             console.log("⚡ Loading from Local Cache (Still Fresh)...");
-            
+
             // Restore Variables
             rawMembers = data.members || {};
             rawTransactions = data.transactions || {};
             rawActiveLoans = data.activeLoans || {};
             rawPenaltyWallet = data.penaltyWallet || {};
             rawAdmin = data.admin || {};
-            
+
             // Process UI
             startProcessing();
             return; // अगर कैशे यूज़ कर लिया तो यहीं से फंक्शन रोक दें
@@ -213,7 +213,7 @@ async function fetchFreshData() {
 function startProcessing() {
     // 1. Get Source of Truth
     adminTotalReturn = (rawAdmin.balanceStats && rawAdmin.balanceStats.totalReturn) || 0;
-    
+
     // 2. Check Sync Status
     analyzeWalletHistory();
 
@@ -300,11 +300,11 @@ function prepareAndStartQueue() {
     allTransactionsList.sort((a, b) => a.date - b.date || a.id - b.id);
 
     const memberIdsToProcess = Object.keys(rawMembers).filter(id => rawMembers[id].status === 'Approved');
-    
+
     // Hide overlay AFTER logic is ready (if needed visually)
     // Note: Overlay is already hidden by password check, but this ensures safety
     // document.getElementById('loader-overlay').classList.add('hidden'); 
-    
+
     injectScannerUI(memberIdsToProcess.length);
     startLiveQueue(memberIdsToProcess);
 }
@@ -339,15 +339,15 @@ function startLiveQueue(memberIds) {
                 setTimeout(() => {
             try {
                 const memberTx = transactionsByMember[id] || [];
-                
+
                 // 🔥 NAYA LOGIC BY PRINCE: Exact Available Balance Calculation
                 const totalSip = memberTx.reduce((sum, t) => sum + (t.sipPayment || 0), 0);
                 const totalSipWithdraw = memberTx.reduce((sum, t) => sum + (t.sipWithdraw || 0), 0);
-                
+
                 // P2P In aur Out (Agar 'Extra Payment' se manual add hua ho, toh usko bhi In me gina jayega)
                 const totalP2pIn = memberTx.reduce((sum, t) => sum + (t.p2pReceived || 0) + (t.extraBalance || 0), 0);
                 const totalP2pOut = memberTx.reduce((sum, t) => sum + (t.p2pSent || 0), 0);
-                
+
                 // Active Loan
                 let activeLoanAmount = 0;
                 if (rawActiveLoans) {
@@ -363,7 +363,7 @@ function startLiveQueue(memberIds) {
 
                 const walletData = calculateTotalExtraBalance(id, m.fullName);
                 const lifetimeProfit = calculateTotalProfitForMember(m.fullName);
-                
+
                 currentlyDistributed += lifetimeProfit;
 
                 let scoreObj = { totalScore: 0 };
@@ -385,7 +385,7 @@ function startLiveQueue(memberIds) {
                 communityStats.totalSip += totalSip;
                 communityStats.totalProfitDistributed += lifetimeProfit;
                 communityStats.totalWalletLiability += walletData.total;
-                
+
                 updateSummaryUI(communityStats);
 
             } catch (err) { console.error(err); }
@@ -401,7 +401,7 @@ function startLiveQueue(memberIds) {
 function calculateAndShowSyncUI() {
     target90Percent = adminTotalReturn * 0.90;
     totalLifetimeGap = target90Percent - currentlyDistributed;
-    
+
     let pendingToAdd = totalLifetimeGap - totalInactiveSentToWallet;
     pendingToAdd = Math.floor(pendingToAdd); 
     if (pendingToAdd < 0) pendingToAdd = 0;
@@ -463,7 +463,7 @@ async function performWalletSync(amount) {
     try {
         const walletRef = ref(db, 'penaltyWallet');
         const reasonString = `${currentMonthTag} : ${amount}`;
-        
+
         const newTxRef = push(child(walletRef, 'incomes'));
         await update(newTxRef, {
             amount: amount,
@@ -525,14 +525,14 @@ function calculateProfitDistribution(paymentRecord) {
             // 🔥 Option D: Combined Weight se share calculate karo (score + capital dono matter karte hain)
             let share = (snapshotScores[name].combinedWeight / totalWeightedScore) * communityPool; 
             const lastLoan = allTransactionsList.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
-            
+
             const days = lastLoan ? (loanDate - lastLoan) / 86400000 : null; // never taken loan = null
             let multiplier = 1.0;
             if (days !== null) { // Sirf unki penalty katega jinhone loan liya ho
                 if (days > 365) multiplier = 0.75; 
                 else if (days > 180) multiplier = 0.90; 
             }
-            
+
             share *= multiplier; 
             if (share > 0) distribution.push({ name, share, type: 'Community Profit' }); 
         } 
@@ -579,22 +579,22 @@ function applyFilters() {
     if (!renderedMembersCache || renderedMembersCache.length === 0) return;
     const grid = document.getElementById('members-grid');
     if (grid) grid.innerHTML = '';
-    
+
     const searchInput = document.getElementById('search-input');
     const sortSelect = document.getElementById('sort-select');
-    
+
     const query = searchInput ? searchInput.value.toLowerCase() : '';
     const criteria = sortSelect ? sortSelect.value : 'name';
-    
+
     let filteredData = renderedMembersCache.filter(m => m.name.toLowerCase().includes(query));
-    
+
     switch (criteria) {
         case 'profit': filteredData.sort((a, b) => b.profit - a.profit); break;
         case 'score': filteredData.sort((a, b) => b.score - a.score); break;
         case 'balance': filteredData.sort((a, b) => b.walletBalance - a.walletBalance); break;
         case 'name': default: filteredData.sort((a, b) => a.name.localeCompare(b.name)); break;
     }
-    
+
     filteredData.forEach(member => appendMemberCard(member));
 }
 
@@ -655,7 +655,7 @@ function appendMemberCard(m) {
         <button onclick="showLocalHistory('${m.id}')" class="mt-4 w-full py-2 rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 hover:bg-[#002366] hover:text-white transition-colors uppercase tracking-wide">
             View History
         </button>`;
-    
+
     window[`history_${m.id}`] = m.walletHistory;
     grid.appendChild(card);
 }
@@ -701,29 +701,40 @@ window.getMemberDataForAI = function(memberId) {
     return renderedMembersCache.find(m => m.id === memberId);
 };
 
-// 🔥 NEW: Build formatted summary of ALL members for AI System Prompt
-window.getMembersSummaryForAI = function() {
+// 🔥 NEW: Smart RAG System - Only send requested member data to save AI Tokens
+window.getMembersSummaryForAI = function(userQuery) {
     if (!renderedMembersCache || renderedMembersCache.length === 0) return '';
-    
+
     const fc = (n) => `₹${Math.floor(n).toLocaleString('en-IN')}`;
-    
+    const query = (userQuery || "").toLowerCase();
+
     let summary = `Total Members: ${renderedMembersCache.length}\n`;
     summary += `Community Total SIP: ${fc(communityStats.totalSip)}\n`;
     summary += `Community Total Profit Distributed: ${fc(communityStats.totalProfitDistributed)}\n`;
     summary += `Community Total Wallet Liability: ${fc(communityStats.totalWalletLiability)}\n`;
-    summary += `\n--- INDIVIDUAL MEMBER DATA ---\n`;
-    
-    // Sort by name for consistency
-    const sorted = [...renderedMembersCache].sort((a, b) => a.name.localeCompare(b.name));
-    
-    sorted.forEach((m, i) => {
-        summary += `\n${i + 1}. ${m.name}`;
-        summary += ` | SIP: ${fc(m.sip)}`;
-        summary += ` | Available Bal: ${fc(m.availBalance)}`;
-        summary += ` | Profit: ${fc(m.profit)}`;
-        summary += ` | Wallet: ${fc(m.walletBalance)}`;
-        summary += ` | Score: ${m.score?.toFixed(1) || '0'}/100`;
-    });
-    
+
+    // RAG Logic: Check if user asked for a specific member
+    const mentionedMembers = renderedMembersCache.filter(m => 
+        query.includes(m.name.toLowerCase().split(' ')[0]) || // Match first name
+        query.includes(m.name.toLowerCase()) // Match full name
+    );
+
+    if (mentionedMembers.length > 0) {
+        summary += `\n--- REQUESTED MEMBER DATA ---\n`;
+        mentionedMembers.forEach((m) => {
+            summary += `Name: ${m.name} | SIP: ${fc(m.sip)} | Available Bal: ${fc(m.availBalance)} | Profit: ${fc(m.profit)} | Wallet: ${fc(m.walletBalance)} | Score: ${m.score?.toFixed(1) || '0'}/100\n`;
+        });
+    } else if (query.includes('top') || query.includes('rank') || query.includes('sabka') || query.includes('score')) {
+        // If asking for top members ranking
+        summary += `\n--- TOP 5 MEMBERS (Score-wise) ---\n`;
+        const sorted = [...renderedMembersCache].sort((a, b) => b.score - a.score).slice(0, 5);
+        sorted.forEach((m, i) => {
+            summary += `${i + 1}. ${m.name} | Score: ${m.score?.toFixed(1) || '0'}/100 | Profit: ${fc(m.profit)}\n`;
+        });
+        summary += `(Note: Showing top 5 to save AI tokens.)`;
+    } else {
+        summary += `\n(Note: Individual member details hidden to save tokens. Ask for a specific name to get their details.)`;
+    }
+
     return summary;
 };
