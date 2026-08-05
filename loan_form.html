@@ -284,7 +284,9 @@
     let transactionsData = [];
     let currentMember = null;
     let currentMaxLimit = 0;
+    let currentMemberBalance = 0; // 🔥 NEW GLOBAL VARIABLE
 
+  
     // --- 1. INITIALIZE & FETCH DATA ---
     async function initApp() {
         try {
@@ -357,7 +359,7 @@
             document.getElementById('durationWrapper').classList.add('hidden');
             document.getElementById('withdrawalModeField').classList.remove('hidden');
             document.getElementById('generateBtn').innerHTML = `GENERATE WITHDRAWAL <i class="fas fa-file-export ml-2"></i>`;
-            checkDate();
+            if (currentMember) validateAmount(); // 🔥 Updated Logic
         }
         // Mode change hone par phir se validate karo
         if (currentMember) handleMemberChange();
@@ -394,6 +396,7 @@
         });
 
         const balance = calculatedBalance;
+        currentMemberBalance = balance; // 🔥 Balance ko yahan save kiya
         document.getElementById('displayWalletBalance').innerText = balance.toLocaleString('en-IN');
         
         // 1. Pehle KYC Validate karo (Ye Button Disable karega agar document missing hai)
@@ -477,15 +480,38 @@
         const mode = document.getElementById('appMode').value;
         const btn = document.getElementById('generateBtn');
         
-        // Sabse pehle check karo ki KYC fail to nahi hai?
-        // Agar KYC fail hai, to amount sahi hone par bhi button enable nahi hona chahiye.
+        // 1. KYC Check
         const kycFailed = document.getElementById('kycStatusContainer').innerHTML.includes('Missing');
         if (kycFailed) {
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
-            return; // Yahin ruk jao
+            return; 
         }
 
+        // 2. 🔥 NEW: Withdrawal Logic (23-30 June OR Balance >= 50000)
+        if (mode === 'withdrawal') {
+            const today = new Date(); 
+            const isJuneWindow = (today.getMonth() === 5) && (today.getDate() >= 23 && today.getDate() <= 30);
+            const isVipBalance = currentMemberBalance >= 50000;
+            
+            const banner = document.getElementById('dateBanner');
+            const bannerText = document.querySelector('#dateBanner .text-sm');
+
+            if (!isJuneWindow && !isVipBalance) {
+                // Not allowed
+                banner.classList.remove('hidden');
+                if(bannerText) bannerText.innerHTML = `Only allowed between <span class="font-bold">23rd - 30th June</span> OR for SIP Balance <span class="font-bold">₹50,000+</span>.`;
+                
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                return; // Yahin rok do, button disable hi rahega
+            } else {
+                // Allowed
+                banner.classList.add('hidden');
+            }
+        }
+
+        // 3. Amount Check
         if (amt > 0) {
             msg.classList.remove('hidden');
             if (amt > currentMaxLimit) {
@@ -496,13 +522,14 @@
             } else {
                 msg.innerText = "Amount is within limit.";
                 msg.className = "text-xs mt-1 font-semibold text-green-600";
-                // Button enable karo kyunki KYC pass hai aur Amount bhi limit me hai
                 btn.disabled = false; 
                 btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
             }
             if(mode === 'loan') populateDuration(amt);
         } else {
             msg.classList.add('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
     }
     
@@ -718,9 +745,6 @@
     }
 
     initApp();
-
 </script>
-
-
 </body>
 </html>
