@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Filters
         btnAll: document.getElementById('filter-all'),
         btnPersonal: document.getElementById('filter-personal'),
+        btnCollab: document.getElementById('filter-collab'),
         btnRecharge: document.getElementById('filter-recharge'),
 
         // Admin Modal Els
@@ -63,7 +64,7 @@ function setupFilters() {
         state.currentFilter = type;
 
         // Update Buttons Visual State
-        [state.els.btnAll, state.els.btnPersonal, state.els.btnRecharge].forEach(b => {
+        [state.els.btnAll, state.els.btnPersonal, state.els.btnCollab, state.els.btnRecharge].forEach(b => {
             if(b) b.classList.remove('active');
         });
         if(btn) btn.classList.add('active');
@@ -74,6 +75,7 @@ function setupFilters() {
 
     state.els.btnAll.onclick = () => setFilter('all', state.els.btnAll);
     state.els.btnPersonal.onclick = () => setFilter('personal', state.els.btnPersonal);
+    if(state.els.btnCollab) state.els.btnCollab.onclick = () => setFilter('collab', state.els.btnCollab);
     state.els.btnRecharge.onclick = () => setFilter('recharge', state.els.btnRecharge);
 
     // Setup Search Listener
@@ -173,7 +175,9 @@ function renderLoans() {
     // 1. Filter Data
     let filtered = state.activeLoans;
     if (state.currentFilter === 'personal') {
-        filtered = filtered.filter(l => l.loanType === 'Personal Loan' || parseFloat(l.amount) >= 10000);
+        filtered = filtered.filter(l => (l.loanType === 'Personal Loan' || parseFloat(l.amount) >= 10000) && !l.isCollab && l.loanType !== 'Collab Loan');
+    } else if (state.currentFilter === 'collab') {
+        filtered = filtered.filter(l => l.isCollab || l.loanType === 'Collab Loan');
     } else if (state.currentFilter === 'recharge') {
         filtered = filtered.filter(l => l.loanType === 'Recharge' || l.loanType === '10 Days Credit');
     }
@@ -857,8 +861,15 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
     // 3. TCF System Logo
     const tcfLogo = 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg';
 
-    // Formatting Data
+    // Formatting Data (Missing variables added back to fix crash)
     const formattedAmt = amount.toLocaleString('en-IN');
+    const formattedEmi = emi ? `₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : 'N/A';
+
+    // Custom Interest Display
+    let interestText = '0.5%'; // Default Late fee or interest
+    if (loan.interestDetails && loan.interestDetails.customRatePercent) {
+        interestText = `${loan.interestDetails.customRatePercent}%`;
+    }
 
     return `
     <div class="premium-card-wrapper card-collab" id="${loanId}">
@@ -899,7 +910,7 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
 
             <div class="collab-connector"><i data-feather="arrow-right"></i></div>
 
-                   <!-- 3. Borrower / Receiver (Right) -->
+            <!-- 3. Borrower / Receiver (Right) -->
             <div class="collab-person">
                 <div class="collab-person-tag" style="background:#B45309;">RECEIVER</div>
                 <img src="${borrowerPic}" class="collab-avatar" crossorigin="anonymous">
@@ -907,7 +918,7 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
             </div>
         </div>
 
-        <!-- 🔥 STATS GRID (वापस आ गया) 🔥 -->
+        <!-- 🔥 STATS GRID 🔥 -->
         <div class="collab-stats-grid">
             <div class="collab-stat-item">
                 <i data-feather="pie-chart"></i>
@@ -944,6 +955,7 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
         </div>
     </div>`;
 }
+
 
 
 function fillDropdown() {
