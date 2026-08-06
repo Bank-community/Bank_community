@@ -331,7 +331,8 @@ function getEmiTrackerHTML(loan, tenureMonths) {
     let today = new Date();
 
     // 🔥 NEW LOGIC: 1 to 3 Months Personal Loan (Single Progress Bar)
-    if (totalBoxes <= 3 && loan.loanType !== 'Recharge' && loan.loanType !== '10 Days Credit') {
+    // Collab Loan को इस प्रोग्रेस बार से बाहर रखा गया है ताकि उसमें हमेशा डब्बे (Boxes) दिखें
+    if (totalBoxes <= 3 && loan.loanType !== 'Recharge' && loan.loanType !== '10 Days Credit' && loan.loanType !== 'Collab Loan' && !loan.isCollab) {
         let dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + totalBoxes, startDate.getDate());
 
         let totalDays = (dueDate - startDate) / (1000 * 60 * 60 * 24);
@@ -858,13 +859,6 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
 
     // Formatting Data
     const formattedAmt = amount.toLocaleString('en-IN');
-    const formattedEmi = emi ? `₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : 'N/A';
-
-    // Custom Interest Display
-    let interestText = '0.5%'; // Default Late fee or interest
-    if (loan.interestDetails && loan.interestDetails.customRatePercent) {
-        interestText = `${loan.interestDetails.customRatePercent}%`;
-    }
 
     return `
     <div class="premium-card-wrapper card-collab" id="${loanId}">
@@ -892,7 +886,6 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
                 <div class="collab-person-tag" style="background:#0F172A;">TCF SYSTEM</div>
                 <img src="${tcfLogo}" class="collab-avatar" style="border-color:#0F172A;" crossorigin="anonymous">
                 <div class="collab-name">TCF System</div>
-                <div class="collab-role-bottom" style="color:#0F172A; background:rgba(15,23,42,0.1);"><i data-feather="shield"></i> ECOSYSTEM</div>
             </div>
 
             <div class="collab-connector">🤝</div>
@@ -902,7 +895,6 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
                 <div class="collab-person-tag">PROVIDER</div>
                 <img src="${lenderPic}" class="collab-avatar" crossorigin="anonymous">
                 <div class="collab-name">${lenderName}</div>
-                <div class="collab-role-bottom"><i data-feather="user"></i> LOAN PROVIDER</div>
             </div>
 
             <div class="collab-connector"><i data-feather="arrow-right"></i></div>
@@ -912,43 +904,23 @@ function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
                 <div class="collab-person-tag" style="background:#B45309;">RECEIVER</div>
                 <img src="${borrowerPic}" class="collab-avatar" crossorigin="anonymous">
                 <div class="collab-name">${borrowerName}</div>
-                <div class="collab-role-bottom"><i data-feather="user"></i> LOAN RECEIVER</div>
             </div>
         </div>
 
-        <div class="collab-stats-grid">
-            <div class="collab-stat-item">
-                <i data-feather="pie-chart"></i>
-                <div class="collab-stat-lbl">EMI AMOUNT</div>
-                <div class="collab-stat-val">${formattedEmi}</div>
-            </div>
-            <div class="collab-stat-item">
-                <i data-feather="calendar"></i>
-                <div class="collab-stat-lbl">EMI DATE</div>
-                <div class="collab-stat-val">1st - 10th</div>
-            </div>
-            <div class="collab-stat-item">
-                <i data-feather="percent"></i>
-                <div class="collab-stat-lbl">RATE / LATE FEE</div>
-                <div class="collab-stat-val">${interestText}</div>
-            </div>
-            <div class="collab-stat-item">
-                <i data-feather="shield"></i>
-                <div class="collab-stat-lbl">SECURED BY</div>
-                <div class="collab-stat-val">TCF TRUST</div>
-            </div>
-        </div>
-
-        <!-- Push download button to absolute bottom right corner so it doesnt disturb layout -->
-        <div class="pc-download" onclick="window.dlCard('${loanId}')" style="position: absolute; bottom: 30px; right: 10px; width: 24px; height: 24px; border-color:#D97706; color:#D97706; background: rgba(255,255,255,0.8); z-index: 10;">
+        <!-- Download Icon -->
+        <div class="pc-download" onclick="window.dlCard('${loanId}')" style="position: absolute; bottom: 35px; right: 10px; width: 24px; height: 24px; border-color:#D97706; color:#D97706; background: rgba(255,255,255,0.8); z-index: 10;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         </div>
+
+        <!-- डब्बों वाला EMI ट्रैकर (1 से 12 महीने के लिए) -->
+        ${getEmiTrackerHTML(loan, parsedTenure)}
 
         <div class="collab-footer-bar">
             <i data-feather="lock" style="width:8px; height:8px;"></i> COLLABORATION BUILDS TRUST, TRUST BUILDS COMMUNITY
         </div>
     </div>`;
 }
+
 
 function fillDropdown() {
     state.els.mSelect.innerHTML = '<option value="">-- Select --</option>';
