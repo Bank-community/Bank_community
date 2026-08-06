@@ -227,7 +227,12 @@ function renderLoans() {
 
         // Card Type Selection
         let cardHTML = '';
-        if (l.loanType === '10 Days Credit') {
+
+        // 🔥 NEW: Check for Collab Loan First
+        if (l.isCollab || l.loanType === 'Collab Loan') {
+            cardHTML = getCollabCardHTML(l, amount, dateStr, tenureMonths, emiAmount);
+        }
+        else if (l.loanType === '10 Days Credit') {
             cardHTML = getStandardCardHTML(l, amount, dateStr, daysActive, providerOrProduct, emiAmount);
         }
         else if (l.loanType === 'Recharge') {
@@ -832,6 +837,117 @@ function setupAdminModal() {
         let providerInfo = (typeKey === 'recharge') ? state.els.provSelect.value : '';
         state.els.genResult.innerHTML = getStandardCardHTML(mockLoan, amt, dateStr, 1, providerInfo, null);
     };
+}
+
+// --- 🔥 NEW: COLLAB CARD GENERATOR 🔥 ---
+function getCollabCardHTML(loan, amount, dateStr, tenureMonths, emi) {
+    const loanId = `card-${loan.loanId}`;
+    const parsedTenure = parseInt(tenureMonths) || 1;
+
+    // 1. Borrower Details
+    const borrowerPic = loan.pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.memberName)}`;
+    const borrowerName = loan.memberName || 'Unknown';
+
+    // 2. Lender Details (Fetching from global state using lenderId)
+    const lender = state.members[loan.lenderId] || {};
+    const lenderPic = lender.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.lenderName || 'Lender')}`;
+    const lenderName = loan.lenderName || lender.fullName || 'Lender';
+
+    // 3. TCF System Logo
+    const tcfLogo = 'https://ik.imagekit.io/kdtvm0r78/IMG-20251202-WA0000.jpg';
+
+    // Formatting Data
+    const formattedAmt = amount.toLocaleString('en-IN');
+    const formattedEmi = emi ? `₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : 'N/A';
+
+    // Custom Interest Display
+    let interestText = '0.5%'; // Default Late fee or interest
+    if (loan.interestDetails && loan.interestDetails.customRatePercent) {
+        interestText = `${loan.interestDetails.customRatePercent}%`;
+    }
+
+    return `
+    <div class="premium-card-wrapper card-collab" id="${loanId}">
+        <div class="collab-top-badge">COLLAB CARD</div>
+
+        <div class="collab-header-flex">
+            <div class="collab-side-info">
+                <i data-feather="calendar"></i><br>${dateStr}
+            </div>
+
+            <div class="collab-main-amt-box">
+                <div class="collab-pill">PERSONAL LOAN COLLAB</div>
+                <div class="collab-amt">₹${formattedAmt}</div>
+                <div class="collab-amt-lbl">TOTAL LOAN AMOUNT</div>
+            </div>
+
+            <div class="collab-side-info right">
+                <i data-feather="clock"></i><br>${parsedTenure} MONTHS
+            </div>
+        </div>
+
+        <div class="collab-network">
+            <!-- 1. TCF System (Left) -->
+            <div class="collab-person">
+                <div class="collab-person-tag" style="background:#0F172A;">TCF SYSTEM</div>
+                <img src="${tcfLogo}" class="collab-avatar" style="border-color:#0F172A;" crossorigin="anonymous">
+                <div class="collab-name">TCF System</div>
+                <div class="collab-role-bottom" style="color:#0F172A; background:rgba(15,23,42,0.1);"><i data-feather="shield"></i> ECOSYSTEM</div>
+            </div>
+
+            <div class="collab-connector">🤝</div>
+
+            <!-- 2. Lender / Provider (Middle) -->
+            <div class="collab-person">
+                <div class="collab-person-tag">PROVIDER</div>
+                <img src="${lenderPic}" class="collab-avatar" crossorigin="anonymous">
+                <div class="collab-name">${lenderName}</div>
+                <div class="collab-role-bottom"><i data-feather="user"></i> LOAN PROVIDER</div>
+            </div>
+
+            <div class="collab-connector"><i data-feather="arrow-right"></i></div>
+
+            <!-- 3. Borrower / Receiver (Right) -->
+            <div class="collab-person">
+                <div class="collab-person-tag" style="background:#B45309;">RECEIVER</div>
+                <img src="${borrowerPic}" class="collab-avatar" crossorigin="anonymous">
+                <div class="collab-name">${borrowerName}</div>
+                <div class="collab-role-bottom"><i data-feather="user"></i> LOAN RECEIVER</div>
+            </div>
+        </div>
+
+        <div class="collab-stats-grid">
+            <div class="collab-stat-item">
+                <i data-feather="pie-chart"></i>
+                <div class="collab-stat-lbl">EMI AMOUNT</div>
+                <div class="collab-stat-val">${formattedEmi}</div>
+            </div>
+            <div class="collab-stat-item">
+                <i data-feather="calendar"></i>
+                <div class="collab-stat-lbl">EMI DATE</div>
+                <div class="collab-stat-val">1st - 10th</div>
+            </div>
+            <div class="collab-stat-item">
+                <i data-feather="percent"></i>
+                <div class="collab-stat-lbl">RATE / LATE FEE</div>
+                <div class="collab-stat-val">${interestText}</div>
+            </div>
+            <div class="collab-stat-item">
+                <i data-feather="shield"></i>
+                <div class="collab-stat-lbl">SECURED BY</div>
+                <div class="collab-stat-val">TCF TRUST</div>
+            </div>
+        </div>
+
+        <!-- Push download button to absolute bottom right corner so it doesnt disturb layout -->
+        <div class="pc-download" onclick="window.dlCard('${loanId}')" style="position: absolute; bottom: 30px; right: 10px; width: 24px; height: 24px; border-color:#D97706; color:#D97706; background: rgba(255,255,255,0.8); z-index: 10;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </div>
+
+        <div class="collab-footer-bar">
+            <i data-feather="lock" style="width:8px; height:8px;"></i> COLLABORATION BUILDS TRUST, TRUST BUILDS COMMUNITY
+        </div>
+    </div>`;
 }
 
 function fillDropdown() {
