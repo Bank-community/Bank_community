@@ -1,54 +1,54 @@
-// firebase-messaging-sw.js
-importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
-// 1. Apna Firebase Config Yahan Dalein
-const firebaseConfig = {
-  apiKey: "AIzaSy...", // Yahan apni asli API Key dalein
-  authDomain: "bank-master-data.firebaseapp.com",
-  projectId: "bank-master-data",
-  storageBucket: "bank-master-data.appspot.com",
-  messagingSenderId: "111932878263", // Ye aapke JSON me 'client_id' nahi, balki Sender ID hota hai (Settings me milega)
-  appId: "1:111932878263:web:..."
-};
+// 1. Vercel API se secure config fetch karein
+fetch('/api/firebase-config')
+    .then(response => response.json())
+    .then(config => {
+        // API se config milne ke baad Firebase Initialize karein
+        firebase.initializeApp(config);
+        const messaging = firebase.messaging();
 
-// 2. Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+        // 2. Background mein message aane par notification show karein
+        messaging.onBackgroundMessage(function(payload) {
+            console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-// 3. Background Message Handler
-const messaging = firebase.messaging();
+            const notificationTitle = payload.notification.title;
+            const notificationOptions = {
+                body: payload.notification.body,
+                icon: 'https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg', // TCF Bank Logo
+                data: {
+                    // Click karne par konsa URL khulega
+                    url: payload.data?.url || payload.fcmOptions?.link || 'https://www.trustcf.sbs/notifications.html'
+                }
+            };
 
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
-  // Notification ka Design
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: payload.notification.icon || '/icon.png', // Apna icon path dalein
-    image: payload.notification.image,
-    data: {
-        url: payload.data.url // Link click karne par kahan jana hai
-    }
-  };
+            // Screen par notification show karein
+            self.registration.showNotification(notificationTitle, notificationOptions);
+        });
+    })
+    .catch(error => {
+        console.error('Failed to load Firebase config in Service Worker:', error);
+    });
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-// 4. Click Listener (Notification par click karne par kya hoga)
+// 3. Jab koi notification par click kare, toh app open ho
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
-    // Jo URL notification me aaya tha wahan le jao
-    const urlToOpen = event.notification.data.url || '/';
-    
+    const urlToOpen = event.notification.data?.url || 'https://www.trustcf.sbs/notifications.html';
+
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-            // Agar tab khula hai to focus karo
-            for (let client of windowClients) {
-                if (client.url === urlToOpen && 'focus' in client) return client.focus();
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Agar pehle se koi tab open hai, toh us par focus karo
+            for (let i = 0; i < windowClients.length; i++) {
+                const client = windowClients[i];
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus();
+                }
             }
-            // Nahi to naya kholo
-            if (clients.openWindow) return clients.openWindow(urlToOpen);
+            // Agar koi tab open nahi hai, toh naya window/tab kholo
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
         })
     );
 });
