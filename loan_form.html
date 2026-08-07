@@ -124,7 +124,22 @@
                 <p id="limit-msg" class="text-xs mt-1 hidden font-semibold"></p>
             </div>
 
-            <div id="durationWrapper">
+            <!-- NEW: Repayment Type Section -->
+            <div id="repaymentTypeWrapper" class="hidden mt-2">
+                <label class="text-sm font-semibold text-gray-700">Loan Repayment Type</label>
+                <div class="flex gap-4 mt-1 p-3 bg-gray-50 border rounded-lg">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="repaymentType" value="EMI" class="w-4 h-4 text-brand-teal focus:ring-brand-teal" checked onchange="if(document.getElementById('amount').value) populateDuration(parseFloat(document.getElementById('amount').value))">
+                        <span class="text-sm font-semibold text-gray-700">EMI Loan</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="repaymentType" value="Fixed" class="w-4 h-4 text-brand-teal focus:ring-brand-teal" onchange="if(document.getElementById('amount').value) populateDuration(parseFloat(document.getElementById('amount').value))">
+                        <span class="text-sm font-semibold text-gray-700">Fixed Time Loan</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="durationWrapper" class="mt-2">
                 <label class="text-sm font-semibold text-gray-700">Tenure & Interest</label>
                 <select id="durationRateSelect" class="w-full p-3 border rounded-lg bg-gray-50 mt-1">
                    <option value="" disabled selected>Enter amount first...</option>
@@ -525,7 +540,15 @@
                 btn.disabled = false; 
                 btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
             }
-            if(mode === 'loan') populateDuration(amt);
+            
+            if (mode === 'loan') {
+                const repWrap = document.getElementById('repaymentTypeWrapper');
+                if (repWrap) {
+                    if (amt < 25000) repWrap.classList.remove('hidden');
+                    else repWrap.classList.add('hidden');
+                }
+                populateDuration(amt);
+            }
         } else {
             msg.classList.add('hidden');
             btn.disabled = true;
@@ -540,12 +563,21 @@
         sel.innerHTML = '';
         let opts = [];
         
+        const repTypeEl = document.querySelector('input[name="repaymentType"]:checked');
+        const repType = repTypeEl ? repTypeEl.value : 'EMI';
+        
         if (amt < 25000) {
-            opts.push({val: '1-1.0', txt: '1 Month (1% Total)'});
-            opts.push({val: '2-1.5', txt: '2 Months (3% Total)'}); 
-            opts.push({val: '3-1.666666667', txt: '3 Months (5% Total)'});
-            for(let i = 4; i <= 12; i++) {
-                opts.push({val: `${i}-1.0`, txt: `${i} Months (1% Monthly)`});
+            if (repType === 'Fixed') {
+                opts.push({val: '1-1.0', txt: '1 Month (1% Fixed Total)'});
+                opts.push({val: '2-1.5', txt: '2 Months (3% Fixed Total)'}); 
+                opts.push({val: '3-1.666666667', txt: '3 Months (5% Fixed Total)'});
+                opts.push({val: '4-1.625', txt: '4 Months (6.5% Fixed Total)'});
+                opts.push({val: '5-1.7', txt: '5 Months (8.5% Fixed Total)'});
+                opts.push({val: '6-1.75', txt: '6 Months (10.5% Fixed Total)'});
+            } else {
+                for (let i = 1; i <= 12; i++) {
+                    opts.push({val: `${i}-1.0`, txt: `${i} Month${i>1?'s':''} (${i}% Total / 1% Monthly)`});
+                }
             }
         } else {
             opts.push({val: '6-0.7', txt: '6 Months (0.7% Monthly)'});
@@ -651,15 +683,38 @@
             const mRate = parseFloat(rate);
             const mCount = parseInt(months);
             
+            const repTypeEl = document.querySelector('input[name="repaymentType"]:checked');
+            const repType = repTypeEl ? repTypeEl.value : 'EMI';
+            
             const interest = amt * (mRate/100) * mCount;
             const total = amt + interest;
-            const emi = Math.ceil(total / mCount);
+            
+            let emiDisplay = '';
+            let rateDisplay = '';
+            
+            if (amt < 25000 && repType === 'Fixed') {
+                emiDisplay = 'One-time Pay';
+                rateDisplay = `${(mRate * mCount).toFixed(1)}% Fixed Total`;
+            } else if (amt >= 25000) {
+                emiDisplay = `₹${Math.ceil(total / mCount)}`;
+                rateDisplay = `0.7% Monthly`;
+            } else {
+                emiDisplay = `₹${Math.ceil(total / mCount)}`;
+                rateDisplay = `1% Monthly`;
+            }
             
             const endDate = new Date();
             endDate.setMonth(endDate.getMonth() + mCount);
             
-            document.getElementById('displayRate').innerText = `${mRate.toFixed(1)}% Monthly (${mCount} Months)`;
-            document.getElementById('displayEMI').innerText = emi.toFixed(0);
+            document.getElementById('displayRate').innerText = `${rateDisplay} (${mCount} Months)`;
+            
+            const emiParent = document.getElementById('displayEMI').parentNode;
+            if (emiDisplay === 'One-time Pay') {
+                emiParent.innerHTML = '<span id="displayEMI" class="text-brand-teal font-bold text-sm">One-time Pay</span>';
+            } else {
+                emiParent.innerHTML = '₹<span id="displayEMI">' + Math.ceil(total / mCount) + '</span>';
+            }
+            
             document.getElementById('displayTotal').innerText = total.toFixed(0);
             document.getElementById('repaymentDate').innerText = endDate.toLocaleDateString('en-GB');
 
@@ -745,6 +800,9 @@
     }
 
     initApp();
+
 </script>
+
+
 </body>
 </html>
