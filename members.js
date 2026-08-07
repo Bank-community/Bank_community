@@ -206,7 +206,7 @@ function initUI() {
     // Auto Adjust Padding
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 40) + 'px'; // Space reduced from 160 to 40
+        document.body.style.paddingTop = (headerHeight + 110) + 'px'; // Space increased to push filters down
     }, 500);
 }
 
@@ -234,7 +234,7 @@ function updateView() {
 
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 40) + 'px'; // Space reduced from 160 to 40
+        document.body.style.paddingTop = (headerHeight + 110) + 'px'; // Space increased to push filters down
     }, 100);
 }
 
@@ -384,17 +384,17 @@ function getProcessedData(memberId, type) {
             runningBalance -= amt;
         }
         else if (tx.type === 'P2P Sent') {
-            desc = `P2P Transfer to ${tx.receiverName || 'Member'}`;
+            desc = `P2P Transfer to<br><strong style="color:var(--primary-color)">${tx.receiverName || 'Member'}</strong>`;
             debit = amt;
             runningBalance -= amt;
         }
         else if (tx.type === 'P2P Received') {
-            desc = `P2P Received from ${tx.senderName || 'Member'}`;
+            desc = `P2P Received from<br><strong style="color:var(--success-color)">${tx.senderName || 'Member'}</strong>`;
             principal = amt;
             runningBalance += amt;
         }
         else if (tx.type === 'Loan Taken') {
-            desc = `Loan Disbursed (${tx.loanType || 'Personal'})`;
+            desc = `Loan Disbursed<br><small>(${tx.loanType || 'Personal'})</small>`;
             debit = amt;
             runningBalance -= amt;
         }
@@ -411,6 +411,8 @@ function getProcessedData(memberId, type) {
         if (!isRelevant) return null;
         if (type === 'sip' && tx.type !== 'SIP') return null;
         if (type === 'sip_withdrawal' && tx.type !== 'SIP Withdrawal') return null;
+        if (type === 'p2p_sent' && tx.type !== 'P2P Sent') return null;
+        if (type === 'p2p_received' && tx.type !== 'P2P Received') return null;
         if (type === 'loan' && tx.type !== 'Loan Taken') return null;
         if (type === 'payment' && tx.type !== 'Loan Payment') return null;
 
@@ -422,7 +424,7 @@ function getProcessedData(memberId, type) {
         let finalDesc = desc;
         if (memberId === 'all') {
              const mName = allMembers[tx.memberId]?.fullName.split(' ')[0] || 'Unknown';
-             finalDesc = `${desc} - ${mName}`;
+             finalDesc = `${desc}<br><strong style="color:#555;">[ ${mName} ]</strong>`;
         }
 
         return {
