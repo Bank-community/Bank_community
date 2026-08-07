@@ -206,7 +206,7 @@ function initUI() {
     // Auto Adjust Padding
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 110) + 'px'; // Space increased to push filters down
+        document.body.style.paddingTop = (headerHeight + 100) + 'px'; // Space adjusted for perfect fit
     }, 500);
 }
 
@@ -234,7 +234,7 @@ function updateView() {
 
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 110) + 'px'; // Space increased to push filters down
+        document.body.style.paddingTop = (headerHeight + 100) + 'px'; // Space adjusted for perfect fit
     }, 100);
 }
 
@@ -383,18 +383,18 @@ function getProcessedData(memberId, type) {
             debit = amt;
             runningBalance -= amt;
         }
-        else if (tx.type === 'P2P Sent') {
-            desc = `P2P Transfer to<br><strong style="color:var(--primary-color)">${tx.receiverName || 'Member'}</strong>`;
+                else if (tx.type === 'P2P Sent') {
+            desc = `P2P Transfer to ${tx.receiverName || 'Member'}`;
             debit = amt;
             runningBalance -= amt;
         }
         else if (tx.type === 'P2P Received') {
-            desc = `P2P Received from<br><strong style="color:var(--success-color)">${tx.senderName || 'Member'}</strong>`;
+            desc = `P2P Received from ${tx.senderName || 'Member'}`;
             principal = amt;
             runningBalance += amt;
         }
         else if (tx.type === 'Loan Taken') {
-            desc = `Loan Disbursed<br><small>(${tx.loanType || 'Personal'})</small>`;
+            desc = `Loan Disbursed (${tx.loanType || 'Personal'})`;
             debit = amt;
             runningBalance -= amt;
         }
@@ -424,8 +424,9 @@ function getProcessedData(memberId, type) {
         let finalDesc = desc;
         if (memberId === 'all') {
              const mName = allMembers[tx.memberId]?.fullName.split(' ')[0] || 'Unknown';
-             finalDesc = `${desc}<br><strong style="color:#555;">[ ${mName} ]</strong>`;
+             finalDesc = `${desc} - ${mName}`;
         }
+
 
         return {
             date: tx.dateObj.toLocaleDateString('en-GB'),
