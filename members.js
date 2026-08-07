@@ -206,7 +206,7 @@ function initUI() {
     // Auto Adjust Padding
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 100) + 'px'; // Space adjusted for perfect fit
+        document.body.style.paddingTop = (headerHeight + 40) + 'px'; // Space adjusted since header is removed
     }, 500);
 }
 
@@ -234,7 +234,7 @@ function updateView() {
 
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 100) + 'px'; // Space adjusted for perfect fit
+        document.body.style.paddingTop = (headerHeight + 40) + 'px'; // Space adjusted since header is removed
     }, 100);
 }
 
