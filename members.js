@@ -10,7 +10,7 @@ const DEFAULT_IMG = 'https://i.ibb.co/HTNrbJxD/20250716-222246.png';
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
     initializeApp();
-    
+
     const pdfBtn = document.getElementById('downloadPdfBtn');
     if(pdfBtn) {
         pdfBtn.addEventListener('click', generateSmartPDF);
@@ -118,9 +118,9 @@ function calculateMonthsDifference(startDateStr) {
 function initUI() {
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('dashboardContent').classList.remove('hidden');
-    
+
     populateMemberDropdown();
-    
+
     document.getElementById('memberFilter').addEventListener('change', updateView);
     document.getElementById('typeFilter').addEventListener('change', updateView);
 
@@ -129,20 +129,20 @@ function initUI() {
         const memberId = document.getElementById('memberFilter').value;
         const modalList = document.getElementById('sipStatusList');
         const modalTitle = document.querySelector('#sipStatusModal h2');
-        
+
         if (memberId === 'all') {
             modalTitle.textContent = "Community Info";
             modalList.innerHTML = "<p style='text-align:center; padding: 20px; color:#666;'>Please select a specific member from the dropdown to view their detailed SIP status.</p>";
         } else {
             const member = Object.values(allMembers).find(m => m.membershipId === memberId);
             if(!member) return;
-            
+
             modalTitle.textContent = `${member.fullName.split(' ')[0]}'s SIP Status`;
             const months = calculateMonthsDifference(member.joiningDate);
-            
+
             const myTxns = allTransactions.filter(t => t.memberId === memberId);
             let totalSip = 0, totalWithdrawn = 0, exactNetBalance = 0;
-            
+
             // Dashboard Net Balance Calculation Formula
             myTxns.forEach(t => {
                 const amt = parseFloat(t.amount || 0);
@@ -161,11 +161,11 @@ function initUI() {
                     exactNetBalance += parseFloat(t.principalPaid || 0); 
                 }
             });
-            
+
             // Getting active loan due for clear display in popup
             const myLoans = allActiveLoans.filter(l => l.memberId === memberId && l.status === 'Active');
             const totalLoanDue = myLoans.reduce((sum, l) => sum + parseFloat(l.outstandingAmount||0), 0);
-            
+
             modalList.innerHTML = `
                 <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 10px; font-size: 0.95em;">
                     <div style="display:flex; justify-content:space-between; margin-bottom: 10px;">
@@ -202,18 +202,18 @@ function initUI() {
     });
 
     updateView();
-    
+
     // Auto Adjust Padding
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 160) + 'px';
+        document.body.style.paddingTop = (headerHeight + 40) + 'px'; // Space reduced from 160 to 40
     }, 500);
 }
 
 function populateMemberDropdown() {
     const select = document.getElementById('memberFilter');
     select.innerHTML = '<option value="all">All Members (Community View)</option>';
-    
+
     Object.values(allMembers)
         .filter(m => m.status === 'Approved')
         .sort((a, b) => a.fullName.localeCompare(b.fullName))
@@ -231,10 +231,10 @@ function updateView() {
 
     updateProfileCard(memberId);
     renderTable(memberId, filterType);
-    
+
     setTimeout(() => {
         const headerHeight = document.getElementById('profileSection').offsetHeight;
-        document.body.style.paddingTop = (headerHeight + 160) + 'px';
+        document.body.style.paddingTop = (headerHeight + 40) + 'px'; // Space reduced from 160 to 40
     }, 100);
 }
 
@@ -253,7 +253,7 @@ function updateProfileCard(memberId) {
     if (memberId === 'all') {
         els.name.textContent = "Community Overview";
         els.pic.innerHTML = `<img src="${DEFAULT_IMG}" style="border-color:var(--accent-gold)">`;
-        
+
         const stats = calculateGlobalStats();
         els.sip.textContent = formatMoney(stats.totalSip);
         els.loan.textContent = formatMoney(stats.totalLoanGiven);
@@ -272,7 +272,7 @@ function updateProfileCard(memberId) {
 
         const myTxns = allTransactions.filter(t => t.memberId === memberId);
         let sip = 0, loanTaken = 0, intPaid = 0, netBal = 0;
-        
+
         myTxns.forEach(t => {
             const amt = parseFloat(t.amount || 0);
             if(t.type === 'SIP') { 
@@ -316,7 +316,7 @@ function renderTable(memberId, type) {
     const tbody = document.querySelector('#dataTable tbody');
     const tfoot = document.querySelector('#dataTable tfoot');
     tbody.innerHTML = '';
-    
+
     // Use the logic to get data arrays
     const { rows, totals } = getProcessedData(memberId, type);
 
@@ -361,7 +361,7 @@ function getProcessedData(memberId, type) {
     if (memberId !== 'all') {
         data = data.filter(t => t.memberId === memberId);
     }
-    
+
     // Sort Oldest to Newest for math
     data.sort((a, b) => a.dateObj - b.dateObj);
 
@@ -410,6 +410,7 @@ function getProcessedData(memberId, type) {
 
         if (!isRelevant) return null;
         if (type === 'sip' && tx.type !== 'SIP') return null;
+        if (type === 'sip_withdrawal' && tx.type !== 'SIP Withdrawal') return null;
         if (type === 'loan' && tx.type !== 'Loan Taken') return null;
         if (type === 'payment' && tx.type !== 'Loan Payment') return null;
 
@@ -444,19 +445,19 @@ async function generateSmartPDF() {
     const doc = new jsPDF();
     const memberId = document.getElementById('memberFilter').value;
     const isCommunity = memberId === 'all';
-    
+
     // --- 🔒 PASSWORD LOGIC FOR ALL MEMBERS ---
     if (isCommunity) {
         const now = new Date();
         const dd = String(now.getDate()).padStart(2, '0');
         const mm = String(now.getMonth() + 1).padStart(2, '0'); // Jan is 0
         const yy = String(now.getFullYear()).slice(-2);
-        
+
         const todayPass = `${dd}${mm}${yy}`; // Example: 280226
-        
+
         // ⚡ CHANGE 1: Hint Removed
         const userPass = prompt(`🔒 Protected File\nThis file is password protected.\nEnter Today's Date (DDMMYY) to Download:`);
-        
+
         if (userPass !== todayPass) {
             alert("❌ Incorrect Password! Download Cancelled.");
             return;
@@ -472,17 +473,17 @@ async function generateSmartPDF() {
     // === A. HEADER SECTION ===
     doc.setFillColor(...colPrimary);
     doc.rect(0, 0, 210, 40, 'F');
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("TRUST COMMUNITY FUND", 105, 18, null, null, "center");
-    
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...colGold);
     doc.text(isCommunity ? "OFFICIAL COMMUNITY LEDGER" : "MEMBER ACCOUNT STATEMENT", 105, 26, null, null, "center");
-    
+
     doc.setTextColor(200, 200, 200);
     doc.text(`Generated On: ${new Date().toLocaleString('en-GB')}`, 105, 34, null, null, "center");
 
@@ -493,7 +494,7 @@ async function generateSmartPDF() {
         const member = Object.values(allMembers).find(m => m.membershipId === memberId);
         const name = member.fullName;
         const joinDate = new Date(member.joiningDate || Date.now()).toLocaleDateString('en-GB');
-        
+
         // Grab values from DOM for consistency
         const domSip = document.getElementById('totalSipValue').innerText;
         const domLoan = document.getElementById('totalLoanValue').innerText;
@@ -506,7 +507,7 @@ async function generateSmartPDF() {
         doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
         doc.text(name, 14, 55);
-        
+
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(100);
@@ -530,10 +531,10 @@ async function generateSmartPDF() {
             doc.setDrawColor(200);
             doc.setFillColor(252, 252, 252);
             doc.roundedRect(x, statsY, boxW, boxH, 2, 2, 'FD');
-            
+
             doc.setFontSize(7); doc.setTextColor(100);
             doc.text(s.label, x + (boxW/2), statsY + 5, null, null, "center");
-            
+
             doc.setFontSize(9); doc.setFont("helvetica", "bold");
             doc.setTextColor(...s.col);
             doc.text(s.val, x + (boxW/2), statsY + 12, null, null, "center");
@@ -544,7 +545,7 @@ async function generateSmartPDF() {
 
     // === C. THE TABLE (WITH FOOTER TOTALS) ===
     const { rows, totals } = getProcessedData(memberId, document.getElementById('typeFilter').value);
-    
+
     const tableData = rows.reverse().map(r => [
         r.date,
         r.desc,
@@ -610,7 +611,7 @@ async function generateSmartPDF() {
         doc.text("CURRENT COMMUNITY FUND STATUS", 105, finalY + 7, null, null, "center");
 
         const yRow = finalY + 25;
-        
+
         doc.setTextColor(100); doc.setFontSize(9);
         doc.text("Total SIP Fund", 40, yRow, null, null, "center");
         doc.setTextColor(...colPrimary); doc.setFontSize(12); doc.setFont("helvetica", "bold");
@@ -635,7 +636,7 @@ async function generateSmartPDF() {
 // --- Utilities ---
 function calculateGlobalStats() {
     let totalSip = 0, totalLoanGiven = 0, totalRepay = 0, totalInterest = 0;
-    
+
     allTransactions.forEach(t => {
         const amt = parseFloat(t.amount || 0);
         if(t.type === 'SIP') totalSip += amt;
