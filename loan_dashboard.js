@@ -330,13 +330,23 @@ function getEmiTrackerHTML(loan, tenureMonths) {
     }
     let paidCount = loanTxns.length;
 
-    let startDate = new Date(loan.loanDate);
+        let startDate = new Date(loan.loanDate);
     if (isNaN(startDate.getTime())) startDate = new Date();
     let today = new Date();
 
-    // 🔥 NEW LOGIC: 1 to 3 Months Personal Loan (Single Progress Bar)
-    // Collab Loan को इस प्रोग्रेस बार से बाहर रखा गया है ताकि उसमें हमेशा डब्बे (Boxes) दिखें
-    if (totalBoxes <= 3 && loan.loanType !== 'Recharge' && loan.loanType !== '10 Days Credit' && loan.loanType !== 'Collab Loan' && !loan.isCollab) {
+    // 🔥 DYNAMIC LOGIC: Fixed Time Loan vs EMI Loan (Boxes vs Single Bar)
+    let isFixedLoan = false;
+    if (loan.loanRepaymentType === 'Fixed' || (loan.interestDetails && loan.interestDetails.type === 'Fixed Time Loan')) {
+        isFixedLoan = true;
+    } else if (loan.loanRepaymentType === 'EMI' || (loan.interestDetails && (loan.interestDetails.type === 'EMI Flat' || loan.interestDetails.type === 'EMI (0.7% / month)'))) {
+        isFixedLoan = false;
+    } else {
+        isFixedLoan = (totalBoxes <= 3); // Legacy fallback (Purane 1-3 month loans ke liye)
+    }
+
+    const isStandardPersonal = loan.loanType !== 'Recharge' && loan.loanType !== '10 Days Credit' && loan.loanType !== 'Collab Loan' && !loan.isCollab;
+
+    if (isStandardPersonal && isFixedLoan) {
         let dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + totalBoxes, startDate.getDate());
 
         let totalDays = (dueDate - startDate) / (1000 * 60 * 60 * 24);
@@ -368,6 +378,8 @@ function getEmiTrackerHTML(loan, tenureMonths) {
         }
         return `<div class="emi-month-tracker" style="width: 100%; left: 0; right: 0; padding: 0 14px; box-sizing: border-box;">${barHtml}</div>`;
     }
+
+
 
     // ORIGINAL LOGIC FOR OTHERS (Recharge, >3 months, etc)
     const isCompact = totalBoxes >= 10;
@@ -533,15 +545,31 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
     const parsedTenure = parseInt(tenureMonths) || 12;
     let emiDisplay = '';
 
-    if (parsedTenure <= 3) {
-        let rate = 0, rateStr = '';
-        if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
-        else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
-        else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+    let isFixed = false;
+    if (loan.loanRepaymentType === 'Fixed' || (loan.interestDetails && loan.interestDetails.type === 'Fixed Time Loan')) {
+        isFixed = true;
+    } else if (loan.loanRepaymentType === 'EMI' || (loan.interestDetails && (loan.interestDetails.type === 'EMI Flat' || loan.interestDetails.type === 'EMI (0.7% / month)'))) {
+        isFixed = false;
+    } else {
+        isFixed = (parsedTenure <= 3); // Legacy fallback
+    }
 
-        const baseAmt = getOriginalLoanAmount(loan, amount);
-        const totalPayable = baseAmt + (baseAmt * rate);
-        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
+    if (isFixed) {
+        let totalPayable = loan.totalRepaymentExpected;
+        let rateStr = '';
+        if (loan.interestDetails && loan.interestDetails.totalRate) {
+            rateStr = (loan.interestDetails.totalRate * 100) + '%';
+        }
+
+        if (!totalPayable) {
+            let rate = 0;
+            if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
+            else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
+            else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+            const baseAmt = getOriginalLoanAmount(loan, amount);
+            totalPayable = baseAmt + (baseAmt * rate);
+        }
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')}${rateStr ? ` (${rateStr} INT)` : ''}`;
     } else {
         emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
     }
@@ -596,15 +624,31 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
     const parsedTenure = parseInt(tenureMonths) || 6;
     let emiDisplay = '';
 
-    if (parsedTenure <= 3) {
-        let rate = 0, rateStr = '';
-        if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
-        else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
-        else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+    let isFixed = false;
+    if (loan.loanRepaymentType === 'Fixed' || (loan.interestDetails && loan.interestDetails.type === 'Fixed Time Loan')) {
+        isFixed = true;
+    } else if (loan.loanRepaymentType === 'EMI' || (loan.interestDetails && (loan.interestDetails.type === 'EMI Flat' || loan.interestDetails.type === 'EMI (0.7% / month)'))) {
+        isFixed = false;
+    } else {
+        isFixed = (parsedTenure <= 3); // Legacy fallback
+    }
 
-        const baseAmt = getOriginalLoanAmount(loan, amount);
-        const totalPayable = baseAmt + (baseAmt * rate);
-        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')} (${rateStr} INT)`;
+    if (isFixed) {
+        let totalPayable = loan.totalRepaymentExpected;
+        let rateStr = '';
+        if (loan.interestDetails && loan.interestDetails.totalRate) {
+            rateStr = (loan.interestDetails.totalRate * 100) + '%';
+        }
+
+        if (!totalPayable) {
+            let rate = 0;
+            if (parsedTenure === 1) { rate = 0.01; rateStr = '1%'; }
+            else if (parsedTenure === 2) { rate = 0.03; rateStr = '3%'; }
+            else if (parsedTenure === 3) { rate = 0.05; rateStr = '5%'; }
+            const baseAmt = getOriginalLoanAmount(loan, amount);
+            totalPayable = baseAmt + (baseAmt * rate);
+        }
+        emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')}${rateStr ? ` (${rateStr} INT)` : ''}`;
     } else {
         emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
     }
