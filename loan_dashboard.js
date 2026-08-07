@@ -212,8 +212,12 @@ function renderLoans() {
         const dateObj = new Date(l.loanDate);
         const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
-        const diffTime = Math.abs(new Date() - dateObj);
-        const daysActive = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        // 🔥 FIXED: 0 Days for Same Day Loan
+        const today = new Date();
+        const loanDateOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const diffTime = todayOnly - loanDateOnly;
+        const daysActive = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24))); 
 
         let providerOrProduct = 'N/A';
         let emiAmount = null;
