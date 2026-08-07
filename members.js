@@ -376,7 +376,7 @@ function getProcessedData(memberId, type) {
             let desc = `Active Loan (${l.loanType || 'Personal'})`;
             if (memberId === 'all') {
                  const mName = allMembers[l.memberId]?.fullName.split(' ')[0] || 'Unknown';
-                 desc = `${desc}<br><strong style="color:#555;">[ ${mName} ]</strong>`;
+                 desc = `${desc} - ${mName}`;
             }
 
             return {
