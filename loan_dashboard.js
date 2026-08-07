@@ -517,9 +517,6 @@ function getVIPCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi) {
 
         <div class="pc-top">
             <div class="pc-bank">TRUST COMMUNITY FUND</div>
-            <div class="pc-download" onclick="window.dlCard('${loanId}')" style="border-color:#FFD700; color:#FFD700; margin-right: 60px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </div>
         </div>
 
         <div class="pc-middle">
@@ -594,9 +591,6 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
 
         <div class="pc-top">
             <div class="pc-bank" style="color:#D4AF37;">TRUST COMMUNITY FUND</div>
-            <div class="pc-download" onclick="window.dlCard('${loanId}')" style="border-color:#D4AF37; color:#D4AF37;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </div>
         </div>
 
         <div class="pc-middle">
@@ -673,9 +667,6 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
 
         <div class="pc-top">
             <div class="pc-bank">TCF PERSONAL</div>
-            <div class="pc-download" onclick="window.dlCard('${loanId}')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </div>
         </div>
 
         <div class="pc-middle">
@@ -740,9 +731,6 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
 
         <div class="pc-top">
             <div class="pc-bank">TCF CREDIT</div>
-            <div class="pc-download" onclick="window.dlCard('${loanId}')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </div>
         </div>
 
         <div class="pc-middle">
@@ -772,85 +760,8 @@ function getStandardCardHTML(loan, amount, dateStr, daysActive, providerInfo, em
 // --- SEARCH ---
 // (Search listener initialized in setupFilters after DOM load)
 
-// --- HIGH QUALITY DOWNLOAD FIX ---
-window.dlCard = (id) => {
-    const el = document.getElementById(id);
-    const btn = el.querySelector('.pc-download');
+// --- DOWNLOAD FUNCTIONALITY REMOVED AS REQUESTED ---
 
-    // Hide Download Icon
-    btn.style.opacity = '0';
-
-    // 🔥 1 Second (1000ms) delay for perfect layout setup
-    setTimeout(() => {
-        html2canvas(el, { 
-            scale: 3, 
-            useCORS: true, 
-            allowTaint: true, 
-            backgroundColor: null,
-            scrollY: -window.scrollY, // FIX 1: Prevents coordinate shifting when user scrolls down
-            logging: false,
-            onclone: (clonedDoc) => {
-                const clonedEl = clonedDoc.getElementById(id);
-                clonedEl.style.transform = "none"; 
-
-                // FIX 2: Stop Overdue Watermark from creating grey box artifacts
-                const watermark = clonedEl.querySelector('.overdue-watermark');
-                if(watermark) {
-                    watermark.style.animation = 'none'; // Stop blinking
-                    watermark.style.filter = 'none'; // 🔥 REMOVES GREY RECTANGLE BUG
-                }
-
-                // FIX 3: Remove Gradient Text for Canvas (Stops the Gold Box bug)
-                const goldTexts = clonedEl.querySelectorAll('.gold-text');
-                goldTexts.forEach(txt => {
-                    txt.style.background = 'none';
-                    txt.style.webkitBackgroundClip = 'initial';
-                    txt.style.webkitTextFillColor = 'initial';
-                    txt.style.color = '#D4AF37'; // Solid Gold Fallback
-                    txt.style.textShadow = 'none';
-                });
-
-                // FIX 4: Explicitly enforce spacing in canvas backup
-                const pcBottom = clonedEl.querySelector('.pc-bottom');
-                if(pcBottom) {
-                    pcBottom.style.paddingBottom = '72px';
-                }
-
-                // FIX 5: Ensure tracker boxes keep exact background colors in canvas
-                const trackerBoxes = clonedEl.querySelectorAll('.tracker-box');
-                trackerBoxes.forEach(box => {
-                    if (box.classList.contains('tracker-paid')) {
-                        box.style.backgroundColor = '#28a745';
-                        box.style.color = '#ffffff';
-                        box.style.borderColor = '#28a745';
-                    } else if (box.classList.contains('tracker-skipped')) {
-                        box.style.backgroundColor = '#dc3545';
-                        box.style.color = '#ffffff';
-                        box.style.borderColor = '#dc3545';
-                    } else if (box.classList.contains('tracker-interest-only')) {
-                        box.style.backgroundColor = '#f59e0b';
-                        box.style.color = '#ffffff';
-                        box.style.borderColor = '#f59e0b';
-                    } else {
-                        box.style.color = box.closest('.card-platinum') ? '#002366' : '#ffffff';
-                    }
-                });
-            }
-        })
-        .then(c => {
-            const a = document.createElement('a');
-            a.download = `LoanCard_${id}.png`;
-            a.href = c.toDataURL('image/png');
-            a.click();
-
-            // Restore Icon
-            btn.style.opacity = '1';
-        }).catch(err => {
-            console.error("Download Failed:", err);
-            btn.style.opacity = '1';
-        });
-    }, 1000); 
-};
 
 
 // --- ADMIN GENERATOR ---
