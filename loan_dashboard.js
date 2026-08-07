@@ -559,7 +559,9 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
         let totalPayable = loan.totalRepaymentExpected;
         let rateStr = '';
         if (loan.interestDetails && loan.interestDetails.totalRate) {
-            rateStr = (loan.interestDetails.totalRate * 100) + '%';
+            rateStr = parseFloat((loan.interestDetails.totalRate * 100).toFixed(2)) + '%';
+        } else if (loan.interestDetails && loan.interestDetails.rate) {
+            rateStr = parseFloat((loan.interestDetails.rate * 100).toFixed(2)) + '%';
         }
 
         if (!totalPayable) {
@@ -572,7 +574,13 @@ function getLuxuryCardHTML(loan, amount, dateStr, daysActive, tenureMonths, emi)
         }
         emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')}${rateStr ? ` (${rateStr} INT)` : ''}`;
     } else {
-        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+        let rateStr = '';
+        if (loan.interestDetails && loan.interestDetails.rate) {
+            rateStr = parseFloat((loan.interestDetails.rate * 100).toFixed(2)) + '%';
+        } else if (loan.interestDetails && loan.interestDetails.totalRate) {
+            rateStr = parseFloat((loan.interestDetails.totalRate * 100).toFixed(2)) + '%'; // fallback
+        }
+        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}${rateStr ? ` (${rateStr})` : ''}` : '';
     }
 
     const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
@@ -635,7 +643,9 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         let totalPayable = loan.totalRepaymentExpected;
         let rateStr = '';
         if (loan.interestDetails && loan.interestDetails.totalRate) {
-            rateStr = (loan.interestDetails.totalRate * 100) + '%';
+            rateStr = parseFloat((loan.interestDetails.totalRate * 100).toFixed(2)) + '%';
+        } else if (loan.interestDetails && loan.interestDetails.rate) {
+            rateStr = parseFloat((loan.interestDetails.rate * 100).toFixed(2)) + '%';
         }
 
         if (!totalPayable) {
@@ -648,7 +658,13 @@ function getPlatinumCardHTML(loan, amount, dateStr, daysActive, tenureMonths, em
         }
         emiDisplay = `TOTAL: ₹${Math.round(totalPayable).toLocaleString('en-IN')}${rateStr ? ` (${rateStr} INT)` : ''}`;
     } else {
-        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : '';
+        let rateStr = '';
+        if (loan.interestDetails && loan.interestDetails.rate) {
+            rateStr = parseFloat((loan.interestDetails.rate * 100).toFixed(2)) + '%';
+        } else if (loan.interestDetails && loan.interestDetails.totalRate) {
+            rateStr = parseFloat((loan.interestDetails.totalRate * 100).toFixed(2)) + '%'; // fallback
+        }
+        emiDisplay = emi ? `EMI: ₹${parseFloat(emi).toLocaleString('en-IN', {maximumFractionDigits: 0})}${rateStr ? ` (${rateStr})` : ''}` : '';
     }
 
     const alertState = getAlertStatus(amount, daysActive, loan, parsedTenure);
