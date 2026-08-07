@@ -318,13 +318,14 @@ function renderTable(memberId, type) {
     tbody.innerHTML = '';
 
     // Use the logic to get data arrays
-    const { rows, totals } = getProcessedData(memberId, type);
+    const processedData = getProcessedData(memberId, type);
+    const { rows, totals, activeLoanTotal } = processedData;
 
     // Reverse for UI display (Newest First)
     const uiRows = [...rows].reverse();
 
     if (uiRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding:20px">No transactions found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding:20px">No data found.</td></tr>`;
         tfoot.innerHTML = '';
         return;
     }
@@ -350,13 +351,46 @@ function renderTable(memberId, type) {
             <td class="text-right val-debit">${formatMoney(totals.debit)}</td>
             <td class="text-right val-credit">${formatMoney(totals.principal)}</td>
             <td class="text-right val-credit">${formatMoney(totals.interest)}</td>
-            <td></td>
+            <td class="text-right val-balance" style="color: var(--danger-color);">${activeLoanTotal !== undefined ? formatMoney(activeLoanTotal) : ''}</td>
         </tr>
     `;
 }
 
 // Helper to get clean data for both Table and PDF
 function getProcessedData(memberId, type) {
+    // --- 🔥 ACTIVE LOANS SPECIAL HANDLING 🔥 ---
+    if (type === 'active_loans') {
+        let loans = [...allActiveLoans].filter(l => l.status === 'Active');
+        if (memberId !== 'all') {
+            loans = loans.filter(l => l.memberId === memberId);
+        }
+        loans.sort((a, b) => new Date(a.loanDate || 0) - new Date(b.loanDate || 0));
+
+        let totalLoanAmt = 0, totalOutstanding = 0;
+        const rows = loans.map(l => {
+            const loanAmt = parseFloat(l.originalAmount || l.amount || 0);
+            const outstanding = parseFloat(l.outstandingAmount || 0);
+            totalLoanAmt += loanAmt;
+            totalOutstanding += outstanding;
+
+            let desc = `Active Loan (${l.loanType || 'Personal'})`;
+            if (memberId === 'all') {
+                 const mName = allMembers[l.memberId]?.fullName.split(' ')[0] || 'Unknown';
+                 desc = `${desc}<br><strong style="color:#555;">[ ${mName} ]</strong>`;
+            }
+
+            return {
+                date: new Date(l.loanDate || Date.now()).toLocaleDateString('en-GB'),
+                desc: desc,
+                debit: loanAmt,
+                principal: 0,
+                interest: 0,
+                balance: outstanding
+            };
+        });
+        return { rows, totals: { debit: totalLoanAmt, principal: 0, interest: 0 }, activeLoanTotal: totalOutstanding };
+    }
+
     let data = [...allTransactions];
     if (memberId !== 'all') {
         data = data.filter(t => t.memberId === memberId);
