@@ -863,12 +863,24 @@
             document.getElementById('withdrawFields').classList.add('hidden');
             document.getElementById('withdrawNotice').classList.add('hidden');
 
-            if(currentMember.guarantorName && mode === 'loan') {
-                document.getElementById('displayGuarantor').innerText = currentMember.guarantorName;
+            const gName = currentMember.guarantorName || currentMember.guarantor || '';
+            const invalidTokens = ['', '0', 'none', 'no', 'n/a', 'nil', 'x', '-', '/', '.'];
+            const isInvalid = invalidTokens.includes(gName.trim().toLowerCase());
+
+            if (mode === 'loan') {
                 document.getElementById('guarantorRow').classList.remove('hidden');
                 document.getElementById('guarantorRow').style.display = 'flex';
+
+                if (!isInvalid && gName.trim() !== '') {
+                    document.getElementById('displayGuarantor').innerText = gName;
+                    document.getElementById('displayGuarantor').className = "info-val text-brand-teal";
+                } else {
+                    document.getElementById('displayGuarantor').innerText = "Not Provided (Self / 1.0x)";
+                    document.getElementById('displayGuarantor').className = "info-val text-gray-500 font-medium";
+                }
             } else {
                 document.getElementById('guarantorRow').classList.add('hidden');
+                document.getElementById('guarantorRow').style.display = 'none';
             }
 
             let emiDisplay = '';
