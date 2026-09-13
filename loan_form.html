@@ -352,13 +352,15 @@
     async function loadMembers() {
         try {
             const db = firebase.database();
-            const [membersSnap, txSnap] = await Promise.all([
+            const [membersSnap, txSnap, loansSnap] = await Promise.all([
                 db.ref('members').once('value'),
-                db.ref('transactions').once('value')
+                db.ref('transactions').once('value'),
+                db.ref('activeLoans').once('value')
             ]);
 
             membersData = membersSnap.val() || {};
             transactionsData = Object.values(txSnap.val() || {});
+            window.activeLoansData = loansSnap.val() || {};
 
             const select = document.getElementById('nameSelect');
             select.innerHTML = '<option value="" disabled selected>Select Member</option>';
@@ -480,17 +482,78 @@
         // 1. Pehle KYC Validate karo (Ye Button Disable karega agar document missing hai)
         validateKYC(currentMember);
 
-            // 2. Limit Calculate karo
+        // 2. 6-Month History & Guarantor Smart Limit Calculation
         const mode = document.getElementById('appMode').value;
         let limit = 0;
+
         if (mode === 'loan' || mode === 'recharge') {
-            if (balance < 0) limit = 0;
-            else if (balance < 25000) limit = balance * 1.5;
-            else limit = balance * 2.0;
-            if (limit > 50000) limit = 50000;
+            if (balance <= 0) {
+                limit = 0;
+            } else {
+                // A. Check Guarantor Validity
+                const gName = (currentMember.guarantorName || '').trim().toLowerCase();
+                const invalidGuarantorTokens = ['', '0', 'none', 'no', 'n/a', 'nil', 'x', '-', '/', '.'];
+                const hasValidGuarantor = !invalidGuarantorTokens.includes(gName) && gName !== (currentMember.fullName || '').trim().toLowerCase();
+
+                // B. Scan Last 6 Months History
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+                let skippedCount = 0;
+                let longestTenure = 6;
+
+                if (window.activeLoansData) {
+                    Object.values(window.activeLoansData).forEach(loan => {
+                        if (loan.memberId === id) {
+                            const lTenure = parseInt(loan.tenureMonths || loan.duration || 6);
+                            if (lTenure > longestTenure) longestTenure = lTenure;
+
+                            const loanStart = new Date(loan.loanDate || Date.now());
+                            if (loanStart >= sixMonthsAgo) {
+                                const today = new Date();
+                                const monthsPassed = (today.getFullYear() - loanStart.getFullYear()) * 12 + (today.getMonth() - loanStart.getMonth());
+                                const paidTxns = transactionsData.filter(t => t.paidForLoanId === loan.loanId && t.type === 'Loan Payment').length;
+                                const overdueMonths = today.getDate() > 10 ? monthsPassed : Math.max(0, monthsPassed - 1);
+                                if (overdueMonths > paidTxns) {
+                                    skippedCount += (overdueMonths - paidTxns);
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // C. Allowed Skips Logic
+                const allowedSkips = longestTenure >= 12 ? 2 : 1;
+                const isPoorScore = skippedCount > allowedSkips;
+
+                // D. Tier & Multiplier Determination
+                let multiplier = 1.0; // Base: Member ka apna paisa (100% guarantee)
+                let tierLabel = 'Tier C (1.0x - Self Capital)';
+
+                if (isPoorScore) {
+                    multiplier = 1.0; // Poor track record: only 1.0x (Never blocked)
+                    tierLabel = 'Tier C (1.0x - Past Delays Detected)';
+                } else if (!hasValidGuarantor) {
+                    multiplier = 1.25; // Good record but no guarantor: cap at 1.25x
+                    tierLabel = 'Tier B (1.25x - No Guarantor)';
+                } else {
+                    multiplier = balance < 25000 ? 1.5 : 2.0; // Prime: 1.5x / 2.0x
+                    tierLabel = `Tier A (${multiplier}x Prime Multiplier)`;
+                }
+
+                limit = balance * multiplier;
+                if (limit > 50000) limit = 50000;
+
+                // Update UI Label with Tier info
+                const limitLblEl = document.getElementById('limitLabel');
+                if (limitLblEl) limitLblEl.innerText = `Eligibility [${tierLabel}]`;
+            }
         } else if (mode === 'withdrawal' || mode === 'credit10') {
             limit = balance > 0 ? balance * 0.5 : 0;
+            const limitLblEl = document.getElementById('limitLabel');
+            if (limitLblEl) limitLblEl.innerText = mode === 'withdrawal' ? 'Withdrawal Limit (50%)' : 'Credit Limit (50%)';
         }
+
         currentMaxLimit = Math.floor(limit);
         document.getElementById('displayEligibleLimit').innerText = currentMaxLimit.toLocaleString('en-IN');
         document.getElementById('walletInfo').classList.remove('hidden');
@@ -836,17 +899,40 @@
                 const interest = amt * (mRate/100) * mCount;
                 total = amt + interest;
 
-                if (amt < 25000 && repType === 'Fixed') {
+                let noticeMsg = '';
+
+                                if (amt < 25000 && repType === 'Fixed') {
                     emiDisplay = 'One-time Pay';
                     rateDisplay = `${(mRate * mCount).toFixed(1)}% Fixed Total (${mCount} Month${mCount > 1 ? 's' : ''})`;
-                } else if (amt >= 25000) {
-                    emiDisplay = `₹${Math.ceil(total / mCount)}`;
-                    rateDisplay = `0.7% Monthly (${mCount} Months)`;
+
+                    // Total Fixed Rate and Total Interest
+                    const totalFixedRate = mRate * mCount;
+                    const totalInterestAmount = amt * (totalFixedRate / 100);
+                    const totalTenureDays = mCount * 30; // 1 Month = 30 Days, 3 Months = 90 Days
+
+                    // Daily Penalty = Total Interest / Total Days
+                    const perDayPenalty = (totalInterestAmount / totalTenureDays).toFixed(1);
+                    noticeMsg = `Late payment charge: ₹${perDayPenalty}/day after due date (${endDate.toLocaleDateString('en-GB')}).`;
                 } else {
-                    emiDisplay = `₹${Math.ceil(total / mCount)}`;
-                    rateDisplay = `1% Monthly (${mCount} Month${mCount > 1 ? 's' : ''})`;
+                    const monthlyEmiVal = Math.ceil(total / mCount);
+                    emiDisplay = `₹${monthlyEmiVal}`;
+
+                    if (amt >= 25000) {
+                        rateDisplay = `0.7% Monthly (${mCount} Months)`;
+                    } else {
+                        rateDisplay = `1% Monthly (${mCount} Month${mCount > 1 ? 's' : ''})`;
+                    }
+
+                    // EMI Loan Penalty: 0.5% of Monthly EMI
+                    const emiPenalty = (monthlyEmiVal * 0.005).toFixed(1);
+                    noticeMsg = `EMI every month 1-10. Late fee: ₹${emiPenalty} (0.5% of EMI).`;
                 }
+
                 endDate.setMonth(endDate.getMonth() + mCount);
+
+                // Update Notice Text on Slip
+                const loanNoticeP = document.querySelector('#loanNotice p');
+                if (loanNoticeP) loanNoticeP.innerText = noticeMsg;
             }
 
             document.getElementById('displayRate').innerText = rateDisplay;
