@@ -133,9 +133,35 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
     return { total, history };
 }
 
-// 🔥 v3.0: Capital-Weighted Profit Distribution (Option D)
-// Formula: memberWeight = (score × 0.60) + (capitalFactor × 0.40)
-// IDENTICAL to profit_logic.js — ensures same ₹ amounts in both systems
+// 🔥 SIP ELIGIBILITY RULE: 1-10 Window & Late Payment Filter (Synced with profit_logic.js)
+function isEligibleForMonthlyProfit(memberName, txDate, allData) {
+    const txYear = txDate.getFullYear();
+    const txMonth = txDate.getMonth();
+
+    // उस महीने में मेंबर द्वारा की गई SIP खोजें
+    const memberMonthSips = allData.filter(t => 
+        t.name === memberName && 
+        t.sipPayment > 0 && 
+        t.date.getFullYear() === txYear && 
+        t.date.getMonth() === txMonth
+    );
+
+    // 1. अगर उस पूरे महीने कोई SIP नहीं भरी -> 0% प्रॉफिट
+    if (memberMonthSips.length === 0) return false;
+
+    const sipDate = memberMonthSips[0].date;
+    const sipDay = sipDate.getDate();
+
+    // 2. अगर 1 से 10 तारीख के बीच भर दिया -> पूरे महीने का प्रॉफिट मिलेगा
+    if (sipDay <= 10) return true;
+
+    // 3. अगर 10 तारीख के बाद भरा (जैसे 15 को) -> सिर्फ पेमेंट डेट या उसके बाद वाले रिटर्न्स का प्रॉफिट मिलेगा
+    const sipDayTime = new Date(sipDate.getFullYear(), sipDate.getMonth(), sipDate.getDate()).getTime();
+    const txDayTime = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()).getTime();
+    return txDayTime >= sipDayTime;
+}
+
+// 🔥 v3.1: Capital-Weighted Profit Distribution + SIP Eligibility Filter
 function calculateProfitDistribution(paymentRecord) { 
     const state = window.tcfApp.state;
     const totalInterest = paymentRecord.returnAmount; 
@@ -160,11 +186,13 @@ function calculateProfitDistribution(paymentRecord) {
 
     [...new Set(state.allData.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return; 
+
+        // 🔥 नया नियम: SIP पेंडिंग या लेट होने पर प्रॉफिट पूल से बाहर रखें
+        if (!isEligibleForMonthlyProfit(name, paymentRecord.date, state.allData)) return;
+
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, state.allData, state.activeLoans) : { totalScore: 0 };
         if (scoreObj.totalScore > 0) { 
-            // 🔥 Option D: Capital Factor nikalo
             const capitalFactor = (typeof getCapitalFactor === 'function') ? getCapitalFactor(name, loanDate, state.allData, state.activeLoans) : 0;
-            // 🔥 Combined Weight = (Score × 0.60) + (Capital × 0.40)
             const combinedWeight = (scoreObj.totalScore * ENGINE_CONFIG.PROFIT_SCORE_WEIGHT) + (capitalFactor * ENGINE_CONFIG.PROFIT_CAPITAL_WEIGHT);
             snapshotScores[name] = { ...scoreObj, capitalFactor, combinedWeight }; 
             totalWeightedScore += combinedWeight; 
@@ -173,14 +201,13 @@ function calculateProfitDistribution(paymentRecord) {
 
     if (totalWeightedScore > 0) {
         for (const name in snapshotScores) { 
-            // 🔥 Option D: Combined Weight se share calculate karo (score + capital dono matter karte hain)
             let share = (snapshotScores[name].combinedWeight / totalWeightedScore) * communityPool; 
             const lastLoan = state.allData.filter(r => r.name === name && r.loan > 0 && r.date <= loanDate).pop()?.date;
             
-            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : null; // never taken loan = null
+            const days = lastLoan ? (loanDate - lastLoan) / 86400000 : null;
 
             let multiplier = 1.0;
-            if (days !== null) { // Sirf unki penalty katega jinhone loan liya ho
+            if (days !== null) {
                 if (days > 365) multiplier = 0.75; 
                 else if (days > 180) multiplier = 0.90; 
             }
@@ -191,6 +218,7 @@ function calculateProfitDistribution(paymentRecord) {
     }
     return { distribution }; 
 }
+
 
 function calculateTotalProfitForMember(memberName) { 
     return window.tcfApp.state.allData.reduce((acc, tx) => { 
