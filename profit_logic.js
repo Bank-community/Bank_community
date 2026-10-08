@@ -492,12 +492,15 @@ async function performWalletSync(amount) {
 }
 
 // --- UTILS ---
-// 🔥 SIP ELIGIBILITY RULE: 1-10 Window & Late Payment Filter
+// 🔥 SIP + LOAN EMI/OVERDUE ELIGIBILITY CHECKER (v15.0)
 function isEligibleForMonthlyProfit(memberName, txDate) {
     const txYear = txDate.getFullYear();
     const txMonth = txDate.getMonth();
+    const txDay = txDate.getDate();
 
-    // उस महीने में मेंबर द्वारा की गई SIP खोजें
+    // ==========================================
+    // 1. SIP ELIGIBILITY CHECK (1 to 10 Rule)
+    // ==========================================
     const memberMonthSips = allTransactionsList.filter(t => 
         t.name === memberName && 
         t.sipPayment > 0 && 
@@ -505,22 +508,85 @@ function isEligibleForMonthlyProfit(memberName, txDate) {
         t.date.getMonth() === txMonth
     );
 
-    // 1. अगर उस पूरे महीने कोई SIP नहीं भरी -> 0% प्रॉफिट
+    // अगर उस महीने कोई SIP नहीं भरी -> कोई प्रॉफिट नहीं
     if (memberMonthSips.length === 0) return false;
 
     const sipDate = memberMonthSips[0].date;
     const sipDay = sipDate.getDate();
 
-    // 2. अगर 1 से 10 तारीख के बीच भर दिया -> पूरे महीने का प्रॉफिट मिलेगा
-    if (sipDay <= 10) return true;
+    // अगर 10 तारीख के बाद SIP भरी, तो पेमेंट डेट से पहले वाले रिटर्न का प्रॉफिट नहीं मिलेगा
+    if (sipDay > 10) {
+        const sipDayTime = new Date(sipDate.getFullYear(), sipDate.getMonth(), sipDate.getDate()).getTime();
+        const txDayTime = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()).getTime();
+        if (txDayTime < sipDayTime) return false;
+    }
 
-    // 3. अगर 10 तारीख के बाद भरा (जैसे 15 को) -> सिर्फ पेमेंट डेट या उसके बाद वाले रिटर्न्स का प्रॉफिट मिलेगा
-    const sipDayTime = new Date(sipDate.getFullYear(), sipDate.getMonth(), sipDate.getDate()).getTime();
-    const txDayTime = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()).getTime();
-    return txDayTime >= sipDayTime;
+    // ==========================================
+    // 2. ACTIVE LOAN COMPLIANCE CHECK (EMI & Fixed)
+    // ==========================================
+    const memberId = allTransactionsList.find(t => t.name === memberName)?.memberId;
+    if (!memberId || !rawActiveLoans) return true;
+
+    // सदस्य के वे सभी लोन देखें जो इस ट्रांजैक्शन डेट पर एक्टिव थे
+    const memberLoans = Object.values(rawActiveLoans).filter(l => {
+        if (l.memberId !== memberId) return false;
+        const lDate = new Date(l.loanDate);
+        return lDate <= txDate; // लोन इस ट्रांजैक्शन की तारीख से पहले लिया गया था
+    });
+
+    for (const loan of memberLoans) {
+        // 10 Days Credit पर कोई पेनल्टी नहीं
+        if (loan.loanType === '10 Days Credit') continue;
+
+        const loanStartDate = new Date(loan.loanDate);
+        const tenureMonths = parseInt(loan.tenureMonths || loan.rechargeDetails?.tenure || loan.duration || 1);
+
+        // जांचें कि क्या यह फिक्स्ड/वन-टाइम लोन है या EMI लोन
+        let isFixedLoan = false;
+        if (loan.loanRepaymentType === 'Fixed' || (loan.interestDetails && loan.interestDetails.type === 'Fixed Time Loan')) {
+            isFixedLoan = true;
+        } else if (loan.loanRepaymentType === 'EMI' || (loan.interestDetails && (loan.interestDetails.type === 'EMI Flat' || loan.interestDetails.type === 'EMI (0.7% / month)'))) {
+            isFixedLoan = false;
+        } else {
+            isFixedLoan = (tenureMonths <= 3 && loan.loanType !== 'Recharge');
+        }
+
+        // --- नियम A: फिक्स्ड / वन-टाइम लोन (तय समय सीमा से ज्यादा होने पर प्रॉफिट ब्लॉक) ---
+        if (isFixedLoan) {
+            const dueDate = new Date(loanStartDate.getFullYear(), loanStartDate.getMonth() + tenureMonths, loanStartDate.getDate());
+            // अगर ट्रांजैक्शन की तारीख ड्यू डेट के बाद की है और लोन अभी भी एक्टिव है
+            if (txDate > dueDate && loan.status === 'Active') {
+                return false; // तय समय पार हो गया -> इस मंथ का प्रॉफिट नहीं मिलेगा
+            }
+        } 
+        // --- नियम B: EMI / Recharge लोन (1 से ज्यादा EMI स्किप होने पर प्रॉफिट ब्लॉक) ---
+        else {
+            const monthsPassed = (txYear - loanStartDate.getFullYear()) * 12 + (txMonth - loanStartDate.getMonth());
+            
+            // 1 से 10 तारीख का नियम
+            let expectedEmis = txDay > 10 ? monthsPassed : Math.max(0, monthsPassed - 1);
+            expectedEmis = Math.min(tenureMonths, Math.max(0, expectedEmis));
+
+            // इस लोन के लिए txDate तक भरी गई EMI की गिनती
+            const paidEmisCount = allTransactionsList.filter(t => 
+                t.paidForLoanId === loan.loanId && 
+                t.type === 'Loan Payment' && 
+                t.date <= txDate
+            ).length;
+
+            const skippedEmis = expectedEmis - paidEmisCount;
+
+            // अगर 1 से ज्यादा EMI स्किप हुई हैं (> 1) तो प्रॉफिट ब्लॉक
+            if (skippedEmis > 1) {
+                return false; 
+            }
+        }
+    }
+
+    return true; // सदस्य पूरी तरह योग्य है
 }
 
-// 🔥 v14.1: Capital-Weighted Profit Distribution + SIP Eligibility Filter
+// 🔥 v15.0: Capital-Weighted Profit Distribution + SIP & Loan Compliance Filter
 function calculateProfitDistribution(paymentRecord) { 
     const totalInterest = paymentRecord.returnAmount; if (totalInterest <= 0) return null; 
     const distribution = [];
@@ -537,7 +603,7 @@ function calculateProfitDistribution(paymentRecord) {
     [...new Set(allTransactionsList.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return;
 
-        // 🔥 नया नियम: SIP पेंडिंग या लेट होने पर प्रॉफिट पूल से बाहर रखें
+        // 🔥 नया नियम: SIP + EMI/Loan Overdue की योग्यता जांचें
         if (!isEligibleForMonthlyProfit(name, paymentRecord.date)) return;
 
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, allTransactionsList, rawActiveLoans) : { totalScore: 0 };
@@ -566,6 +632,8 @@ function calculateProfitDistribution(paymentRecord) {
     }
     return { distribution }; 
 }
+
+
 
 
 

@@ -133,12 +133,13 @@ function calculateTotalExtraBalance(memberId, memberFullName) {
     return { total, history };
 }
 
-// 🔥 SIP ELIGIBILITY RULE: 1-10 Window & Late Payment Filter (Synced with profit_logic.js)
-function isEligibleForMonthlyProfit(memberName, txDate, allData) {
+// 🔥 SIP + LOAN EMI/OVERDUE ELIGIBILITY CHECKER (Synced with profit_logic.js)
+function isEligibleForMonthlyProfit(memberName, txDate, allData, activeLoans) {
     const txYear = txDate.getFullYear();
     const txMonth = txDate.getMonth();
+    const txDay = txDate.getDate();
 
-    // उस महीने में मेंबर द्वारा की गई SIP खोजें
+    // 1. SIP CHECK
     const memberMonthSips = allData.filter(t => 
         t.name === memberName && 
         t.sipPayment > 0 && 
@@ -146,22 +147,72 @@ function isEligibleForMonthlyProfit(memberName, txDate, allData) {
         t.date.getMonth() === txMonth
     );
 
-    // 1. अगर उस पूरे महीने कोई SIP नहीं भरी -> 0% प्रॉफिट
     if (memberMonthSips.length === 0) return false;
 
     const sipDate = memberMonthSips[0].date;
     const sipDay = sipDate.getDate();
 
-    // 2. अगर 1 से 10 तारीख के बीच भर दिया -> पूरे महीने का प्रॉफिट मिलेगा
-    if (sipDay <= 10) return true;
+    if (sipDay > 10) {
+        const sipDayTime = new Date(sipDate.getFullYear(), sipDate.getMonth(), sipDate.getDate()).getTime();
+        const txDayTime = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()).getTime();
+        if (txDayTime < sipDayTime) return false;
+    }
 
-    // 3. अगर 10 तारीख के बाद भरा (जैसे 15 को) -> सिर्फ पेमेंट डेट या उसके बाद वाले रिटर्न्स का प्रॉफिट मिलेगा
-    const sipDayTime = new Date(sipDate.getFullYear(), sipDate.getMonth(), sipDate.getDate()).getTime();
-    const txDayTime = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()).getTime();
-    return txDayTime >= sipDayTime;
+    // 2. LOAN COMPLIANCE CHECK
+    const memberId = allData.find(t => t.name === memberName)?.memberId;
+    if (!memberId || !activeLoans) return true;
+
+    const memberLoans = Object.values(activeLoans).filter(l => {
+        if (l.memberId !== memberId) return false;
+        const lDate = new Date(l.loanDate);
+        return lDate <= txDate;
+    });
+
+    for (const loan of memberLoans) {
+        if (loan.loanType === '10 Days Credit') continue;
+
+        const loanStartDate = new Date(loan.loanDate);
+        const tenureMonths = parseInt(loan.tenureMonths || loan.rechargeDetails?.tenure || loan.duration || 1);
+
+        let isFixedLoan = false;
+        if (loan.loanRepaymentType === 'Fixed' || (loan.interestDetails && loan.interestDetails.type === 'Fixed Time Loan')) {
+            isFixedLoan = true;
+        } else if (loan.loanRepaymentType === 'EMI' || (loan.interestDetails && (loan.interestDetails.type === 'EMI Flat' || loan.interestDetails.type === 'EMI (0.7% / month)'))) {
+            isFixedLoan = false;
+        } else {
+            isFixedLoan = (tenureMonths <= 3 && loan.loanType !== 'Recharge');
+        }
+
+        // फिक्स्ड लोन ओवरड्यू चेक
+        if (isFixedLoan) {
+            const dueDate = new Date(loanStartDate.getFullYear(), loanStartDate.getMonth() + tenureMonths, loanStartDate.getDate());
+            if (txDate > dueDate && loan.status === 'Active') {
+                return false;
+            }
+        } 
+        // EMI / Recharge लोन (> 1 स्किप चेक)
+        else {
+            const monthsPassed = (txYear - loanStartDate.getFullYear()) * 12 + (txMonth - loanStartDate.getMonth());
+            let expectedEmis = txDay > 10 ? monthsPassed : Math.max(0, monthsPassed - 1);
+            expectedEmis = Math.min(tenureMonths, Math.max(0, expectedEmis));
+
+            const paidEmisCount = allData.filter(t => 
+                t.paidForLoanId === loan.loanId && 
+                t.type === 'Loan Payment' && 
+                t.date <= txDate
+            ).length;
+
+            const skippedEmis = expectedEmis - paidEmisCount;
+            if (skippedEmis > 1) {
+                return false; 
+            }
+        }
+    }
+
+    return true;
 }
 
-// 🔥 v3.1: Capital-Weighted Profit Distribution + SIP Eligibility Filter
+// 🔥 v3.2: Capital-Weighted Profit Distribution + Complete Compliance Filter
 function calculateProfitDistribution(paymentRecord) { 
     const state = window.tcfApp.state;
     const totalInterest = paymentRecord.returnAmount; 
@@ -187,8 +238,8 @@ function calculateProfitDistribution(paymentRecord) {
     [...new Set(state.allData.filter(r => r.date <= loanDate).map(r => r.name))].forEach(name => { 
         if (name === paymentRecord.name) return; 
 
-        // 🔥 नया नियम: SIP पेंडिंग या लेट होने पर प्रॉफिट पूल से बाहर रखें
-        if (!isEligibleForMonthlyProfit(name, paymentRecord.date, state.allData)) return;
+        // 🔥 नया नियम: SIP और लोन दोनों के नियमों की जांच
+        if (!isEligibleForMonthlyProfit(name, paymentRecord.date, state.allData, state.activeLoans)) return;
 
         const scoreObj = (typeof calculatePerformanceScore === 'function') ? calculatePerformanceScore(name, loanDate, state.allData, state.activeLoans) : { totalScore: 0 };
         if (scoreObj.totalScore > 0) { 
@@ -218,6 +269,8 @@ function calculateProfitDistribution(paymentRecord) {
     }
     return { distribution }; 
 }
+
+
 
 
 function calculateTotalProfitForMember(memberName) { 
