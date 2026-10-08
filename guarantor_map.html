@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCF Royal Network Map</title>
+    
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; }
+        
+        #network-container {
+            width: 100vw;
+            height: 100vh;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Loading Overlay */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        
+        /* Stats Card */
+        .stats-card {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            min-width: 200px;
+        }
+
+        /* --- MEMBER POPUP CARD --- */
+        #member-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 0;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 35, 102, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            width: 90%; max-width: 320px;
+            z-index: 2000;
+            opacity: 0; pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        #member-popup.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+
+        .popup-header {
+            background: linear-gradient(135deg, #002366, #001540);
+            padding: 25px 20px 20px; text-align: center; position: relative;
+        }
+        .popup-close {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(255,255,255,0.1); border: none; color: white;
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .popup-img {
+            width: 85px; height: 85px; border-radius: 50%; object-fit: cover;
+            border: 3px solid #D4AF37; margin: 0 auto;
+            cursor: zoom-in; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background: #fff;
+        }
+        .popup-name { color: white; font-weight: bold; font-size: 1.2em; margin-top: 10px; }
+        .popup-id { color: #D4AF37; font-size: 0.75em; letter-spacing: 1px; text-transform: uppercase; }
+
+        .popup-body { padding: 20px; background: white; }
+        .popup-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.95em; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
+        .popup-row:last-child { border: none; margin: 0; padding-bottom: 0; }
+        .popup-label { color: #64748b; font-weight: 600; font-size: 0.9em; }
+        .popup-val { font-weight: 700; color: #334155; }
+        
+        .val-gold { color: #b45309; }
+        .val-green { color: #10b981; }
+        .val-red { color: #ef4444; }
+
+        /* Full Image Modal */
+        #full-img-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            z-index: 3000; display: none; align-items: center; justify-content: center;
+        }
+        #full-img-view { max-width: 95%; max-height: 90%; border-radius: 10px; border: 2px solid white; }
+        .full-img-close {
+            position: absolute; top: 20px; right: 20px; color: white;
+            font-size: 30px; cursor: pointer;
+        }
+
+        /* Border Legend in Stats */
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="stats-card">
+        <h3 class="text-xs font-bold text-[#002366] uppercase tracking-widest mb-3 border-b pb-2">Network Stats</h3>
+        <div class="text-[12px] space-y-2 text-gray-700">
+            <div class="flex justify-between"><span>Total Members:</span> <span id="stat-total" class="font-bold text-[#002366]">0</span></div>
+            <div class="flex justify-between"><span>Active Loans:</span> <span id="stat-loans" class="font-bold text-red-500">0</span></div>
+        </div>
+        <div class="mt-3 pt-2 border-t border-gray-200 text-[10px] space-y-1">
+            <div class="flex items-center"><span class="legend-dot" style="background:#D4AF37;"></span> Prime (Gold)</div>
+            <div class="flex items-center"><span class="legend-dot" style="background:#002366;"></span> Normal (Blue)</div>
+            <div class="flex items-center"><span class="legend-dot" style="background:transparent; border: 2px solid #ef4444;"></span> Risk/Loan (Red Border)</div>
+        </div>
+    </div>
+
+    <div class="absolute top-5 right-5 z-10 flex flex-col gap-3">
+        <button onclick="fitGraph()" class="bg-white p-3 rounded-full shadow-lg text-[#002366] hover:bg-blue-50 transition border border-gray-200"><i data-feather="maximize"></i></button>
+        <button onclick="location.reload()" class="bg-white p-3 rounded-full shadow-lg text-[#D4AF37] hover:bg-yellow-50 transition border border-gray-200"><i data-feather="refresh-cw"></i></button>
+    </div>
+
+    <div id="network-container"></div>
+
+    <div id="member-popup">
+        <div class="popup-header">
+            <button class="popup-close" onclick="closePopup()">&times;</button>
+            <img id="pop-img" src="" class="popup-img">
+            <div id="pop-name" class="popup-name">--</div>
+            <div id="pop-id" class="popup-id">ID: --</div>
+        </div>
+        <div class="popup-body">
+            <div class="popup-row">
+                <span class="popup-label">Guarantor</span>
+                <span id="pop-guarantor" class="popup-val" style="color: #002366;">--</span>
+            </div>
+            
+            <div class="popup-row" id="liability-row" style="display:none; background:#fff7ed; padding:5px; border-radius:5px;">
+                <span class="popup-label" style="color:#c2410c;">Guarantor Liability</span>
+                <span id="pop-liability" class="popup-val" style="color:#c2410c;">₹0</span>
+            </div>
+
+            <div class="popup-row">
+                <span class="popup-label">Joining Date</span>
+                <span id="pop-join" class="popup-val">--</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-label">Balance</span>
+                <span id="pop-bal" class="popup-val">₹0</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-label">SIP Status</span>
+                <span id="pop-sip" class="popup-val">--</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-label">Active Loan</span>
+                <span id="pop-loan" class="popup-val">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="full-img-modal" onclick="this.style.display='none'">
+        <span class="full-img-close">&times;</span>
+        <img id="full-img-view" src="">
+    </div>
+
+    <div id="loader">
+        <div class="w-12 h-12 border-4 border-gray-200 border-t-[#D4AF37] rounded-full animate-spin"></div>
+        <p class="mt-4 text-xs font-bold text-[#002366] tracking-widest">ANALYZING DATA...</p>
+    </div>
+
+    <script>
+        const PRIME_MEMBERS = ["Prince Rama", "Amit kumar", "Mithilesh Sahni"];
+        const ROOT_ID = "TCF_ROOT";
+        const ROOT_IMG = "https://ik.imagekit.io/kdtvm0r78/1000123791_3ZT7JNENn.jpg?updatedAt=1767833543293";
+        const DEFAULT_IMG = "https://i.ibb.co/HTNrbJxD/20250716-222246.png"; 
+
+        let network = null;
+        let allMembersData = {}; // Store for popup
+        let activeLoansMap = {}; // Store loan info per member
+        let guarantorLiabilityMap = {}; // Calculate total risk for each guarantor
+
+        window.onload = async () => {
+            feather.replace();
+            try {
+                const res = await fetch('/api/firebase-config');
+                const config = await res.json();
+                if(!firebase.apps.length) firebase.initializeApp(config);
+                
+                const db = firebase.database();
+                
+                // Fetch Members AND Active Loans together
+                const [membersSnap, loansSnap] = await Promise.all([
+                    db.ref('members').once('value'),
+                    db.ref('activeLoans').once('value')
+                ]);
+
+                if(membersSnap.exists()) {
+                    const loansData = loansSnap.val() || {};
+                    processLoans(loansData);
+                    calculateGuarantorRisk(membersSnap.val(), loansData);
+                    buildGraph(membersSnap.val());
+                } else {
+                    alert("No data found.");
+                    document.getElementById('loader').style.display = 'none';
+                }
+
+            } catch(e) { 
+                console.error(e);
+                alert("Error loading data.");
+                document.getElementById('loader').style.display = 'none';
+            }
+        };
+
+        // --- 1. PROCESS LOANS ---
+        function processLoans(loansObj) {
+            if (!loansObj) return;
+            Object.values(loansObj).forEach(loan => {
+                if (loan.status && loan.status.trim() === 'Active') {
+                    if (!activeLoansMap[loan.memberId]) {
+                        activeLoansMap[loan.memberId] = { count: 0, total: 0 };
+                    }
+                    activeLoansMap[loan.memberId].count++;
+                    activeLoansMap[loan.memberId].total += parseFloat(loan.outstandingAmount || 0);
+                }
+            });
+            document.getElementById('stat-loans').innerText = Object.keys(activeLoansMap).length;
+        }
+
+        // --- SUGGESTION: CALCULATE GUARANTOR RISK ---
+        function calculateGuarantorRisk(members, loans) {
+            // Find who guarantees whom and sum up the loan
+            Object.values(loans).forEach(loan => {
+                if (loan.status && loan.status.trim() === 'Active') {
+                    const borrower = members[loan.memberId];
+                    if (borrower && borrower.guarantorName) {
+                        const gName = borrower.guarantorName.trim().toLowerCase();
+                        // Find guarantor ID (Rough match by name)
+                        const guarantorEntry = Object.entries(members).find(([id, m]) => 
+                            m.fullName.trim().toLowerCase() === gName
+                        );
+                        
+                        if (guarantorEntry) {
+                            const gId = guarantorEntry[0];
+                            if (!guarantorLiabilityMap[gId]) guarantorLiabilityMap[gId] = 0;
+                            guarantorLiabilityMap[gId] += parseFloat(loan.outstandingAmount || 0);
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 2. BUILD GRAPH ---
+        function buildGraph(membersObj) {
+            allMembersData = membersObj;
+            const nodes = [];
+            const edges = [];
+            const nameToIdMap = new Map();
+
+            // Root Node (UPDATED WITH LOGO)
+            nodes.push({
+                id: ROOT_ID,
+                label: "TCF ROOT",
+                shape: "circularImage", // Changed to image
+                image: ROOT_IMG,        // Your Logo URL
+                size: 50,               // Bigger size for Root
+                borderWidth: 4,
+                color: { border: "#D4AF37", background: "#ffffff" },
+                font: { color: "#002366", size: 14, face: "Segoe UI", bold: true, background: "rgba(255,255,255,0.8)" },
+                shadow: true,
+                fixed: true
+            });
+
+            // Map IDs
+            Object.entries(membersObj).forEach(([id, m]) => {
+                if (m.status === 'Approved' && m.fullName) {
+                    nameToIdMap.set(m.fullName.trim().toLowerCase(), id);
+                }
+            });
+
+            // Process Members
+            Object.entries(membersObj).forEach(([id, m]) => {
+                if (m.status !== 'Approved' || !m.fullName) return;
+
+                const cleanName = m.fullName.trim().toLowerCase();
+                const isPrime = PRIME_MEMBERS.some(p => p.toLowerCase() === cleanName);
+                const imageUrl = m.profilePicUrl || DEFAULT_IMG;
+                
+                // Risk Logic
+                const loanData = activeLoansMap[id];
+                const hasActiveLoan = loanData && loanData.count > 0;
+                const sipPending = m.currentMonthSIPStatus !== 'Paid';
+                const isRisky = hasActiveLoan || sipPending;
+
+                // Border Style
+                let borderColor = "#002366"; // Blue (Normal)
+                let borderWidth = 2;
+
+                if (isPrime) {
+                    borderColor = "#D4AF37"; // Gold (Prime)
+                    borderWidth = 5;
+                } else if (isRisky) {
+                    borderColor = "#ef4444"; // Red (Risk)
+                    borderWidth = 3; 
+                }
+
+                nodes.push({
+                    id: id,
+                    label: m.fullName.split(" ")[0],
+                    shape: "circularImage",
+                    image: imageUrl,
+                    size: isPrime ? 40 : 25,
+                    borderWidth: borderWidth,
+                    color: { 
+                        border: borderColor, 
+                        background: "#ffffff"
+                    },
+                    font: { size: 12, color: isRisky ? "#ef4444" : "#333", face: "Segoe UI" },
+                    shadow: isRisky
+                });
+
+                // Edges
+                let parentId = null;
+                let edgeColor = "#cbd5e1";
+                let dashes = false;
+
+                if (isPrime) {
+                    parentId = ROOT_ID;
+                    edgeColor = "#D4AF37";
+                } else if (m.guarantorName) {
+                    const gName = m.guarantorName.trim().toLowerCase();
+                    if (nameToIdMap.has(gName)) {
+                        parentId = nameToIdMap.get(gName);
+                        edgeColor = "#002366";
+                    } else {
+                        parentId = ROOT_ID;
+                        dashes = true;
+                    }
+                } else {
+                    parentId = ROOT_ID;
+                    dashes = true;
+                }
+
+                if (parentId) {
+                    edges.push({
+                        from: parentId,
+                        to: id,
+                        color: { color: edgeColor },
+                        dashes: dashes,
+                        width: isPrime ? 3 : 1
+                    });
+                }
+            });
+
+            renderVis(nodes, edges);
+        }
+
+        function renderVis(nodes, edges) {
+            const container = document.getElementById('network-container');
+            const data = { nodes: nodes, edges: edges };
+            
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: "UD",
+                        sortMethod: "directed",
+                        nodeSpacing: 120,
+                        levelSeparation: 150,
+                        shakeTowards: 'roots'
+                    }
+                },
+                nodes: {
+                    borderWidthSelected: 4,
+                    shapeProperties: {
+                        useBorderWithImage: true 
+                    }
+                },
+                edges: {
+                    smooth: { type: "cubicBezier", forceDirection: "vertical", roundness: 0.4 },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+                },
+                physics: false,
+                interaction: { dragNodes: true, zoomView: true, hover: true }
+            };
+
+            network = new vis.Network(container, data, options);
+            
+            // --- CLICK EVENT FOR POPUP ---
+            network.on("click", function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    if(nodeId !== ROOT_ID) {
+                        showPopup(nodeId);
+                    }
+                } else {
+                    closePopup();
+                }
+            });
+
+            document.getElementById('loader').style.display = 'none';
+            setTimeout(() => network.fit(), 500);
+            document.getElementById('stat-total').innerText = nodes.length - 1;
+        }
+
+        // --- 3. POPUP LOGIC ---
+        function showPopup(id) {
+            const m = allMembersData[id];
+            if(!m) return;
+
+            const loanInfo = activeLoansMap[id];
+            
+            // Fill Data
+            document.getElementById('pop-img').src = m.profilePicUrl || DEFAULT_IMG;
+            
+            // Full Image Click Binder
+            document.getElementById('pop-img').onclick = (e) => {
+                e.stopPropagation();
+                openFullImage(m.profilePicUrl || DEFAULT_IMG);
+            };
+
+            document.getElementById('pop-name').innerText = m.fullName;
+            document.getElementById('pop-id').innerText = `ID: ${m.membershipId}`;
+            
+            document.getElementById('pop-guarantor').innerText = m.guarantorName || 'None';
+
+            // --- SHOW GUARANTOR LIABILITY (SUGGESTION) ---
+            const liability = guarantorLiabilityMap[id] || 0;
+            const liabilityRow = document.getElementById('liability-row');
+            if (liability > 0) {
+                liabilityRow.style.display = 'flex';
+                document.getElementById('pop-liability').innerText = `₹${liability.toLocaleString()}`;
+            } else {
+                liabilityRow.style.display = 'none';
+            }
+
+            document.getElementById('pop-join').innerText = m.joiningDate || 'N/A';
+            document.getElementById('pop-bal').innerText = `₹${(m.accountBalance || 0).toLocaleString()}`;
+            
+            // SIP Status
+            const sipEl = document.getElementById('pop-sip');
+            sipEl.innerText = m.currentMonthSIPStatus || 'Pending';
+            sipEl.className = `popup-val ${m.currentMonthSIPStatus === 'Paid' ? 'val-green' : 'val-red'}`;
+
+            // Loan Status
+            const loanEl = document.getElementById('pop-loan');
+            if(loanInfo && loanInfo.count > 0) {
+                loanEl.innerHTML = `<span class="val-red">Active (${loanInfo.count})<br>₹${loanInfo.total.toLocaleString()}</span>`;
+            } else {
+                loanEl.innerHTML = `<span class="val-green">None</span>`;
+            }
+
+            // Show
+            document.getElementById('member-popup').classList.add('active');
+        }
+
+        function closePopup() {
+            document.getElementById('member-popup').classList.remove('active');
+        }
+
+        // --- 4. FULL IMAGE ---
+        function openFullImage(src) {
+            const modal = document.getElementById('full-img-modal');
+            document.getElementById('full-img-view').src = src;
+            modal.style.display = 'flex';
+        }
+
+        function fitGraph() {
+            if(network) network.fit({ animation: true });
+        }
+    </script>
+</body>
+</html>
