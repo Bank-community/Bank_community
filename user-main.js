@@ -45,18 +45,19 @@ async function checkAuthAndInitialize() {
             }
         }
 
-        const db = firebase.database();
+                const db = firebase.database();
         const auth = firebase.auth();
 
-        // C. Service Worker for PWA
+        // C. Service Worker for FCM Push Notifications (Corrected Path)
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log("SW Registered"))
-                .catch(err => console.log("SW Fail:", err));
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then((reg) => console.log("✅ FCM SW Registered successfully:", reg.scope))
+                .catch(err => console.error("❌ FCM SW Registration Failed:", err));
         }
 
         // D. Auth Listener
         auth.onAuthStateChanged(user => {
+
             if (user) {
                 // Initialize Analytics
                 Analytics.init(db);
@@ -121,32 +122,38 @@ async function verifyDeviceAndSetupNotifications(database, allMembers) {
     } catch (e) { console.log("Verification Error:", e); }
 }
 
-// 6. Push Registration Logic
+// 6. Push Registration Logic (Direct & Error Free)
 async function registerForPushNotifications(database, memberId) {
     if (!VAPID_KEY) {
-        console.error("VAPID_KEY is missing at the top of the file!");
+        console.error("❌ VAPID_KEY is missing at the top of the file!");
         return;
     }
     try {
-        const registration = await navigator.serviceWorker.ready;
+        console.log("🚀 Registering Service Worker explicitly for FCM...");
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        await navigator.serviceWorker.ready;
+        
         const messaging = firebase.messaging();
         
-        console.log("Generating FCM Token...");
+        console.log("⏳ Requesting FCM Token from Google Server...");
         const token = await messaging.getToken({ 
             vapidKey: VAPID_KEY, 
             serviceWorkerRegistration: registration 
         });
 
         if (token) {
-            console.log("✅ FCM Token Generated Successfully!");
-            // Token को डेटाबेस में सेव करना (एक यूजर के कई मोबाइल हो सकते हैं, इसलिए इसे इस फॉर्मेट में सेव किया है)
+            console.log("✅ Generated Token:", token);
+            // Save token under memberId
             await database.ref(`members/${memberId}/notificationTokens/${token}`).set(true);
-            console.log("✅ Token saved to Database!");
+            console.log("🎉 Token Successfully Saved to Firebase RTDB!");
+        } else {
+            console.warn("⚠️ No token returned from Firebase.");
         }
     } catch (err) { 
-        console.error('Token Error:', err); 
+        console.error('❌ Critical FCM Token Generation Error:', err); 
     }
 }
+
 
 // 7. Global PWA Install Logic
 window.addEventListener('beforeinstallprompt', (e) => {
